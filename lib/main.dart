@@ -1,5 +1,4 @@
 import 'package:boombet_app/data/notifiers.dart';
-import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +20,7 @@ class MyApp extends StatelessWidget {
           title: 'Flutter Demo',
           theme: ThemeData(
             colorScheme: .fromSeed(
-              seedColor: Colors.black12,
+              seedColor: const Color.fromARGB(31, 30, 255, 0),
               brightness: isLightMode ? Brightness.light : Brightness.dark,
             ),
           ),
@@ -41,22 +40,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: LoginPage());
+    return const SafeArea(child: LoginPage());
   }
 }
-
-//Revisar distribucion de carpetas/archivos
-//WidgetTree()
-//Hacer diferentes vistas. La de Login (Este archivo) es la inicial
-//Link del curso para acceder mas rapido https://www.youtube.com/watch?v=3kaGC_DrUnw
-//Reveer ValueListenableBuilder para manejo de estados

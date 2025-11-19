@@ -1,11 +1,24 @@
 import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/views/pages/profile_page.dart';
+import 'package:boombet_app/views/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
+  final bool showSettings;
+  final bool showLogo;
+  final bool showBackButton;
+  final bool showProfileButton;
 
-  const MainAppBar({super.key, this.title});
+  const MainAppBar({
+    super.key,
+    this.title,
+    this.showSettings = false,
+    this.showLogo = false,
+    this.showBackButton = false,
+    this.showProfileButton = false,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -15,14 +28,25 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     const greenColor = Color.fromARGB(255, 41, 255, 94);
 
     return AppBar(
-      title: title != null ? Text(title!) : null,
       systemOverlayStyle: SystemUiOverlayStyle.light,
       backgroundColor: Colors.black38,
+      title: showLogo
+          ? Center(
+              child: Image.asset('assets/images/boombetlogo.png', height: 80),
+            )
+          : (title != null ? Text(title!) : null),
       leading: IconButton(
-        icon: const Icon(Icons.exit_to_app, color: greenColor),
-        tooltip: 'Salir',
+        icon: Icon(
+          showBackButton ? Icons.arrow_back : Icons.exit_to_app,
+          color: greenColor,
+        ),
+        tooltip: showBackButton ? 'Volver' : 'Salir',
         onPressed: () {
-          SystemNavigator.pop();
+          if (showBackButton) {
+            Navigator.of(context).pop();
+          } else {
+            SystemNavigator.pop();
+          }
         },
       ),
       actions: [
@@ -41,6 +65,36 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             isLightModeNotifier.value = !isLightModeNotifier.value;
           },
         ),
+        if (showSettings)
+          IconButton(
+            icon: const Icon(Icons.settings, color: greenColor),
+            tooltip: 'Configuración',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return SettingsPage();
+                  },
+                ),
+              );
+            },
+          ),
+        if (showProfileButton)
+          IconButton(
+            icon: const Icon(Icons.person, color: greenColor),
+            tooltip: "Perfil",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return ProfilePage();
+                  },
+                ),
+              );
+            },
+          ),
       ],
     );
   }
