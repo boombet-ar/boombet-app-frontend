@@ -1,3 +1,6 @@
+import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/views/pages/home_page.dart';
+import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,16 +13,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: .fromSeed(
-          seedColor: Colors.black12,
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: const MyHomePage(title: 'Boombet App'),
+    return ValueListenableBuilder(
+      valueListenable: isLightModeNotifier,
+      builder: (context, isLightMode, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Flutter Demo',
+          theme: ThemeData(
+            colorScheme: .fromSeed(
+              seedColor: Colors.black12,
+              brightness: isLightMode ? Brightness.light : Brightness.dark,
+            ),
+          ),
+          home: const MyHomePage(title: 'Boombet App'),
+        );
+      },
     );
   }
 }
@@ -43,58 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          systemOverlayStyle: SystemUiOverlayStyle.light,
-          backgroundColor: Colors.black38,
-        ),
-        drawer: Drawer(
-          child: Column(
-            children: [
-              ListTile(title: Text("Salir"), leading: Icon(Icons.exit_to_app)),
-            ],
-          ),
-        ),
-        body: Center(
-          child: Container(
-            color: Colors.black38,
-            height: double.infinity,
-            width: double.infinity,
-            padding: const EdgeInsets.all(25.0),
-            child: Center(
-              child: Stack(
-                children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // const SizedBox(height: 16),
-                      Image.asset('assets/images/boombetlogo.png', width: 200),
-                      // const Center(child: Text("Iniciar Sesion")),
-                      SizedBox(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Usuario',
-                          ),
-                        ),
-                      ),
-                      TextField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Contraseña',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return SafeArea(child: LoginPage());
   }
 }
 
