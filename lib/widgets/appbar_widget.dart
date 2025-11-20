@@ -25,11 +25,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const greenColor = Color.fromARGB(255, 41, 255, 94);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final greenColor = theme.colorScheme.primary;
+    final appBarBg = isDark ? Colors.black38 : const Color(0xFFE8E8E8);
 
     return AppBar(
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      backgroundColor: Colors.black38,
+      systemOverlayStyle: isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      backgroundColor: appBarBg,
       leading: null,
       automaticallyImplyLeading: false,
       title: Row(
@@ -50,7 +55,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           if (showSettings)
             IconButton(
-              icon: const Icon(Icons.settings, color: greenColor),
+              icon: Icon(Icons.settings, color: greenColor),
               tooltip: 'Configuración',
               onPressed: () {
                 Navigator.push(
@@ -65,7 +70,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           if (showProfileButton)
             IconButton(
-              icon: const Icon(Icons.person, color: greenColor),
+              icon: Icon(Icons.person, color: greenColor),
               tooltip: "Perfil",
               onPressed: () {
                 Navigator.push(

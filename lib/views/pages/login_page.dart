@@ -1,4 +1,6 @@
+import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
+import 'package:boombet_app/views/pages/register-page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +16,12 @@ class _LoginPageState extends State<LoginPage> {
   late TextEditingController _userController;
   late TextEditingController _passwordController;
 
+  bool _userError = false;
+  bool _passwordError = false;
+  bool _isLoading = false;
+
+  final AuthService _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -28,18 +36,149 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  void _validateAndLogin() async {
+    // Validar campos vacíos
+    setState(() {
+      _userError = _userController.text.trim().isEmpty;
+      _passwordError = _passwordController.text.trim().isEmpty;
+    });
+
+    if (_userError || _passwordError) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text(
+            'Campos incompletos',
+            style: TextStyle(color: Color(0xFFE0E0E0)),
+          ),
+          content: const Text(
+            'Por favor, completa todos los campos.',
+            style: TextStyle(color: Color(0xFFE0E0E0)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Mostrar indicador de carga
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Llamar al servicio de login
+      final result = await _authService.login(
+        _userController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success'] == true) {
+        // Login exitoso - Navegar a HomePage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else {
+        // Error en el login - Mostrar mensaje específico
+        setState(() {
+          _userError = true;
+          _passwordError = true;
+        });
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            title: const Text(
+              'Error de autenticación',
+              style: TextStyle(color: Color(0xFFE0E0E0)),
+            ),
+            content: Text(
+              result['message'] ?? 'Usuario o contraseña incorrectos',
+              style: const TextStyle(color: Color(0xFFE0E0E0)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Error inesperado
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text(
+            'Error de conexión',
+            style: TextStyle(color: Color(0xFFE0E0E0)),
+          ),
+          content: Text(
+            'No se pudo conectar con el servidor: $e',
+            style: const TextStyle(color: Color(0xFFE0E0E0)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
-    const darkBg = Color(0xFF000000);
-    const textColor = Color(0xFFE0E0E0);
-    const accentGray = Color(0xFF1A1A1A);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryGreen = theme.colorScheme.primary;
+    final bgColor = theme.scaffoldBackgroundColor;
+    final textColor = theme.colorScheme.onBackground;
+    final accentColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFFE8E8E8);
+    final borderColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFFD0D0D0);
     const borderRadius = 12.0;
 
     return Scaffold(
       appBar: const MainAppBar(showSettings: false, showProfileButton: false),
       body: Container(
-        color: darkBg,
+        color: bgColor,
         height: double.infinity,
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -66,37 +205,46 @@ class _LoginPageState extends State<LoginPage> {
                       // TextField Usuario
                       TextField(
                         controller: _userController,
-                        style: const TextStyle(color: textColor),
+                        style: TextStyle(color: textColor),
+                        onChanged: (value) {
+                          if (_userError && value.isNotEmpty) {
+                            setState(() => _userError = false);
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: 'Correo electrónico o usuario',
-                          hintStyle: const TextStyle(color: Color(0xFF808080)),
-                          prefixIcon: const Icon(
+                          hintStyle: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF808080)
+                                : const Color(0xFF6C6C6C),
+                          ),
+                          prefixIcon: Icon(
                             Icons.person_outline,
-                            color: primaryGreen,
+                            color: _userError ? Colors.red : primaryGreen,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: accentGray,
+                            borderSide: BorderSide(
+                              color: _userError ? Colors.red : borderColor,
                               width: 1.5,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: accentGray,
+                            borderSide: BorderSide(
+                              color: _userError ? Colors.red : borderColor,
                               width: 1.5,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: primaryGreen,
+                            borderSide: BorderSide(
+                              color: _userError ? Colors.red : primaryGreen,
                               width: 2,
                             ),
                           ),
                           filled: true,
-                          fillColor: accentGray,
+                          fillColor: accentColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 14,
                             horizontal: 16,
@@ -109,37 +257,46 @@ class _LoginPageState extends State<LoginPage> {
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
-                        style: const TextStyle(color: textColor),
+                        style: TextStyle(color: textColor),
+                        onChanged: (value) {
+                          if (_passwordError && value.isNotEmpty) {
+                            setState(() => _passwordError = false);
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: 'Contraseña',
-                          hintStyle: const TextStyle(color: Color(0xFF808080)),
-                          prefixIcon: const Icon(
+                          hintStyle: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF808080)
+                                : const Color(0xFF6C6C6C),
+                          ),
+                          prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: primaryGreen,
+                            color: _passwordError ? Colors.red : primaryGreen,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: accentGray,
+                            borderSide: BorderSide(
+                              color: _passwordError ? Colors.red : borderColor,
                               width: 1.5,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: accentGray,
+                            borderSide: BorderSide(
+                              color: _passwordError ? Colors.red : borderColor,
                               width: 1.5,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: const BorderSide(
-                              color: primaryGreen,
+                            borderSide: BorderSide(
+                              color: _passwordError ? Colors.red : primaryGreen,
                               width: 2,
                             ),
                           ),
                           filled: true,
-                          fillColor: accentGray,
+                          fillColor: accentColor,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 14,
                             horizontal: 16,
@@ -155,28 +312,33 @@ class _LoginPageState extends State<LoginPage> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryGreen,
+                            foregroundColor: isDark
+                                ? Colors.black
+                                : Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
                             ),
                             elevation: 4,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomePage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Iniciar Sesión',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                          onPressed: _isLoading ? null : _validateAndLogin,
+                          child: _isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: isDark ? Colors.black : Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Iniciar Sesión',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.black : Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -187,18 +349,22 @@ class _LoginPageState extends State<LoginPage> {
                         height: 44,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: primaryGreen,
-                              width: 1.5,
-                            ),
+                            side: BorderSide(color: primaryGreen, width: 1.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
                             ),
                           ),
                           onPressed: () {
-                            // Navegar a página de registro
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return const RegisterPage();
+                                },
+                              ),
+                            );
                           },
-                          child: const Text(
+                          child: Text(
                             'Registrarse',
                             style: TextStyle(
                               fontSize: 16,
