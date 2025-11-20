@@ -1,4 +1,9 @@
-import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/data/mock_data.dart';
+import 'package:boombet_app/data/player_data.dart';
+// TODO: Descomentar cuando el backend esté listo
+// import 'package:boombet_app/services/auth_service.dart';
+// import 'package:boombet_app/services/player_service.dart';
+import 'package:boombet_app/views/pages/confirm_data_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/register-page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -20,7 +25,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _passwordError = false;
   bool _isLoading = false;
 
-  final AuthService _authService = AuthService();
+  // TODO: Descomentar cuando el backend esté listo
+  // final AuthService _authService = AuthService();
+  // final PlayerService _playerService = PlayerService();
 
   @override
   void initState() {
@@ -76,11 +83,17 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Llamar al servicio de login
+      // ====== MODO TESTING: USANDO MOCK DATA ======
+      // TODO: Descomentar cuando el backend esté listo
+      /*
       final result = await _authService.login(
         _userController.text.trim(),
         _passwordController.text,
       );
+      */
+
+      // Simular delay de red
+      await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
@@ -88,12 +101,87 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
       });
 
-      if (result['success'] == true) {
-        // Login exitoso - Navegar a HomePage
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+      // Validar credenciales mock
+      final username = _userController.text.trim();
+      final password = _passwordController.text;
+
+      if (username == MockData.testUsername &&
+          password == MockData.testPassword) {
+        // Login exitoso - Usar datos mock
+        try {
+          final playerData = PlayerData.fromJson(MockData.playerDataJson);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ConfirmPlayerDataPage(
+                datosJugador: playerData,
+                onConfirm: (datosConfirmados) async {
+                  // ====== MODO TESTING: SIMULANDO GUARDADO ======
+                  // TODO: Descomentar cuando el backend esté listo
+                  /*
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  final result = await _playerService.updatePlayerData(
+                    datosConfirmados,
+                  );
+
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+
+                  if (result['success'] == true) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomePage()),
+                    );
+                  } else {
+                    showDialog(...); // error dialog
+                  }
+                  */
+
+                  // Simular guardado exitoso y navegar a HomePage
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  if (!context.mounted) return;
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomePage()),
+                  );
+                },
+              ),
+            ),
+          );
+        } catch (e) {
+          // Error al parsear datos del jugador
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              title: const Text(
+                'Error al cargar datos',
+                style: TextStyle(color: Color(0xFFE0E0E0)),
+              ),
+              content: Text(
+                'No se pudieron cargar los datos del usuario: $e',
+                style: const TextStyle(color: Color(0xFFE0E0E0)),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
       } else {
         // Error en el login - Mostrar mensaje específico
         setState(() {
@@ -110,7 +198,10 @@ class _LoginPageState extends State<LoginPage> {
               style: TextStyle(color: Color(0xFFE0E0E0)),
             ),
             content: Text(
-              result['message'] ?? 'Usuario o contraseña incorrectos',
+              'Usuario o contraseña incorrectos\n\n'
+              'Credenciales de prueba:\n'
+              'Usuario: ${MockData.testUsername}\n'
+              'Contraseña: ${MockData.testPassword}',
               style: const TextStyle(color: Color(0xFFE0E0E0)),
             ),
             actions: [
@@ -194,8 +285,7 @@ class _LoginPageState extends State<LoginPage> {
                     width: 200,
                   ),
                 ),
-              ),
-              // Campos y botones
+              ), // Campos y botones
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.65,
                 child: Center(

@@ -21,6 +21,14 @@ class NavbarWidget extends StatelessWidget {
               icon: Icon(Icons.store, color: greenColor),
               label: "Tienda",
             ),
+            NavigationDestination(
+              icon: Icon(Icons.discount, color: greenColor),
+              label: "Descuentos",
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.sort, color: greenColor),
+              label: "Sorteos activos",
+            ),
           ],
           onDestinationSelected: (int value) {
             selectedPageNotifier.value = value;
