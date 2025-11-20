@@ -18,8 +18,8 @@ class NavbarWidget extends StatelessWidget {
               label: "Home",
             ),
             NavigationDestination(
-              icon: Icon(Icons.person, color: greenColor),
-              label: "Perfil",
+              icon: Icon(Icons.store, color: greenColor),
+              label: "Tienda",
             ),
           ],
           onDestinationSelected: (int value) {

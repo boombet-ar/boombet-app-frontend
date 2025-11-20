@@ -30,72 +30,78 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       systemOverlayStyle: SystemUiOverlayStyle.light,
       backgroundColor: Colors.black38,
-      title: showLogo
-          ? Center(
+      leading: null,
+      automaticallyImplyLeading: false,
+      title: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+              showBackButton ? Icons.arrow_back : Icons.exit_to_app,
+              color: greenColor,
+            ),
+            tooltip: showBackButton ? 'Volver' : 'Salir',
+            onPressed: () {
+              if (showBackButton) {
+                Navigator.of(context).pop();
+              } else {
+                SystemNavigator.pop();
+              }
+            },
+          ),
+          if (showSettings)
+            IconButton(
+              icon: const Icon(Icons.settings, color: greenColor),
+              tooltip: 'Configuración',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return SettingsPage();
+                    },
+                  ),
+                );
+              },
+            ),
+          if (showProfileButton)
+            IconButton(
+              icon: const Icon(Icons.person, color: greenColor),
+              tooltip: "Perfil",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return ProfilePage();
+                    },
+                  ),
+                );
+              },
+            ),
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: isLightModeNotifier,
+              builder: (context, isLightMode, child) {
+                return Icon(
+                  isLightMode ? Icons.dark_mode : Icons.light_mode,
+                  color: greenColor,
+                );
+              },
+            ),
+            tooltip: "Modo Claro",
+            onPressed: () {
+              isLightModeNotifier.value = !isLightModeNotifier.value;
+            },
+          ),
+          Spacer(),
+          if (showLogo)
+            Padding(
+              padding: EdgeInsets.only(right: 8.0),
               child: Image.asset('assets/images/boombetlogo.png', height: 80),
-            )
-          : (title != null ? Text(title!) : null),
-      leading: IconButton(
-        icon: Icon(
-          showBackButton ? Icons.arrow_back : Icons.exit_to_app,
-          color: greenColor,
-        ),
-        tooltip: showBackButton ? 'Volver' : 'Salir',
-        onPressed: () {
-          if (showBackButton) {
-            Navigator.of(context).pop();
-          } else {
-            SystemNavigator.pop();
-          }
-        },
+            ),
+        ],
       ),
-      actions: [
-        IconButton(
-          icon: ValueListenableBuilder(
-            valueListenable: isLightModeNotifier,
-            builder: (context, isLightMode, child) {
-              return Icon(
-                isLightMode ? Icons.dark_mode : Icons.light_mode,
-                color: greenColor,
-              );
-            },
-          ),
-          tooltip: "Modo Claro",
-          onPressed: () {
-            isLightModeNotifier.value = !isLightModeNotifier.value;
-          },
-        ),
-        if (showSettings)
-          IconButton(
-            icon: const Icon(Icons.settings, color: greenColor),
-            tooltip: 'Configuración',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return SettingsPage();
-                  },
-                ),
-              );
-            },
-          ),
-        if (showProfileButton)
-          IconButton(
-            icon: const Icon(Icons.person, color: greenColor),
-            tooltip: "Perfil",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return ProfilePage();
-                  },
-                ),
-              );
-            },
-          ),
-      ],
+      actions: [],
     );
   }
 }
