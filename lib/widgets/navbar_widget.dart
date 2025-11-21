@@ -27,7 +27,11 @@ class NavbarWidget extends StatelessWidget {
             ),
             NavigationDestination(
               icon: Icon(Icons.sort, color: greenColor),
-              label: "Sorteos activos",
+              label: "Sorteos",
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.forum, color: greenColor),
+              label: "Foro",
             ),
           ],
           onDestinationSelected: (int value) {

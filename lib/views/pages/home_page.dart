@@ -1,6 +1,8 @@
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/views/pages/forum_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
+import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -40,6 +42,9 @@ class _HomePageState extends State<HomePage> {
           case 3:
             currentPage = const RafflesContent();
             break;
+          case 4:
+            currentPage = const ForumPage();
+            break;
           default:
             currentPage = const HomeContent();
         }
@@ -60,27 +65,60 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _handleSearch(String query) {
+    print('Buscando: $query');
+    // Aquí puedes agregar la lógica de búsqueda
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onBackground;
 
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.home, size: 80, color: theme.colorScheme.primary),
+          SearchBarWidget(
+            controller: _searchController,
+            onSearch: _handleSearch,
+            placeholder: '¿Qué estás buscando?',
+          ),
           const SizedBox(height: 20),
-          Text(
-            'HOME',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-              letterSpacing: 2,
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.home, size: 80, color: theme.colorScheme.primary),
+                  const SizedBox(height: 20),
+                  Text(
+                    'HOME',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

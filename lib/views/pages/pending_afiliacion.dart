@@ -65,27 +65,26 @@ class _PendingAfiliacionPageState extends State<PendingAfiliacionPage> {
         color: bgColor,
         width: double.infinity,
         height: double.infinity,
-        child: SingleChildScrollView(
+        child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 25.0,
-              vertical: 40.0,
+              horizontal: 30.0,
+              vertical: 20.0,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 40),
-
                 // Logo de BoomBet
-                Image.asset('assets/images/boombetlogo.png', width: 250),
+                Image.asset('assets/images/boombetlogo.png', width: 200),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
                 // Texto llamativo
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 20.0,
+                    horizontal: 16.0,
+                    vertical: 12.0,
                   ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -96,143 +95,130 @@ class _PendingAfiliacionPageState extends State<PendingAfiliacionPage> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: greenColor.withOpacity(0.3),
-                      width: 2,
+                      width: 1.5,
                     ),
                   ),
                   child: Text(
                     '🎰 El primer portal de casinos legales y apuestas deportivas online 🎲',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: greenColor,
-                      letterSpacing: 0.5,
-                      height: 1.4,
+                      letterSpacing: 0.2,
+                      height: 1.2,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 24),
 
-                // Icono de espera/proceso
-                Icon(Icons.hourglass_empty, size: 80, color: greenColor),
-
-                const SizedBox(height: 40),
-
-                // Título principal
-                Text(
-                  '¡Estamos procesando tu solicitud!',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 20),
-
-                // Texto descriptivo
-                Text(
-                  'Tu afiliación está siendo verificada por nuestro equipo.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 40),
-
-                // Imagen placeholder
+                // Icono de espera/proceso con animación
                 Container(
-                  width: 200,
-                  height: 200,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFFE8E8E8),
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
+                    color: greenColor.withOpacity(0.1),
                     border: Border.all(
                       color: greenColor.withOpacity(0.3),
                       width: 2,
                     ),
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image,
-                          size: 60,
-                          color: isDark ? Colors.white30 : Colors.black26,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Imagen Placeholder',
-                          style: TextStyle(
-                            color: isDark ? Colors.white30 : Colors.black26,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: Icon(
+                    Icons.hourglass_empty,
+                    size: 48,
+                    color: greenColor,
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
-                // Texto informativo adicional
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Text(
-                    'Este proceso puede tardar unos minutos. Por favor no cierres la aplicación.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white60 : Colors.black45,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
+                // Título principal
+                Text(
+                  '¡Estamos procesando tu solicitud!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    letterSpacing: 0.2,
                   ),
+                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 8),
+
+                // Texto descriptivo
+                Text(
+                  'Tu afiliación está siendo verificada',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: textColor.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 24),
 
                 // Barra de carga con texto
-                Column(
-                  children: [
-                    Text(
-                      'Te estamos afiliando, espere unos minutos',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: textColor,
-                      ),
-                      textAlign: TextAlign.center,
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: greenColor.withOpacity(0.2),
+                      width: 1,
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.schedule, size: 18, color: greenColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Procesando afiliación',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
 
-                    // Barra de progreso indeterminada
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                      // Barra de progreso indeterminada
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
                         child: LinearProgressIndicator(
-                          minHeight: 8,
+                          minHeight: 5,
                           backgroundColor: isDark
-                              ? const Color(0xFF1A1A1A)
-                              : const Color(0xFFE8E8E8),
+                              ? const Color(0xFF2A2A2A)
+                              : const Color(0xFFE0E0E0),
                           valueColor: AlwaysStoppedAnimation<Color>(greenColor),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 10),
 
-                const SizedBox(height: 40),
+                      Text(
+                        'Por favor no cierres la aplicación',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withOpacity(0.6),
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

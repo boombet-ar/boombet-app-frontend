@@ -5,10 +5,16 @@ class TokenService {
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
   static const _refreshTokenKey = 'refresh_token';
+  static const _tempTokenKey = 'temp_jwt_token';
 
-  /// Guarda el token JWT de forma segura
+  /// Guarda el token JWT de forma segura (persistente)
   static Future<void> saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
+  }
+
+  /// Guarda el token temporal (no persistente entre reinicios de app)
+  static Future<void> saveTemporaryToken(String token) async {
+    await _storage.write(key: _tempTokenKey, value: token);
   }
 
   /// Guarda el refresh token de forma segura
@@ -16,9 +22,17 @@ class TokenService {
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
   }
 
-  /// Obtiene el token JWT almacenado
+  /// Obtiene el token JWT almacenado (persistente o temporal)
   static Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    // Primero intenta obtener el token persistente
+    String? token = await _storage.read(key: _tokenKey);
+    
+    // Si no existe, intenta obtener el token temporal
+    if (token == null) {
+      token = await _storage.read(key: _tempTokenKey);
+    }
+    
+    return token;
   }
 
   /// Obtiene el refresh token almacenado
@@ -30,6 +44,12 @@ class TokenService {
   static Future<void> deleteToken() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _tempTokenKey);
+  }
+
+  /// Elimina solo el token temporal
+  static Future<void> deleteTemporaryToken() async {
+    await _storage.delete(key: _tempTokenKey);
   }
 
   /// Verifica si el token existe y es válido

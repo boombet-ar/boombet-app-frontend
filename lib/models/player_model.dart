@@ -37,6 +37,7 @@ class PlayerData {
     this.edad,
   });
 
+  /// Factory para parsear desde el endpoint /auth/userData (datosJugador)
   factory PlayerData.fromJson(Map<String, dynamic> json) {
     return PlayerData(
       nombre: json['nombre'] ?? '',
@@ -59,6 +60,91 @@ class PlayerData {
           ? json['edad'] as int
           : int.tryParse('${json['edad']}'),
     );
+  }
+
+  /// Factory para parsear desde el endpoint /auth/register (listaExistenciaFisica)
+  factory PlayerData.fromRegisterResponse(Map<String, dynamic> json) {
+    // Extraer apenom y dividir en nombre y apellido
+    final apenom = (json['apenom'] ?? '').toString().trim();
+    final partes = apenom.split(' ');
+
+    String apellido = '';
+    String nombre = '';
+
+    if (partes.isNotEmpty) {
+      // Primer elemento es el apellido
+      apellido = partes[0].replaceAll(',', '').trim();
+      // El resto es el nombre
+      if (partes.length > 1) {
+        nombre = partes.sublist(1).join(' ').trim();
+      }
+    }
+
+    // Extraer dirección completa y dividir en calle y número
+    final direccionCompleta = (json['direc_calle'] ?? '').toString().trim();
+    String calle = direccionCompleta;
+    String numCalle = '';
+
+    // Intentar separar el número de calle (último elemento numérico)
+    final partesDireccion = direccionCompleta.split(' ');
+    if (partesDireccion.isNotEmpty) {
+      final ultimaParte = partesDireccion.last;
+      if (int.tryParse(ultimaParte) != null) {
+        numCalle = ultimaParte;
+        calle = partesDireccion
+            .sublist(0, partesDireccion.length - 1)
+            .join(' ');
+      }
+    }
+
+    // Extraer año de nacimiento desde fecha_nacimiento
+    final fechaNacimiento = json['fecha_nacimiento']?.toString() ?? '';
+    String anioNacimiento = '';
+    if (fechaNacimiento.isNotEmpty) {
+      final partesFecha = fechaNacimiento.split('-');
+      if (partesFecha.length == 3) {
+        anioNacimiento = partesFecha[2]; // dd-mm-yyyy
+      }
+    }
+
+    // Calcular edad si no viene en el response
+    int? edad;
+    if (anioNacimiento.isNotEmpty) {
+      final anio = int.tryParse(anioNacimiento);
+      if (anio != null) {
+        edad = DateTime.now().year - anio;
+      }
+    }
+
+    return PlayerData(
+      nombre: nombre,
+      apellido: apellido,
+      cuil: json['cdi_codigo_de_identificacion']?.toString() ?? '',
+      dni: json['nume_docu']?.toString() ?? '',
+      sexo: _normalizarSexo(json['sexo']?.toString() ?? ''),
+      estadoCivil: json['estado_civil']?.toString() ?? '',
+      telefono: '', // No viene en el response del register
+      correoElectronico: '', // No viene en el response del register
+      direccionCompleta: direccionCompleta,
+      calle: calle,
+      numCalle: numCalle,
+      localidad: json['localidad']?.toString() ?? '',
+      provincia: json['provincia']?.toString() ?? '',
+      fechaNacimiento: fechaNacimiento,
+      anioNacimiento: anioNacimiento,
+      cp: json['codigo_postal'] is int
+          ? json['codigo_postal'] as int
+          : int.tryParse('${json['codigo_postal']}'),
+      edad: edad,
+    );
+  }
+
+  /// Helper para normalizar el sexo (M -> Masculino, F -> Femenino)
+  static String _normalizarSexo(String sexo) {
+    final sexoUpper = sexo.toUpperCase().trim();
+    if (sexoUpper == 'M') return 'Masculino';
+    if (sexoUpper == 'F') return 'Femenino';
+    return sexo;
   }
 
   Map<String, dynamic> toJson() {

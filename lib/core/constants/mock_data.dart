@@ -22,6 +22,6 @@ class MockData {
   };
 
   /// Credenciales de prueba para el login
-  static const String testUsername = "testuser";
+  static const String testEmail = "test@boombet.com";
   static const String testPassword = "Test123!";
 }
