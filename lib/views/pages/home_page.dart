@@ -1,4 +1,4 @@
-import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:flutter/material.dart';
@@ -49,6 +49,8 @@ class _HomePageState extends State<HomePage> {
             showSettings: true,
             showLogo: true,
             showProfileButton: true,
+            showLogoutButton: true,
+            showExitButton: false,
           ),
           body: currentPage,
           bottomNavigationBar: const NavbarWidget(),

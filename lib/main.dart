@@ -1,4 +1,6 @@
-import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -90,8 +92,29 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool _isLoading = true;
+  bool _hasSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final hasActiveSession = await TokenService.hasActiveSession();
+    setState(() {
+      _hasSession = hasActiveSession;
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(child: LoginPage());
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return SafeArea(child: _hasSession ? const HomePage() : const LoginPage());
   }
 }

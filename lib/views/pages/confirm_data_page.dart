@@ -1,5 +1,5 @@
-import 'package:boombet_app/data/notifiers.dart';
-import 'package:boombet_app/data/player_data.dart';
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 

@@ -1,4 +1,4 @@
-import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/discounts_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';

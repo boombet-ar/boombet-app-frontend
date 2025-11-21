@@ -1,6 +1,10 @@
-import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/views/pages/faq_page.dart';
+import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
 import 'package:boombet_app/views/pages/settings_page.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +14,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showLogo;
   final bool showBackButton;
   final bool showProfileButton;
+  final bool showLogoutButton;
+  final bool showFaqButton;
+  final bool showExitButton;
 
   const MainAppBar({
     super.key,
@@ -18,6 +25,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showLogo = false,
     this.showBackButton = false,
     this.showProfileButton = false,
+    this.showLogoutButton = false,
+    this.showFaqButton = true,
+    this.showExitButton = true,
   });
 
   @override
@@ -39,20 +49,84 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Row(
         children: [
-          IconButton(
-            icon: Icon(
-              showBackButton ? Icons.arrow_back : Icons.exit_to_app,
-              color: greenColor,
+          // Solo mostrar botón de volver o salir si no es web o si es botón de volver
+          if (showBackButton || (!kIsWeb && showExitButton))
+            IconButton(
+              icon: Icon(
+                showBackButton ? Icons.arrow_back : Icons.exit_to_app,
+                color: greenColor,
+              ),
+              tooltip: showBackButton ? 'Volver' : 'Salir',
+              onPressed: () {
+                if (showBackButton) {
+                  Navigator.of(context).pop();
+                } else {
+                  SystemNavigator.pop();
+                }
+              },
             ),
-            tooltip: showBackButton ? 'Volver' : 'Salir',
-            onPressed: () {
-              if (showBackButton) {
-                Navigator.of(context).pop();
-              } else {
-                SystemNavigator.pop();
-              }
-            },
-          ),
+          if (showLogoutButton)
+            IconButton(
+              icon: Icon(Icons.logout, color: greenColor),
+              tooltip: 'Cerrar Sesión',
+              onPressed: () async {
+                // Mostrar diálogo de confirmación
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: isDark
+                        ? const Color(0xFF1A1A1A)
+                        : Colors.white,
+                    title: Text(
+                      '¿Cerrar sesión?',
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFFE0E0E0)
+                            : Colors.black87,
+                      ),
+                    ),
+                    content: Text(
+                      '¿Estás seguro de que deseas cerrar sesión?',
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFFE0E0E0)
+                            : Colors.black87,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(color: greenColor),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          'Cerrar Sesión',
+                          style: TextStyle(color: greenColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (shouldLogout == true) {
+                  final authService = AuthService();
+                  await authService.logout();
+
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                }
+              },
+            ),
           if (showSettings)
             IconButton(
               icon: Icon(Icons.settings, color: greenColor),
@@ -78,6 +152,21 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   MaterialPageRoute(
                     builder: (context) {
                       return ProfilePage();
+                    },
+                  ),
+                );
+              },
+            ),
+          if (showFaqButton)
+            IconButton(
+              icon: Icon(Icons.help_outline, color: greenColor),
+              tooltip: "Ayuda / FAQ",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return const FaqPage();
                     },
                   ),
                 );

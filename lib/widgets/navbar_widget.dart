@@ -1,4 +1,4 @@
-import 'package:boombet_app/data/notifiers.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:flutter/material.dart';
 
 class NavbarWidget extends StatelessWidget {

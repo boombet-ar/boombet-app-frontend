@@ -1,17 +1,28 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import '../data/player_data.dart';
+import '../models/player_model.dart';
+import 'token_service.dart';
 
 class PlayerService {
+  /// Obtiene los headers con el token de autorización
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final token = await TokenService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   /// Actualiza los datos del jugador en el backend
   Future<Map<String, dynamic>> updatePlayerData(PlayerData playerData) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/player/update');
 
     try {
+      final headers = await _getAuthHeaders();
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(playerData.toJson()),
       );
 
@@ -49,10 +60,8 @@ class PlayerService {
     final url = Uri.parse('${ApiConfig.baseUrl}/player/$dni');
 
     try {
-      final response = await http.get(
-        url,
-        headers: {'Content-Type': 'application/json'},
-      );
+      final headers = await _getAuthHeaders();
+      final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         // Obtención exitosa
