@@ -196,17 +196,29 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
       });
 
-      // Error inesperado
+      // Detectar error de CORS o ClientException
+      String errorTitle = 'Error de conexión';
+      String errorMessage = 'No se pudo conectar con el servidor';
+
+      if (e.toString().contains('ClientException') ||
+          e.toString().contains('Failed to fetch')) {
+        errorTitle = 'Error de conexión desde navegador';
+        errorMessage =
+            'El servidor no permite conexiones desde navegadores web por seguridad (CORS).\n\n'
+            '✅ Solución: Usa la aplicación desde Android o iOS.\n\n'
+            'Si necesitas usar el navegador, contacta al administrador para configurar CORS en el backend.';
+      }
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Error de conexión',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+          title: Text(
+            errorTitle,
+            style: const TextStyle(color: Color(0xFFE0E0E0)),
           ),
           content: Text(
-            'No se pudo conectar con el servidor: $e',
+            errorMessage,
             style: const TextStyle(color: Color(0xFFE0E0E0)),
           ),
           actions: [
@@ -230,7 +242,7 @@ class _LoginPageState extends State<LoginPage> {
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.colorScheme.onBackground;
+    final textColor = theme.colorScheme.onSurface;
     final accentColor = isDark
         ? const Color(0xFF1A1A1A)
         : const Color(0xFFE8E8E8);

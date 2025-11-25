@@ -1,4 +1,3 @@
-import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/player_service.dart';
@@ -16,12 +15,14 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  late TextEditingController _usernameController;
   late TextEditingController _emailController;
   late TextEditingController _dniController;
   late TextEditingController _phoneController;
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
 
+  bool _usernameError = false;
   bool _emailError = false;
   bool _dniError = false;
   bool _phoneError = false;
@@ -38,6 +39,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
+    _usernameController = TextEditingController();
     _emailController = TextEditingController();
     _dniController = TextEditingController();
     _phoneController = TextEditingController();
@@ -47,6 +49,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _dniController.dispose();
     _phoneController.dispose();
@@ -69,6 +72,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _validateAndRegister() async {
     setState(() {
+      _usernameError = _usernameController.text.trim().isEmpty;
       _emailError = _emailController.text.trim().isEmpty;
       _dniError = _dniController.text.trim().isEmpty;
       _phoneError = _phoneController.text.trim().isEmpty;
@@ -77,7 +81,8 @@ class _RegisterPageState extends State<RegisterPage> {
       _genderError = _selectedGender == null;
     });
 
-    if (_emailError ||
+    if (_usernameError ||
+        _emailError ||
         _dniError ||
         _phoneError ||
         _passwordError ||
@@ -215,6 +220,7 @@ class _RegisterPageState extends State<RegisterPage> {
         _phoneController.text.trim(),
         _passwordController.text,
         _selectedGender!,
+        username: _usernameController.text.trim(),
       );
 
       if (!mounted) return;
@@ -408,7 +414,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.colorScheme.onBackground;
+    final textColor = theme.colorScheme.onSurface;
     final accentColor = isDark
         ? const Color(0xFF1A1A1A)
         : const Color(0xFFE8E8E8);
@@ -472,6 +478,60 @@ class _RegisterPageState extends State<RegisterPage> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // TextField Nombre de Usuario
+                      TextField(
+                        controller: _usernameController,
+                        keyboardType: TextInputType.text,
+                        textInputAction: TextInputAction.next,
+                        enableInteractiveSelection: true,
+                        style: TextStyle(color: textColor),
+                        onChanged: (value) {
+                          if (_usernameError && value.isNotEmpty) {
+                            setState(() => _usernameError = false);
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Nombre de usuario',
+                          hintStyle: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF808080)
+                                : const Color(0xFF6C6C6C),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: _usernameError ? Colors.red : primaryGreen,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            borderSide: BorderSide(
+                              color: _usernameError ? Colors.red : borderColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            borderSide: BorderSide(
+                              color: _usernameError ? Colors.red : borderColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            borderSide: BorderSide(
+                              color: _usernameError ? Colors.red : primaryGreen,
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: accentColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // TextField Email
                       TextField(
                         controller: _emailController,
@@ -1005,3 +1065,8 @@ class _RegisterPageState extends State<RegisterPage> {
 }
 
 //http://localhost:8080/api/auth/register
+//http://localhost:8080/api/auth/startaffiliate
+//Para el websocket: devolver un json con la siguiente estructura:
+//{
+// "playerData" : { ... },
+// "websocketlink" : ""

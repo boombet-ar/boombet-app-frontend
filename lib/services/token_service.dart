@@ -26,12 +26,10 @@ class TokenService {
   static Future<String?> getToken() async {
     // Primero intenta obtener el token persistente
     String? token = await _storage.read(key: _tokenKey);
-    
+
     // Si no existe, intenta obtener el token temporal
-    if (token == null) {
-      token = await _storage.read(key: _tempTokenKey);
-    }
-    
+    token ??= await _storage.read(key: _tempTokenKey);
+
     return token;
   }
 

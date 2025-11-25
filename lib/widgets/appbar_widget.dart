@@ -17,6 +17,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showLogoutButton;
   final bool showFaqButton;
   final bool showExitButton;
+  final bool showThemeToggle;
 
   const MainAppBar({
     super.key,
@@ -28,6 +29,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showLogoutButton = false,
     this.showFaqButton = true,
     this.showExitButton = true,
+    this.showThemeToggle = true,
   });
 
   @override
@@ -172,21 +174,24 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 );
               },
             ),
-          IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: isLightModeNotifier,
-              builder: (context, isLightMode, child) {
-                return Icon(
-                  isLightMode ? Icons.dark_mode : Icons.light_mode,
-                  color: greenColor,
-                );
-              },
+          if (showThemeToggle)
+            RepaintBoundary(
+              child: IconButton(
+                icon: ValueListenableBuilder<bool>(
+                  valueListenable: isLightModeNotifier,
+                  builder: (context, isLightMode, child) {
+                    return Icon(
+                      isLightMode ? Icons.dark_mode : Icons.light_mode,
+                      color: greenColor,
+                    );
+                  },
+                ),
+                tooltip: "Modo Claro",
+                onPressed: () {
+                  isLightModeNotifier.value = !isLightModeNotifier.value;
+                },
+              ),
             ),
-            tooltip: "Modo Claro",
-            onPressed: () {
-              isLightModeNotifier.value = !isLightModeNotifier.value;
-            },
-          ),
           Spacer(),
           if (showLogo)
             Padding(

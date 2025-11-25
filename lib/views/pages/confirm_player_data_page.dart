@@ -1,6 +1,6 @@
 import 'package:boombet_app/models/player_model.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/views/pages/pending_afiliacion.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -26,7 +26,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   late TextEditingController _estadoCivilController;
   late TextEditingController _sexoController;
 
-  final PlayerService _playerService = PlayerService();
+  final AffiliationService _affiliationService = AffiliationService();
   bool _isLoading = false;
 
   @override
@@ -50,78 +50,98 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _telefonoController.dispose();
     _estadoCivilController.dispose();
     _sexoController.dispose();
+    _affiliationService.dispose();
     super.dispose();
   }
 
   Future<void> _onConfirmarDatos() async {
+    if (_isLoading) return; // Prevenir doble tap
+
     setState(() {
       _isLoading = true;
     });
 
-    // Crear PlayerData actualizado (solo campos editables)
-    final updatedData = widget.playerData.copyWith(
-      nombre: _nombreController.text.trim(),
-      apellido: _apellidoController.text.trim(),
-      correoElectronico: _correoController.text.trim(),
-      telefono: _telefonoController.text.trim(),
-      estadoCivil: _estadoCivilController.text.trim(),
-      sexo: _sexoController.text.trim(),
-      // Dirección no se actualiza (campos read-only)
-    );
+    try {
+      // Crear PlayerData actualizado (solo campos editables)
+      final updatedData = widget.playerData.copyWith(
+        nombre: _nombreController.text.trim(),
+        apellido: _apellidoController.text.trim(),
+        correoElectronico: _correoController.text.trim(),
+        telefono: _telefonoController.text.trim(),
+        estadoCivil: _estadoCivilController.text.trim(),
+        sexo: _sexoController.text.trim(),
+        // Dirección no se actualiza (campos read-only)
+      );
 
-    // TODO: Descomentar cuando el backend implemente el endpoint /auth/confirmData
-    // Enviar datos al backend
-    // final result = await _playerService.sendConfirmedPlayerData(
-    //   updatedData,
-    //   widget.token,
-    // );
+      print('Iniciando afiliación con token: ${widget.token?.substring(0, 20)}...');
 
-    if (!mounted) return;
+      // Iniciar proceso de afiliación: abrir WebSocket y enviar al backend
+      final result = await _affiliationService.startAffiliation(
+        playerData: updatedData,
+        token: widget.token ?? '',
+      );
 
-    setState(() {
-      _isLoading = false;
-    });
+      print('Resultado de afiliación: ${result['success']}');
+      print('Mensaje: ${result['message']}');
 
-    // TODO: Validar resultado del backend cuando esté implementado
-    // Por ahora, navegamos directamente sin validar backend
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Datos confirmados correctamente'),
-        backgroundColor: Color.fromARGB(255, 41, 255, 94),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      if (!mounted) return;
 
-    // Navegar a la página de espera de afiliación
-    await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _isLoading = false;
+      });
 
-    if (!mounted) return;
+      if (result['success'] == true) {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Datos confirmados. Iniciando afiliación...'),
+            backgroundColor: Color.fromARGB(255, 41, 255, 94),
+            duration: Duration(seconds: 2),
+          ),
+        );
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const PendingAfiliacionPage()),
-    );
+        // Navegar a LimitedHomePage pasando el servicio de afiliación
+        await Future.delayed(const Duration(milliseconds: 500));
 
-    // TODO: Descomentar cuando el backend esté listo
-    // if (result['success'] == true) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(result['message'] ?? 'Datos confirmados correctamente'),
-    //       backgroundColor: const Color.fromARGB(255, 41, 255, 94),
-    //     ),
-    //   );
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => const PendingAfiliacionPage()),
-    //   );
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(result['message'] ?? 'Error al confirmar datos'),
-    //       backgroundColor: Colors.red,
-    //     ),
-    //   );
-    // }
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                LimitedHomePage(affiliationService: _affiliationService),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        
+        // Error al iniciar afiliación
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Error al iniciar afiliación'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      print('ERROR CRÍTICO en _onConfirmarDatos: $e');
+      
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error crítico: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   @override

@@ -170,7 +170,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.colorScheme.onBackground;
+    final textColor = theme.colorScheme.onSurface;
     final accentColor = isDark
         ? const Color(0xFF1A1A1A)
         : const Color(0xFFE8E8E8);

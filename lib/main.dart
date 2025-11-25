@@ -14,12 +14,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<bool>(
       valueListenable: isLightModeNotifier,
       builder: (context, isLightMode, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'Flutter Demo',
+          title: 'BoomBet App',
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: const Color(
@@ -39,11 +39,9 @@ class MyApp extends StatelessWidget {
               ), // Verde más oscuro
               secondary: const Color(0xFF2C2C2C),
               surface: const Color(0xFFE8E8E8),
-              background: const Color(0xFFF5F5F5),
               onPrimary: Colors.white,
               onSecondary: Colors.white,
               onSurface: const Color(0xFF2C2C2C),
-              onBackground: const Color(0xFF2C2C2C),
             ),
             cardColor: const Color(0xFFE8E8E8),
             textTheme: const TextTheme(
@@ -63,11 +61,9 @@ class MyApp extends StatelessWidget {
               primary: Color.fromARGB(255, 41, 255, 94), // Verde brillante
               secondary: Color(0xFF1A1A1A),
               surface: Color(0xFF1A1A1A),
-              background: Color(0xFF000000),
               onPrimary: Colors.black,
               onSecondary: Color(0xFFE0E0E0),
               onSurface: Color(0xFFE0E0E0),
-              onBackground: Color(0xFFE0E0E0),
             ),
             cardColor: const Color(0xFF1A1A1A),
             textTheme: const TextTheme(

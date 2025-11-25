@@ -83,21 +83,29 @@ class AuthService {
     String dni,
     String telefono,
     String password,
-    String gender,
-  ) async {
+    String gender, {
+    String? username,
+  }) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/auth/register');
+
+    final body = {
+      'email': email,
+      'dni': dni,
+      'telefono': telefono,
+      'password': password,
+      'genero': gender,
+    };
+
+    // Agregar username si fue proporcionado
+    if (username != null && username.isNotEmpty) {
+      body['username'] = username;
+    }
 
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'dni': dni,
-          'telefono': telefono,
-          'password': password,
-          'genero': gender,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

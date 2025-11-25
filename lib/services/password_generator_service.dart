@@ -35,12 +35,7 @@ class PasswordGeneratorService {
         ? dniTrimmed.substring(dniTrimmed.length - 4)
         : dniTrimmed;
 
-    return (nombreTrimmed[0].toUpperCase() +
-        apellidoTrimmed[0].toUpperCase() +
-        (apellidoTrimmed.length >= 2 ? apellidoTrimmed[1].toLowerCase() : '') +
-        '.' +
-        _fixSequences(ultimosCuatro) +
-        '!'); // Agregamos ! al final para cumplir con el requisito de símbolo
+    return ('${nombreTrimmed[0].toUpperCase()}${apellidoTrimmed[0].toUpperCase()}${apellidoTrimmed.length >= 2 ? apellidoTrimmed[1].toLowerCase() : ''}.${_fixSequences(ultimosCuatro)}!'); // Agregamos ! al final para cumplir con el requisito de símbolo
   }
 
   /// Arregla secuencias consecutivas o repetitivas en un string numérico
