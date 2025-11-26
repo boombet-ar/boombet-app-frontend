@@ -34,7 +34,7 @@ class AffiliationService {
     required String token,
   }) async {
     print('[AffiliationService] Iniciando proceso de afiliación...');
-    
+
     try {
       // 1. Generar URL del WebSocket
       final wsUrl = _generateWebSocketUrl();
@@ -103,7 +103,7 @@ class AffiliationService {
       final url = Uri.parse('${ApiConfig.baseUrl}/auth/startaffiliate');
       print('[AffiliationService] Enviando POST a: $url');
       print('[AffiliationService] Payload: ${jsonEncode(payload)}');
-      
+
       final response = await http
           .post(
             url,

@@ -73,7 +73,9 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         // Dirección no se actualiza (campos read-only)
       );
 
-      print('Iniciando afiliación con token: ${widget.token?.substring(0, 20)}...');
+      print(
+        'Iniciando afiliación con token: ${widget.token?.substring(0, 20)}...',
+      );
 
       // Iniciar proceso de afiliación: abrir WebSocket y enviar al backend
       final result = await _affiliationService.startAffiliation(
@@ -92,7 +94,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
       if (result['success'] == true) {
         if (!mounted) return;
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Datos confirmados. Iniciando afiliación...'),
@@ -115,7 +117,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         );
       } else {
         if (!mounted) return;
-        
+
         // Error al iniciar afiliación
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -127,7 +129,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       }
     } catch (e) {
       print('ERROR CRÍTICO en _onConfirmarDatos: $e');
-      
+
       if (!mounted) return;
 
       setState(() {
