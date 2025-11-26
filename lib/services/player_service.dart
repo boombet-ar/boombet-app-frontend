@@ -1,32 +1,23 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/player_model.dart';
-import 'token_service.dart';
+import '../utils/error_parser.dart';
+import 'http_client.dart';
 
 class PlayerService {
-  /// Obtiene los headers con el token de autorización
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await TokenService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
-
   /// Obtiene los datos del jugador desde el endpoint /auth/userData
   /// Este endpoint devuelve: { "datosJugador": { ... } }
   Future<Map<String, dynamic>> fetchPlayerDataFromUserData(
     String dni,
     String genero,
   ) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/auth/userData');
+    final url = '${ApiConfig.baseUrl}/auth/userData';
 
     try {
-      final response = await http.post(
+      final response = await HttpClient.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'dni': dni, 'genero': genero}),
+        body: {'dni': dni, 'genero': genero},
+        includeAuth: false, // Este endpoint no requiere auth
       );
 
       if (response.statusCode == 200) {
@@ -45,11 +36,11 @@ class PlayerService {
       } else {
         return {
           'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
+          'message': ErrorParser.parseResponse(response),
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {'success': false, 'message': ErrorParser.parse(e)};
     }
   }
 
@@ -83,19 +74,13 @@ class PlayerService {
     PlayerData data,
     String? token,
   ) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/auth/confirmData');
+    final url = '${ApiConfig.baseUrl}/auth/confirmData';
 
     try {
-      final headers = <String, String>{'Content-Type': 'application/json'};
-
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-
-      final response = await http.post(
+      final response = await HttpClient.post(
         url,
-        headers: headers,
-        body: jsonEncode(data.toJson()),
+        body: data.toJson(),
+        includeAuth: true, // Usa el token guardado automáticamente
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -103,82 +88,57 @@ class PlayerService {
       } else {
         return {
           'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
+          'message': ErrorParser.parseResponse(response),
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {'success': false, 'message': ErrorParser.parse(e)};
     }
   }
 
   /// Actualiza los datos del jugador en el backend
   Future<Map<String, dynamic>> updatePlayerData(PlayerData playerData) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/player/update');
+    final url = '${ApiConfig.baseUrl}/player/update';
 
     try {
-      final headers = await _getAuthHeaders();
-      final response = await http.put(
+      final response = await HttpClient.put(
         url,
-        headers: headers,
-        body: jsonEncode(playerData.toJson()),
+        body: playerData.toJson(),
+        includeAuth: true,
       );
 
       if (response.statusCode == 200) {
         // Actualización exitosa
         return {'success': true, 'message': 'Datos actualizados correctamente'};
-      } else if (response.statusCode == 404) {
-        // Jugador no encontrado
-        return {
-          'success': false,
-          'message': 'No se encontró el jugador en la base de datos',
-        };
-      } else if (response.statusCode == 400) {
-        // Error de validación
-        final errorData = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': errorData['message'] ?? 'Datos inválidos',
-        };
       } else {
-        // Otro error del servidor
         return {
           'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
+          'message': ErrorParser.parseResponse(response),
         };
       }
     } catch (e) {
-      // Error de conexión
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {'success': false, 'message': ErrorParser.parse(e)};
     }
   }
 
   /// Obtiene los datos del jugador desde el backend
   Future<Map<String, dynamic>> getPlayerData(String dni) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/player/$dni');
+    final url = '${ApiConfig.baseUrl}/player/$dni';
 
     try {
-      final headers = await _getAuthHeaders();
-      final response = await http.get(url, headers: headers);
+      final response = await HttpClient.get(url, includeAuth: true);
 
       if (response.statusCode == 200) {
         // Obtención exitosa
         return {'success': true, 'data': jsonDecode(response.body)};
-      } else if (response.statusCode == 404) {
-        // Jugador no encontrado
-        return {
-          'success': false,
-          'message': 'No se encontró el jugador en la base de datos',
-        };
       } else {
-        // Otro error del servidor
         return {
           'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
+          'message': ErrorParser.parseResponse(response),
         };
       }
     } catch (e) {
-      // Error de conexión
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {'success': false, 'message': ErrorParser.parse(e)};
     }
   }
 }

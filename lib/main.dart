@@ -1,11 +1,48 @@
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// GlobalKey para acceder al Navigator desde cualquier lugar
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
+  // Configurar callback para manejar 401 (token expirado)
+  HttpClient.onUnauthorized = () {
+    print('[MAIN] 🔴 401 Detected - Navigating to LoginPage');
+
+    // Usar navigatorKey para navegar sin contexto
+    final navigator = navigatorKey.currentState;
+    if (navigator != null) {
+      print('[MAIN] ✅ Navigator found - Pushing LoginPage');
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false, // Eliminar todas las rutas previas
+      );
+
+      // Mostrar SnackBar después de navegar
+      Future.delayed(const Duration(milliseconds: 500), () {
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      });
+    } else {
+      print('[MAIN] ❌ Navigator is null - Cannot navigate');
+    }
+  };
+
   runApp(const MyApp());
 }
 
@@ -66,6 +103,8 @@ class MyApp extends StatelessWidget {
       builder: (context, isLightMode, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
+          navigatorKey:
+              navigatorKey, // Agregar GlobalKey para navegación desde HttpClient
           title: 'BoomBet App',
           themeAnimationDuration: const Duration(milliseconds: 150),
           themeAnimationCurve: Curves.fastOutSlowIn,
@@ -107,15 +146,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached ||
-        state == AppLifecycleState.paused) {
-      // Eliminar token temporal cuando la app se cierra o pasa a segundo plano
+    if (state == AppLifecycleState.detached) {
+      // Eliminar token temporal SOLO cuando la app se cierra completamente
+      // (no cuando pasa a segundo plano - paused)
       TokenService.deleteTemporaryToken();
     }
   }
 
   Future<void> _checkSession() async {
-    final hasActiveSession = await TokenService.hasActiveSession();
+    // Verificar cualquier token válido (persistente O temporal)
+    final hasActiveSession = await TokenService.isTokenValid();
     setState(() {
       _hasSession = hasActiveSession;
       _isLoading = false;

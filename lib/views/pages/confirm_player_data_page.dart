@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -50,12 +52,18 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   String _generateWebSocketUrl() {
-    final baseUrl = ApiConfig.baseUrl;
-    final wsUrl = baseUrl
-        .replaceFirst('http://', 'ws://')
-        .replaceFirst('https://', 'wss://');
+    // 🔌 Generar URL del WebSocket apuntando al servidor del FRONTEND (ngrok)
+    // Esta es la URL donde el backend enviará los mensajes de afiliación
+    const frontendNgrokUrl = 'https://terribilita-beth-shrilly.ngrok-free.dev';
+
+    // Convertir https a wss para WebSocket
+    final wsBaseUrl = frontendNgrokUrl.replaceFirst('https://', 'wss://');
+
+    // Generar ID único basado en timestamp
     final uniqueId = DateTime.now().millisecondsSinceEpoch;
-    return '$wsUrl/affiliation/$uniqueId';
+
+    // Retornar URL completa del WebSocket
+    return '$wsBaseUrl/affiliation/$uniqueId';
   }
 
   @override
@@ -115,9 +123,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    LoadingOverlay.show(context, message: 'Creando cuenta y afiliando...');
 
     try {
       // Crear PlayerData actualizado (solo campos editables)
@@ -138,26 +144,17 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
       print('PASO 2: Preparando payload...');
 
-      // Preparar payload con campos en nivel raíz + playerData anidado
+      // Preparar payload con estructura exacta requerida por el backend
       final payload = {
-        // Campos requeridos en nivel raíz
-        'email': widget.email,
-        'telefono': widget.telefono,
-        'genero': widget.genero, // Usar el valor original M/F
-        'dni': widget.dni,
-        'username': widget.username,
-        'password': widget.password,
-        // playerData con todos los campos
+        'websocketLink': wsUrl,
         'playerData': {
           'nombre': updatedData.nombre,
           'apellido': updatedData.apellido,
-          'email': widget.email,
-          'telefono': widget.telefono,
-          'genero': _normalizarGenero(widget.genero),
-          'fecha_nacimiento': updatedData.fechaNacimiento,
+          'email': email, // Email editado
+          'telefono': telefono, // Teléfono editado
+          'genero': _normalizarGenero(widget.genero), // Masculino/Femenino
           'dni': widget.dni,
           'cuit': updatedData.cuil,
-          'est_civil': updatedData.estadoCivil,
           'calle': updatedData.calle,
           'numCalle': updatedData.numCalle,
           'provincia': updatedData.provincia,
@@ -165,8 +162,9 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           'cp': updatedData.cp?.toString() ?? '',
           'user': widget.username,
           'password': widget.password,
+          'fecha_nacimiento': updatedData.fechaNacimiento,
+          'est_civil': updatedData.estadoCivil,
         },
-        'websocketLink': wsUrl,
       };
 
       print('PASO 3: Enviando POST a /api/users/auth/register');
@@ -190,21 +188,44 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       print('Response Status: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
-      final affiliationResult =
-          response.statusCode == 200 || response.statusCode == 201
-          ? {'success': true, 'message': 'Registro exitoso'}
-          : {
-              'success': false,
-              'message': 'Error ${response.statusCode}: ${response.body}',
-            };
-
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
-      if (affiliationResult['success'] == true) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // ✅ REGISTRO EXITOSO - Extraer y guardar token
+        String? savedToken;
+        try {
+          final responseData = jsonDecode(response.body);
+          final token = responseData['token'] as String?;
+
+          if (token != null && token.isNotEmpty) {
+            // Guardar token PERSISTENTE (usuario mantiene sesión al cerrar app)
+            await TokenService.saveToken(token);
+            savedToken = token;
+            print('✅ Token persistente guardado exitosamente');
+          } else {
+            print('⚠️ ADVERTENCIA: No se recibió token en la respuesta');
+          }
+        } catch (e) {
+          print('⚠️ Error al parsear token: $e');
+        }
+
+        // 🔌 CONECTAR WEBSOCKET usando la MISMA URL que se envió al backend
+        // El frontend genera el wsUrl y lo usa directamente para la conexión
+        print(
+          '🔌 Conectando WebSocket con URL generada por el frontend: $wsUrl',
+        );
+        _affiliationService
+            .connectToWebSocket(wsUrl: wsUrl, token: savedToken ?? '')
+            .then((_) {
+              print('✅ WebSocket conectado exitosamente');
+            })
+            .catchError((e) {
+              print('⚠️ Error al conectar WebSocket: $e');
+              // No hacemos nada crítico, la navegación continúa igual
+            });
+
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,11 +236,13 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           ),
         );
 
-        // Navegar a LimitedHomePage pasando el servicio de afiliación
+        // Pequeño delay para que el usuario vea el mensaje
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
 
+        // Navegar a LimitedHomePage con servicio de afiliación
+        // El usuario esperará 30 segundos (o hasta que se complete la afiliación)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -227,17 +250,35 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                 LimitedHomePage(affiliationService: _affiliationService),
           ),
         );
-      } else {
+      } else if (response.statusCode == 409) {
+        // ❌ ERROR 409 - Usuario/Email ya existe
         if (!mounted) return;
 
-        // Error al iniciar afiliación (pero la cuenta ya está creada)
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              affiliationResult['message']?.toString() ??
-                  'Error al iniciar afiliación',
+              'El usuario o email ya están registrados. Por favor, intenta con otros datos.',
             ),
             backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      } else {
+        // ❌ OTROS ERRORES
+        if (!mounted) return;
+
+        String errorMessage = 'Error al crear la cuenta';
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          errorMessage = 'Error ${response.statusCode}: ${response.body}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
         );
@@ -247,9 +288,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

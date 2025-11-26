@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -20,10 +22,9 @@ class LimitedHomePage extends StatefulWidget {
 }
 
 class _LimitedHomePageState extends State<LimitedHomePage> {
-  Timer? _affiliationTimer;
-  int _remainingSeconds = 45;
   StreamSubscription? _wsSubscription;
   bool _affiliationCompleted = false;
+  String _statusMessage = 'Iniciando proceso de afiliación...';
 
   @override
   void initState() {
@@ -34,48 +35,61 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     });
 
     // Escuchar mensajes del WebSocket
-    _wsSubscription = widget.affiliationService.messageStream.listen((message) {
-      if (!mounted || _affiliationCompleted) return;
+    _wsSubscription = widget.affiliationService.messageStream.listen(
+      (message) {
+        if (!mounted || _affiliationCompleted) return;
 
-      // Verificar si el mensaje indica que la afiliación se completó
-      // Formato esperado: { "playerData": {...}, "success": true/false, "responses": {...} }
-      if (message['success'] == true) {
-        _affiliationCompleted = true;
-        _navigateToFullHomePage();
-      }
-    });
+        print('[LimitedHomePage] 📩 Mensaje recibido del WebSocket');
+        print('[LimitedHomePage] Contenido: $message');
 
-    // Iniciar timer de 45 segundos como fallback
-    _startAffiliationTimer();
-  }
+        // Verificar si el mensaje contiene playerData y responses
+        if (message.containsKey('playerData') &&
+            message.containsKey('responses')) {
+          print('[LimitedHomePage] ✅ Mensaje completo de afiliación recibido');
+          _affiliationCompleted = true;
 
-  void _startAffiliationTimer() {
-    _affiliationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _remainingSeconds--;
-        });
-
-        if (_remainingSeconds <= 0) {
-          timer.cancel();
-          _navigateToFullHomePage();
+          // Parsear el resultado
+          try {
+            final result = AffiliationResult.fromJson(message);
+            _navigateToResultsPage(result);
+          } catch (e) {
+            print('[LimitedHomePage] ❌ Error parseando resultado: $e');
+            // Si hay error parseando, navegar igual pero sin resultados
+            _navigateToResultsPage(null);
+          }
+        } else {
+          // Actualizar mensaje de estado si viene en el WebSocket
+          if (message.containsKey('status')) {
+            setState(() {
+              _statusMessage = message['status'] as String;
+            });
+          }
         }
-      }
-    });
+      },
+      onError: (error) {
+        print('[LimitedHomePage] ❌ Error en WebSocket: $error');
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'Error en la conexión. Reintentando...';
+          });
+        }
+      },
+    );
   }
 
-  void _navigateToFullHomePage() {
+  void _navigateToResultsPage(AffiliationResult? result) {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(
+          builder: (context) => AffiliationResultsPage(result: result),
+        ),
       );
     }
   }
 
   @override
   void dispose() {
-    _affiliationTimer?.cancel();
     _wsSubscription?.cancel();
     widget.affiliationService.closeWebSocket();
     super.dispose();
@@ -97,12 +111,12 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
           ),
           body: IndexedStack(
             index: selectedPage,
-            children: const [
-              LimitedHomeContent(),
-              LimitedPointsContent(),
-              LimitedDiscountsContent(),
-              LimitedRafflesContent(),
-              LimitedForumContent(), // Foro limitado sin publicar
+            children: [
+              LimitedHomeContent(statusMessage: _statusMessage),
+              const LimitedPointsContent(),
+              const LimitedDiscountsContent(),
+              const LimitedRafflesContent(),
+              const LimitedForumContent(), // Foro limitado sin publicar
             ],
           ),
           bottomNavigationBar: const NavbarWidget(),
@@ -114,7 +128,9 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
 
 /// Contenido limitado del Home - Sin carrusel
 class LimitedHomeContent extends StatelessWidget {
-  const LimitedHomeContent({super.key});
+  final String statusMessage;
+
+  const LimitedHomeContent({super.key, required this.statusMessage});
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +184,7 @@ class LimitedHomeContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Tu cuenta está siendo verificada. Algunas funciones estarán disponibles una vez completado el proceso.',
+                  statusMessage,
                   style: TextStyle(
                     fontSize: 14,
                     color: textColor.withOpacity(0.8),

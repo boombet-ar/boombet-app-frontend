@@ -51,10 +51,10 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final hasSession = await TokenService.hasActiveSession();
+    final isValid = await TokenService.isTokenValid();
     if (mounted) {
       setState(() {
-        _isLoggedIn = hasSession;
+        _isLoggedIn = isValid;
       });
     }
   }

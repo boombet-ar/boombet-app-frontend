@@ -37,23 +37,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _playerData = PlayerData(
-          nombre: 'Usuario',
-          apellido: 'Demo',
-          cuil: '20-12345678-9',
-          dni: '12345678',
+          nombre: 'SANTIAGO MARTIN',
+          apellido: 'RODRIGUEZ',
+          cuil: '', // No mostrar
+          dni: '', // No mostrar
           sexo: 'Masculino',
-          estadoCivil: 'Soltero',
-          telefono: '11 1234-5678',
-          correoElectronico: 'usuario@boombet.com',
-          direccionCompleta: 'Calle Ejemplo 123',
-          calle: 'Calle Ejemplo',
-          numCalle: '123',
-          localidad: 'Buenos Aires',
-          provincia: 'Buenos Aires',
-          fechaNacimiento: '01-01-1990',
-          anioNacimiento: '1990',
-          cp: 1234,
-          edad: 34,
+          estadoCivil: '', // No mostrar
+          telefono: '1145678923',
+          correoElectronico: 'santiago.rodriguez@gmail.com',
+          direccionCompleta: '', // No mostrar
+          calle: '',
+          numCalle: '',
+          localidad: '', // No mostrar
+          provincia: '', // No mostrar
+          fechaNacimiento: '15-03-1992',
+          anioNacimiento: '1992',
+          cp: null, // No mostrar
+          edad: null, // No mostrar
         );
         _isLoading = false;
       });
@@ -162,232 +162,200 @@ class _ProfilePageState extends State<ProfilePage> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [primaryGreen.withOpacity(0.2), bgColor],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryGreen.withOpacity(0.15),
+                              primaryGreen.withOpacity(0.05),
+                              bgColor,
+                            ],
                           ),
                         ),
                         child: Column(
                           children: [
-                            const SizedBox(height: 32),
-                            // Avatar placeholder
+                            const SizedBox(height: 40),
+                            // Avatar con sombra mejorada
                             Container(
-                              width: 120,
-                              height: 120,
+                              width: 130,
+                              height: 130,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: isDark
-                                    ? const Color(0xFF2A2A2A)
-                                    : const Color(0xFFE8E8E8),
-                                border: Border.all(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryGreen.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isDark
+                                      ? const Color(0xFF2A2A2A)
+                                      : Colors.white,
+                                  border: Border.all(
+                                    color: primaryGreen,
+                                    width: 4,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 70,
                                   color: primaryGreen,
-                                  width: 3,
                                 ),
                               ),
-                              child: Icon(
-                                Icons.person,
-                                size: 64,
-                                color: primaryGreen,
-                              ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 20),
                             // Nombre completo
                             Text(
                               '${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}'
                                   .trim(),
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                                 color: textColor,
+                                letterSpacing: 0.5,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
-                            // Email
-                            if (_playerData?.correoElectronico != null &&
-                                _playerData!.correoElectronico.isNotEmpty)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                            // Username con badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryGreen.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: primaryGreen.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.email_outlined,
+                                    Icons.alternate_email,
                                     size: 16,
-                                    color: textColor.withOpacity(0.7),
+                                    color: primaryGreen,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    _playerData!.correoElectronico,
+                                    'SantiR92',
                                     style: TextStyle(
-                                      fontSize: 14,
-                                      color: textColor.withOpacity(0.7),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryGreen,
+                                      letterSpacing: 0.3,
                                     ),
                                   ),
                                 ],
                               ),
-                            const SizedBox(height: 32),
+                            ),
+                            const SizedBox(height: 40),
                           ],
                         ),
                       ),
 
-                      // Datos personales
+                      // Tarjeta de información
                       Padding(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Información Personal',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryGreen,
+                            // Título
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  color: primaryGreen,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Información Personal',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Tarjeta con todos los datos
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF1A1A1A)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF2A2A2A)
+                                      : const Color(0xFFE0E0E0),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // Email
+                                  _buildModernInfoRow(
+                                    icon: Icons.email_outlined,
+                                    label: 'Email',
+                                    value: _playerData?.correoElectronico ?? '',
+                                    isDark: isDark,
+                                    textColor: textColor,
+                                    primaryGreen: primaryGreen,
+                                    isFirst: true,
+                                  ),
+
+                                  // Teléfono
+                                  _buildModernInfoRow(
+                                    icon: Icons.phone_outlined,
+                                    label: 'Teléfono',
+                                    value: _playerData?.telefono ?? '',
+                                    isDark: isDark,
+                                    textColor: textColor,
+                                    primaryGreen: primaryGreen,
+                                  ),
+
+                                  // Género
+                                  _buildModernInfoRow(
+                                    icon: Icons.wc_outlined,
+                                    label: 'Género',
+                                    value: _playerData?.sexo ?? '',
+                                    isDark: isDark,
+                                    textColor: textColor,
+                                    primaryGreen: primaryGreen,
+                                  ),
+
+                                  // Fecha de Nacimiento
+                                  _buildModernInfoRow(
+                                    icon: Icons.cake_outlined,
+                                    label: 'Fecha de Nacimiento',
+                                    value: _playerData?.fechaNacimiento ?? '',
+                                    isDark: isDark,
+                                    textColor: textColor,
+                                    primaryGreen: primaryGreen,
+                                    isLast: true,
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 16),
 
-                            // DNI
-                            _buildInfoCard(
-                              icon: Icons.badge_outlined,
-                              label: 'DNI',
-                              value: _playerData?.dni ?? 'No disponible',
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                            // CUIL
-                            if (_playerData?.cuil != null &&
-                                _playerData!.cuil.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.credit_card,
-                                label: 'CUIL',
-                                value: _playerData!.cuil,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Fecha de Nacimiento
-                            if (_playerData?.fechaNacimiento != null &&
-                                _playerData!.fechaNacimiento.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.cake_outlined,
-                                label: 'Fecha de Nacimiento',
-                                value: _playerData!.fechaNacimiento,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Edad
-                            if (_playerData?.edad != null)
-                              _buildInfoCard(
-                                icon: Icons.calendar_today_outlined,
-                                label: 'Edad',
-                                value: '${_playerData!.edad} años',
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Sexo
-                            if (_playerData?.sexo != null &&
-                                _playerData!.sexo.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.person_outline,
-                                label: 'Sexo',
-                                value: _playerData!.sexo,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Estado Civil
-                            if (_playerData?.estadoCivil != null &&
-                                _playerData!.estadoCivil.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.people_outline,
-                                label: 'Estado Civil',
-                                value: _playerData!.estadoCivil,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            const SizedBox(height: 24),
-
-                            // Contacto
-                            Text(
-                              'Contacto',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryGreen,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Teléfono
-                            if (_playerData?.telefono != null &&
-                                _playerData!.telefono.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.phone_outlined,
-                                label: 'Teléfono',
-                                value: _playerData!.telefono,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            const SizedBox(height: 24),
-
-                            // Dirección
-                            Text(
-                              'Dirección',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryGreen,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Dirección completa
-                            if (_playerData?.direccionCompleta != null &&
-                                _playerData!.direccionCompleta.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.home_outlined,
-                                label: 'Dirección',
-                                value: _playerData!.direccionCompleta,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Localidad
-                            if (_playerData?.localidad != null &&
-                                _playerData!.localidad.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.location_city_outlined,
-                                label: 'Localidad',
-                                value: _playerData!.localidad,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Provincia
-                            if (_playerData?.provincia != null &&
-                                _playerData!.provincia.isNotEmpty)
-                              _buildInfoCard(
-                                icon: Icons.map_outlined,
-                                label: 'Provincia',
-                                value: _playerData!.provincia,
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            // Código Postal
-                            if (_playerData?.cp != null)
-                              _buildInfoCard(
-                                icon: Icons.markunread_mailbox_outlined,
-                                label: 'Código Postal',
-                                value: _playerData!.cp.toString(),
-                                isDark: isDark,
-                                textColor: textColor,
-                              ),
-
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 32),
                           ],
                         ),
                       ),
@@ -399,39 +367,43 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildModernInfoRow({
     required IconData icon,
     required String label,
     required String value,
     required bool isDark,
     required Color textColor,
+    required Color primaryGreen,
+    bool isFirst = false,
+    bool isLast = false,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0),
-          width: 1,
+        border: Border(
+          top: isFirst
+              ? BorderSide.none
+              : BorderSide(
+                  color: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE0E0E0),
+                  width: 1,
+                ),
         ),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
         children: [
+          // Icono con fondo
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 41, 255, 94).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: const Color.fromARGB(255, 41, 255, 94),
-            ),
+            child: Icon(icon, size: 22, color: primaryGreen),
           ),
           const SizedBox(width: 16),
+          // Label y valor
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,9 +411,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: textColor.withOpacity(0.6),
                     fontWeight: FontWeight.w500,
+                    letterSpacing: 0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -451,6 +424,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 16,
                     color: textColor,
                     fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],

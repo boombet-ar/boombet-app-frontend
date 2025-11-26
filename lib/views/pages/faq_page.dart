@@ -28,15 +28,14 @@ class _FaqPageState extends State<FaqPage> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final token = await TokenService.getToken();
-    final hasSession = await TokenService.hasActiveSession();
+    // Verificar si hay un token válido (persistente O temporal)
+    final isValid = await TokenService.isTokenValid();
 
-    print('DEBUG FAQ - Token: ${token != null ? "exists" : "null"}');
-    print('DEBUG FAQ - Has Active Session: $hasSession');
+    print('DEBUG FAQ - Token valid: $isValid');
 
     if (mounted) {
       setState(() {
-        _isLoggedIn = hasSession;
+        _isLoggedIn = isValid;
       });
       print('DEBUG FAQ - _isLoggedIn set to: $_isLoggedIn');
     }

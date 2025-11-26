@@ -5,6 +5,7 @@ import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -39,12 +40,14 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController();
-    _emailController = TextEditingController();
-    _dniController = TextEditingController();
-    _phoneController = TextEditingController();
-    _passwordController = TextEditingController();
-    _confirmPasswordController = TextEditingController();
+    // 🧪 DATOS DE TEST PRE-CARGADOS (comentar para producción)
+    _usernameController = TextEditingController(text: 'test');
+    _emailController = TextEditingController(text: 'test@gmail.com');
+    _dniController = TextEditingController(text: '45614451');
+    _phoneController = TextEditingController(text: '1121895575');
+    _passwordController = TextEditingController(text: 'Test124!');
+    _confirmPasswordController = TextEditingController(text: 'Test124!');
+    _selectedGender = 'M'; // Masculino
   }
 
   @override
@@ -294,10 +297,8 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Mostrar indicador de carga
-    setState(() {
-      _isLoading = true;
-    });
+    // Mostrar overlay de carga
+    LoadingOverlay.show(context, message: 'Validando datos...');
 
     try {
       // Validar datos con el backend (sin crear cuenta todavía)
@@ -315,9 +316,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
@@ -328,9 +327,7 @@ class _RegisterPageState extends State<RegisterPage> {
         // Extraer el primer elemento de listaExistenciaFisica
         final lista = fullResponse['listaExistenciaFisica'] as List?;
         if (lista == null || lista.isEmpty) {
-          setState(() {
-            _isLoading = false;
-          });
+          LoadingOverlay.hide(context);
 
           showDialog(
             context: context,
@@ -453,9 +450,7 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
       // Error inesperado
       showDialog(

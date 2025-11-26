@@ -4,6 +4,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class ApiConfig {
   // URL base según la plataforma
   static String get baseUrl {
+    // 🚨 TEMPORAL: Usando ngrok para testing
+    return 'https://luetta-protonemal-scarcely.ngrok-free.dev/api';
+
+    /* LOCALHOST (comentado temporalmente)
     if (kIsWeb) {
       // Para web, usar localhost
       return 'http://localhost:8080/api';
@@ -17,6 +21,7 @@ class ApiConfig {
       // Por defecto (Windows, macOS, Linux desktop)
       return 'http://localhost:8080/api';
     }
+    */
   }
 
   // Método alternativo para configurar manualmente la URL si es necesario

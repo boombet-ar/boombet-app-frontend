@@ -33,6 +33,11 @@ class TokenService {
     return token;
   }
 
+  /// Obtiene solo el token persistente (ignora temporal)
+  static Future<String?> getPersistentToken() async {
+    return await _storage.read(key: _tokenKey);
+  }
+
   /// Obtiene el refresh token almacenado
   static Future<String?> getRefreshToken() async {
     return await _storage.read(key: _refreshTokenKey);
@@ -79,12 +84,27 @@ class TokenService {
     }
   }
 
-  /// Verifica si hay una sesión activa
+  /// Verifica si hay una sesión activa (solo token persistente)
+  /// Los tokens temporales NO cuentan como sesión activa al reiniciar
   static Future<bool> hasActiveSession() async {
     print('DEBUG TokenService - Checking active session...');
-    final isValid = await isTokenValid();
-    print('DEBUG TokenService - Active session result: $isValid');
-    return isValid;
+
+    // Solo verificar token PERSISTENTE (no temporal)
+    final persistentToken = await getPersistentToken();
+
+    if (persistentToken == null || persistentToken.isEmpty) {
+      print('DEBUG TokenService - No persistent token found');
+      return false;
+    }
+
+    try {
+      bool hasExpired = JwtDecoder.isExpired(persistentToken);
+      print('DEBUG TokenService - Persistent token expired: $hasExpired');
+      return !hasExpired;
+    } catch (e) {
+      print('DEBUG TokenService - Error validating persistent token: $e');
+      return false;
+    }
   }
 
   /// Obtiene información del token decodificado
@@ -109,5 +129,15 @@ class TokenService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Limpia todos los tokens (persistente, temporal y refresh)
+  /// Se usa cuando el token expira (401) o en logout forzado
+  static Future<void> clearTokens() async {
+    print('[TokenService] Limpiando todos los tokens...');
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _tempTokenKey);
+    print('[TokenService] ✅ Tokens eliminados');
   }
 }

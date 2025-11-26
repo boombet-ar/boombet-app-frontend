@@ -5,6 +5,7 @@ import 'package:boombet_app/views/pages/forget_password_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/register_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +24,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _identifierError = false;
   bool _passwordError = false;
   bool _isLoading = false;
-  bool _rememberMe = true;
+  bool _rememberMe =
+      false; // Por defecto desactivado - usuario debe activarlo manualmente
   bool _obscurePassword = true;
 
   final AuthService _authService = AuthService();
@@ -31,8 +33,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _identifierController = TextEditingController();
-    _passwordController = TextEditingController();
+    // Pre-rellenar campos para testing
+    _identifierController = TextEditingController(text: 'test');
+    _passwordController = TextEditingController(text: 'Test124!');
   }
 
   @override
@@ -114,10 +117,8 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
 
-    // Mostrar indicador de carga
-    setState(() {
-      _isLoading = true;
-    });
+    // Mostrar overlay de carga
+    LoadingOverlay.show(context, message: 'Iniciando sesión...');
 
     try {
       // Llamar al servicio de autenticación real
@@ -129,9 +130,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
       if (result['success'] == true) {
         // Login exitoso - El token ya fue guardado por AuthService
@@ -180,9 +179,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      LoadingOverlay.hide(context);
 
       // Detectar error de CORS o ClientException
       String errorTitle = 'Error de conexión';
