@@ -12,6 +12,53 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // Cache themes to avoid rebuilding
+  static final _lightTheme = ThemeData(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFFE8E8E8),
+      foregroundColor: Color(0xFF2C2C2C),
+      elevation: 0,
+    ),
+    colorScheme: ColorScheme.light(
+      primary: const Color.fromARGB(255, 35, 200, 75),
+      secondary: const Color(0xFF2C2C2C),
+      surface: const Color(0xFFE8E8E8),
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: const Color(0xFF2C2C2C),
+    ),
+    cardColor: const Color(0xFFE8E8E8),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Color(0xFF2C2C2C)),
+      bodyMedium: TextStyle(color: Color(0xFF2C2C2C)),
+    ),
+  );
+
+  static final _darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF000000),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF000000),
+      foregroundColor: Color(0xFFE0E0E0),
+      elevation: 0,
+    ),
+    colorScheme: const ColorScheme.dark(
+      primary: Color.fromARGB(255, 41, 255, 94),
+      secondary: Color(0xFF1A1A1A),
+      surface: Color(0xFF1A1A1A),
+      onPrimary: Colors.black,
+      onSecondary: Color(0xFFE0E0E0),
+      onSurface: Color(0xFFE0E0E0),
+    ),
+    cardColor: const Color(0xFF1A1A1A),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
+      bodyMedium: TextStyle(color: Color(0xFFE0E0E0)),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -20,61 +67,15 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'BoomBet App',
-          theme: ThemeData(
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(
-              0xFFF5F5F5,
-            ), // Gris claro suave
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFFE8E8E8), // Gris claro para AppBar
-              foregroundColor: Color(0xFF2C2C2C), // Texto oscuro
-              elevation: 0,
-            ),
-            colorScheme: ColorScheme.light(
-              primary: const Color.fromARGB(
-                255,
-                35,
-                200,
-                75,
-              ), // Verde más oscuro
-              secondary: const Color(0xFF2C2C2C),
-              surface: const Color(0xFFE8E8E8),
-              onPrimary: Colors.white,
-              onSecondary: Colors.white,
-              onSurface: const Color(0xFF2C2C2C),
-            ),
-            cardColor: const Color(0xFFE8E8E8),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFF2C2C2C)),
-              bodyMedium: TextStyle(color: Color(0xFF2C2C2C)),
-            ),
-          ),
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF000000), // Negro puro
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF000000),
-              foregroundColor: Color(0xFFE0E0E0),
-              elevation: 0,
-            ),
-            colorScheme: const ColorScheme.dark(
-              primary: Color.fromARGB(255, 41, 255, 94), // Verde brillante
-              secondary: Color(0xFF1A1A1A),
-              surface: Color(0xFF1A1A1A),
-              onPrimary: Colors.black,
-              onSecondary: Color(0xFFE0E0E0),
-              onSurface: Color(0xFFE0E0E0),
-            ),
-            cardColor: const Color(0xFF1A1A1A),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
-              bodyMedium: TextStyle(color: Color(0xFFE0E0E0)),
-            ),
-          ),
+          themeAnimationDuration: const Duration(milliseconds: 150),
+          themeAnimationCurve: Curves.fastOutSlowIn,
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
           themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
-          home: const MyHomePage(title: 'Boombet App'),
+          home: child!,
         );
       },
+      child: const MyHomePage(title: 'Boombet App'),
     );
   }
 }

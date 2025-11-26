@@ -95,6 +95,7 @@ class _ForumPageState extends State<ForumPage> {
     final greenColor = theme.colorScheme.primary;
 
     return ResponsiveWrapper(
+      maxWidth: 900,
       child: GestureDetector(
         onTap: () {
           FocusScope.of(context).unfocus();
@@ -197,44 +198,49 @@ class _ForumPageState extends State<ForumPage> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: TextField(
-                              controller: _postController,
-                              maxLines: 3,
-                              maxLength: 500,
-                              keyboardType: TextInputType.multiline,
-                              textInputAction: TextInputAction.newline,
-                              style: TextStyle(color: textColor),
-                              decoration: InputDecoration(
-                                hintText:
-                                    '¿Qué quieres compartir con la comunidad?',
-                                hintStyle: TextStyle(
-                                  color: textColor.withOpacity(0.5),
-                                ),
-                                filled: true,
-                                fillColor: isDark
-                                    ? const Color(0xFF2A2A2A)
-                                    : Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: isDark
-                                        ? Colors.grey.shade800
-                                        : Colors.grey.shade300,
+                            child: Semantics(
+                              label: 'Campo para crear publicación',
+                              hint:
+                                  'Escribe qué deseas compartir con la comunidad',
+                              child: TextField(
+                                controller: _postController,
+                                maxLines: 3,
+                                maxLength: 500,
+                                keyboardType: TextInputType.multiline,
+                                textInputAction: TextInputAction.newline,
+                                style: TextStyle(color: textColor),
+                                decoration: InputDecoration(
+                                  hintText:
+                                      '¿Qué quieres compartir con la comunidad?',
+                                  hintStyle: TextStyle(
+                                    color: textColor.withOpacity(0.5),
                                   ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: isDark
-                                        ? Colors.grey.shade800
-                                        : Colors.grey.shade300,
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? const Color(0xFF2A2A2A)
+                                      : Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade300,
+                                    ),
                                   ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: greenColor,
-                                    width: 2,
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: greenColor,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                               ),

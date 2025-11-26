@@ -1,5 +1,6 @@
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
@@ -120,9 +121,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
                   if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
+                      FadeRoute(page: const LoginPage()),
                       (route) => false,
                     );
                   }
@@ -130,73 +129,67 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
             ),
           if (showSettings)
-            IconButton(
-              icon: Icon(Icons.settings, color: greenColor),
-              tooltip: 'Configuración',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return SettingsPage();
-                    },
-                  ),
-                );
-              },
+            Tooltip(
+              message: 'Configuración',
+              child: IconButton(
+                icon: Icon(Icons.settings, color: greenColor),
+                tooltip: '',
+                onPressed: () {
+                  Navigator.push(context, FadeRoute(page: SettingsPage()));
+                },
+              ),
             ),
           if (showProfileButton)
-            IconButton(
-              icon: Icon(Icons.person, color: greenColor),
-              tooltip: "Perfil",
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return ProfilePage();
-                    },
-                  ),
-                );
-              },
+            Tooltip(
+              message: 'Ver perfil',
+              child: IconButton(
+                icon: Icon(Icons.person, color: greenColor),
+                tooltip: '',
+                onPressed: () {
+                  Navigator.push(context, ScaleRoute(page: ProfilePage()));
+                },
+              ),
             ),
           if (showFaqButton)
-            IconButton(
-              icon: Icon(Icons.help_outline, color: greenColor),
-              tooltip: "Ayuda / FAQ",
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return const FaqPage();
-                    },
-                  ),
-                );
-              },
+            Tooltip(
+              message: 'Ayuda y preguntas frecuentes',
+              child: IconButton(
+                icon: Icon(Icons.help_outline, color: greenColor),
+                tooltip: '',
+                onPressed: () {
+                  Navigator.push(context, FadeRoute(page: const FaqPage()));
+                },
+              ),
             ),
           if (showThemeToggle)
             RepaintBoundary(
-              child: IconButton(
-                icon: ValueListenableBuilder<bool>(
-                  valueListenable: isLightModeNotifier,
-                  builder: (context, isLightMode, child) {
-                    return Icon(
-                      isLightMode ? Icons.dark_mode : Icons.light_mode,
-                      color: greenColor,
-                    );
+              child: Tooltip(
+                message: 'Cambiar tema',
+                child: IconButton(
+                  icon: ValueListenableBuilder<bool>(
+                    valueListenable: isLightModeNotifier,
+                    builder: (context, isLightMode, child) {
+                      return Icon(
+                        isLightMode ? Icons.dark_mode : Icons.light_mode,
+                        color: greenColor,
+                      );
+                    },
+                  ),
+                  tooltip: '',
+                  onPressed: () {
+                    isLightModeNotifier.value = !isLightModeNotifier.value;
                   },
                 ),
-                tooltip: "Modo Claro",
-                onPressed: () {
-                  isLightModeNotifier.value = !isLightModeNotifier.value;
-                },
               ),
             ),
           Spacer(),
           if (showLogo)
             Padding(
               padding: EdgeInsets.only(right: 8.0),
-              child: Image.asset('assets/images/boombetlogo.png', height: 80),
+              child: Hero(
+                tag: 'boombet_logo',
+                child: Image.asset('assets/images/boombetlogo.png', height: 80),
+              ),
             ),
         ],
       ),

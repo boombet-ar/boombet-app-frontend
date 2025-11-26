@@ -1,5 +1,6 @@
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -116,279 +117,285 @@ class _ProfilePageState extends State<ProfilePage> {
         showBackButton: true,
         showProfileButton: false,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red.shade400,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: TextStyle(color: textColor, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _loadUserData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reintentar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: Colors.black,
+      body: ResponsiveWrapper(
+        maxWidth: 900,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red.shade400,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : RepaintBoundary(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Header con avatar y nombre
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [primaryGreen.withOpacity(0.2), bgColor],
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(color: textColor, fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _loadUserData,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.black,
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 32),
-                          // Avatar placeholder
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDark
-                                  ? const Color(0xFF2A2A2A)
-                                  : const Color(0xFFE8E8E8),
-                              border: Border.all(color: primaryGreen, width: 3),
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              size: 64,
-                              color: primaryGreen,
-                            ),
+                    ],
+                  ),
+                ),
+              )
+            : RepaintBoundary(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Header con avatar y nombre
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [primaryGreen.withOpacity(0.2), bgColor],
                           ),
-                          const SizedBox(height: 16),
-                          // Nombre completo
-                          Text(
-                            '${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}'
-                                .trim(),
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Email
-                          if (_playerData?.correoElectronico != null &&
-                              _playerData!.correoElectronico.isNotEmpty)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.email_outlined,
-                                  size: 16,
-                                  color: textColor.withOpacity(0.7),
+                        ),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 32),
+                            // Avatar placeholder
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark
+                                    ? const Color(0xFF2A2A2A)
+                                    : const Color(0xFFE8E8E8),
+                                border: Border.all(
+                                  color: primaryGreen,
+                                  width: 3,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _playerData!.correoElectronico,
-                                  style: TextStyle(
-                                    fontSize: 14,
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                size: 64,
+                                color: primaryGreen,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Nombre completo
+                            Text(
+                              '${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}'
+                                  .trim(),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Email
+                            if (_playerData?.correoElectronico != null &&
+                                _playerData!.correoElectronico.isNotEmpty)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.email_outlined,
+                                    size: 16,
                                     color: textColor.withOpacity(0.7),
                                   ),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 32),
-                        ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _playerData!.correoElectronico,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: textColor.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Datos personales
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Información Personal',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: primaryGreen,
+                      // Datos personales
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Información Personal',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: primaryGreen,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // DNI
-                          _buildInfoCard(
-                            icon: Icons.badge_outlined,
-                            label: 'DNI',
-                            value: _playerData?.dni ?? 'No disponible',
-                            isDark: isDark,
-                            textColor: textColor,
-                          ),
-
-                          // CUIL
-                          if (_playerData?.cuil != null &&
-                              _playerData!.cuil.isNotEmpty)
+                            // DNI
                             _buildInfoCard(
-                              icon: Icons.credit_card,
-                              label: 'CUIL',
-                              value: _playerData!.cuil,
+                              icon: Icons.badge_outlined,
+                              label: 'DNI',
+                              value: _playerData?.dni ?? 'No disponible',
                               isDark: isDark,
                               textColor: textColor,
                             ),
 
-                          // Fecha de Nacimiento
-                          if (_playerData?.fechaNacimiento != null &&
-                              _playerData!.fechaNacimiento.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.cake_outlined,
-                              label: 'Fecha de Nacimiento',
-                              value: _playerData!.fechaNacimiento,
-                              isDark: isDark,
-                              textColor: textColor,
+                            // CUIL
+                            if (_playerData?.cuil != null &&
+                                _playerData!.cuil.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.credit_card,
+                                label: 'CUIL',
+                                value: _playerData!.cuil,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            // Fecha de Nacimiento
+                            if (_playerData?.fechaNacimiento != null &&
+                                _playerData!.fechaNacimiento.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.cake_outlined,
+                                label: 'Fecha de Nacimiento',
+                                value: _playerData!.fechaNacimiento,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            // Edad
+                            if (_playerData?.edad != null)
+                              _buildInfoCard(
+                                icon: Icons.calendar_today_outlined,
+                                label: 'Edad',
+                                value: '${_playerData!.edad} años',
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            // Sexo
+                            if (_playerData?.sexo != null &&
+                                _playerData!.sexo.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.person_outline,
+                                label: 'Sexo',
+                                value: _playerData!.sexo,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            // Estado Civil
+                            if (_playerData?.estadoCivil != null &&
+                                _playerData!.estadoCivil.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.people_outline,
+                                label: 'Estado Civil',
+                                value: _playerData!.estadoCivil,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            const SizedBox(height: 24),
+
+                            // Contacto
+                            Text(
+                              'Contacto',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: primaryGreen,
+                              ),
                             ),
+                            const SizedBox(height: 16),
 
-                          // Edad
-                          if (_playerData?.edad != null)
-                            _buildInfoCard(
-                              icon: Icons.calendar_today_outlined,
-                              label: 'Edad',
-                              value: '${_playerData!.edad} años',
-                              isDark: isDark,
-                              textColor: textColor,
+                            // Teléfono
+                            if (_playerData?.telefono != null &&
+                                _playerData!.telefono.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.phone_outlined,
+                                label: 'Teléfono',
+                                value: _playerData!.telefono,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
+
+                            const SizedBox(height: 24),
+
+                            // Dirección
+                            Text(
+                              'Dirección',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: primaryGreen,
+                              ),
                             ),
+                            const SizedBox(height: 16),
 
-                          // Sexo
-                          if (_playerData?.sexo != null &&
-                              _playerData!.sexo.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.person_outline,
-                              label: 'Sexo',
-                              value: _playerData!.sexo,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
+                            // Dirección completa
+                            if (_playerData?.direccionCompleta != null &&
+                                _playerData!.direccionCompleta.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.home_outlined,
+                                label: 'Dirección',
+                                value: _playerData!.direccionCompleta,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
 
-                          // Estado Civil
-                          if (_playerData?.estadoCivil != null &&
-                              _playerData!.estadoCivil.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.people_outline,
-                              label: 'Estado Civil',
-                              value: _playerData!.estadoCivil,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
+                            // Localidad
+                            if (_playerData?.localidad != null &&
+                                _playerData!.localidad.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.location_city_outlined,
+                                label: 'Localidad',
+                                value: _playerData!.localidad,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
 
-                          const SizedBox(height: 24),
+                            // Provincia
+                            if (_playerData?.provincia != null &&
+                                _playerData!.provincia.isNotEmpty)
+                              _buildInfoCard(
+                                icon: Icons.map_outlined,
+                                label: 'Provincia',
+                                value: _playerData!.provincia,
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
 
-                          // Contacto
-                          Text(
-                            'Contacto',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: primaryGreen,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                            // Código Postal
+                            if (_playerData?.cp != null)
+                              _buildInfoCard(
+                                icon: Icons.markunread_mailbox_outlined,
+                                label: 'Código Postal',
+                                value: _playerData!.cp.toString(),
+                                isDark: isDark,
+                                textColor: textColor,
+                              ),
 
-                          // Teléfono
-                          if (_playerData?.telefono != null &&
-                              _playerData!.telefono.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.phone_outlined,
-                              label: 'Teléfono',
-                              value: _playerData!.telefono,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                          const SizedBox(height: 24),
-
-                          // Dirección
-                          Text(
-                            'Dirección',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: primaryGreen,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Dirección completa
-                          if (_playerData?.direccionCompleta != null &&
-                              _playerData!.direccionCompleta.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.home_outlined,
-                              label: 'Dirección',
-                              value: _playerData!.direccionCompleta,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                          // Localidad
-                          if (_playerData?.localidad != null &&
-                              _playerData!.localidad.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.location_city_outlined,
-                              label: 'Localidad',
-                              value: _playerData!.localidad,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                          // Provincia
-                          if (_playerData?.provincia != null &&
-                              _playerData!.provincia.isNotEmpty)
-                            _buildInfoCard(
-                              icon: Icons.map_outlined,
-                              label: 'Provincia',
-                              value: _playerData!.provincia,
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                          // Código Postal
-                          if (_playerData?.cp != null)
-                            _buildInfoCard(
-                              icon: Icons.markunread_mailbox_outlined,
-                              label: 'Código Postal',
-                              value: _playerData!.cp.toString(),
-                              isDark: isDark,
-                              textColor: textColor,
-                            ),
-
-                          const SizedBox(height: 24),
-                        ],
+                            const SizedBox(height: 24),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

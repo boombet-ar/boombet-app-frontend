@@ -5,18 +5,26 @@ import 'token_service.dart';
 
 class AuthService {
   Future<Map<String, dynamic>> login(
-    String email,
+    String identifier,
     String password, {
     bool rememberMe = true,
   }) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+    final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/login');
 
     try {
+      print('[AuthService] POST ${url.toString()}');
+      print(
+        '[AuthService] Body: {"identifier": "$identifier", "password": "***"}',
+      );
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'identifier': identifier, 'password': password}),
       );
+
+      print('[AuthService] Status: ${response.statusCode}');
+      print('[AuthService] Response: ${response.body}');
 
       if (response.statusCode == 200) {
         // Login exitoso
@@ -42,13 +50,16 @@ class AuthService {
 
         return {'success': true, 'data': data};
       } else if (response.statusCode == 401) {
-        // Credenciales inválidas (email no existe o contraseña incorrecta)
-        return {'success': false, 'message': 'Email o contraseña incorrectos'};
-      } else if (response.statusCode == 404) {
-        // Email no encontrado en la base de datos
+        // Credenciales inválidas (usuario/email no existe o contraseña incorrecta)
         return {
           'success': false,
-          'message': 'El email no existe en la base de datos',
+          'message': 'Usuario/Email o contraseña incorrectos',
+        };
+      } else if (response.statusCode == 404) {
+        // Usuario/Email no encontrado en la base de datos
+        return {
+          'success': false,
+          'message': 'El usuario o email no existe en la base de datos',
         };
       } else {
         // Otro error del servidor
@@ -102,11 +113,17 @@ class AuthService {
     }
 
     try {
+      print('[AuthService] POST ${url.toString()}');
+      print('[AuthService] Body: ${jsonEncode(body)}');
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
+
+      print('[AuthService] Status: ${response.statusCode}');
+      print('[AuthService] Response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Registro exitoso
@@ -118,15 +135,31 @@ class AuthService {
           'success': false,
           'message': errorData['message'] ?? 'Error en el registro',
         };
+      } else if (response.statusCode == 403) {
+        // Error 403 Forbidden
+        try {
+          final errorData = jsonDecode(response.body);
+          return {
+            'success': false,
+            'message': errorData['message'] ?? 'Acceso denegado (403)',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Acceso denegado (403): ${response.body}',
+          };
+        }
       } else {
         // Otro error
         return {
           'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
+          'message':
+              'Error del servidor (${response.statusCode}): ${response.body}',
         };
       }
     } catch (e) {
       // Error de conexión
+      print('[AuthService] Exception: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }

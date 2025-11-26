@@ -31,7 +31,8 @@ class AffiliationService {
   /// Inicia el proceso de afiliación: abre WebSocket y envía datos al backend
   Future<Map<String, dynamic>> startAffiliation({
     required PlayerData playerData,
-    required String token,
+    String token = '',
+    Map<String, dynamic>? completeData,
   }) async {
     print('[AffiliationService] Iniciando proceso de afiliación...');
 
@@ -40,67 +41,33 @@ class AffiliationService {
       final wsUrl = _generateWebSocketUrl();
       print('[AffiliationService] WebSocket URL generada: $wsUrl');
 
-      // 2. Abrir conexión WebSocket CON MANEJO DE ERRORES
-      try {
-        print('[AffiliationService] Intentando conectar WebSocket...');
-        _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-        print('[AffiliationService] WebSocket conectado exitosamente');
+      // 2. Preparar datos del jugador
+      final playerDataJson =
+          completeData ??
+          {
+            'nombre': playerData.nombre,
+            'apellido': playerData.apellido,
+            'email': playerData.correoElectronico,
+            'telefono': playerData.telefono,
+            'genero': playerData.sexo,
+            'fecha_nacimiento': playerData.fechaNacimiento,
+            'dni': playerData.dni,
+            'cuit': playerData.cuil,
+            'est_civil': playerData.estadoCivil,
+            'calle': playerData.calle,
+            'numCalle': playerData.numCalle,
+            'provincia': playerData.provincia,
+            'ciudad': playerData.localidad,
+            'cp': playerData.cp?.toString() ?? '',
+            'user': '',
+            'password': '',
+          };
 
-        // Escuchar mensajes del WebSocket con subscription controlada
-        _wsSubscription = _channel!.stream.listen(
-          (message) {
-            try {
-              if (message is String) {
-                final data = jsonDecode(message);
-                if (!_messageController.isClosed) {
-                  _messageController.add(data);
-                }
-              }
-            } catch (e) {
-              print('Error parsing WebSocket message: $e');
-            }
-          },
-          onError: (error) {
-            print('WebSocket error: $error');
-            if (!_messageController.isClosed) {
-              _messageController.addError(error);
-            }
-          },
-          onDone: () {
-            print('WebSocket connection closed');
-          },
-          cancelOnError: false,
-        );
-      } catch (e) {
-        print('Error opening WebSocket: $e');
-        // Continuar sin WebSocket si falla - no es crítico
-      }
-
-      // 3. Preparar datos del jugador en el formato esperado por el backend
-      final playerDataJson = {
-        'nombre': playerData.nombre,
-        'apellido': playerData.apellido,
-        'email': playerData.correoElectronico,
-        'telefono': playerData.telefono,
-        'genero': playerData.sexo,
-        'fecha_nacimiento': playerData.fechaNacimiento,
-        'dni': playerData.dni,
-        'cuit': playerData.cuil,
-        'est_civil': playerData.estadoCivil,
-        'calle': playerData.calle,
-        'numCalle': playerData.numCalle,
-        'provincia': playerData.provincia,
-        'ciudad': playerData.localidad,
-        'cp': playerData.cp?.toString() ?? '',
-        'user': '',
-        'password': '',
-      };
-
-      // 4. Preparar payload para enviar al backend
+      // 3. Preparar payload para enviar al backend
       final payload = {'playerData': playerDataJson, 'websocketlink': wsUrl};
 
-      // 5. Enviar al endpoint de startaffiliate CON TIMEOUT
-      final url = Uri.parse('${ApiConfig.baseUrl}/auth/startaffiliate');
+      // 4. Enviar al endpoint de startaffiliate CON TIMEOUT
+      final url = Uri.parse('${ApiConfig.baseUrl}/users/startAffiliate');
       print('[AffiliationService] Enviando POST a: $url');
       print('[AffiliationService] Payload: ${jsonEncode(payload)}');
 
@@ -109,7 +76,7 @@ class AffiliationService {
             url,
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
+              if (token.isNotEmpty) 'Authorization': 'Bearer $token',
             },
             body: jsonEncode(payload),
           )
@@ -126,6 +93,44 @@ class AffiliationService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('[AffiliationService] ✅ Afiliación iniciada exitosamente');
+
+        // 5. Abrir conexión WebSocket DESPUÉS del POST exitoso
+        try {
+          print('[AffiliationService] Intentando conectar WebSocket...');
+          _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+          print('[AffiliationService] WebSocket conectado exitosamente');
+
+          // Escuchar mensajes del WebSocket
+          _wsSubscription = _channel!.stream.listen(
+            (message) {
+              try {
+                if (message is String) {
+                  final data = jsonDecode(message);
+                  if (!_messageController.isClosed) {
+                    _messageController.add(data);
+                  }
+                }
+              } catch (e) {
+                print(
+                  '[AffiliationService] Error parsing WebSocket message: $e',
+                );
+              }
+            },
+            onError: (error) {
+              print('[AffiliationService] WebSocket error: $error');
+              if (!_messageController.isClosed) {
+                _messageController.addError(error);
+              }
+            },
+            onDone: () {
+              print('[AffiliationService] WebSocket connection closed');
+            },
+            cancelOnError: false,
+          );
+        } catch (e) {
+          print('[AffiliationService] Error opening WebSocket: $e');
+        }
+
         return {
           'success': true,
           'message': 'Afiliación iniciada correctamente',
@@ -133,7 +138,6 @@ class AffiliationService {
         };
       } else {
         print('[AffiliationService] ❌ Error en respuesta del servidor');
-        closeWebSocket(); // Cerrar WS si falló el POST
         return {
           'success': false,
           'message':

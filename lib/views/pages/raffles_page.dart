@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:boombet_app/widgets/responsive_wrapper.dart';
 
 class RafflesPage extends StatefulWidget {
   const RafflesPage({super.key});
@@ -54,80 +55,83 @@ class _RafflesPageState extends State<RafflesPage> {
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Column(
-      children: [
-        // Header con filtros
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[900] : Colors.grey[100],
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.card_giftcard, color: primaryGreen, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Sorteos Activos',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFilterChip('Todos', primaryGreen, isDark),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildFilterChip('Activos', primaryGreen, isDark),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildFilterChip(
-                      'Finalizados',
-                      primaryGreen,
-                      isDark,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // Lista de sorteos
-        Expanded(
-          child: ListView.builder(
+    return ResponsiveWrapper(
+      maxWidth: 900,
+      child: Column(
+        children: [
+          // Header con filtros
+          Container(
             padding: const EdgeInsets.all(16),
-            itemCount: _raffles.length,
-            itemBuilder: (context, index) {
-              final raffle = _raffles[index];
-              return _buildRaffleCard(
-                context,
-                raffle,
-                primaryGreen,
-                textColor,
-                isDark,
-              );
-            },
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[900] : Colors.grey[100],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.card_giftcard, color: primaryGreen, size: 28),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Sorteos Activos',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildFilterChip('Todos', primaryGreen, isDark),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildFilterChip('Activos', primaryGreen, isDark),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildFilterChip(
+                        'Finalizados',
+                        primaryGreen,
+                        isDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+
+          // Lista de sorteos
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _raffles.length,
+              itemBuilder: (context, index) {
+                final raffle = _raffles[index];
+                return _buildRaffleCard(
+                  context,
+                  raffle,
+                  primaryGreen,
+                  textColor,
+                  isDark,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

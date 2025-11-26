@@ -1,5 +1,6 @@
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/forget_password_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/register_page.dart';
@@ -16,10 +17,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late TextEditingController _emailController;
+  late TextEditingController _identifierController;
   late TextEditingController _passwordController;
 
-  bool _emailError = false;
+  bool _identifierError = false;
   bool _passwordError = false;
   bool _isLoading = false;
   bool _rememberMe = true;
@@ -30,42 +31,27 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController();
+    _identifierController = TextEditingController();
     _passwordController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  bool _isValidEmail(String email) {
-    if (email.isEmpty) return false;
-    // Verificar que contenga @
-    if (!email.contains('@')) return false;
-    // Verificar que tenga algo antes del @
-    if (email.indexOf('@') == 0) return false;
-    // Verificar que tenga algo después del @
-    final parts = email.split('@');
-    if (parts.length != 2 || parts[1].isEmpty) return false;
-    // Verificar que tenga un punto después del @
-    if (!parts[1].contains('.')) return false;
-    // Verificar que tenga algo después del punto
-    final domainParts = parts[1].split('.');
-    if (domainParts.any((part) => part.isEmpty)) return false;
-    return true;
-  }
-
   void _validateAndLogin() async {
+    final identifier = _identifierController.text.trim();
+
     // Validar campos vacíos
     setState(() {
-      _emailError = _emailController.text.trim().isEmpty;
+      _identifierError = identifier.isEmpty;
       _passwordError = _passwordController.text.trim().isEmpty;
     });
 
-    if (_emailError || _passwordError) {
+    if (_identifierError || _passwordError) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -92,35 +78,40 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Validar formato de email
-    if (!_isValidEmail(_emailController.text.trim())) {
-      setState(() {
-        _emailError = true;
-      });
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Email inválido',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
-            'Por favor, ingresa un email válido (ejemplo: usuario@ejemplo.com).',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
-              ),
-            ),
-          ],
-        ),
+    // Validar formato de email si contiene @
+    if (identifier.contains('@')) {
+      final emailRegex = RegExp(
+        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
       );
-      return;
+      if (!emailRegex.hasMatch(identifier)) {
+        setState(() {
+          _identifierError = true;
+        });
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            title: const Text(
+              'Email inválido',
+              style: TextStyle(color: Color(0xFFE0E0E0)),
+            ),
+            content: const Text(
+              'Por favor, ingresa un email válido.',
+              style: TextStyle(color: Color(0xFFE0E0E0)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     // Mostrar indicador de carga
@@ -131,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       // Llamar al servicio de autenticación real
       final result = await _authService.login(
-        _emailController.text.trim(),
+        _identifierController.text.trim(),
         _passwordController.text,
         rememberMe: _rememberMe,
       );
@@ -154,14 +145,11 @@ class _LoginPageState extends State<LoginPage> {
 
         // Navegar directamente a HomePage
         // Los usuarios que hacen login ya pasaron por el proceso de confirmación de datos
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+        Navigator.pushReplacement(context, ScaleRoute(page: const HomePage()));
       } else {
         // Error en el login
         setState(() {
-          _emailError = true;
+          _identifierError = true;
           _passwordError = true;
         });
 
@@ -174,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
               style: TextStyle(color: Color(0xFFE0E0E0)),
             ),
             content: Text(
-              result['message'] ?? 'Email o contraseña incorrectos',
+              result['message'] ?? 'Usuario/Email o contraseña incorrectos',
               style: const TextStyle(color: Color(0xFFE0E0E0)),
             ),
             actions: [
@@ -259,6 +247,7 @@ class _LoginPageState extends State<LoginPage> {
           FocusScope.of(context).unfocus();
         },
         child: ResponsiveWrapper(
+          maxWidth: 600,
           child: Container(
             color: bgColor,
             height: double.infinity,
@@ -271,9 +260,12 @@ class _LoginPageState extends State<LoginPage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 20.0),
                     child: Center(
-                      child: Image.asset(
-                        'assets/images/boombetlogo.png',
-                        width: 200,
+                      child: Hero(
+                        tag: 'boombet_logo',
+                        child: Image.asset(
+                          'assets/images/boombetlogo.png',
+                          width: 200,
+                        ),
                       ),
                     ),
                   ),
@@ -303,123 +295,147 @@ class _LoginPageState extends State<LoginPage> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // TextField Email
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
-                        onChanged: (value) {
-                          if (_emailError && value.isNotEmpty) {
-                            setState(() => _emailError = false);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Correo electrónico',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
-                            color: _emailError ? Colors.red : primaryGreen,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
+                      // TextField Usuario o Email
+                      Semantics(
+                        label: 'Campo de usuario o email',
+                        hint:
+                            'Ingresa tu nombre de usuario o dirección de correo electrónico',
+                        child: TextField(
+                          controller: _identifierController,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
+                          enableInteractiveSelection: true,
+                          style: TextStyle(color: textColor),
+                          onChanged: (value) {
+                            if (_identifierError && value.isNotEmpty) {
+                              setState(() => _identifierError = false);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Usuario o Email',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF808080)
+                                  : const Color(0xFF6C6C6C),
                             ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
+                            prefixIcon: Icon(
+                              Icons.person_outline,
+                              color: _identifierError
+                                  ? Colors.red
+                                  : primaryGreen,
                             ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : primaryGreen,
-                              width: 2,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _identifierError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
                             ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _identifierError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _identifierError
+                                    ? Colors.red
+                                    : primaryGreen,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: accentColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
                       // TextField Contraseña
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        keyboardType: TextInputType.text,
-                        textInputAction: TextInputAction.done,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
-                        onChanged: (value) {
-                          if (_passwordError && value.isNotEmpty) {
-                            setState(() => _passwordError = false);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Contraseña',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.lock_outline,
-                            color: _passwordError ? Colors.red : primaryGreen,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: textColor.withOpacity(0.6),
+                      Semantics(
+                        label: 'Campo de contraseña',
+                        hint: 'Ingresa tu contraseña',
+                        obscured: true,
+                        child: TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.done,
+                          enableInteractiveSelection: true,
+                          style: TextStyle(color: textColor),
+                          onChanged: (value) {
+                            if (_passwordError && value.isNotEmpty) {
+                              setState(() => _passwordError = false);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Contraseña',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF808080)
+                                  : const Color(0xFF6C6C6C),
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _passwordError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _passwordError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
                               color: _passwordError ? Colors.red : primaryGreen,
-                              width: 2,
                             ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: textColor.withOpacity(0.6),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : primaryGreen,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: accentColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -565,11 +581,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) {
-                                  return const RegisterPage();
-                                },
-                              ),
+                              SlideRightRoute(page: const RegisterPage()),
                             );
                           },
                           child: Row(
@@ -601,9 +613,7 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const ForgetPasswordPage(),
-                            ),
+                            FadeRoute(page: const ForgetPasswordPage()),
                           );
                         },
                         icon: Icon(

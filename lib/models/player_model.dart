@@ -64,21 +64,35 @@ class PlayerData {
 
   /// Factory para parsear desde el endpoint /auth/register (listaExistenciaFisica)
   factory PlayerData.fromRegisterResponse(Map<String, dynamic> json) {
+    print('DEBUG PARSER - JSON recibido: $json');
+
     // Extraer apenom y dividir en nombre y apellido
     final apenom = (json['apenom'] ?? '').toString().trim();
-    final partes = apenom.split(' ');
+    print('DEBUG PARSER - apenom: "$apenom"');
+
+    // Limpiar comas adicionales y espacios
+    final aponemLimpio = apenom
+        .replaceAll(RegExp(r',\s*,'), ',')
+        .replaceAll(RegExp(r',\s*$'), '')
+        .trim();
+    print('DEBUG PARSER - apenom limpio: "$aponemLimpio"');
+
+    final partes = aponemLimpio.split(RegExp(r'\s+'));
+    print('DEBUG PARSER - partes: $partes');
 
     String apellido = '';
     String nombre = '';
 
     if (partes.isNotEmpty) {
-      // Primer elemento es el apellido
+      // Primer elemento es el apellido (sin comas)
       apellido = partes[0].replaceAll(',', '').trim();
-      // El resto es el nombre
+      // El resto es el nombre (sin comas)
       if (partes.length > 1) {
-        nombre = partes.sublist(1).join(' ').trim();
+        nombre = partes.sublist(1).join(' ').replaceAll(',', '').trim();
       }
     }
+
+    print('DEBUG PARSER - apellido: "$apellido", nombre: "$nombre"');
 
     // Extraer dirección completa y dividir en calle y número
     final direccionCompleta = (json['direc_calle'] ?? '').toString().trim();
@@ -116,7 +130,13 @@ class PlayerData {
       }
     }
 
-    return PlayerData(
+    print('DEBUG PARSER - Creando PlayerData...');
+    print('DEBUG PARSER - dni: ${json['nume_docu']}');
+    print('DEBUG PARSER - cuil: ${json['cdi_codigo_de_identificacion']}');
+    print('DEBUG PARSER - fechaNacimiento: $fechaNacimiento');
+    print('DEBUG PARSER - anioNacimiento: $anioNacimiento');
+
+    final playerData = PlayerData(
       nombre: nombre,
       apellido: apellido,
       cuil: json['cdi_codigo_de_identificacion']?.toString() ?? '',
@@ -137,6 +157,9 @@ class PlayerData {
           : int.tryParse('${json['codigo_postal']}'),
       edad: edad,
     );
+
+    print('DEBUG PARSER - PlayerData creado exitosamente');
+    return playerData;
   }
 
   /// Helper para normalizar el sexo (M -> Masculino, F -> Femenino)

@@ -76,6 +76,7 @@ class _FaqPageState extends State<FaqPage> {
           FocusScope.of(context).unfocus();
         },
         child: ResponsiveWrapper(
+          maxWidth: 800,
           child: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
@@ -266,41 +267,48 @@ class _FaqPageState extends State<FaqPage> {
                       ),
                     ] else ...[
                       // Formulario de mensaje
-                      TextField(
-                        controller: _messageController,
-                        maxLines: 5,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
-                        decoration: InputDecoration(
-                          hintText: 'Escribe tu mensaje aquí...',
-                          hintStyle: TextStyle(
-                            color: textColor.withOpacity(0.5),
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF2A2A2A)
-                              : Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade300,
+                      Semantics(
+                        label: 'Campo de mensaje',
+                        hint: 'Escribe tu consulta o mensaje',
+                        child: TextField(
+                          controller: _messageController,
+                          maxLines: 5,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          enableInteractiveSelection: true,
+                          style: TextStyle(color: textColor),
+                          decoration: InputDecoration(
+                            hintText: 'Escribe tu mensaje aquí...',
+                            hintStyle: TextStyle(
+                              color: textColor.withOpacity(0.5),
                             ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade300,
+                            filled: true,
+                            fillColor: isDark
+                                ? const Color(0xFF2A2A2A)
+                                : Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey.shade300,
+                              ),
                             ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: greenColor, width: 2),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: greenColor,
+                                width: 2,
+                              ),
+                            ),
                           ),
                         ),
                       ),

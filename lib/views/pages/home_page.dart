@@ -7,6 +7,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,15 +39,20 @@ class _HomePageState extends State<HomePage> {
             showLogoutButton: true,
             showExitButton: false,
           ),
-          body: IndexedStack(
-            index: selectedPage,
-            children: const [
-              HomeContent(),
-              PointsContent(),
-              DiscountsContent(),
-              RafflesPage(),
-              ForumPage(),
-            ],
+          body: Center(
+            child: Container(
+              constraints: kIsWeb ? const BoxConstraints(maxWidth: 1200) : null,
+              child: IndexedStack(
+                index: selectedPage,
+                children: const [
+                  HomeContent(),
+                  PointsContent(),
+                  DiscountsContent(),
+                  RafflesPage(),
+                  ForumPage(),
+                ],
+              ),
+            ),
           ),
           bottomNavigationBar: const NavbarWidget(),
         );
@@ -166,7 +172,9 @@ class _HomeContentState extends State<HomeContent> {
                     },
                     itemCount: 5,
                     itemBuilder: (context, index) {
-                      return Container(
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
@@ -353,8 +361,8 @@ class PointsContent extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: kIsWeb ? 4 : 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.2,
