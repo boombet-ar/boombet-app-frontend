@@ -34,6 +34,14 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
       selectedPageNotifier.value = 0;
     });
 
+    // // Timer de 15 segundos para mostrar resultados
+    // Future.delayed(const Duration(seconds: 15), () {
+    //   if (mounted && !_affiliationCompleted) {
+    //     _affiliationCompleted = true;
+    //     _navigateToResultsPage(null);
+    //   }
+    // });
+
     // Escuchar mensajes del WebSocket
     _wsSubscription = widget.affiliationService.messageStream.listen(
       (message) {

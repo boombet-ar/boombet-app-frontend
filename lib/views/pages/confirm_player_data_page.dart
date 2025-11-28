@@ -54,10 +54,15 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   String _generateWebSocketUrl() {
     // 🔌 Generar URL del WebSocket apuntando al servidor del FRONTEND (ngrok)
     // Esta es la URL donde el backend enviará los mensajes de afiliación
-    const frontendNgrokUrl = 'https://terribilita-beth-shrilly.ngrok-free.dev';
 
-    // Convertir https a wss para WebSocket
-    final wsBaseUrl = frontendNgrokUrl.replaceFirst('https://', 'wss://');
+    // Convertir http/https a ws/wss para WebSocket
+    final baseUrl = ApiConfig.baseUrl;
+    var wsBaseUrl = baseUrl
+        .replaceFirst('http://', 'ws://')
+        .replaceFirst('https://', 'wss://');
+    if (wsBaseUrl.endsWith('/api')) {
+      wsBaseUrl = wsBaseUrl.substring(0, wsBaseUrl.length - 4);
+    }
 
     // Generar ID único basado en timestamp
     final uniqueId = DateTime.now().millisecondsSinceEpoch;
@@ -87,7 +92,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _telefonoController.dispose();
     _estadoCivilController.dispose();
     _sexoController.dispose();
-    _affiliationService.dispose();
+    //_affiliationService.dispose();
     super.dispose();
   }
 
