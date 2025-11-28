@@ -17,9 +17,7 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  // Controllers
   final Map<String, TextEditingController> _c = {};
-
   bool _loading = false;
 
   @override
@@ -62,7 +60,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _saveChanges() async {
     if (_loading) return;
 
-    // Validaciones básicas
     if (!_c["email"]!.text.contains("@")) {
       _showError("Ingresá un email válido");
       return;
@@ -73,7 +70,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    // Obtener ID del token
     final token = await TokenService.getToken();
     if (token == null) {
       _showError("Sesión expirada");
@@ -132,10 +128,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     return Scaffold(
-      backgroundColor: Colors.black87,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: const MainAppBar(
         showSettings: false,
         showProfileButton: false,
@@ -146,7 +145,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const Text(
+            Text(
               "Editar Información",
               style: TextStyle(
                 fontSize: 28,
@@ -155,15 +154,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 8),
-            const Text(
+
+            Text(
               "Modificá tus datos personales",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: onSurface.withOpacity(0.7), fontSize: 14),
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 32),
 
-            // SECCIÓN 1 — DATOS PERSONALES
+            // --- SECCIÓN 1 ---
             _section("Datos Personales"),
             _field("Nombre", _c["nombre"]!),
             _field("Apellido", _c["apellido"]!),
@@ -173,21 +175,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             const SizedBox(height: 24),
 
-            // SECCIÓN 2 — CONTACTO
+            // --- SECCIÓN 2 ---
             _section("Contacto"),
             _field("Email", _c["email"]!, keyboard: TextInputType.emailAddress),
             _field("Teléfono", _c["telefono"]!, keyboard: TextInputType.phone),
 
             const SizedBox(height: 24),
 
-            // SECCIÓN 3 — DOCUMENTACIÓN
+            // --- SECCIÓN 3 ---
             _section("Documentación"),
             _field("DNI", _c["dni"]!),
             _field("CUIL", _c["cuit"]!),
 
             const SizedBox(height: 24),
 
-            // SECCIÓN 4 — DIRECCIÓN
+            // --- SECCIÓN 4 ---
             _section("Dirección"),
             _field("Calle", _c["calle"]!),
             _field("Número", _c["numCalle"]!),
@@ -197,7 +199,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             const SizedBox(height: 32),
 
-            // BOTÓN GUARDAR
+            // --- BOTÓN ---
             SizedBox(
               height: 56,
               child: ElevatedButton(
@@ -230,6 +232,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
               ),
             ),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -237,10 +240,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // ---------- UI HELPERS ----------
+  // ------------------------
+  // COMPONENTES UI
+  // ------------------------
 
   Widget _section(String title) {
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
@@ -259,6 +265,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     TextEditingController controller, {
     TextInputType keyboard = TextInputType.text,
   }) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     return Padding(
@@ -266,19 +275,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: TextField(
         controller: controller,
         keyboardType: keyboard,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: onSurface),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white70),
+          labelStyle: TextStyle(color: onSurface.withOpacity(0.7)),
           filled: true,
-          fillColor: const Color(0xFF1A1A1A),
+          fillColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: primaryGreen),
+            borderSide: BorderSide(color: primaryGreen.withOpacity(0.8)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+            borderSide: BorderSide(
+              color: primaryGreen.withOpacity(0.8),
+              width: 1.5,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

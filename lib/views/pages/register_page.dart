@@ -37,6 +37,15 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  Map<String, bool> _passwordRules = {
+    "8+ caracteres": false,
+    "1 mayúscula": false,
+    "1 número": false,
+    "1 símbolo": false,
+    "Sin repetidos": false,
+    "Sin secuencias": false,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +57,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _passwordController = TextEditingController(text: 'Test124!');
     _confirmPasswordController = TextEditingController(text: 'Test124!');
     _selectedGender = 'M'; // Masculino
+    _passwordController.addListener(_validatePasswordLive);
   }
 
   @override
@@ -536,6 +546,71 @@ class _RegisterPageState extends State<RegisterPage> {
     return null;
   }
 
+  void _validatePasswordLive() {
+    final pw = _passwordController.text;
+
+    setState(() {
+      _passwordRules["8+ caracteres"] = pw.length >= 8;
+      _passwordRules["1 mayúscula"] = pw.contains(RegExp(r"[A-Z]"));
+      _passwordRules["1 número"] = pw.contains(RegExp(r"[0-9]"));
+      _passwordRules["1 símbolo"] = pw.contains(
+        RegExp(r'[!@#$%^&*()_+\-=\[\]{};:"\\|,.<>\/?]'),
+      );
+      _passwordRules["Sin repetidos"] = !RegExp(r"(.)\1{2,}").hasMatch(pw);
+
+      // Secuencias tipo 123, abc
+      bool hasSeq = false;
+      for (int i = 0; i < pw.length - 2; i++) {
+        if (pw.codeUnitAt(i + 1) == pw.codeUnitAt(i) + 1 &&
+            pw.codeUnitAt(i + 2) == pw.codeUnitAt(i) + 2) {
+          hasSeq = true;
+        }
+      }
+
+      _passwordRules["Sin secuencias"] = !hasSeq;
+    });
+  }
+
+  Widget _genderOption(String value, IconData icon) {
+    final selected = _selectedGender == value;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedGender = value;
+            _genderError = false;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? Colors.greenAccent : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: selected ? Colors.black : Colors.white70,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value == "M" ? "Masculino" : "Femenino",
+                style: TextStyle(
+                  color: selected ? Colors.black : Colors.white70,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -924,6 +999,34 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _passwordRules.entries.map((e) {
+                          final ok = e.value;
+                          return Row(
+                            children: [
+                              Icon(
+                                ok ? Icons.check_circle : Icons.cancel,
+                                size: 18,
+                                color: ok
+                                    ? Colors.greenAccent
+                                    : Colors.redAccent,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                e.key,
+                                style: TextStyle(
+                                  color: ok
+                                      ? Colors.greenAccent
+                                      : Colors.redAccent,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
 
                       // Botón para generar contraseña sugerida
                       SizedBox(
@@ -1092,75 +1195,25 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       // Selector de Género
                       Container(
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: _genderError ? Colors.red : borderColor,
+                            color: _genderError
+                                ? Colors.red
+                                : primaryGreen.withOpacity(0.5),
                             width: 1.5,
                           ),
-                          borderRadius: BorderRadius.circular(borderRadius),
+                          borderRadius: BorderRadius.circular(12),
                           color: accentColor,
                         ),
                         child: Row(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 12.0),
-                              child: Icon(
-                                Icons.wc,
-                                color: _genderError ? Colors.red : primaryGreen,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: RadioListTile<String>(
-                                      title: Text(
-                                        'Masculino',
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      value: 'M',
-                                      groupValue: _selectedGender,
-                                      activeColor: primaryGreen,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedGender = value;
-                                          _genderError = false;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: RadioListTile<String>(
-                                      title: Text(
-                                        'Femenino',
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      value: 'F',
-                                      groupValue: _selectedGender,
-                                      activeColor: primaryGreen,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedGender = value;
-                                          _genderError = false;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _genderOption("M", Icons.male),
+                            _genderOption("F", Icons.female),
                           ],
                         ),
                       ),
+
                       const SizedBox(height: 28),
 
                       // Botón Registrarse
