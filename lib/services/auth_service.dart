@@ -67,7 +67,14 @@ class AuthService {
 
   /// Obtiene el token actual
   Future<String?> getToken() async {
-    return await TokenService.getToken();
+    final token = await TokenService.getToken();
+
+    print(
+      "🔥 [AuthService] Token obtenido: "
+      "${token != null ? token.substring(0, token.length > 25 ? 25 : token.length) + '...' : 'NULL'}",
+    );
+
+    return token;
   }
 
   Future<Map<String, dynamic>> register(

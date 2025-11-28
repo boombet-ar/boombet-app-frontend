@@ -420,4 +420,92 @@ class HttpClient {
       rethrow;
     }
   }
+
+  /// Realiza un PATCH con retry automático
+  static Future<http.Response> patch(
+    String url, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    Duration? timeout,
+    bool includeAuth = true,
+    int retryCount = 0,
+  }) async {
+    final effectiveTimeout = timeout ?? _defaultTimeout;
+    final requestHeaders = await _getHeaders(
+      additionalHeaders: headers,
+      includeAuth: includeAuth,
+    );
+
+    try {
+      print('[HttpClient] PATCH $url (Attempt ${retryCount + 1}/$_maxRetries)');
+      if (body != null) {
+        print('[HttpClient] Body: ${jsonEncode(body)}');
+      }
+
+      final response = await http
+          .patch(
+            Uri.parse(url),
+            headers: requestHeaders,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(effectiveTimeout);
+
+      _handleResponse(response, url);
+      return response;
+    } on TimeoutException catch (e) {
+      print('[HttpClient] ⏱️ Timeout en $url: $e');
+
+      if (retryCount < _maxRetries - 1) {
+        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        await Future.delayed(_retryDelay * (retryCount + 1));
+        return patch(
+          url,
+          body: body,
+          headers: headers,
+          timeout: timeout,
+          includeAuth: includeAuth,
+          retryCount: retryCount + 1,
+        );
+      }
+
+      rethrow;
+    } on SocketException catch (e) {
+      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+
+      if (retryCount < _maxRetries - 1) {
+        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        await Future.delayed(_retryDelay * (retryCount + 1));
+        return patch(
+          url,
+          body: body,
+          headers: headers,
+          timeout: timeout,
+          includeAuth: includeAuth,
+          retryCount: retryCount + 1,
+        );
+      }
+
+      rethrow;
+    } on http.ClientException catch (e) {
+      print('[HttpClient] ❌ Client error en $url: $e');
+
+      if (retryCount < _maxRetries - 1) {
+        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        await Future.delayed(_retryDelay * (retryCount + 1));
+        return patch(
+          url,
+          body: body,
+          headers: headers,
+          timeout: timeout,
+          includeAuth: includeAuth,
+          retryCount: retryCount + 1,
+        );
+      }
+
+      rethrow;
+    } catch (e) {
+      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      rethrow;
+    }
+  }
 }

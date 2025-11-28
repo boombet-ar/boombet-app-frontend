@@ -1,7 +1,11 @@
+import 'package:boombet_app/views/pages/edit_profile_page.dart';
+import 'package:flutter/material.dart';
+import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
-import 'package:flutter/material.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,83 +25,46 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserData();
   }
 
+  bool _isFetching = false;
+
   Future<void> _loadUserData() async {
+    if (_isFetching) return; // 🔥 evita doble llamada
+    _isFetching = true;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Por ahora, usar datos mock como placeholder
-      // TODO: Implementar endpoint para obtener datos del usuario autenticado
-      // usando solo el token sin necesidad de DNI
+      final token = await TokenService.getToken();
 
-      // Simulación de datos para desarrollo
-      await Future.delayed(const Duration(milliseconds: 500));
+      print("🧪 TOKEN RAW: '$token'");
+
+      if (token == null || token.isEmpty || token == "null") {
+        throw Exception("Token vacío o inválido");
+      }
+
+      // Decodificar
+      final decoded = JwtDecoder.decode(token);
+      print("🧩 DECODED: $decoded");
+
+      final idJugador = decoded["idJugador"];
+      if (idJugador == null) throw Exception("Token sin idJugador");
+
+      final player = await PlayerService().getPlayerData(idJugador.toString());
 
       setState(() {
-        _playerData = PlayerData(
-          nombre: 'SANTIAGO MARTIN',
-          apellido: 'RODRIGUEZ',
-          cuil: '', // No mostrar
-          dni: '', // No mostrar
-          sexo: 'Masculino',
-          estadoCivil: '', // No mostrar
-          telefono: '1145678923',
-          correoElectronico: 'santiago.rodriguez@gmail.com',
-          direccionCompleta: '', // No mostrar
-          calle: '',
-          numCalle: '',
-          localidad: '', // No mostrar
-          provincia: '', // No mostrar
-          fechaNacimiento: '15-03-1992',
-          anioNacimiento: '1992',
-          cp: null, // No mostrar
-          edad: null, // No mostrar
-        );
+        _playerData = player;
         _isLoading = false;
       });
-
-      // Código original comentado hasta que el backend tenga el endpoint correcto
-      /*
-      // Obtener DNI del token o de la respuesta de login
-      final tokenData = await TokenService.getTokenData();
-      print('DEBUG Profile - Token data: $tokenData');
-      
-      // Intentar obtener DNI de diferentes lugares
-      final dni = tokenData?['dni']?.toString() ?? 
-                tokenData?['sub']?.toString() ?? 
-                tokenData?['user_id']?.toString() ?? '';
-
-      if (dni.isEmpty) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'No se pudo obtener la información del usuario';
-        });
-        return;
-      }
-
-      // Obtener datos del jugador
-      final playerService = PlayerService();
-      final result = await playerService.getPlayerData(dni);
-
-      if (result['success'] == true && result['data'] != null) {
-        setState(() {
-          _playerData = PlayerData.fromJson(result['data']);
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = result['message'] ?? 'Error al cargar los datos';
-        });
-      }
-      */
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error de conexión: $e';
+        _errorMessage = "Error obteniendo datos del jugador: $e";
       });
+    } finally {
+      _isFetching = false;
     }
   }
 
@@ -122,250 +89,260 @@ class _ProfilePageState extends State<ProfilePage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(color: textColor, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _loadUserData,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Reintentar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : RepaintBoundary(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Header con avatar y nombre
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryGreen.withOpacity(0.15),
-                              primaryGreen.withOpacity(0.05),
-                              bgColor,
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 40),
-                            // Avatar con sombra mejorada
-                            Container(
-                              width: 130,
-                              height: 130,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primaryGreen.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isDark
-                                      ? const Color(0xFF2A2A2A)
-                                      : Colors.white,
-                                  border: Border.all(
-                                    color: primaryGreen,
-                                    width: 4,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.person,
-                                  size: 70,
-                                  color: primaryGreen,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Nombre completo
-                            Text(
-                              '${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}'
-                                  .trim(),
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: 0.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            // Username con badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: primaryGreen.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: primaryGreen.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.alternate_email,
-                                    size: 16,
-                                    color: primaryGreen,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'SantiR92',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: primaryGreen,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ),
-
-                      // Tarjeta de información
-                      Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Título
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.person_outline_rounded,
-                                  color: primaryGreen,
-                                  size: 28,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Información Personal',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Tarjeta con todos los datos
-                            Container(
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1A1A1A)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isDark
-                                      ? const Color(0xFF2A2A2A)
-                                      : const Color(0xFFE0E0E0),
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  // Email
-                                  _buildModernInfoRow(
-                                    icon: Icons.email_outlined,
-                                    label: 'Email',
-                                    value: _playerData?.correoElectronico ?? '',
-                                    isDark: isDark,
-                                    textColor: textColor,
-                                    primaryGreen: primaryGreen,
-                                    isFirst: true,
-                                  ),
-
-                                  // Teléfono
-                                  _buildModernInfoRow(
-                                    icon: Icons.phone_outlined,
-                                    label: 'Teléfono',
-                                    value: _playerData?.telefono ?? '',
-                                    isDark: isDark,
-                                    textColor: textColor,
-                                    primaryGreen: primaryGreen,
-                                  ),
-
-                                  // Género
-                                  _buildModernInfoRow(
-                                    icon: Icons.wc_outlined,
-                                    label: 'Género',
-                                    value: _playerData?.sexo ?? '',
-                                    isDark: isDark,
-                                    textColor: textColor,
-                                    primaryGreen: primaryGreen,
-                                  ),
-
-                                  // Fecha de Nacimiento
-                                  _buildModernInfoRow(
-                                    icon: Icons.cake_outlined,
-                                    label: 'Fecha de Nacimiento',
-                                    value: _playerData?.fechaNacimiento ?? '',
-                                    isDark: isDark,
-                                    textColor: textColor,
-                                    primaryGreen: primaryGreen,
-                                    isLast: true,
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 32),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            ? _buildErrorView(textColor, primaryGreen)
+            : _buildProfileContent(textColor, isDark, primaryGreen),
       ),
     );
   }
+
+  // ----------------- ERROR VIEW -----------------
+
+  Widget _buildErrorView(Color textColor, Color primaryGreen) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: textColor, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadUserData,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ----------------- MAIN CONTENT -----------------
+
+  Widget _buildProfileContent(
+    Color textColor,
+    bool isDark,
+    Color primaryGreen,
+  ) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildHeader(textColor, isDark, primaryGreen),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                _buildSectionTitle(primaryGreen, textColor),
+                const SizedBox(height: 20),
+                _buildInfoCard(isDark, textColor, primaryGreen),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------- HEADER (ANIMATED) -----------------
+
+  Widget _buildHeader(Color textColor, bool isDark, Color primaryGreen) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryGreen.withOpacity(0.25),
+            primaryGreen.withOpacity(0.05),
+          ],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutBack,
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: primaryGreen, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withOpacity(0.4),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+              color: isDark ? const Color(0xFF202020) : Colors.white,
+            ),
+            child: Icon(Icons.person, size: 70, color: primaryGreen),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}"
+                .trim(),
+            style: TextStyle(
+              fontSize: 27,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildVerifiedBadge(primaryGreen),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerifiedBadge(Color primaryGreen) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: primaryGreen.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_user, size: 16, color: primaryGreen),
+          const SizedBox(width: 6),
+          Text(
+            "Usuario Verificado",
+            style: TextStyle(
+              color: primaryGreen,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------- INFO SECTION -----------------
+
+  Widget _buildSectionTitle(Color primaryGreen, Color textColor) {
+    return Row(
+      children: [
+        Icon(Icons.person_outline_rounded, color: primaryGreen, size: 28),
+        const SizedBox(width: 12),
+        Text(
+          "Información Personal",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(bool isDark, Color textColor, Color primaryGreen) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.black12,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildModernInfoRow(
+            icon: Icons.email_outlined,
+            label: "Email",
+            value: _playerData?.correoElectronico ?? "",
+            isDark: isDark,
+            textColor: textColor,
+            primaryGreen: primaryGreen,
+          ),
+          _buildModernInfoRow(
+            icon: Icons.phone_outlined,
+            label: "Teléfono",
+            value: _playerData?.telefono ?? "",
+            isDark: isDark,
+            textColor: textColor,
+            primaryGreen: primaryGreen,
+          ),
+          _buildModernInfoRow(
+            icon: Icons.wc_outlined,
+            label: "Género",
+            value: _playerData?.sexo ?? "",
+            isDark: isDark,
+            textColor: textColor,
+            primaryGreen: primaryGreen,
+          ),
+          _buildModernInfoRow(
+            icon: Icons.cake_outlined,
+            label: "Fecha de Nacimiento",
+            value: _playerData?.fechaNacimiento ?? "",
+            isDark: isDark,
+            textColor: textColor,
+            primaryGreen: primaryGreen,
+          ),
+
+          const SizedBox(height: 10),
+
+          // 🚀 BOTÓN PARA EDITAR PERFIL
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProfilePage(player: _playerData!),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Editar Información",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------- MODERN INFO ROW -----------------
 
   Widget _buildModernInfoRow({
     required IconData icon,
@@ -374,36 +351,28 @@ class _ProfilePageState extends State<ProfilePage> {
     required bool isDark,
     required Color textColor,
     required Color primaryGreen,
-    bool isFirst = false,
-    bool isLast = false,
   }) {
     return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       decoration: BoxDecoration(
         border: Border(
-          top: isFirst
-              ? BorderSide.none
-              : BorderSide(
-                  color: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFE0E0E0),
-                  width: 1,
-                ),
+          bottom: BorderSide(
+            color: isDark ? Colors.white10 : Colors.black12,
+            width: 1,
+          ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
         children: [
-          // Icono con fondo
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: primaryGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 22, color: primaryGreen),
+            child: Icon(icon, color: primaryGreen, size: 22),
           ),
           const SizedBox(width: 16),
-          // Label y valor
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,18 +382,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(
                     fontSize: 13,
                     color: textColor.withOpacity(0.6),
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  value,
+                  value.isEmpty ? "—" : value,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
                     color: textColor,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
                   ),
                 ),
               ],

@@ -38,27 +38,26 @@ class PlayerData {
   });
 
   /// Factory para parsear desde el endpoint /auth/userData (datosJugador)
-  factory PlayerData.fromJson(Map<String, dynamic> json) {
+  factory PlayerData.fromJugadorJson(Map<String, dynamic> json) {
     return PlayerData(
       nombre: json['nombre'] ?? '',
       apellido: json['apellido'] ?? '',
-      cuil: json['cuil']?.toString() ?? '',
-      dni: json['dni']?.toString() ?? '',
-      sexo: json['sexo'] ?? '',
-      estadoCivil: json['estado_civil'] ?? '',
       telefono: json['telefono'] ?? '',
-      correoElectronico: json['correoElectronico'] ?? '',
-      direccionCompleta: json['direccion'] ?? '',
-      calle: json['calle'] ?? '',
-      numCalle: json['numCalle']?.toString() ?? '',
-      localidad: json['localidad'] ?? '',
-      provincia: json['provincia'] ?? '',
+      correoElectronico: json['email'] ?? '',
+      sexo: json['genero'] ?? '',
       fechaNacimiento: json['fecha_nacimiento'] ?? '',
-      anioNacimiento: json['añoNacimiento']?.toString() ?? '',
-      cp: json['cp'] is int ? json['cp'] as int : int.tryParse('${json['cp']}'),
-      edad: json['edad'] is int
-          ? json['edad'] as int
-          : int.tryParse('${json['edad']}'),
+      // campos no usados en la vista:
+      cuil: json['cuit'] ?? '',
+      dni: json['dni'] ?? '',
+      estadoCivil: json['est_civil'] ?? '',
+      direccionCompleta: '',
+      calle: json['calle'] ?? '',
+      numCalle: json['numcalle'] ?? '',
+      localidad: json['ciudad'] ?? '',
+      provincia: json['provincia'] ?? '',
+      anioNacimiento: '',
+      cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp']}'),
+      edad: null,
     );
   }
 

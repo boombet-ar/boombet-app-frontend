@@ -1,4 +1,5 @@
 import 'package:boombet_app/models/affiliation_result.dart';
+import 'package:boombet_app/models/casino_response.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
