@@ -1,6 +1,9 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
+import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 
@@ -22,8 +25,6 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   bool _newPasswordError = false;
   bool _confirmPasswordError = false;
   bool _isLoading = false;
-  bool _obscureNewPassword = true;
-  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -46,14 +47,45 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   void _validateAndResetPassword() async {
     // Validar campos vacíos
     setState(() {
+      _emailError = _emailController.text.trim().isEmpty;
+      _dniError = _dniController.text.trim().isEmpty;
       _newPasswordError = _newPasswordController.text.trim().isEmpty;
       _confirmPasswordError = _confirmPasswordController.text.trim().isEmpty;
     });
 
-    if (_newPasswordError || _confirmPasswordError) {
+    if (_emailError ||
+        _dniError ||
+        _newPasswordError ||
+        _confirmPasswordError) {
       _showDialog(
         'Campos incompletos',
         'Por favor, completa todos los campos.',
+      );
+      return;
+    }
+
+    // Validar formato de email usando PasswordValidationService
+    final email = _emailController.text.trim();
+    if (!PasswordValidationService.isEmailValid(email)) {
+      setState(() {
+        _emailError = true;
+      });
+      _showDialog(
+        'Email inválido',
+        PasswordValidationService.getEmailValidationMessage(email),
+      );
+      return;
+    }
+
+    // Validar formato de DNI usando PasswordValidationService
+    final dni = _dniController.text.trim();
+    if (!PasswordValidationService.isDniValid(dni)) {
+      setState(() {
+        _dniError = true;
+      });
+      _showDialog(
+        'DNI inválido',
+        PasswordValidationService.getDniValidationMessage(dni),
       );
       return;
     }
@@ -98,19 +130,27 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
       setState(() {
         _isLoading = false;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
 
       // Mostrar mensaje de éxito y redirigir al login
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
+          backgroundColor: dialogBg,
+          title: Text(
             'Contraseña actualizada',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
-          content: const Text(
+          content: Text(
             'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
@@ -123,7 +163,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
               },
               child: const Text(
                 'Ir al inicio de sesión',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -141,21 +181,27 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   }
 
   void _showDialog(String title, String message) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(title, style: const TextStyle(color: Color(0xFFE0E0E0))),
-        content: Text(
-          message,
-          style: const TextStyle(color: Color(0xFFE0E0E0)),
-        ),
+        backgroundColor: dialogBg,
+        title: Text(title, style: TextStyle(color: textColor)),
+        content: Text(message, style: TextStyle(color: textColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text(
               'Entendido',
-              style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+              style: TextStyle(color: AppConstants.primaryGreen),
             ),
           ),
         ],
@@ -166,17 +212,10 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
-    final accentColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFFE8E8E8);
-    final borderColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFFD0D0D0);
     const borderRadius = 12.0;
 
     return Scaffold(
@@ -225,7 +264,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                     'Ingresa tu nueva contraseña',
                     style: TextStyle(
                       fontSize: 15,
-                      color: textColor.withOpacity(0.7),
+                      color: textColor.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -235,186 +274,51 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // TextField Email
-                      TextField(
+                      AppTextFormField(
+                        label: 'Correo Electrónico',
+                        hint: 'tu@email.com',
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
+                        hasError: _emailError,
+                        errorText: _emailError ? 'Email no válido' : null,
                         onChanged: (value) {
                           if (_emailError && value.isNotEmpty) {
                             setState(() => _emailError = false);
                           }
                         },
-                        decoration: InputDecoration(
-                          hintText: 'Correo electrónico',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
-                            color: _emailError ? Colors.red : primaryGreen,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 16),
 
                       // TextField DNI
-                      TextField(
+                      AppTextFormField(
+                        label: 'DNI',
+                        hint: '12345678',
                         controller: _dniController,
                         keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.next,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
+                        hasError: _dniError,
+                        errorText: _dniError ? 'DNI requerido' : null,
                         onChanged: (value) {
                           if (_dniError && value.isNotEmpty) {
                             setState(() => _dniError = false);
                           }
                         },
-                        decoration: InputDecoration(
-                          hintText: 'DNI',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.badge_outlined,
-                            color: _dniError ? Colors.red : primaryGreen,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _dniError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _dniError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _dniError ? Colors.red : primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 16),
 
                       // TextField Nueva Contraseña
-                      TextField(
+                      AppPasswordField(
+                        label: 'Nueva Contraseña',
+                        hint: 'Ingresa tu nueva contraseña',
                         controller: _newPasswordController,
-                        obscureText: _obscureNewPassword,
-                        keyboardType: TextInputType.text,
-                        textInputAction: TextInputAction.next,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
+                        hasError: _newPasswordError,
+                        errorText: _newPasswordError
+                            ? 'Contraseña inválida'
+                            : null,
                         onChanged: (value) {
                           if (_newPasswordError && value.isNotEmpty) {
                             setState(() => _newPasswordError = false);
                           }
                         },
-                        decoration: InputDecoration(
-                          hintText: 'Nueva contraseña',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.lock_outline,
-                            color: _newPasswordError
-                                ? Colors.red
-                                : primaryGreen,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureNewPassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: textColor.withOpacity(0.6),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureNewPassword = !_obscureNewPassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _newPasswordError
-                                  ? Colors.red
-                                  : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _newPasswordError
-                                  ? Colors.red
-                                  : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _newPasswordError
-                                  ? Colors.red
-                                  : primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 12),
 
@@ -487,7 +391,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                           ),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: primaryGreen.withOpacity(0.5),
+                              color: primaryGreen.withValues(alpha: 0.5),
                               width: 1,
                             ),
                             shape: RoundedRectangleBorder(
@@ -500,129 +404,28 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                       const SizedBox(height: 20),
 
                       // TextField Confirmar Contraseña
-                      TextField(
+                      AppPasswordField(
+                        label: 'Confirmar Contraseña',
+                        hint: 'Repite tu nueva contraseña',
                         controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        keyboardType: TextInputType.text,
-                        textInputAction: TextInputAction.done,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
+                        hasError: _confirmPasswordError,
+                        errorText: _confirmPasswordError
+                            ? 'Las contraseñas no coinciden'
+                            : null,
                         onChanged: (value) {
                           if (_confirmPasswordError && value.isNotEmpty) {
                             setState(() => _confirmPasswordError = false);
                           }
                         },
-                        decoration: InputDecoration(
-                          hintText: 'Confirmar contraseña',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.lock_outline,
-                            color: _confirmPasswordError
-                                ? Colors.red
-                                : primaryGreen,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: textColor.withOpacity(0.6),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _confirmPasswordError
-                                  ? Colors.red
-                                  : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _confirmPasswordError
-                                  ? Colors.red
-                                  : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _confirmPasswordError
-                                  ? Colors.red
-                                  : primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 32),
 
                       // Botón Restablecer Contraseña (principal)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: isDark
-                                ? Colors.black
-                                : Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                            ),
-                            elevation: 3,
-                            shadowColor: primaryGreen.withOpacity(0.4),
-                          ),
-                          onPressed: _isLoading
-                              ? null
-                              : _validateAndResetPassword,
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: isDark ? Colors.black : Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.lock_reset, size: 22),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      'Restablecer contraseña',
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? Colors.black
-                                            : Colors.white,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
+                      AppButton(
+                        label: 'Restablecer contraseña',
+                        onPressed: _validateAndResetPassword,
+                        isLoading: _isLoading,
+                        icon: Icons.lock_reset,
                       ),
                     ],
                   ),

@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/edit_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:boombet_app/services/token_service.dart';
@@ -39,7 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final token = await TokenService.getToken();
 
-      print("🧪 TOKEN RAW: '$token'");
+      debugPrint("🧪 TOKEN RAW: '$token'");
 
       if (token == null || token.isEmpty || token == "null") {
         throw Exception("Token vacío o inválido");
@@ -47,7 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Decodificar
       final decoded = JwtDecoder.decode(token);
-      print("🧩 DECODED: $decoded");
+      debugPrint("🧩 DECODED: $decoded");
 
       final idJugador = decoded["idJugador"];
       if (idJugador == null) throw Exception("Token sin idJugador");
@@ -165,8 +166,8 @@ class _ProfilePageState extends State<ProfilePage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primaryGreen.withOpacity(0.25),
-            primaryGreen.withOpacity(0.05),
+            primaryGreen.withValues(alpha: 0.25),
+            primaryGreen.withValues(alpha: 0.05),
           ],
         ),
       ),
@@ -174,7 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
+            duration: AppConstants.mediumDelay,
             curve: Curves.easeOutBack,
             width: 130,
             height: 130,
@@ -183,7 +184,7 @@ class _ProfilePageState extends State<ProfilePage> {
               border: Border.all(color: primaryGreen, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: primaryGreen.withOpacity(0.4),
+                  color: primaryGreen.withValues(alpha: 0.4),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -214,7 +215,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: primaryGreen.withOpacity(0.15),
+        color: primaryGreen.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -257,7 +258,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoCard(bool isDark, Color textColor, Color primaryGreen) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.black12,
@@ -265,7 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -320,7 +321,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     MaterialPageRoute(
                       builder: (_) => EditProfilePage(player: _playerData!),
                     ),
-                  );
+                  ).then((updatedPlayer) {
+                    if (updatedPlayer != null && updatedPlayer is PlayerData) {
+                      setState(() {
+                        _playerData = updatedPlayer;
+                      });
+                    }
+                  });
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
@@ -367,7 +374,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: primaryGreen.withOpacity(0.1),
+              color: primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: primaryGreen, size: 22),
@@ -381,7 +388,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   label,
                   style: TextStyle(
                     fontSize: 13,
-                    color: textColor.withOpacity(0.6),
+                    color: textColor.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 3),

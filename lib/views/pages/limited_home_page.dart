@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
-import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -47,13 +47,13 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
       (message) {
         if (!mounted || _affiliationCompleted) return;
 
-        print('[LimitedHomePage] 📩 Mensaje recibido del WebSocket');
-        print('[LimitedHomePage] Contenido: $message');
+        debugPrint('[LimitedHomePage] 📩 Mensaje recibido del WebSocket');
+        debugPrint('[LimitedHomePage] Contenido: $message');
 
         // Verificar si el mensaje contiene playerData y responses
         if (message.containsKey('playerData') &&
             message.containsKey('responses')) {
-          print('[LimitedHomePage] ✅ Mensaje completo de afiliación recibido');
+          debugPrint('[LimitedHomePage] ✅ Mensaje completo de afiliación recibido');
           _affiliationCompleted = true;
 
           // Parsear el resultado
@@ -61,7 +61,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             final result = AffiliationResult.fromJson(message);
             _navigateToResultsPage(result);
           } catch (e) {
-            print('[LimitedHomePage] ❌ Error parseando resultado: $e');
+            debugPrint('[LimitedHomePage] ❌ Error parseando resultado: $e');
             // Si hay error parseando, navegar igual pero sin resultados
             _navigateToResultsPage(null);
           }
@@ -75,7 +75,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
         }
       },
       onError: (error) {
-        print('[LimitedHomePage] ❌ Error en WebSocket: $error');
+        debugPrint('[LimitedHomePage] ❌ Error en WebSocket: $error');
         if (mounted) {
           setState(() {
             _statusMessage = 'Error en la conexión. Reintentando...';
@@ -160,15 +160,15 @@ class LimitedHomeContent extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primaryGreen.withOpacity(0.2),
-                  primaryGreen.withOpacity(0.1),
+                  primaryGreen.withValues(alpha: 0.2),
+                  primaryGreen.withValues(alpha: 0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: primaryGreen.withOpacity(0.3),
+                color: primaryGreen.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -195,7 +195,7 @@ class LimitedHomeContent extends StatelessWidget {
                   statusMessage,
                   style: TextStyle(
                     fontSize: 14,
-                    color: textColor.withOpacity(0.8),
+                    color: textColor.withValues(alpha: 0.8),
                     height: 1.4,
                   ),
                 ),
@@ -230,7 +230,7 @@ class LimitedHomeContent extends StatelessWidget {
             'Estamos preparando todo para que disfrutes de la mejor experiencia.',
             style: TextStyle(
               fontSize: 16,
-              color: textColor.withOpacity(0.7),
+              color: textColor.withValues(alpha: 0.7),
               height: 1.4,
             ),
           ),
@@ -286,14 +286,14 @@ class LimitedHomeContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryGreen.withOpacity(0.2), width: 1),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.2), width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: primaryGreen.withOpacity(0.1),
+              color: primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: primaryGreen, size: 32),
@@ -316,7 +316,7 @@ class LimitedHomeContent extends StatelessWidget {
                   description,
                   style: TextStyle(
                     fontSize: 13,
-                    color: textColor.withOpacity(0.6),
+                    color: textColor.withValues(alpha: 0.6),
                     height: 1.3,
                   ),
                 ),
@@ -398,17 +398,17 @@ Widget _buildLockedContent(
               shape: BoxShape.circle,
               color: isDark ? Colors.grey[900] : Colors.grey[100],
               border: Border.all(
-                color: primaryGreen.withOpacity(0.3),
+                color: primaryGreen.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
-            child: Icon(icon, size: 64, color: textColor.withOpacity(0.3)),
+            child: Icon(icon, size: 64, color: textColor.withValues(alpha: 0.3)),
           ),
           const SizedBox(height: 24),
           Icon(
             Icons.lock_outline,
             size: 48,
-            color: primaryGreen.withOpacity(0.5),
+            color: primaryGreen.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -424,7 +424,7 @@ Widget _buildLockedContent(
             message,
             style: TextStyle(
               fontSize: 15,
-              color: textColor.withOpacity(0.6),
+              color: textColor.withValues(alpha: 0.6),
               height: 1.4,
             ),
             textAlign: TextAlign.center,
@@ -433,10 +433,10 @@ Widget _buildLockedContent(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: primaryGreen.withOpacity(0.1),
+              color: primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: primaryGreen.withOpacity(0.3),
+                color: primaryGreen.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -470,9 +470,9 @@ class LimitedForumContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? const Color(0xFFE0E0E0) : Colors.black87;
+    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
+    final cardColor = isDark ? AppConstants.darkCardBg : Colors.white;
+    final textColor = isDark ? AppConstants.textDark : Colors.black87;
     final greenColor = theme.colorScheme.primary;
 
     // Posts de ejemplo (solo lectura)
@@ -513,7 +513,7 @@ class LimitedForumContent extends StatelessWidget {
                 color: cardColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -541,10 +541,10 @@ class LimitedForumContent extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: greenColor.withOpacity(0.1),
+                      color: greenColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: greenColor.withOpacity(0.3),
+                        color: greenColor.withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),
@@ -557,7 +557,7 @@ class LimitedForumContent extends StatelessWidget {
                             'Podrás publicar una vez completada tu afiliación',
                             style: TextStyle(
                               fontSize: 14,
-                              color: textColor.withOpacity(0.8),
+                              color: textColor.withValues(alpha: 0.8),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -606,7 +606,7 @@ class LimitedForumContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -621,7 +621,7 @@ class LimitedForumContent extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: greenColor.withOpacity(0.2),
+                  backgroundColor: greenColor.withValues(alpha: 0.2),
                   child: Text(
                     post.username[0].toUpperCase(),
                     style: TextStyle(
@@ -647,7 +647,7 @@ class LimitedForumContent extends StatelessWidget {
                         _formatTimestamp(post.timestamp),
                         style: TextStyle(
                           fontSize: 12,
-                          color: textColor.withOpacity(0.6),
+                          color: textColor.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -703,11 +703,11 @@ class LimitedForumContent extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: textColor.withOpacity(0.5)),
+            Icon(icon, size: 20, color: textColor.withValues(alpha: 0.5)),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.5)),
+              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.5)),
             ),
           ],
         ),

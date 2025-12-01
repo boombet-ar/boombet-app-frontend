@@ -34,12 +34,13 @@ class AffiliationResult {
     int error = 0;
 
     for (final r in responses.values) {
-      if (r.isSuccess)
+      if (r.isSuccess) {
         success++;
-      else if (r.isWarning)
+      } else if (r.isWarning) {
         already++;
-      else
+      } else {
         error++;
+      }
     }
 
     return {

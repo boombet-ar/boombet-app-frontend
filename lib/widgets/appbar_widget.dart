@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
@@ -41,7 +42,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final greenColor = theme.colorScheme.primary;
-    final appBarBg = isDark ? Colors.black38 : const Color(0xFFE8E8E8);
+    final appBarBg = isDark ? Colors.black38 : AppConstants.lightSurfaceVariant;
 
     return AppBar(
       systemOverlayStyle: isDark
@@ -79,21 +80,21 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   builder: (context) => AlertDialog(
                     backgroundColor: isDark
                         ? const Color(0xFF1A1A1A)
-                        : Colors.white,
+                        : AppConstants.lightDialogBg,
                     title: Text(
                       '¿Cerrar sesión?',
                       style: TextStyle(
                         color: isDark
-                            ? const Color(0xFFE0E0E0)
-                            : Colors.black87,
+                            ? AppConstants.textDark
+                            : AppConstants.lightLabelText,
                       ),
                     ),
                     content: Text(
                       '¿Estás seguro de que deseas cerrar sesión?',
                       style: TextStyle(
                         color: isDark
-                            ? const Color(0xFFE0E0E0)
-                            : Colors.black87,
+                            ? AppConstants.textDark
+                            : AppConstants.lightLabelText,
                       ),
                     ),
                     actions: [

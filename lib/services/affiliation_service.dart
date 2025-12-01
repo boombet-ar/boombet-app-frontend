@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:web_socket_channel/io.dart';
@@ -14,12 +15,12 @@ class AffiliationService {
   /// Stream para escuchar mensajes del WebSocket desde la UI
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
 
-  /// 👉 ESTE ES EL MÉTODO QUE TE FALTA
+  /// Conecta al WebSocket y escucha mensajes de afiliación
   Future<void> connectToWebSocket({
     required String wsUrl,
     String token = '',
   }) async {
-    print('[AffiliationService] Conectando a WebSocket: $wsUrl');
+    log('[AffiliationService] Conectando a WebSocket: $wsUrl');
 
     try {
       // Cerrar conexión previa si existe
@@ -27,8 +28,8 @@ class AffiliationService {
 
       // Parsear y loguear la URI
       final uri = Uri.parse(wsUrl);
-      print('[AffiliationService] URI parseada: $uri');
-      print(
+      log('[AffiliationService] URI parseada: $uri');
+      log(
         '[AffiliationService] Scheme: ${uri.scheme}, '
         'Host: ${uri.host}, Port: ${uri.port}, Path: ${uri.path}',
       );
@@ -47,13 +48,13 @@ class AffiliationService {
 
       // Crear el canal desde el WebSocket conectado
       _channel = IOWebSocketChannel(webSocket);
-      print('[AffiliationService] ✅ WebSocket conectado exitosamente');
+      log('[AffiliationService] ✅ WebSocket conectado exitosamente');
 
       // Escuchar mensajes del WebSocket
       _wsSubscription = _channel!.stream.listen(
         (message) {
           try {
-            print('[AffiliationService] 📩 Mensaje recibido: $message');
+            log('[AffiliationService] 📩 Mensaje recibido: $message');
             if (message is String) {
               final data = jsonDecode(message);
               if (!_messageController.isClosed) {
@@ -61,23 +62,23 @@ class AffiliationService {
               }
             }
           } catch (e) {
-            print('[AffiliationService] ❌ Error parsing message: $e');
+            log('[AffiliationService] ❌ Error parsing message: $e');
           }
         },
         onError: (error) {
-          print('[AffiliationService] ❌ WebSocket error: $error');
+          log('[AffiliationService] ❌ WebSocket error: $error');
           if (!_messageController.isClosed) {
             _messageController.addError(error);
           }
         },
         onDone: () {
-          print('[AffiliationService] 🔌 WebSocket connection closed');
+          log('[AffiliationService] 🔌 WebSocket connection closed');
         },
         cancelOnError: false,
       );
     } catch (e, stackTrace) {
-      print('[AffiliationService] ❌ Error al conectar WebSocket: $e');
-      print('[AffiliationService] Stack trace: $stackTrace');
+      log('[AffiliationService] ❌ Error al conectar WebSocket: $e');
+      log('[AffiliationService] Stack trace: $stackTrace');
       // No relanzamos para no crashear la app
     }
   }

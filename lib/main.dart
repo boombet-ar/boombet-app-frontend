@@ -1,23 +1,25 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 // GlobalKey para acceder al Navigator desde cualquier lugar
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() {
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {
-    print('[MAIN] 🔴 401 Detected - Navigating to LoginPage');
+    debugPrint('[MAIN] 🔴 401 Detected - Navigating to LoginPage');
 
     // Usar navigatorKey para navegar sin contexto
     final navigator = navigatorKey.currentState;
     if (navigator != null) {
-      print('[MAIN] ✅ Navigator found - Pushing LoginPage');
+      debugPrint('[MAIN] ✅ Navigator found - Pushing LoginPage');
       navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginPage()),
         (route) => false, // Eliminar todas las rutas previas
@@ -25,21 +27,19 @@ void main() {
 
       // Mostrar SnackBar después de navegar
       Future.delayed(const Duration(milliseconds: 500), () {
-        final context = navigatorKey.currentContext;
-        if (context != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
-              ),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+        final messenger = scaffoldMessengerKey.currentState;
+        messenger?.showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
             ),
-          );
-        }
+            backgroundColor: AppConstants.warningOrange,
+            duration: AppConstants.longSnackbarDuration,
+          ),
+        );
       });
     } else {
-      print('[MAIN] ❌ Navigator is null - Cannot navigate');
+      debugPrint('[MAIN] ❌ Navigator is null - Cannot navigate');
     }
   };
 
@@ -52,47 +52,47 @@ class MyApp extends StatelessWidget {
   // Cache themes to avoid rebuilding
   static final _lightTheme = ThemeData(
     brightness: Brightness.light,
-    scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    scaffoldBackgroundColor: AppConstants.lightBg,
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFE8E8E8),
-      foregroundColor: Color(0xFF2C2C2C),
+      backgroundColor: AppConstants.lightAccent,
+      foregroundColor: AppConstants.textLight,
       elevation: 0,
     ),
     colorScheme: ColorScheme.light(
-      primary: const Color.fromARGB(255, 35, 200, 75),
-      secondary: const Color(0xFF2C2C2C),
-      surface: const Color(0xFFE8E8E8),
+      primary: AppConstants.primaryGreen,
+      secondary: AppConstants.textLight,
+      surface: AppConstants.lightAccent,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onSurface: const Color(0xFF2C2C2C),
+      onSurface: AppConstants.textLight,
     ),
-    cardColor: const Color(0xFFE8E8E8),
+    cardColor: AppConstants.lightAccent,
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Color(0xFF2C2C2C)),
-      bodyMedium: TextStyle(color: Color(0xFF2C2C2C)),
+      bodyLarge: TextStyle(color: AppConstants.textLight),
+      bodyMedium: TextStyle(color: AppConstants.textLight),
     ),
   );
 
   static final _darkTheme = ThemeData(
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: const Color(0xFF000000),
+    scaffoldBackgroundColor: AppConstants.darkBg,
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF000000),
-      foregroundColor: Color(0xFFE0E0E0),
+      backgroundColor: AppConstants.darkBg,
+      foregroundColor: AppConstants.textDark,
       elevation: 0,
     ),
     colorScheme: const ColorScheme.dark(
-      primary: Color.fromARGB(255, 41, 255, 94),
-      secondary: Color(0xFF1A1A1A),
-      surface: Color(0xFF1A1A1A),
+      primary: AppConstants.primaryGreen,
+      secondary: AppConstants.darkAccent,
+      surface: AppConstants.darkAccent,
       onPrimary: Colors.black,
-      onSecondary: Color(0xFFE0E0E0),
-      onSurface: Color(0xFFE0E0E0),
+      onSecondary: AppConstants.textDark,
+      onSurface: AppConstants.textDark,
     ),
-    cardColor: const Color(0xFF1A1A1A),
+    cardColor: AppConstants.darkAccent,
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
-      bodyMedium: TextStyle(color: Color(0xFFE0E0E0)),
+      bodyLarge: TextStyle(color: AppConstants.textDark),
+      bodyMedium: TextStyle(color: AppConstants.textDark),
     ),
   );
 
@@ -105,6 +105,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           navigatorKey:
               navigatorKey, // Agregar GlobalKey para navegación desde HttpClient
+          scaffoldMessengerKey: scaffoldMessengerKey,
           title: 'BoomBet App',
           themeAnimationDuration: const Duration(milliseconds: 150),
           themeAnimationCurve: Curves.fastOutSlowIn,
@@ -156,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   Future<void> _checkSession() async {
     // Verificar cualquier token válido (persistente O temporal)
     final hasActiveSession = await TokenService.isTokenValid();
+    if (!mounted) return;
     setState(() {
       _hasSession = hasActiveSession;
       _isLoading = false;

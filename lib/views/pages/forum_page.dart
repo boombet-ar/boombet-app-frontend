@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -89,9 +90,13 @@ class _ForumPageState extends State<ForumPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? const Color(0xFFE0E0E0) : Colors.black87;
+    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
+    final cardColor = isDark
+        ? AppConstants.darkCardBg
+        : AppConstants.lightCardBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
     final greenColor = theme.colorScheme.primary;
 
     return ResponsiveWrapper(
@@ -111,7 +116,7 @@ class _ForumPageState extends State<ForumPage> {
                   color: cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -139,7 +144,9 @@ class _ForumPageState extends State<ForumPage> {
                       Container(
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.black26 : Colors.grey.shade200,
+                          color: isDark
+                              ? AppConstants.darkAccent
+                              : AppConstants.lightDivider,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isDark
@@ -149,14 +156,14 @@ class _ForumPageState extends State<ForumPage> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.lock, color: textColor.withOpacity(0.5)),
+                            Icon(Icons.lock, color: textColor.withValues(alpha: 0.5)),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Inicia sesión para publicar',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: textColor.withOpacity(0.7),
+                                  color: textColor.withValues(alpha: 0.7),
                                 ),
                               ),
                             ),
@@ -169,9 +176,9 @@ class _ForumPageState extends State<ForumPage> {
                                   ),
                                 );
                               },
-                              style: TextButton.styleFrom(
+                              style: ElevatedButton.styleFrom(
                                 backgroundColor: greenColor,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppConstants.lightCardBg,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 8,
@@ -193,7 +200,9 @@ class _ForumPageState extends State<ForumPage> {
                             backgroundColor: greenColor,
                             child: Icon(
                               Icons.person,
-                              color: isDark ? Colors.black : Colors.white,
+                              color: isDark
+                                  ? AppConstants.darkBg
+                                  : AppConstants.lightCardBg,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -213,26 +222,26 @@ class _ForumPageState extends State<ForumPage> {
                                   hintText:
                                       '¿Qué quieres compartir con la comunidad?',
                                   hintStyle: TextStyle(
-                                    color: textColor.withOpacity(0.5),
+                                    color: textColor.withValues(alpha: 0.5),
                                   ),
                                   filled: true,
                                   fillColor: isDark
-                                      ? const Color(0xFF2A2A2A)
-                                      : Colors.white,
+                                      ? AppConstants.darkCardBg
+                                      : AppConstants.lightInputBg,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
                                       color: isDark
-                                          ? Colors.grey.shade800
-                                          : Colors.grey.shade300,
+                                          ? AppConstants.borderDark
+                                          : AppConstants.lightInputBorder,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
                                       color: isDark
-                                          ? Colors.grey.shade800
-                                          : Colors.grey.shade300,
+                                          ? AppConstants.borderDark
+                                          : AppConstants.lightInputBorder,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
@@ -313,7 +322,7 @@ class _ForumPageState extends State<ForumPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -328,7 +337,7 @@ class _ForumPageState extends State<ForumPage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: greenColor.withOpacity(0.2),
+                  backgroundColor: greenColor.withValues(alpha: 0.2),
                   child: Text(
                     post.username[0].toUpperCase(),
                     style: TextStyle(
@@ -354,7 +363,7 @@ class _ForumPageState extends State<ForumPage> {
                         _formatTimestamp(post.timestamp),
                         style: TextStyle(
                           fontSize: 12,
-                          color: textColor.withOpacity(0.6),
+                          color: textColor.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -417,7 +426,7 @@ class _ForumPageState extends State<ForumPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Función de $label en desarrollo'),
-            duration: const Duration(seconds: 1),
+            duration: AppConstants.snackbarDuration,
           ),
         );
       },
@@ -426,11 +435,11 @@ class _ForumPageState extends State<ForumPage> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: textColor.withOpacity(0.7)),
+            Icon(icon, size: 20, color: textColor.withValues(alpha: 0.7)),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.7)),
+              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.7)),
             ),
           ],
         ),

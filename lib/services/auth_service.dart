@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import '../config/api_config.dart';
 import '../utils/error_parser.dart';
 import 'http_client.dart';
@@ -68,11 +69,10 @@ class AuthService {
   /// Obtiene el token actual
   Future<String?> getToken() async {
     final token = await TokenService.getToken();
-
-    print(
-      "🔥 [AuthService] Token obtenido: "
-      "${token != null ? token.substring(0, token.length > 25 ? 25 : token.length) + '...' : 'NULL'}",
-    );
+    final tokenPreview = token != null
+        ? (token.length > 25 ? '${token.substring(0, 25)}...' : token)
+        : 'NULL';
+    log('🔥 [AuthService] Token obtenido: $tokenPreview');
 
     return token;
   }

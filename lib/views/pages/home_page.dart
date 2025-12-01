@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
 import 'package:boombet_app/views/pages/points_category_page.dart';
@@ -88,7 +89,7 @@ class _HomeContentState extends State<HomeContent> {
         final nextPage = (_currentCarouselPage + 1) % 5;
         _carouselController.animateToPage(
           nextPage,
-          duration: const Duration(milliseconds: 500),
+          duration: AppConstants.mediumDelay,
           curve: Curves.easeInOut,
         );
       }
@@ -104,7 +105,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void _handleSearch(String query) {
-    print('Buscando: $query');
+    debugPrint('Buscando: $query');
     // Aquí puedes agregar la lógica de búsqueda
   }
 
@@ -173,7 +174,7 @@ class _HomeContentState extends State<HomeContent> {
                     itemCount: 5,
                     itemBuilder: (context, index) {
                       return AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                        duration: AppConstants.shortDelay,
                         curve: Curves.easeInOut,
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -182,12 +183,12 @@ class _HomeContentState extends State<HomeContent> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              primaryGreen.withOpacity(0.3),
-                              primaryGreen.withOpacity(0.1),
+                              primaryGreen.withValues(alpha: 0.3),
+                              primaryGreen.withValues(alpha: 0.1),
                             ],
                           ),
                           border: Border.all(
-                            color: primaryGreen.withOpacity(0.5),
+                            color: primaryGreen.withValues(alpha: 0.5),
                             width: 2,
                           ),
                         ),
@@ -219,7 +220,7 @@ class _HomeContentState extends State<HomeContent> {
                                       'Próximamente',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: textColor.withOpacity(0.7),
+                                        color: textColor.withValues(alpha: 0.7),
                                       ),
                                     ),
                                   ],
@@ -268,7 +269,7 @@ class _HomeContentState extends State<HomeContent> {
                       decoration: BoxDecoration(
                         color: _currentCarouselPage == index
                             ? primaryGreen
-                            : primaryGreen.withOpacity(0.3),
+                            : primaryGreen.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -375,7 +376,7 @@ class PointsContent extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
-                    color: primaryGreen.withOpacity(0.3),
+                    color: primaryGreen.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -536,7 +537,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
             color: isDark ? Colors.grey[900] : Colors.grey[100],
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -618,7 +619,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
           color: isSelected ? primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? primaryGreen : primaryGreen.withOpacity(0.5),
+            color: isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.5),
             width: 2,
           ),
         ),
@@ -664,8 +665,8 @@ class _DiscountsContentState extends State<DiscountsContent> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    primaryGreen.withOpacity(0.7),
-                    primaryGreen.withOpacity(0.4),
+                    primaryGreen.withValues(alpha: 0.7),
+                    primaryGreen.withValues(alpha: 0.4),
                   ],
                 ),
               ),
@@ -675,7 +676,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                     child: Icon(
                       discount['image'],
                       size: 60,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                   Positioned(
@@ -691,7 +692,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -716,7 +717,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -753,14 +754,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       Icon(
                         Icons.store,
                         size: 16,
-                        color: textColor.withOpacity(0.6),
+                        color: textColor.withValues(alpha: 0.6),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         discount['merchant'],
                         style: TextStyle(
                           fontSize: 14,
-                          color: textColor.withOpacity(0.7),
+                          color: textColor.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -771,7 +772,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                     discount['description'],
                     style: TextStyle(
                       fontSize: 14,
-                      color: textColor.withOpacity(0.8),
+                      color: textColor.withValues(alpha: 0.8),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -782,14 +783,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       Icon(
                         Icons.calendar_today,
                         size: 14,
-                        color: textColor.withOpacity(0.5),
+                        color: textColor.withValues(alpha: 0.5),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Válido hasta: ${discount['validUntil']}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: textColor.withOpacity(0.5),
+                          color: textColor.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -851,7 +852,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: textColor.withOpacity(0.3),
+                  color: textColor.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -873,7 +874,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.red.withOpacity(0.3),
+                                color: Colors.red.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -920,10 +921,10 @@ class _DiscountsContentState extends State<DiscountsContent> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: primaryGreen.withOpacity(0.1),
+                          color: primaryGreen.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: primaryGreen.withOpacity(0.3),
+                            color: primaryGreen.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
@@ -967,7 +968,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         discount['terms'],
                         style: TextStyle(
                           fontSize: 14,
-                          color: textColor.withOpacity(0.7),
+                          color: textColor.withValues(alpha: 0.7),
                           height: 1.5,
                         ),
                       ),
@@ -976,7 +977,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         children: [
                           Icon(
                             Icons.calendar_today,
-                            color: textColor.withOpacity(0.6),
+                            color: textColor.withValues(alpha: 0.6),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -985,7 +986,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withValues(alpha: 0.7),
                             ),
                           ),
                           Text(

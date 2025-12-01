@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -52,23 +54,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   String _generateWebSocketUrl() {
-    // 🔌 Generar URL del WebSocket apuntando al servidor del FRONTEND (ngrok)
-    // Esta es la URL donde el backend enviará los mensajes de afiliación
-
-    // Convertir http/https a ws/wss para WebSocket
-    final baseUrl = ApiConfig.baseUrl;
-    var wsBaseUrl = baseUrl
-        .replaceFirst('http://', 'ws://')
-        .replaceFirst('https://', 'wss://');
-    if (wsBaseUrl.endsWith('/api')) {
-      wsBaseUrl = wsBaseUrl.substring(0, wsBaseUrl.length - 4);
-    }
-
-    // Generar ID único basado en timestamp
-    final uniqueId = DateTime.now().millisecondsSinceEpoch;
-
-    // Retornar URL completa del WebSocket
-    return '$wsBaseUrl/affiliation/$uniqueId';
+    return WebSocketUrlService.generateAffiliationUrl();
   }
 
   @override
@@ -141,13 +127,13 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         sexo: _sexoController.text.trim(),
       );
 
-      print('PASO 1: Generando WebSocket URL...');
+      debugPrint('PASO 1: Generando WebSocket URL...');
 
       // Generar URL del WebSocket
       final wsUrl = _generateWebSocketUrl();
-      print('WebSocket URL: $wsUrl');
+      debugPrint('WebSocket URL: $wsUrl');
 
-      print('PASO 2: Preparando payload...');
+      debugPrint('PASO 2: Preparando payload...');
 
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
@@ -172,12 +158,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         },
       };
 
-      print('PASO 3: Enviando POST a /api/users/auth/register');
-      print('Payload: ${jsonEncode(payload)}');
+      debugPrint('PASO 3: Enviando POST a /api/users/auth/register');
+      debugPrint('Payload: ${jsonEncode(payload)}');
 
       // Enviar POST al endpoint de registro
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/register');
-      print('URL: $url');
+      debugPrint('URL: $url');
 
       final response = await http
           .post(
@@ -186,12 +172,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             body: jsonEncode(payload),
           )
           .timeout(
-            const Duration(seconds: 15),
+            AppConstants.apiTimeout,
             onTimeout: () => http.Response('Request timeout', 408),
           );
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (!mounted) return;
 
@@ -208,26 +194,26 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             // Guardar token PERSISTENTE (usuario mantiene sesión al cerrar app)
             await TokenService.saveToken(token);
             savedToken = token;
-            print('✅ Token persistente guardado exitosamente');
+            debugPrint('✅ Token persistente guardado exitosamente');
           } else {
-            print('⚠️ ADVERTENCIA: No se recibió token en la respuesta');
+            debugPrint('⚠️ ADVERTENCIA: No se recibió token en la respuesta');
           }
         } catch (e) {
-          print('⚠️ Error al parsear token: $e');
+          debugPrint('⚠️ Error al parsear token: $e');
         }
 
         // 🔌 CONECTAR WEBSOCKET usando la MISMA URL que se envió al backend
         // El frontend genera el wsUrl y lo usa directamente para la conexión
-        print(
+        debugPrint(
           '🔌 Conectando WebSocket con URL generada por el frontend: $wsUrl',
         );
         _affiliationService
             .connectToWebSocket(wsUrl: wsUrl, token: savedToken ?? '')
             .then((_) {
-              print('✅ WebSocket conectado exitosamente');
+              debugPrint('✅ WebSocket conectado exitosamente');
             })
             .catchError((e) {
-              print('⚠️ Error al conectar WebSocket: $e');
+              debugPrint('⚠️ Error al conectar WebSocket: $e');
               // No hacemos nada crítico, la navegación continúa igual
             });
 
@@ -289,7 +275,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         );
       }
     } catch (e) {
-      print('ERROR CRÍTICO en _onConfirmarDatos: $e');
+      debugPrint('ERROR CRÍTICO en _onConfirmarDatos: $e');
 
       if (!mounted) return;
 
@@ -308,10 +294,13 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   @override
   Widget build(BuildContext context) {
     final data = widget.playerData;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     return Scaffold(
-      backgroundColor: Colors.black87,
+      backgroundColor: backgroundColor,
       appBar: const MainAppBar(
         showSettings: false,
         showProfileButton: false,
@@ -322,7 +311,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         child: ListView(
           padding: const EdgeInsets.all(24.0),
           children: [
-            const Text(
+            Text(
               'Confirmá tus datos',
               style: TextStyle(
                 fontSize: 28,
@@ -332,9 +321,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Verificá que todos tus datos sean correctos',
-              style: TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : AppConstants.lightHintText,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -350,19 +342,30 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             ),
             const SizedBox(height: 16),
 
-            _buildReadOnlyField('DNI', data.dni),
-            _buildReadOnlyField('CUIL', data.cuil),
-            _buildReadOnlyField('Fecha de Nacimiento', data.fechaNacimiento),
-            _buildReadOnlyField('Año de Nacimiento', data.anioNacimiento),
+            _buildReadOnlyField(context, 'DNI', data.dni),
+            _buildReadOnlyField(context, 'CUIL', data.cuil),
+            _buildReadOnlyField(
+              context,
+              'Fecha de Nacimiento',
+              data.fechaNacimiento,
+            ),
+            _buildReadOnlyField(
+              context,
+              'Año de Nacimiento',
+              data.anioNacimiento,
+            ),
             if (data.edad != null)
-              _buildReadOnlyField('Edad', data.edad.toString()),
-
+              _buildReadOnlyField(context, 'Edad', data.edad.toString()),
             const SizedBox(height: 16),
 
-            _buildEditableField('Nombre', _nombreController),
-            _buildEditableField('Apellido', _apellidoController),
-            _buildEditableField('Sexo', _sexoController),
-            _buildEditableField('Estado Civil', _estadoCivilController),
+            _buildEditableField(context, 'Nombre', _nombreController),
+            _buildEditableField(context, 'Apellido', _apellidoController),
+            _buildEditableField(context, 'Sexo', _sexoController),
+            _buildEditableField(
+              context,
+              'Estado Civil',
+              _estadoCivilController,
+            ),
 
             const SizedBox(height: 24),
 
@@ -378,11 +381,13 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             const SizedBox(height: 16),
 
             _buildEditableField(
+              context,
               'Correo Electrónico',
               _correoController,
               keyboardType: TextInputType.emailAddress,
             ),
             _buildEditableField(
+              context,
               'Teléfono',
               _telefonoController,
               keyboardType: TextInputType.phone,
@@ -391,7 +396,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             const SizedBox(height: 24),
 
             // --------- DIRECCIÓN ---------
-            const Text(
+            Text(
               'Dirección',
               style: TextStyle(
                 fontSize: 18,
@@ -401,12 +406,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             ),
             const SizedBox(height: 16),
 
-            _buildReadOnlyField('Calle', data.calle),
-            _buildReadOnlyField('Número', data.numCalle),
-            _buildReadOnlyField('Localidad', data.localidad),
-            _buildReadOnlyField('Provincia', data.provincia),
+            _buildReadOnlyField(context, 'Calle', data.calle),
+            _buildReadOnlyField(context, 'Número', data.numCalle),
+            _buildReadOnlyField(context, 'Localidad', data.localidad),
+            _buildReadOnlyField(context, 'Provincia', data.provincia),
             if (data.cp != null)
-              _buildReadOnlyField('Código Postal', data.cp.toString()),
+              _buildReadOnlyField(context, 'Código Postal', data.cp.toString()),
 
             const SizedBox(height: 32),
 
@@ -455,8 +460,17 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     );
   }
 
-  Widget _buildReadOnlyField(String label, String value) {
+  Widget _buildReadOnlyField(BuildContext context, String label, String value) {
     if (value.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white60 : AppConstants.lightLabelText;
+    final labelColor = isDark ? Colors.white54 : AppConstants.lightHintText;
+    final fillColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : AppConstants.lightInputBg;
+    final borderColor = isDark ? Colors.white24 : AppConstants.lightInputBorder;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -464,19 +478,19 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         readOnly: true,
         enabled: false,
         controller: TextEditingController(text: value),
-        style: const TextStyle(color: Colors.white60),
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white54),
+          labelStyle: TextStyle(color: labelColor),
           filled: true,
-          fillColor: const Color(0xFF2A2A2A),
+          fillColor: fillColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+            borderSide: BorderSide(color: borderColor),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+            borderSide: BorderSide(color: borderColor),
           ),
         ),
       ),
@@ -484,11 +498,23 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   Widget _buildEditableField(
+    BuildContext context,
     String label,
     TextEditingController controller, {
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    final fillColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : AppConstants.lightInputBg;
+    final textColor = isDark ? Colors.white : AppConstants.lightLabelText;
+    final labelColor = isDark ? Colors.white70 : AppConstants.lightLabelText;
+    final borderColor = isDark ? primaryGreen : AppConstants.lightInputBorder;
+    final focusedBorderColor = isDark
+        ? primaryGreen
+        : AppConstants.lightInputBorderFocus;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -498,23 +524,23 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         child: TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: textColor),
           decoration: InputDecoration(
             labelText: label,
-            labelStyle: const TextStyle(color: Colors.white70),
+            labelStyle: TextStyle(color: labelColor),
             filled: true,
-            fillColor: const Color(0xFF1A1A1A),
+            fillColor: fillColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: primaryGreen),
+              borderSide: BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+              borderSide: BorderSide(color: borderColor, width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: primaryGreen, width: 2),
+              borderSide: BorderSide(color: focusedBorderColor, width: 2),
             ),
           ),
         ),

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
@@ -58,28 +60,28 @@ class TokenService {
   /// Verifica si el token existe y es válido
   static Future<bool> isTokenValid() async {
     final token = await getToken();
-    print(
+    log(
       'DEBUG TokenService - Token: ${token != null ? "exists (${token.substring(0, 20)}...)" : "null"}',
     );
 
     if (token == null || token.isEmpty) {
-      print('DEBUG TokenService - Token is null or empty');
+      log('DEBUG TokenService - Token is null or empty');
       return false;
     }
 
     try {
       // Verifica si el token ha expirado
       bool hasExpired = JwtDecoder.isExpired(token);
-      print('DEBUG TokenService - Has expired: $hasExpired');
+      log('DEBUG TokenService - Has expired: $hasExpired');
 
       if (!hasExpired) {
         final expirationDate = JwtDecoder.getExpirationDate(token);
-        print('DEBUG TokenService - Expiration date: $expirationDate');
+        log('DEBUG TokenService - Expiration date: $expirationDate');
       }
 
       return !hasExpired;
     } catch (e) {
-      print('DEBUG TokenService - Error validating token: $e');
+      log('DEBUG TokenService - Error validating token: $e');
       return false;
     }
   }
@@ -87,22 +89,22 @@ class TokenService {
   /// Verifica si hay una sesión activa (solo token persistente)
   /// Los tokens temporales NO cuentan como sesión activa al reiniciar
   static Future<bool> hasActiveSession() async {
-    print('DEBUG TokenService - Checking active session...');
+    log('DEBUG TokenService - Checking active session...');
 
     // Solo verificar token PERSISTENTE (no temporal)
     final persistentToken = await getPersistentToken();
 
     if (persistentToken == null || persistentToken.isEmpty) {
-      print('DEBUG TokenService - No persistent token found');
+      log('DEBUG TokenService - No persistent token found');
       return false;
     }
 
     try {
       bool hasExpired = JwtDecoder.isExpired(persistentToken);
-      print('DEBUG TokenService - Persistent token expired: $hasExpired');
+      log('DEBUG TokenService - Persistent token expired: $hasExpired');
       return !hasExpired;
     } catch (e) {
-      print('DEBUG TokenService - Error validating persistent token: $e');
+      log('DEBUG TokenService - Error validating persistent token: $e');
       return false;
     }
   }
@@ -134,10 +136,10 @@ class TokenService {
   /// Limpia todos los tokens (persistente, temporal y refresh)
   /// Se usa cuando el token expira (401) o en logout forzado
   static Future<void> clearTokens() async {
-    print('[TokenService] Limpiando todos los tokens...');
+    log('[TokenService] Limpiando todos los tokens...');
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _tempTokenKey);
-    print('[TokenService] ✅ Tokens eliminados');
+    log('[TokenService] ✅ Tokens eliminados');
   }
 }

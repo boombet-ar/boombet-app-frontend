@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -130,7 +131,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     return Scaffold(
@@ -159,7 +159,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             Text(
               "Modificá tus datos personales",
-              style: TextStyle(color: onSurface.withOpacity(0.7), fontSize: 14),
+              style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14),
               textAlign: TextAlign.center,
             ),
 
@@ -278,17 +278,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
         style: TextStyle(color: onSurface),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: onSurface.withOpacity(0.7)),
+          labelStyle: TextStyle(color: onSurface.withValues(alpha: 0.7)),
           filled: true,
-          fillColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          fillColor: isDark
+              ? const Color(0xFF1A1A1A)
+              : AppConstants.lightInputBg,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primaryGreen.withOpacity(0.8)),
+            borderSide: BorderSide(color: primaryGreen.withValues(alpha: 0.8)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: primaryGreen.withOpacity(0.8),
+              color: primaryGreen.withValues(alpha: 0.8),
               width: 1.5,
             ),
           ),

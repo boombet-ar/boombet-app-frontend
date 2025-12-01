@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
+import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -34,8 +37,6 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String? _selectedGender;
   bool _genderError = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
 
   Map<String, bool> _passwordRules = {
     "8+ caracteres": false,
@@ -49,14 +50,13 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    // 🧪 DATOS DE TEST PRE-CARGADOS (comentar para producción)
-    _usernameController = TextEditingController(text: 'test');
-    _emailController = TextEditingController(text: 'test@gmail.com');
-    _dniController = TextEditingController(text: '45614451');
-    _phoneController = TextEditingController(text: '1121895575');
-    _passwordController = TextEditingController(text: 'Test124!');
-    _confirmPasswordController = TextEditingController(text: 'Test124!');
-    _selectedGender = 'M'; // Masculino
+    // Inicializar controllers vacíos
+    _usernameController = TextEditingController();
+    _emailController = TextEditingController();
+    _dniController = TextEditingController();
+    _phoneController = TextEditingController();
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
     _passwordController.addListener(_validatePasswordLive);
   }
 
@@ -89,24 +89,30 @@ class _RegisterPageState extends State<RegisterPage> {
         _passwordError ||
         _confirmPasswordError ||
         _genderError) {
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Campos incompletos',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
+          backgroundColor: dialogBg,
+          title: Text('Campos incompletos', style: TextStyle(color: textColor)),
+          content: Text(
             'Por favor, completa todos los campos obligatorios.',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -115,32 +121,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Validar formato de email
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-    );
-    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+    // Validar formato de email usando PasswordValidationService
+    final email = _emailController.text.trim();
+    if (!PasswordValidationService.isEmailValid(email)) {
       setState(() {
         _emailError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Email inválido',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
-            'Por favor, ingresa un email válido (ejemplo: usuario@ejemplo.com).',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+          backgroundColor: dialogBg,
+          title: Text('Email inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getEmailValidationMessage(email),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -149,30 +159,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Validar formato de teléfono (solo números, 10-15 dígitos)
+    // Validar formato de teléfono usando PasswordValidationService
     final phone = _phoneController.text.trim();
-    if (!RegExp(r'^\d{10,15}$').hasMatch(phone)) {
+    if (!PasswordValidationService.isPhoneValid(phone)) {
       setState(() {
         _phoneError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Teléfono inválido',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
-            'El teléfono debe contener solo números y tener entre 10 y 15 dígitos.',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+          backgroundColor: dialogBg,
+          title: Text('Teléfono inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getPhoneValidationMessage(phone),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -181,30 +197,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Validar formato de DNI (solo números, 7-8 dígitos)
+    // Validar formato de DNI usando PasswordValidationService
     final dni = _dniController.text.trim();
-    if (!RegExp(r'^\d{7,8}$').hasMatch(dni)) {
+    if (!PasswordValidationService.isDniValid(dni)) {
       setState(() {
         _dniError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'DNI inválido',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
-            'El DNI debe contener solo números y tener 7 u 8 dígitos.',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+          backgroundColor: dialogBg,
+          title: Text('DNI inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getDniValidationMessage(dni),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -219,24 +241,30 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _usernameError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Usuario inválido',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
-          content: const Text(
+          backgroundColor: dialogBg,
+          title: Text('Usuario inválido', style: TextStyle(color: textColor)),
+          content: Text(
             'El usuario debe tener mínimo 4 caracteres, solo letras, números y guión bajo (_).',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -251,24 +279,30 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _passwordError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
+          backgroundColor: dialogBg,
+          title: Text(
             'Contraseña inválida',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
-          content: Text(
-            passwordError,
-            style: const TextStyle(color: Color(0xFFE0E0E0)),
-          ),
+          content: Text(passwordError, style: TextStyle(color: textColor)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -281,24 +315,33 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _confirmPasswordError = true;
       });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
+          backgroundColor: dialogBg,
+          title: Text(
             'Error en contraseña',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
           content: const Text(
             'Las contraseñas no coinciden.',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: AppConstants.textDark),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -332,31 +375,36 @@ class _RegisterPageState extends State<RegisterPage> {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
 
-        print('DEBUG - Response recibida: $fullResponse');
+        debugPrint('DEBUG - Response recibida: $fullResponse');
 
         // Extraer el primer elemento de listaExistenciaFisica
         final lista = fullResponse['listaExistenciaFisica'] as List?;
         if (lista == null || lista.isEmpty) {
           LoadingOverlay.hide(context);
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final dialogBg = isDark
+              ? AppConstants.darkAccent
+              : AppConstants.lightDialogBg;
+          final textColor = isDark
+              ? AppConstants.textDark
+              : AppConstants.lightLabelText;
 
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: const Color(0xFF1A1A1A),
-              title: const Text(
-                'Error',
-                style: TextStyle(color: Color(0xFFE0E0E0)),
-              ),
+              backgroundColor: dialogBg,
+              title: Text('Error', style: TextStyle(color: textColor)),
               content: const Text(
                 'No se encontraron datos para el DNI ingresado.',
-                style: TextStyle(color: Color(0xFFE0E0E0)),
+                style: TextStyle(color: AppConstants.textDark),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     'Entendido',
-                    style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                    style: TextStyle(color: AppConstants.primaryGreen),
                   ),
                 ),
               ],
@@ -366,16 +414,16 @@ class _RegisterPageState extends State<RegisterPage> {
         }
 
         final playerDataJson = lista[0] as Map<String, dynamic>;
-        print('DEBUG - Primer elemento: $playerDataJson');
+        debugPrint('DEBUG - Primer elemento: $playerDataJson');
 
         // Parsear PlayerData desde la respuesta
         PlayerData? playerData;
         try {
           playerData = PlayerData.fromRegisterResponse(playerDataJson);
-          print('DEBUG - PlayerData parseado: OK');
+          debugPrint('DEBUG - PlayerData parseado: OK');
         } catch (e, stackTrace) {
-          print('DEBUG - ERROR AL PARSEAR: $e');
-          print('DEBUG - STACK: $stackTrace');
+          debugPrint('DEBUG - ERROR AL PARSEAR: $e');
+          debugPrint('DEBUG - STACK: $stackTrace');
           playerData = null;
         }
 
@@ -403,24 +451,30 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         } else {
           // Error al parsear los datos
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final dialogBg = isDark
+              ? AppConstants.darkAccent
+              : AppConstants.lightDialogBg;
+          final textColor = isDark
+              ? AppConstants.textDark
+              : AppConstants.lightLabelText;
+
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: const Color(0xFF1A1A1A),
-              title: const Text(
-                'Error',
-                style: TextStyle(color: Color(0xFFE0E0E0)),
-              ),
+              backgroundColor: dialogBg,
+              title: Text('Error', style: TextStyle(color: textColor)),
               content: const Text(
                 'Error al procesar los datos. Por favor, contacta con soporte.',
-                style: TextStyle(color: Color(0xFFE0E0E0)),
+                style: TextStyle(color: AppConstants.textDark),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     'Entendido',
-                    style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                    style: TextStyle(color: AppConstants.primaryGreen),
                   ),
                 ),
               ],
@@ -429,28 +483,36 @@ class _RegisterPageState extends State<RegisterPage> {
         }
       } else {
         // Error en la validación
-        print('DEBUG - Error status: ${response.statusCode}');
-        print('DEBUG - Error body: ${response.body}');
+        debugPrint('DEBUG - Error status: ${response.statusCode}');
+        debugPrint('DEBUG - Error body: ${response.body}');
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
 
         final errorData = jsonDecode(response.body);
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1A1A1A),
-            title: const Text(
+            backgroundColor: dialogBg,
+            title: Text(
               'Error de validación',
-              style: TextStyle(color: Color(0xFFE0E0E0)),
+              style: TextStyle(color: textColor),
             ),
             content: Text(
               errorData['message'] ?? 'No se pudieron validar los datos',
-              style: const TextStyle(color: Color(0xFFE0E0E0)),
+              style: TextStyle(color: textColor),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
                   'Entendido',
-                  style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                  style: TextStyle(color: AppConstants.primaryGreen),
                 ),
               ),
             ],
@@ -461,26 +523,31 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
 
       // Error inesperado
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text(
-            'Error de conexión',
-            style: TextStyle(color: Color(0xFFE0E0E0)),
-          ),
+          backgroundColor: dialogBg,
+          title: Text('Error de conexión', style: TextStyle(color: textColor)),
           content: Text(
             'No se pudo conectar con el servidor: $e',
-            style: const TextStyle(color: Color(0xFFE0E0E0)),
+            style: TextStyle(color: textColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Entendido',
-                style: TextStyle(color: Color.fromARGB(255, 41, 255, 94)),
+                style: TextStyle(color: AppConstants.primaryGreen),
               ),
             ),
           ],
@@ -548,67 +615,16 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _validatePasswordLive() {
     final pw = _passwordController.text;
+    final status = PasswordValidationService.getValidationStatus(pw);
 
     setState(() {
-      _passwordRules["8+ caracteres"] = pw.length >= 8;
-      _passwordRules["1 mayúscula"] = pw.contains(RegExp(r"[A-Z]"));
-      _passwordRules["1 número"] = pw.contains(RegExp(r"[0-9]"));
-      _passwordRules["1 símbolo"] = pw.contains(
-        RegExp(r'[!@#$%^&*()_+\-=\[\]{};:"\\|,.<>\/?]'),
-      );
-      _passwordRules["Sin repetidos"] = !RegExp(r"(.)\1{2,}").hasMatch(pw);
-
-      // Secuencias tipo 123, abc
-      bool hasSeq = false;
-      for (int i = 0; i < pw.length - 2; i++) {
-        if (pw.codeUnitAt(i + 1) == pw.codeUnitAt(i) + 1 &&
-            pw.codeUnitAt(i + 2) == pw.codeUnitAt(i) + 2) {
-          hasSeq = true;
-        }
-      }
-
-      _passwordRules["Sin secuencias"] = !hasSeq;
+      _passwordRules["8+ caracteres"] = status['minimum_length']!;
+      _passwordRules["1 mayúscula"] = status['uppercase']!;
+      _passwordRules["1 número"] = status['number']!;
+      _passwordRules["1 símbolo"] = status['symbol']!;
+      _passwordRules["Sin repetidos"] = status['no_repetition']!;
+      _passwordRules["Sin secuencias"] = status['no_sequence']!;
     });
-  }
-
-  Widget _genderOption(String value, IconData icon) {
-    final selected = _selectedGender == value;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedGender = value;
-            _genderError = false;
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? Colors.greenAccent : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: selected ? Colors.black : Colors.white70,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value == "M" ? "Masculino" : "Femenino",
-                style: TextStyle(
-                  color: selected ? Colors.black : Colors.white70,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -620,12 +636,9 @@ class _RegisterPageState extends State<RegisterPage> {
     final bgColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
     final accentColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFFE8E8E8);
-    final borderColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : const Color(0xFFD0D0D0);
-    const borderRadius = 12.0;
+        ? AppConstants.borderDark
+        : AppConstants.lightAccent;
+    final borderRadius = AppConstants.borderRadius;
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -674,7 +687,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     'Completa los datos para registrarte',
                     style: TextStyle(
                       fontSize: 15,
-                      color: textColor.withOpacity(0.7),
+                      color: textColor.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -684,319 +697,85 @@ class _RegisterPageState extends State<RegisterPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // TextField Nombre de Usuario
-                      Semantics(
-                        label: 'Campo de nombre de usuario',
+                      AppTextFormField(
+                        label: 'Nombre de Usuario',
                         hint: 'Ingresa tu nombre de usuario',
-                        child: TextField(
-                          controller: _usernameController,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_usernameError && value.isNotEmpty) {
-                              setState(() => _usernameError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Nombre de usuario',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.person_outline,
-                              color: _usernameError ? Colors.red : primaryGreen,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _usernameError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _usernameError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _usernameError
-                                    ? Colors.red
-                                    : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                        controller: _usernameController,
+                        hasError: _usernameError,
+                        errorText: _usernameError
+                            ? 'Nombre de usuario requerido'
+                            : null,
+                        onChanged: (value) {
+                          if (_usernameError && value.isNotEmpty) {
+                            setState(() => _usernameError = false);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // TextField Email
-                      Semantics(
-                        label: 'Campo de correo electrónico',
-                        hint: 'Ingresa tu dirección de email',
-                        child: TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_emailError && value.isNotEmpty) {
-                              setState(() => _emailError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Correo electrónico',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              color: _emailError ? Colors.red : primaryGreen,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _emailError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _emailError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _emailError ? Colors.red : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                      AppTextFormField(
+                        label: 'Correo Electrónico',
+                        hint: 'tu@email.com',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        hasError: _emailError,
+                        errorText: _emailError ? 'Email no válido' : null,
+                        onChanged: (value) {
+                          if (_emailError && value.isNotEmpty) {
+                            setState(() => _emailError = false);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // TextField DNI
-                      Semantics(
-                        label: 'Campo de DNI',
-                        hint: 'Ingresa tu número de documento',
-                        child: TextField(
-                          controller: _dniController,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_dniError && value.isNotEmpty) {
-                              setState(() => _dniError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'DNI',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.badge_outlined,
-                              color: _dniError ? Colors.red : primaryGreen,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _dniError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _dniError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _dniError ? Colors.red : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                      AppTextFormField(
+                        label: 'DNI',
+                        hint: '12345678',
+                        controller: _dniController,
+                        keyboardType: TextInputType.number,
+                        hasError: _dniError,
+                        errorText: _dniError ? 'DNI requerido' : null,
+                        onChanged: (value) {
+                          if (_dniError && value.isNotEmpty) {
+                            setState(() => _dniError = false);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // TextField Teléfono
-                      Semantics(
-                        label: 'Campo de teléfono',
-                        hint: 'Ingresa tu número de teléfono',
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_phoneError && value.isNotEmpty) {
-                              setState(() => _phoneError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Número de teléfono',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.phone_outlined,
-                              color: _phoneError ? Colors.red : primaryGreen,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _phoneError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _phoneError ? Colors.red : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _phoneError ? Colors.red : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                      AppTextFormField(
+                        label: 'Teléfono',
+                        hint: '1234567890',
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        hasError: _phoneError,
+                        errorText: _phoneError ? 'Teléfono requerido' : null,
+                        onChanged: (value) {
+                          if (_phoneError && value.isNotEmpty) {
+                            setState(() => _phoneError = false);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // TextField Contraseña
-                      Semantics(
-                        label: 'Campo de contraseña',
-                        hint: 'Ingresa tu contraseña',
-                        obscured: true,
-                        child: TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_passwordError && value.isNotEmpty) {
-                              setState(() => _passwordError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Contraseña',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
-                              color: _passwordError ? Colors.red : primaryGreen,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: textColor.withOpacity(0.6),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                      AppPasswordField(
+                        label: 'Contraseña',
+                        hint: 'Crea tu contraseña',
+                        controller: _passwordController,
+                        hasError: _passwordError,
+                        errorText: _passwordError
+                            ? 'Contraseña inválida'
+                            : null,
+                        onChanged: (value) {
+                          if (_passwordError && value.isNotEmpty) {
+                            setState(() => _passwordError = false);
+                          }
+                          _validatePasswordLive();
+                        },
                       ),
                       const SizedBox(height: 12),
                       Column(
@@ -1099,7 +878,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: primaryGreen.withOpacity(0.5),
+                              color: primaryGreen.withValues(alpha: 0.5),
                               width: 1,
                             ),
                             shape: RoundedRectangleBorder(
@@ -1112,155 +891,43 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(height: 16),
 
                       // TextField Repetir Contraseña
-                      Semantics(
-                        label: 'Campo de confirmación de contraseña',
-                        hint: 'Vuelve a ingresar tu contraseña',
-                        obscured: true,
-                        child: TextField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.done,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_confirmPasswordError && value.isNotEmpty) {
-                              setState(() => _confirmPasswordError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Repetir contraseña',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
-                              color: _confirmPasswordError
-                                  ? Colors.red
-                                  : primaryGreen,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: textColor.withOpacity(0.6),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword =
-                                      !_obscureConfirmPassword;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _confirmPasswordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _confirmPasswordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _confirmPasswordError
-                                    ? Colors.red
-                                    : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
+                      AppPasswordField(
+                        label: 'Confirmar Contraseña',
+                        hint: 'Repite tu contraseña',
+                        controller: _confirmPasswordController,
+                        hasError: _confirmPasswordError,
+                        errorText: _confirmPasswordError
+                            ? 'Las contraseñas no coinciden'
+                            : null,
+                        onChanged: (value) {
+                          if (_confirmPasswordError && value.isNotEmpty) {
+                            setState(() => _confirmPasswordError = false);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // Selector de Género
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _genderError
-                                ? Colors.red
-                                : primaryGreen.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          color: accentColor,
-                        ),
-                        child: Row(
-                          children: [
-                            _genderOption("M", Icons.male),
-                            _genderOption("F", Icons.female),
-                          ],
-                        ),
+                      GenderSelector(
+                        selectedGender: _selectedGender ?? 'M',
+                        onGenderChanged: (gender) {
+                          setState(() {
+                            _selectedGender = gender;
+                            _genderError = false;
+                          });
+                        },
+                        primaryColor: primaryGreen,
+                        backgroundColor: accentColor,
                       ),
 
                       const SizedBox(height: 28),
 
                       // Botón Registrarse
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: isDark
-                                ? Colors.black
-                                : Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                            ),
-                            elevation: 3,
-                            shadowColor: primaryGreen.withOpacity(0.4),
-                          ),
-                          onPressed: _isLoading ? null : _validateAndRegister,
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: isDark ? Colors.black : Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.person_add, size: 22),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      'Crear cuenta',
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? Colors.black
-                                            : Colors.white,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
+                      AppButton(
+                        label: 'Crear cuenta',
+                        onPressed: _validateAndRegister,
+                        isLoading: _isLoading,
+                        icon: Icons.person_add,
                       ),
                       const SizedBox(height: 20),
 
@@ -1284,12 +951,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-
-//http://localhost:8080/api/auth/register
-//http://localhost:8080/api/auth/startaffiliate
-//Para el websocket: devolver un json con la siguiente estructura:
-//{
-// "playerData" : { ... },
-// "websocketlink" : ""
-//Terminar de configurar conexion del websocket en el frontend y backend
-//Revisar api de startaffiliate

@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/error_testing_page.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
@@ -24,8 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryGreen = const Color.fromARGB(255, 41, 255, 94);
-    final surfaceColor = isDark ? Colors.grey[850] : Colors.white;
+    final surfaceColor = isDark
+        ? AppConstants.darkCardBg
+        : AppConstants.lightCardBg;
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -84,14 +86,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       return SwitchListTile(
                         secondary: Icon(
                           isLightMode ? Icons.light_mode : Icons.dark_mode,
-                          color: primaryGreen,
+                          color: AppConstants.primaryGreen,
                         ),
                         title: const Text('Modo Claro'),
                         subtitle: Text(
                           isLightMode ? 'Activado' : 'Desactivado',
                         ),
                         value: isLightMode,
-                        activeThumbColor: primaryGreen,
+                        activeThumbColor: AppConstants.primaryGreen,
                         onChanged: (value) {
                           isLightModeNotifier.value = value;
                         },
@@ -107,7 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   enabled: false,
                   leading: Icon(
                     Icons.language,
-                    color: primaryGreen.withOpacity(0.5),
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.5),
                   ),
                   title: const Text('Idioma'),
                   subtitle: const Text('Español'),
@@ -127,36 +129,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     SwitchListTile(
                       secondary: Icon(
                         Icons.notifications_active,
-                        color: primaryGreen.withOpacity(0.5),
+                        color: AppConstants.primaryGreen.withValues(alpha: 0.5),
                       ),
                       title: const Text('Notificaciones Generales'),
                       subtitle: const Text('Alertas y actualizaciones'),
                       value: _notificacionesGenerales,
-                      activeThumbColor: primaryGreen,
+                      activeThumbColor: AppConstants.primaryGreen,
                       onChanged: null,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
                       secondary: Icon(
                         Icons.local_offer,
-                        color: primaryGreen.withOpacity(0.5),
+                        color: AppConstants.primaryGreen.withValues(alpha: 0.5),
                       ),
                       title: const Text('Promociones'),
                       subtitle: const Text('Ofertas y descuentos especiales'),
                       value: _notificacionesPromociones,
-                      activeThumbColor: primaryGreen,
+                      activeThumbColor: AppConstants.primaryGreen,
                       onChanged: null,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
                       secondary: Icon(
                         Icons.event,
-                        color: primaryGreen.withOpacity(0.5),
+                        color: AppConstants.primaryGreen.withValues(alpha: 0.5),
                       ),
-                      title: const Text('Eventos'),
-                      subtitle: const Text('Sorteos y actividades especiales'),
+                      title: const Text('Eventos y Sorteos'),
+                      subtitle: const Text('Notificaciones de participación'),
                       value: _notificacionesEventos,
-                      activeThumbColor: primaryGreen,
+                      activeThumbColor: AppConstants.primaryGreen,
                       onChanged: null,
                     ),
                   ],
@@ -245,22 +247,22 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     final confirmed = await _showLogoutConfirmation(context);
-                    if (confirmed && context.mounted) {
-                      await TokenService.deleteToken();
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginPage(),
-                        ),
-                        (route) => false,
-                      );
-                    }
+                    if (!confirmed || !context.mounted) return;
+                    await TokenService.deleteToken();
+                    if (!context.mounted) return;
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
+                      (route) => false,
+                    );
                   },
                   icon: const Icon(Icons.logout),
                   label: const Text('Cerrar Sesión'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppConstants.lightCardBg,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
@@ -276,14 +278,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: const Color.fromARGB(255, 41, 255, 94)),
+        Icon(icon, size: 20, color: AppConstants.primaryGreen),
         const SizedBox(width: 8),
         Text(
           title,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 41, 255, 94),
+            color: AppConstants.primaryGreen,
           ),
         ),
       ],
@@ -299,14 +301,15 @@ class _SettingsPageState extends State<SettingsPage> {
     required Color? surfaceColor,
     bool enabled = true,
   }) {
-    final primaryGreen = const Color.fromARGB(255, 41, 255, 94);
     return Card(
       color: surfaceColor,
       child: ListTile(
         enabled: enabled,
         leading: Icon(
           icon,
-          color: enabled ? primaryGreen : primaryGreen.withOpacity(0.5),
+          color: enabled
+              ? AppConstants.primaryGreen
+              : AppConstants.primaryGreen.withValues(alpha: 0.5),
         ),
         title: Text(title),
         subtitle: Text(subtitle),
@@ -317,27 +320,44 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Acerca de BoomBet'),
-        content: const Column(
+        backgroundColor: dialogBg,
+        title: Text('Acerca de BoomBet', style: TextStyle(color: textColor)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Versión: 1.0.0'),
-            SizedBox(height: 8),
+            Text('Versión: 1.0.0', style: TextStyle(color: textColor)),
+            const SizedBox(height: 8),
             Text(
               'BoomBet - Tu plataforma de afiliación a casinos de confianza.',
+              style: TextStyle(color: textColor),
             ),
-            SizedBox(height: 16),
-            Text('© 2024 BoomBet. Todos los derechos reservados.'),
+            const SizedBox(height: 16),
+            Text(
+              '© 2024 BoomBet. Todos los derechos reservados.',
+              style: TextStyle(color: textColor),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            child: Text(
+              'Cerrar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
           ),
         ],
       ),
@@ -345,15 +365,31 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _showLogoutConfirmation(BuildContext context) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        backgroundColor: dialogBg,
+        title: Text('Cerrar Sesión', style: TextStyle(color: textColor)),
+        content: Text(
+          '¿Estás seguro de que deseas cerrar sesión?',
+          style: TextStyle(color: textColor),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),

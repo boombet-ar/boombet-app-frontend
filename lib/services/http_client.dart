@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'token_service.dart';
@@ -49,14 +50,14 @@ class HttpClient {
 
   /// Maneja la respuesta y detecta errores comunes
   static void _handleResponse(http.Response response, String url) {
-    print(
+    log(
       '[HttpClient] ${response.request?.method} $url - Status: ${response.statusCode}',
     );
 
     // SOLO 401 = No autenticado (token inválido o expirado)
     // 403 = Prohibido (sin permisos) - NO debe hacer logout automático
     if (response.statusCode == 401) {
-      print('[HttpClient] ❌ 401 Unauthorized - Token expirado');
+      log('[HttpClient] ❌ 401 Unauthorized - Token expirado');
       // Limpiar tokens y notificar para logout
       TokenService.clearTokens();
       if (onUnauthorized != null) {
@@ -81,9 +82,9 @@ class HttpClient {
     );
 
     try {
-      print('[HttpClient] POST $url (Attempt ${retryCount + 1}/$_maxRetries)');
+      log('[HttpClient] POST $url (Attempt ${retryCount + 1}/$_maxRetries)');
       if (body != null) {
-        print('[HttpClient] Body: ${jsonEncode(body)}');
+        log('[HttpClient] Body: ${jsonEncode(body)}');
       }
 
       final response = await http
@@ -97,10 +98,10 @@ class HttpClient {
       _handleResponse(response, url);
       return response;
     } on TimeoutException catch (e) {
-      print('[HttpClient] ⏱️ Timeout en $url: $e');
+      log('[HttpClient] ⏱️ Timeout en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -116,10 +117,10 @@ class HttpClient {
 
       rethrow;
     } on SocketException catch (e) {
-      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+      log('[HttpClient] 🌐 Error de conexión en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -135,10 +136,10 @@ class HttpClient {
 
       rethrow;
     } on http.ClientException catch (e) {
-      print('[HttpClient] ❌ Client error en $url: $e');
+      log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -154,7 +155,7 @@ class HttpClient {
 
       rethrow;
     } catch (e) {
-      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      log('[HttpClient] ❌ Error inesperado en $url: $e');
       rethrow;
     }
   }
@@ -174,7 +175,7 @@ class HttpClient {
     );
 
     try {
-      print('[HttpClient] GET $url (Attempt ${retryCount + 1}/$_maxRetries)');
+      log('[HttpClient] GET $url (Attempt ${retryCount + 1}/$_maxRetries)');
 
       final response = await http
           .get(Uri.parse(url), headers: requestHeaders)
@@ -183,10 +184,10 @@ class HttpClient {
       _handleResponse(response, url);
       return response;
     } on TimeoutException catch (e) {
-      print('[HttpClient] ⏱️ Timeout en $url: $e');
+      log('[HttpClient] ⏱️ Timeout en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -201,10 +202,10 @@ class HttpClient {
 
       rethrow;
     } on SocketException catch (e) {
-      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+      log('[HttpClient] 🌐 Error de conexión en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -219,10 +220,10 @@ class HttpClient {
 
       rethrow;
     } on http.ClientException catch (e) {
-      print('[HttpClient] ❌ Client error en $url: $e');
+      log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -237,7 +238,7 @@ class HttpClient {
 
       rethrow;
     } catch (e) {
-      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      log('[HttpClient] ❌ Error inesperado en $url: $e');
       rethrow;
     }
   }
@@ -258,9 +259,9 @@ class HttpClient {
     );
 
     try {
-      print('[HttpClient] PUT $url (Attempt ${retryCount + 1}/$_maxRetries)');
+      log('[HttpClient] PUT $url (Attempt ${retryCount + 1}/$_maxRetries)');
       if (body != null) {
-        print('[HttpClient] Body: ${jsonEncode(body)}');
+        log('[HttpClient] Body: ${jsonEncode(body)}');
       }
 
       final response = await http
@@ -274,10 +275,10 @@ class HttpClient {
       _handleResponse(response, url);
       return response;
     } on TimeoutException catch (e) {
-      print('[HttpClient] ⏱️ Timeout en $url: $e');
+      log('[HttpClient] ⏱️ Timeout en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -293,10 +294,10 @@ class HttpClient {
 
       rethrow;
     } on SocketException catch (e) {
-      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+      log('[HttpClient] 🌐 Error de conexión en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -312,10 +313,10 @@ class HttpClient {
 
       rethrow;
     } on http.ClientException catch (e) {
-      print('[HttpClient] ❌ Client error en $url: $e');
+      log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -331,7 +332,7 @@ class HttpClient {
 
       rethrow;
     } catch (e) {
-      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      log('[HttpClient] ❌ Error inesperado en $url: $e');
       rethrow;
     }
   }
@@ -351,9 +352,7 @@ class HttpClient {
     );
 
     try {
-      print(
-        '[HttpClient] DELETE $url (Attempt ${retryCount + 1}/$_maxRetries)',
-      );
+      log('[HttpClient] DELETE $url (Attempt ${retryCount + 1}/$_maxRetries)');
 
       final response = await http
           .delete(Uri.parse(url), headers: requestHeaders)
@@ -362,10 +361,10 @@ class HttpClient {
       _handleResponse(response, url);
       return response;
     } on TimeoutException catch (e) {
-      print('[HttpClient] ⏱️ Timeout en $url: $e');
+      log('[HttpClient] ⏱️ Timeout en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -380,10 +379,10 @@ class HttpClient {
 
       rethrow;
     } on SocketException catch (e) {
-      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+      log('[HttpClient] 🌐 Error de conexión en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -398,10 +397,10 @@ class HttpClient {
 
       rethrow;
     } on http.ClientException catch (e) {
-      print('[HttpClient] ❌ Client error en $url: $e');
+      log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print(
+        log(
           '[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries en ${_retryDelay.inSeconds}s...',
         );
         await Future.delayed(_retryDelay * (retryCount + 1));
@@ -416,7 +415,7 @@ class HttpClient {
 
       rethrow;
     } catch (e) {
-      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      log('[HttpClient] ❌ Error inesperado en $url: $e');
       rethrow;
     }
   }
@@ -437,9 +436,9 @@ class HttpClient {
     );
 
     try {
-      print('[HttpClient] PATCH $url (Attempt ${retryCount + 1}/$_maxRetries)');
+      log('[HttpClient] PATCH $url (Attempt ${retryCount + 1}/$_maxRetries)');
       if (body != null) {
-        print('[HttpClient] Body: ${jsonEncode(body)}');
+        log('[HttpClient] Body: ${jsonEncode(body)}');
       }
 
       final response = await http
@@ -453,10 +452,10 @@ class HttpClient {
       _handleResponse(response, url);
       return response;
     } on TimeoutException catch (e) {
-      print('[HttpClient] ⏱️ Timeout en $url: $e');
+      log('[HttpClient] ⏱️ Timeout en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        log('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
         await Future.delayed(_retryDelay * (retryCount + 1));
         return patch(
           url,
@@ -470,10 +469,10 @@ class HttpClient {
 
       rethrow;
     } on SocketException catch (e) {
-      print('[HttpClient] 🌐 Error de conexión en $url: $e');
+      log('[HttpClient] 🌐 Error de conexión en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        log('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
         await Future.delayed(_retryDelay * (retryCount + 1));
         return patch(
           url,
@@ -487,10 +486,10 @@ class HttpClient {
 
       rethrow;
     } on http.ClientException catch (e) {
-      print('[HttpClient] ❌ Client error en $url: $e');
+      log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < _maxRetries - 1) {
-        print('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
+        log('[HttpClient] 🔄 Retry ${retryCount + 2}/$_maxRetries...');
         await Future.delayed(_retryDelay * (retryCount + 1));
         return patch(
           url,
@@ -504,7 +503,7 @@ class HttpClient {
 
       rethrow;
     } catch (e) {
-      print('[HttpClient] ❌ Error inesperado en $url: $e');
+      log('[HttpClient] ❌ Error inesperado en $url: $e');
       rethrow;
     }
   }

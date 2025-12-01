@@ -47,7 +47,7 @@ class _ErrorTestingPageState extends State<ErrorTestingPage> {
     await _runTest('Test 401 - Token Expirado', () async {
       // Guardar un token falso/expirado
       await TokenService.saveToken('token_invalido_para_test_401');
-      print('🧪 Test 401: Token inválido guardado');
+      debugPrint('🧪 Test 401: Token inválido guardado');
 
       // Hacer una request a un endpoint protegido del backend local
       // Si el backend está corriendo, debería responder 401
@@ -112,7 +112,7 @@ class _ErrorTestingPageState extends State<ErrorTestingPage> {
       try {
         // httpbin.org/delay/10 espera 10 segundos antes de responder
         // Con timeout de 3s, debería fallar
-        print('🧪 Test Timeout: Esperando 10s con timeout de 3s...');
+        debugPrint('🧪 Test Timeout: Esperando 10s con timeout de 3s...');
         final response = await HttpClient.get(
           'https://httpbin.org/delay/10',
           includeAuth: false,
@@ -144,7 +144,7 @@ class _ErrorTestingPageState extends State<ErrorTestingPage> {
   // Test 4: Auto-retry
   Future<void> _testRetry() async {
     await _runTest('Test Auto-Retry', () async {
-      print('🧪 Test Retry: Probando auto-retry con timeout corto');
+      debugPrint('🧪 Test Retry: Probando auto-retry con timeout corto');
       try {
         // httpbin.org/delay/10 tarda 10s, pero timeout es 2s
         // Esto fuerza TimeoutException → retry automático
@@ -194,7 +194,7 @@ class _ErrorTestingPageState extends State<ErrorTestingPage> {
         // Estos endpoints están diseñados para testing y devuelven exactamente el código solicitado
         String endpoint = 'https://httpbin.org/status/$code';
 
-        print('🧪 Test $code: Solicitando a $endpoint');
+        debugPrint('🧪 Test $code: Solicitando a $endpoint');
 
         final response = await HttpClient.get(
           endpoint,
@@ -305,7 +305,7 @@ Esto puede significar:
   Future<void> _testNetworkError() async {
     await _runTest('Test Error de Red', () async {
       try {
-        print('🧪 Test Network: Intentando conectar a IP no enrutable');
+        debugPrint('🧪 Test Network: Intentando conectar a IP no enrutable');
         // Usar una URL con IP no enrutable para simular error de red
         final response = await HttpClient.get(
           'http://192.0.2.1:8080/test', // IP reservada para documentación (no enrutable)
@@ -366,7 +366,7 @@ Esto puede significar:
             const SizedBox(height: 8),
             Text(
               'Prueba el sistema de manejo de errores, retry automático y 401 handler',
-              style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.7)),
+              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.7)),
             ),
             const SizedBox(height: 24),
 
@@ -377,7 +377,7 @@ Esto puede significar:
                 color: isDark ? Colors.grey[900] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: primaryGreen.withOpacity(0.3),
+                  color: primaryGreen.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -407,7 +407,7 @@ Esto puede significar:
                       style: TextStyle(
                         fontSize: 13,
                         fontFamily: 'monospace',
-                        color: textColor.withOpacity(0.9),
+                        color: textColor.withValues(alpha: 0.9),
                         height: 1.5,
                       ),
                     ),
@@ -539,9 +539,9 @@ Esto puede significar:
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: primaryGreen.withOpacity(0.1),
+                color: primaryGreen.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: primaryGreen.withOpacity(0.3)),
+                border: Border.all(color: primaryGreen.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,7 +670,7 @@ Esto puede significar:
               text,
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -93,7 +94,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: primaryGreen.withOpacity(0.1),
+                              color: primaryGreen.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(color: primaryGreen, width: 2),
                             ),
@@ -163,7 +164,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                                           '${_subcategories.where((s) => s != "Todas" && _selectedSubcategories[s] == true).length} de ${_subcategories.length - 1} activas',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: textColor.withOpacity(0.6),
+                                            color: textColor.withValues(alpha: 0.6),
                                           ),
                                         ),
                                       ],
@@ -173,7 +174,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                                     _isFilterExpanded
                                         ? Icons.expand_less
                                         : Icons.expand_more,
-                                    color: textColor.withOpacity(0.6),
+                                    color: textColor.withValues(alpha: 0.6),
                                   ),
                                 ],
                               ),
@@ -190,8 +191,9 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isDark
-                                          ? Colors.black.withOpacity(0.2)
-                                          : Colors.grey.withOpacity(0.1),
+                                          ? Colors.black.withValues(alpha: 0.2)
+                                          : AppConstants.lightDivider
+                                                .withValues(alpha: 0.5),
                                       borderRadius: const BorderRadius.vertical(
                                         bottom: Radius.circular(12),
                                       ),
@@ -243,8 +245,8 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              primaryGreen.withOpacity(0.2),
-                              primaryGreen.withOpacity(0.05),
+                              primaryGreen.withValues(alpha: 0.2),
+                              primaryGreen.withValues(alpha: 0.05),
                             ],
                           ),
                         ),
@@ -260,7 +262,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                                     'Tus Puntos',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: textColor.withOpacity(0.7),
+                                      color: textColor.withValues(alpha: 0.7),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -325,10 +327,10 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: primaryGreen.withOpacity(0.1),
+                        color: primaryGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: primaryGreen.withOpacity(0.3),
+                          color: primaryGreen.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -386,10 +388,10 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.1),
+                  color: primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: primaryGreen.withOpacity(0.3),
+                    color: primaryGreen.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -418,7 +420,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
                             offer,
                             style: TextStyle(
                               fontSize: 14,
-                              color: textColor.withOpacity(0.7),
+                              color: textColor.withValues(alpha: 0.7),
                             ),
                           ),
                         ),
@@ -430,7 +432,7 @@ class _PointsCategoryPageState extends State<PointsCategoryPage> {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: textColor.withOpacity(0.5),
+                color: textColor.withValues(alpha: 0.5),
               ),
             ],
           ),

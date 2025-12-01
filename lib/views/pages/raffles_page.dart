@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 
@@ -63,10 +64,14 @@ class _RafflesPageState extends State<RafflesPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.grey[100],
+              color: isDark
+                  ? AppConstants.darkAccent
+                  : AppConstants.lightSurfaceVariant,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? AppConstants.darkCardBg.withValues(alpha: 0.3)
+                      : AppConstants.lightDivider.withValues(alpha: 0.5),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -150,7 +155,7 @@ class _RafflesPageState extends State<RafflesPage> {
           color: isSelected ? primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? primaryGreen : primaryGreen.withOpacity(0.5),
+            color: isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.5),
             width: 2,
           ),
         ),
@@ -158,7 +163,7 @@ class _RafflesPageState extends State<RafflesPage> {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: isSelected ? Colors.black : primaryGreen,
+            color: isSelected ? AppConstants.lightCardBg : primaryGreen,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
@@ -197,8 +202,8 @@ class _RafflesPageState extends State<RafflesPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    primaryGreen.withOpacity(0.6),
-                    primaryGreen.withOpacity(0.3),
+                    primaryGreen.withValues(alpha: 0.6),
+                    primaryGreen.withValues(alpha: 0.3),
                   ],
                 ),
               ),
@@ -208,7 +213,7 @@ class _RafflesPageState extends State<RafflesPage> {
                     child: Icon(
                       Icons.card_giftcard,
                       size: 80,
-                      color: Colors.white.withOpacity(0.8),
+                      color: AppConstants.lightCardBg.withValues(alpha: 0.8),
                     ),
                   ),
                   if (raffle['isActive'])
@@ -221,22 +226,22 @@ class _RafflesPageState extends State<RafflesPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: AppConstants.primaryGreen,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.check_circle,
                               size: 16,
-                              color: Colors.white,
+                              color: AppConstants.lightCardBg,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
                               'ACTIVO',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppConstants.lightCardBg,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -268,7 +273,7 @@ class _RafflesPageState extends State<RafflesPage> {
                     raffle['description'],
                     style: TextStyle(
                       fontSize: 14,
-                      color: textColor.withOpacity(0.7),
+                      color: textColor.withValues(alpha: 0.7),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -282,10 +287,10 @@ class _RafflesPageState extends State<RafflesPage> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: primaryGreen.withOpacity(0.1),
+                      color: primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: primaryGreen.withOpacity(0.3),
+                        color: primaryGreen.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -344,7 +349,7 @@ class _RafflesPageState extends State<RafflesPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Participando en: ${raffle['name']}'),
-                            duration: const Duration(seconds: 2),
+                            duration: AppConstants.snackbarDuration,
                           ),
                         );
                       },
@@ -352,7 +357,7 @@ class _RafflesPageState extends State<RafflesPage> {
                       label: const Text('Participar'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
-                        foregroundColor: Colors.black,
+                        foregroundColor: AppConstants.darkBg,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -373,12 +378,12 @@ class _RafflesPageState extends State<RafflesPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: textColor.withOpacity(0.6)),
+        Icon(icon, size: 16, color: textColor.withValues(alpha: 0.6)),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.6)),
+            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6)),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -410,7 +415,7 @@ class _RafflesPageState extends State<RafflesPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: textColor.withOpacity(0.3),
+                  color: textColor.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -499,7 +504,7 @@ class _RafflesPageState extends State<RafflesPage> {
                           label: const Text('Confirmar Participación'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryGreen,
-                            foregroundColor: Colors.black,
+                            foregroundColor: AppConstants.darkBg,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -528,14 +533,14 @@ class _RafflesPageState extends State<RafflesPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: textColor.withOpacity(0.6)),
+          Icon(icon, size: 20, color: textColor.withValues(alpha: 0.6)),
           const SizedBox(width: 12),
           Text(
             '$label: ',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: textColor.withOpacity(0.7),
+              color: textColor.withValues(alpha: 0.7),
             ),
           ),
           Expanded(

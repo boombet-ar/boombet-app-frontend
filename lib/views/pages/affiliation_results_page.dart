@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/casino_response.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
@@ -52,7 +53,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: primaryGreen.withOpacity(0.1),
+                  color: primaryGreen.withValues(alpha: 0.1),
                   border: Border.all(color: primaryGreen, width: 3),
                 ),
                 child: Icon(
@@ -82,7 +83,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 'Tu cuenta ha sido creada y el proceso de afiliación ha finalizado',
                 style: TextStyle(
                   fontSize: 16,
-                  color: textColor.withOpacity(0.7),
+                  color: textColor.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -93,16 +94,18 @@ class AffiliationResultsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                  color: isDark
+                      ? const Color(0xFF1A1A1A)
+                      : AppConstants.lightCardBg,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark
                         ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFE0E0E0),
+                        : AppConstants.lightDivider,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -174,12 +177,14 @@ class AffiliationResultsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                  color: isDark
+                      ? const Color(0xFF1A1A1A)
+                      : AppConstants.lightCardBg,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark
                         ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFE0E0E0),
+                        : AppConstants.lightDivider,
                   ),
                 ),
                 child: Column(
@@ -287,7 +292,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 'Tu cuenta fue creada correctamente, pero no pudimos verificar el estado de las afiliaciones.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: textColor.withOpacity(0.7),
+                  color: textColor.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -334,7 +339,7 @@ class AffiliationResultsPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -381,9 +386,9 @@ class AffiliationResultsPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.05),
+        color: statusColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -416,7 +421,7 @@ class AffiliationResultsPage extends StatelessWidget {
                     response.error!,
                     style: TextStyle(
                       fontSize: 12,
-                      color: textColor.withOpacity(0.6),
+                      color: textColor.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

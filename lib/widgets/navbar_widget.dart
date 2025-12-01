@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:flutter/material.dart';
 
@@ -6,14 +7,20 @@ class NavbarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     const greenColor = Color.fromARGB(255, 41, 255, 94);
+
+    // Light mode background for navbar
+    final navBarBg = isDark ? null : AppConstants.lightCardBg;
 
     return RepaintBoundary(
       child: ValueListenableBuilder<int>(
         valueListenable: selectedPageNotifier,
         builder: (context, selectedPage, child) {
           return NavigationBar(
-            destinations: const [
+            backgroundColor: navBarBg,
+            destinations: [
               NavigationDestination(
                 icon: Icon(Icons.home, color: greenColor),
                 label: "Home",
@@ -39,6 +46,7 @@ class NavbarWidget extends StatelessWidget {
               selectedPageNotifier.value = value;
             },
             selectedIndex: selectedPage,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           );
         },
       ),

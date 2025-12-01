@@ -31,13 +31,13 @@ class _FaqPageState extends State<FaqPage> {
     // Verificar si hay un token válido (persistente O temporal)
     final isValid = await TokenService.isTokenValid();
 
-    print('DEBUG FAQ - Token valid: $isValid');
+    debugPrint('DEBUG FAQ - Token valid: $isValid');
 
     if (mounted) {
       setState(() {
         _isLoggedIn = isValid;
       });
-      print('DEBUG FAQ - _isLoggedIn set to: $_isLoggedIn');
+      debugPrint('DEBUG FAQ - _isLoggedIn set to: $_isLoggedIn');
     }
   }
 
@@ -140,7 +140,7 @@ class _FaqPageState extends State<FaqPage> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -162,7 +162,7 @@ class _FaqPageState extends State<FaqPage> {
                       'Nos gustaría saber qué tipo de beneficios quieres que agreguemos a la plataforma o alguna sugerencia para mejorarla.\nPuedes completar el formulario o enviarnos un mail a:',
                       style: TextStyle(
                         fontSize: 14,
-                        color: textColor.withOpacity(0.8),
+                        color: textColor.withValues(alpha: 0.8),
                         height: 1.5,
                       ),
                     ),
@@ -207,7 +207,7 @@ class _FaqPageState extends State<FaqPage> {
                             Icon(
                               Icons.lock,
                               size: 40,
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -215,7 +215,7 @@ class _FaqPageState extends State<FaqPage> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: textColor.withOpacity(0.7),
+                                color: textColor.withValues(alpha: 0.7),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -240,7 +240,7 @@ class _FaqPageState extends State<FaqPage> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   elevation: 3,
-                                  shadowColor: greenColor.withOpacity(0.4),
+                                  shadowColor: greenColor.withValues(alpha: 0.4),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -279,7 +279,7 @@ class _FaqPageState extends State<FaqPage> {
                           decoration: InputDecoration(
                             hintText: 'Escribe tu mensaje aquí...',
                             hintStyle: TextStyle(
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withValues(alpha: 0.5),
                             ),
                             filled: true,
                             fillColor: isDark
@@ -357,7 +357,7 @@ class _FaqPageState extends State<FaqPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -373,7 +373,7 @@ class _FaqPageState extends State<FaqPage> {
             color: textColor,
           ),
         ),
-        trailing: Icon(Icons.chevron_right, color: textColor.withOpacity(0.5)),
+        trailing: Icon(Icons.chevron_right, color: textColor.withValues(alpha: 0.5)),
         onTap: () {
           // Aquí iría la navegación a la página de detalle de cada sección
           ScaffoldMessenger.of(context).showSnackBar(

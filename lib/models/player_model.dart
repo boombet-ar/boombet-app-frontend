@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 class PlayerData {
   final String nombre;
   final String apellido;
@@ -63,21 +65,21 @@ class PlayerData {
 
   /// Factory para parsear desde el endpoint /auth/register (listaExistenciaFisica)
   factory PlayerData.fromRegisterResponse(Map<String, dynamic> json) {
-    print('DEBUG PARSER - JSON recibido: $json');
+    log('DEBUG PARSER - JSON recibido: $json');
 
     // Extraer apenom y dividir en nombre y apellido
     final apenom = (json['apenom'] ?? '').toString().trim();
-    print('DEBUG PARSER - apenom: "$apenom"');
+    log('DEBUG PARSER - apenom: "$apenom"');
 
     // Limpiar comas adicionales y espacios
     final aponemLimpio = apenom
         .replaceAll(RegExp(r',\s*,'), ',')
         .replaceAll(RegExp(r',\s*$'), '')
         .trim();
-    print('DEBUG PARSER - apenom limpio: "$aponemLimpio"');
+    log('DEBUG PARSER - apenom limpio: "$aponemLimpio"');
 
     final partes = aponemLimpio.split(RegExp(r'\s+'));
-    print('DEBUG PARSER - partes: $partes');
+    log('DEBUG PARSER - partes: $partes');
 
     String apellido = '';
     String nombre = '';
@@ -91,7 +93,7 @@ class PlayerData {
       }
     }
 
-    print('DEBUG PARSER - apellido: "$apellido", nombre: "$nombre"');
+    log('DEBUG PARSER - apellido: "$apellido", nombre: "$nombre"');
 
     // Extraer dirección completa y dividir en calle y número
     final direccionCompleta = (json['direc_calle'] ?? '').toString().trim();
@@ -129,11 +131,11 @@ class PlayerData {
       }
     }
 
-    print('DEBUG PARSER - Creando PlayerData...');
-    print('DEBUG PARSER - dni: ${json['nume_docu']}');
-    print('DEBUG PARSER - cuil: ${json['cdi_codigo_de_identificacion']}');
-    print('DEBUG PARSER - fechaNacimiento: $fechaNacimiento');
-    print('DEBUG PARSER - anioNacimiento: $anioNacimiento');
+    log('DEBUG PARSER - Creando PlayerData...');
+    log('DEBUG PARSER - dni: ${json['nume_docu']}');
+    log('DEBUG PARSER - cuil: ${json['cdi_codigo_de_identificacion']}');
+    log('DEBUG PARSER - fechaNacimiento: $fechaNacimiento');
+    log('DEBUG PARSER - anioNacimiento: $anioNacimiento');
 
     final playerData = PlayerData(
       nombre: nombre,
@@ -157,7 +159,7 @@ class PlayerData {
       edad: edad,
     );
 
-    print('DEBUG PARSER - PlayerData creado exitosamente');
+    log('DEBUG PARSER - PlayerData creado exitosamente');
     return playerData;
   }
 
