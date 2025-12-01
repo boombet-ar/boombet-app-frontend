@@ -24,22 +24,30 @@ class AuthService {
         // Login exitoso
         final data = jsonDecode(response.body);
 
-        // Solo guardar el token si el usuario marcó "Recordar"
-        if (rememberMe) {
-          // Guardar el token JWT
-          if (data['token'] != null) {
-            await TokenService.saveToken(data['token']);
-          }
+        try {
+          // Limpiar cualquier token previo para evitar inconsistencias
+          await TokenService.deleteToken();
 
-          // Guardar refresh token si existe
-          if (data['refreshToken'] != null) {
-            await TokenService.saveRefreshToken(data['refreshToken']);
+          final token = data['token'] as String?;
+          final refreshToken = data['refreshToken'] as String?;
+
+          if (token != null && token.isNotEmpty) {
+            if (rememberMe) {
+              await TokenService.saveToken(token);
+
+              if (refreshToken != null && refreshToken.isNotEmpty) {
+                await TokenService.saveRefreshToken(refreshToken);
+              }
+            } else {
+              await TokenService.saveTemporaryToken(token);
+            }
           }
-        } else {
-          // Si no quiere recordar, guardar en sesión temporal
-          if (data['token'] != null) {
-            await TokenService.saveTemporaryToken(data['token']);
-          }
+        } on FormatException catch (e) {
+          await TokenService.deleteToken();
+          return {
+            'success': false,
+            'message': 'Error al procesar el token recibido: ${e.message}',
+          };
         }
 
         return {'success': true, 'data': data};

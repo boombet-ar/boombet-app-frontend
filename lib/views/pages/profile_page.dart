@@ -1,5 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/edit_profile_page.dart';
+import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:flutter/material.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/player_service.dart';
@@ -47,8 +49,13 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       // Decodificar
-      final decoded = JwtDecoder.decode(token);
-      debugPrint("🧩 DECODED: $decoded");
+      late final Map<String, dynamic> decoded;
+      try {
+        decoded = JwtDecoder.decode(token);
+        debugPrint("🧩 DECODED: $decoded");
+      } catch (decodeError) {
+        throw Exception("Error decodificando token: $decodeError");
+      }
 
       final idJugador = decoded["idJugador"];
       if (idJugador == null) throw Exception("Token sin idJugador");
@@ -99,6 +106,8 @@ class _ProfilePageState extends State<ProfilePage> {
   // ----------------- ERROR VIEW -----------------
 
   Widget _buildErrorView(Color textColor, Color primaryGreen) {
+    final isTokenError = _errorMessage?.contains("Invalid token") ?? false;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -112,11 +121,33 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(color: textColor, fontSize: 16),
               textAlign: TextAlign.center,
             ),
+            if (isTokenError)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(
+                  'Necesitas iniciar sesión nuevamente',
+                  style: TextStyle(
+                    color: primaryGreen,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _loadUserData,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reintentar'),
+              onPressed: isTokenError
+                  ? () async {
+                      await TokenService.deleteToken();
+                      if (mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          FadeRoute(page: const LoginPage()),
+                          (route) => false,
+                        );
+                      }
+                    }
+                  : _loadUserData,
+              icon: Icon(isTokenError ? Icons.login : Icons.refresh),
+              label: Text(isTokenError ? 'Ir a Login' : 'Reintentar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
                 foregroundColor: Colors.black,

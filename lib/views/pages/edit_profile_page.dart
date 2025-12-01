@@ -53,9 +53,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppConstants.errorRed,
+        duration: AppConstants.longSnackbarDuration,
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
+      ),
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -77,11 +86,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    final decoded = JwtDecoder.decode(token);
-    final idJugador = decoded["idJugador"];
+    dynamic idJugador;
+    try {
+      final decoded = JwtDecoder.decode(token);
+      idJugador = decoded["idJugador"];
 
-    if (idJugador == null) {
-      _showError("No se encontró el ID del jugador");
+      if (idJugador == null) {
+        _showError("No se encontró el ID del jugador");
+        return;
+      }
+    } catch (e) {
+      _showError("Token inválido: $e");
       return;
     }
 
@@ -113,9 +128,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Datos actualizados correctamente"),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: const Text(
+            '✅ Datos actualizados correctamente',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppConstants.successGreen,
+          duration: AppConstants.snackbarDuration,
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {},
+          ),
         ),
       );
 
@@ -159,7 +183,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             Text(
               "Modificá tus datos personales",
-              style: TextStyle(color: onSurface.withValues(alpha: 0.7), fontSize: 14),
+              style: TextStyle(
+                color: onSurface.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
               textAlign: TextAlign.center,
             ),
 

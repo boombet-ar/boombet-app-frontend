@@ -11,7 +11,12 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Asegurar que los tokens temporales no sobrevivan entre reinicios
+  await TokenService.deleteTemporaryToken();
+
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {
     debugPrint('[MAIN] 🔴 401 Detected - Navigating to LoginPage');
