@@ -1,8 +1,8 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 
@@ -106,10 +106,8 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: isLightModeNotifier,
       builder: (context, isLightMode, child) {
-        return MaterialApp(
+        return MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          navigatorKey:
-              navigatorKey, // Agregar GlobalKey para navegación desde HttpClient
           scaffoldMessengerKey: scaffoldMessengerKey,
           title: 'BoomBet App',
           themeAnimationDuration: const Duration(milliseconds: 150),
@@ -117,64 +115,17 @@ class MyApp extends StatelessWidget {
           theme: _lightTheme,
           darkTheme: _darkTheme,
           themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
-          home: child!,
+          routerConfig: appRouter,
         );
       },
-      child: const MyHomePage(title: 'Boombet App'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+//CUENTA
+//username: test
+//email: test@gmail.com
+//DNI: 45614451
+//contra: TGm.4751!
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-  bool _isLoading = true;
-  bool _hasSession = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _checkSession();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached) {
-      // Eliminar token temporal SOLO cuando la app se cierra completamente
-      // (no cuando pasa a segundo plano - paused)
-      TokenService.deleteTemporaryToken();
-    }
-  }
-
-  Future<void> _checkSession() async {
-    // Verificar cualquier token válido (persistente O temporal)
-    final hasActiveSession = await TokenService.isTokenValid();
-    if (!mounted) return;
-    setState(() {
-      _hasSession = hasActiveSession;
-      _isLoading = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    return SafeArea(child: _hasSession ? const HomePage() : const LoginPage());
-  }
-}
+//

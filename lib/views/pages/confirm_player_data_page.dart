@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/player_model.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
-import 'package:boombet_app/views/pages/limited_home_page.dart';
+import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -44,17 +42,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   late TextEditingController _estadoCivilController;
   late TextEditingController _sexoController;
 
-  final AffiliationService _affiliationService = AffiliationService();
   bool _isLoading = false;
 
   String _normalizarGenero(String genero) {
     if (genero == 'M') return 'Masculino';
     if (genero == 'F') return 'Femenino';
     return genero;
-  }
-
-  String _generateWebSocketUrl() {
-    return WebSocketUrlService.generateAffiliationUrl();
   }
 
   @override
@@ -78,7 +71,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _telefonoController.dispose();
     _estadoCivilController.dispose();
     _sexoController.dispose();
-    //_affiliationService.dispose();
     super.dispose();
   }
 
@@ -114,7 +106,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       return;
     }
 
-    LoadingOverlay.show(context, message: 'Creando cuenta y afiliando...');
+    LoadingOverlay.show(context, message: 'Creando cuenta...');
 
     try {
       // Crear PlayerData actualizado (solo campos editables)
@@ -127,23 +119,17 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         sexo: _sexoController.text.trim(),
       );
 
-      debugPrint('PASO 1: Generando WebSocket URL...');
-
-      // Generar URL del WebSocket
-      final wsUrl = _generateWebSocketUrl();
-      debugPrint('WebSocket URL: $wsUrl');
-
-      debugPrint('PASO 2: Preparando payload...');
+      debugPrint('PASO 1: Preparando payload para /register...');
 
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
-        'websocketLink': wsUrl,
+        'websocketLink': WebSocketUrlService.generateAffiliationUrl(),
         'playerData': {
           'nombre': updatedData.nombre,
           'apellido': updatedData.apellido,
-          'email': email, // Email editado
-          'telefono': telefono, // Teléfono editado
-          'genero': _normalizarGenero(widget.genero), // Masculino/Femenino
+          'email': email,
+          'telefono': telefono,
+          'genero': _normalizarGenero(widget.genero),
           'dni': widget.dni,
           'cuit': updatedData.cuil,
           'calle': updatedData.calle,
@@ -158,7 +144,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         },
       };
 
-      debugPrint('PASO 3: Enviando POST a /api/users/auth/register');
+      debugPrint('PASO 2: Enviando POST a /api/users/auth/register');
       debugPrint('Payload: ${jsonEncode(payload)}');
 
       // Enviar POST al endpoint de registro
@@ -184,44 +170,14 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       LoadingOverlay.hide(context);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // ✅ REGISTRO EXITOSO - Extraer y guardar token
-        String? savedToken;
-        try {
-          final responseData = jsonDecode(response.body);
-          final token = responseData['token'] as String?;
-
-          if (token != null && token.isNotEmpty) {
-            // Guardar token PERSISTENTE (usuario mantiene sesión al cerrar app)
-            await TokenService.saveToken(token);
-            savedToken = token;
-            debugPrint('✅ Token persistente guardado exitosamente');
-          } else {
-            debugPrint('⚠️ ADVERTENCIA: No se recibió token en la respuesta');
-          }
-        } catch (e) {
-          debugPrint('⚠️ Error al parsear token: $e');
-        }
-
-        // 🔌 CONECTAR WEBSOCKET usando la MISMA URL que se envió al backend
-        // El frontend genera el wsUrl y lo usa directamente para la conexión
-        debugPrint(
-          '🔌 Conectando WebSocket con URL generada por el frontend: $wsUrl',
-        );
-        _affiliationService
-            .connectToWebSocket(wsUrl: wsUrl, token: savedToken ?? '')
-            .then((_) {
-              debugPrint('✅ WebSocket conectado exitosamente');
-            })
-            .catchError((e) {
-              debugPrint('⚠️ Error al conectar WebSocket: $e');
-              // No hacemos nada crítico, la navegación continúa igual
-            });
+        // ✅ REGISTRO EXITOSO - El token se envía por mail
+        debugPrint('✅ Registro exitoso. Token enviado por email.');
 
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cuenta creada. Iniciando afiliación...'),
+            content: Text('Cuenta creada. Verifica tu email para continuar...'),
             backgroundColor: Color.fromARGB(255, 41, 255, 94),
             duration: Duration(seconds: 2),
           ),
@@ -232,13 +188,20 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
         if (!mounted) return;
 
-        // Navegar a LimitedHomePage con servicio de afiliación
-        // El usuario esperará 30 segundos (o hasta que se complete la afiliación)
+        // Navegar a EmailConfirmationPage sin token (se obtendrá del link del mail)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                LimitedHomePage(affiliationService: _affiliationService),
+            builder: (context) => EmailConfirmationPage(
+              playerData: updatedData,
+              email: email,
+              username: widget.username,
+              password: widget.password,
+              dni: widget.dni,
+              telefono: telefono,
+              genero: widget.genero,
+              verificacionToken: '', // Sin token aún, lo tendrá del mail
+            ),
           ),
         );
       } else if (response.statusCode == 409) {
