@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
@@ -172,6 +173,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ REGISTRO EXITOSO - El token se envía por mail
         debugPrint('✅ Registro exitoso. Token enviado por email.');
+        debugPrint('Response: ${response.body}');
 
         if (!mounted) return;
 
@@ -187,6 +189,61 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
+
+        // Extraer los datos que devuelve el backend (estos son los datos confirmados)
+        Map<String, dynamic> responseData = {};
+        try {
+          responseData = jsonDecode(response.body);
+          debugPrint('📦 [REG-1] Datos extraídos de la respuesta del backend');
+          debugPrint('📦 [REG-2] responseData: $responseData');
+        } catch (e) {
+          debugPrint('⚠️ [REG-3] No se pudo parsear respuesta: $e');
+        }
+
+        // Guardar datos en notifiers para acceso posterior en EmailConfirmationPage
+        // Usar los datos devueltos por el backend si están disponibles, si no usar updatedData
+        final playerDataFromResponse = responseData['playerData'];
+
+        if (playerDataFromResponse != null) {
+          debugPrint(
+            '✅ [REG-4] Guardando datos devueltos por el backend en notifiers',
+          );
+          await saveAffiliationData(
+            playerData: updatedData,
+            email: playerDataFromResponse['email'] ?? email,
+            username: playerDataFromResponse['user'] ?? widget.username,
+            password: playerDataFromResponse['password'] ?? widget.password,
+            dni: playerDataFromResponse['dni'] ?? widget.dni,
+            telefono: playerDataFromResponse['telefono'] ?? telefono,
+            genero: playerDataFromResponse['genero'] ?? widget.genero,
+          );
+        } else {
+          debugPrint(
+            '⚠️ [REG-5] Backend no devolvió playerData, usando datos del formulario',
+          );
+          await saveAffiliationData(
+            playerData: updatedData,
+            email: email,
+            username: widget.username,
+            password: widget.password,
+            dni: widget.dni,
+            telefono: telefono,
+            genero: widget.genero,
+          );
+        }
+
+        debugPrint(
+          '✅ [REG-6] Datos guardados en notifiers Y SharedPreferences para afiliación',
+        );
+        debugPrint(
+          '📋 [REG-7] affiliationPlayerDataNotifier: ${affiliationPlayerDataNotifier.value}',
+        );
+        debugPrint(
+          '📋 [REG-8] affiliationEmailNotifier: ${affiliationEmailNotifier.value}',
+        );
+        debugPrint(
+          '📋 [REG-9] affiliationUsernameNotifier: ${affiliationUsernameNotifier.value}',
+        );
 
         // Navegar a EmailConfirmationPage sin token (se obtendrá del link del mail)
         Navigator.pushReplacement(

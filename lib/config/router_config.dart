@@ -7,16 +7,16 @@ import 'package:go_router/go_router.dart';
 
 // Redirect callback para manejar autenticación
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
-  // Permitir siempre el acceso a /confirm (deep link de confirmación)
+  // Permitir siempre el acceso a /confirm (deep link de confirmación de email)
   if (state.uri.path == '/confirm') {
-    return null; // No redirigir
+    return null; // No redirigir, permitir acceso sin login
   }
 
   // Verificar si hay sesión activa
   final isLoggedIn = await TokenService.isTokenValid();
 
-  // Si no está logueado y no está en /confirm, ir al login
-  if (!isLoggedIn && state.uri.path != '/') {
+  // Si no está logueado y no está en / o /confirm, ir al login
+  if (!isLoggedIn && state.uri.path != '/' && state.uri.path != '/confirm') {
     return '/';
   }
 

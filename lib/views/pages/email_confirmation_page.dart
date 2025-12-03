@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
@@ -55,6 +56,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     debugPrint(
       '📱 verificacionToken.isEmpty: ${widget.verificacionToken.isEmpty}',
     );
+
+    // Cargar datos de SharedPreferences
+    _loadAffiliationData();
 
     // Inicializar controllers
     if (widget.playerData != null) {
@@ -153,13 +157,26 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              '¡Email confirmado exitosamente! Ya podés iniciar tu afiliación.',
+              '¡Email confirmado exitosamente! Iniciando tu afiliación...',
             ),
             backgroundColor: Color.fromARGB(255, 41, 255, 94),
             duration: Duration(seconds: 3),
           ),
         );
         debugPrint('🔗 [16] SnackBar mostrado');
+
+        debugPrint(
+          '🔗 [17] Esperando 2 segundos antes de iniciar afiliación...',
+        );
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (!mounted) {
+          debugPrint('❌ [18] Widget no está mounted, retornando');
+          return;
+        }
+
+        debugPrint('🔗 [19] Iniciando proceso de afiliación...');
+        await _startAffiliation();
       } else {
         debugPrint('❌ [19] Error confirmando email: ${response.statusCode}');
         debugPrint('❌ Response body completo: ${response.body}');
@@ -207,6 +224,172 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 10),
         ),
+      );
+    }
+  }
+
+  Future<void> _startAffiliation() async {
+    debugPrint('🔗 [AF-1] Iniciando proceso de afiliación');
+
+    // DEBUG: Verificar qué hay en los notifiers
+    debugPrint(
+      '📋 [DEBUG] affiliationPlayerDataNotifier: ${affiliationPlayerDataNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationEmailNotifier: ${affiliationEmailNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationUsernameNotifier: ${affiliationUsernameNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationPasswordNotifier: ${affiliationPasswordNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationDniNotifier: ${affiliationDniNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationTelefonoNotifier: ${affiliationTelefonoNotifier.value}',
+    );
+    debugPrint(
+      '📋 [DEBUG] affiliationGeneroNotifier: ${affiliationGeneroNotifier.value}',
+    );
+
+    try {
+      // Obtener datos de los notifiers
+      final playerData = affiliationPlayerDataNotifier.value;
+      final email = affiliationEmailNotifier.value;
+      final username = affiliationUsernameNotifier.value;
+      final password = affiliationPasswordNotifier.value;
+      final dni = affiliationDniNotifier.value;
+      final telefono = affiliationTelefonoNotifier.value;
+      final genero = affiliationGeneroNotifier.value;
+
+      if (playerData == null || email.isEmpty) {
+        debugPrint('❌ [AF-2] Datos incompletos en notifiers');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Error: Datos de usuario no disponibles en memoria. Por favor intenta registrarte nuevamente.',
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
+
+      debugPrint('✅ [AF-3] Datos obtenidos de notifiers correctamente');
+
+      // Generar WebSocket URL
+      final wsUrl = WebSocketUrlService.generateAffiliationUrl();
+      debugPrint('📡 [AF-4] WebSocket URL generado: $wsUrl');
+
+      // Preparar payload para /affiliate
+      final affiliatePayload = {
+        'websocketLink': wsUrl,
+        'playerData': {
+          'nombre': playerData.nombre,
+          'apellido': playerData.apellido,
+          'email': email,
+          'telefono': telefono,
+          'genero': _normalizarGenero(genero),
+          'dni': dni,
+          'cuit': playerData.cuil,
+          'calle': playerData.calle,
+          'numCalle': playerData.numCalle,
+          'provincia': playerData.provincia,
+          'ciudad': playerData.localidad,
+          'cp': playerData.cp?.toString() ?? '',
+          'user': username,
+          'password': password,
+          'fecha_nacimiento': playerData.fechaNacimiento,
+          'est_civil': playerData.estadoCivil,
+        },
+      };
+
+      debugPrint('📦 [AF-5] Payload preparado');
+      debugPrint('📡 [AF-6] Enviando POST a /api/users/auth/affiliate');
+
+      // Enviar POST a /affiliate
+      final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/affiliate');
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(affiliatePayload),
+          )
+          .timeout(
+            AppConstants.apiTimeout,
+            onTimeout: () => http.Response('Request timeout', 408),
+          );
+
+      debugPrint('✉️ [AF-7] Response recibido: ${response.statusCode}');
+
+      if (!mounted) {
+        debugPrint('❌ [AF-8] Widget no está mounted');
+        return;
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('✅ [AF-9] Afiliación iniciada exitosamente');
+
+        // Conectar WebSocket
+        final affiliationService = AffiliationService();
+        try {
+          debugPrint('🔗 [AF-10] Conectando al WebSocket...');
+          await affiliationService.connectToWebSocket(wsUrl: wsUrl);
+          debugPrint('✅ [AF-11] WebSocket conectado exitosamente');
+
+          // Navegar a LimitedHomePage
+          debugPrint('🎯 [AF-12] Navegando a LimitedHomePage');
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    LimitedHomePage(affiliationService: affiliationService),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ [AF-13] Error conectando al WebSocket: $e');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error conectando: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        debugPrint('❌ [AF-14] Error en /affiliate: ${response.statusCode}');
+
+        if (!mounted) return;
+
+        String errorMessage = 'Error ${response.statusCode} en afiliación';
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          debugPrint('⚠️ Error parseando respuesta: $e');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ [AF-15] Error crítico en _startAffiliation: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -597,5 +780,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
         ),
       ),
     );
+  }
+
+  /// Carga los datos de afiliación desde SharedPreferences
+  Future<void> _loadAffiliationData() async {
+    debugPrint('💾 [LOAD] Iniciando carga de datos de SharedPreferences...');
+    await loadAffiliationData();
+    debugPrint('💾 [LOAD] Datos cargados:');
+    debugPrint('💾 [LOAD] playerData: ${affiliationPlayerDataNotifier.value}');
+    debugPrint('💾 [LOAD] email: ${affiliationEmailNotifier.value}');
+    debugPrint('💾 [LOAD] username: ${affiliationUsernameNotifier.value}');
+    debugPrint('💾 [LOAD] dni: ${affiliationDniNotifier.value}');
   }
 }

@@ -193,6 +193,31 @@ class PlayerData {
     };
   }
 
+  /// Factory para recrear PlayerData desde JSON (usado para SharedPreferences)
+  factory PlayerData.fromJson(Map<String, dynamic> json) {
+    return PlayerData(
+      nombre: json['nombre'] ?? '',
+      apellido: json['apellido'] ?? '',
+      cuil: json['cuil'] ?? '',
+      dni: json['dni'] ?? '',
+      sexo: json['sexo'] ?? '',
+      estadoCivil: json['estado_civil'] ?? '',
+      telefono: json['telefono'] ?? '',
+      correoElectronico: json['correoElectronico'] ?? '',
+      direccionCompleta: json['direccion'] ?? '',
+      calle: json['calle'] ?? '',
+      numCalle: json['numCalle'] ?? '',
+      localidad: json['localidad'] ?? '',
+      provincia: json['provincia'] ?? '',
+      fechaNacimiento: json['fecha_nacimiento'] ?? '',
+      anioNacimiento: json['añoNacimiento'] ?? '',
+      cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp'] ?? ''}'),
+      edad: json['edad'] is int
+          ? json['edad']
+          : int.tryParse('${json['edad'] ?? ''}'),
+    );
+  }
+
   PlayerData copyWith({
     String? nombre,
     String? apellido,

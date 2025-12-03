@@ -357,20 +357,31 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       // Validar datos con el backend (sin crear cuenta todavía)
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/userData');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'dni': _dniController.text.trim(),
-          'genero': _selectedGender!,
-          'telefono': _phoneController.text.trim(),
-          'email': _emailController.text.trim(),
-        }),
-      );
+
+      final body = {
+        'dni': _dniController.text.trim(),
+        'genero': _selectedGender!,
+        'telefono': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+      };
+
+      debugPrint('📡 POST → $url');
+      debugPrint('📦 Body: $body');
+
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
