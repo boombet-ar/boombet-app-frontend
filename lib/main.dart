@@ -14,6 +14,12 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Capturar errores de Flutter no manejados
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('❌ [FLUTTER ERROR] ${details.exception}');
+    debugPrint('❌ [FLUTTER ERROR] ${details.stack}');
+  };
+
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
 

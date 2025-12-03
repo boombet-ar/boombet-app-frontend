@@ -1,0 +1,579 @@
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/password_validation_service.dart';
+import 'package:boombet_app/services/reset_password_service.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+class ResetPasswordPage extends StatefulWidget {
+  final String token; // Token del email de recuperación
+
+  const ResetPasswordPage({super.key, required this.token});
+
+  @override
+  State<ResetPasswordPage> createState() => _ResetPasswordPageState();
+}
+
+class _ResetPasswordPageState extends State<ResetPasswordPage> {
+  late TextEditingController _passwordController;
+  late TextEditingController _confirmPasswordController;
+
+  bool _passwordError = false;
+  bool _confirmPasswordError = false;
+  bool _isLoading = false;
+
+  Map<String, bool> _passwordRules = {
+    "8+ caracteres": false,
+    "1 mayúscula": false,
+    "1 número": false,
+    "1 símbolo": false,
+    "Sin repetidos": false,
+    "Sin secuencias": false,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      debugPrint('📝 [ResetPasswordPage] initState - token: ${widget.token}');
+      _passwordController = TextEditingController();
+      _confirmPasswordController = TextEditingController();
+      _passwordController.addListener(_validatePasswordLive);
+    } catch (e) {
+      debugPrint('❌ [ResetPasswordPage] Error en initState: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    try {
+      _passwordController.dispose();
+      _confirmPasswordController.dispose();
+    } catch (e) {
+      debugPrint('❌ [ResetPasswordPage] Error en dispose: $e');
+    }
+    super.dispose();
+  }
+
+  // Validar que las contraseñas cumplan con los requisitos
+  String? _validatePassword(String password) {
+    if (password.isEmpty) {
+      return null;
+    }
+
+    if (password.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
+    }
+
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'La contraseña debe tener al menos una mayúscula';
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return 'La contraseña debe tener al menos un número';
+    }
+
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]'))) {
+      return 'La contraseña debe tener al menos un símbolo';
+    }
+
+    if (RegExp(r'(.)\1{2,}').hasMatch(password)) {
+      return 'La contraseña no debe tener caracteres repetidos consecutivos';
+    }
+
+    for (int i = 0; i < password.length - 2; i++) {
+      if (RegExp(r'[0-9]').hasMatch(password[i]) &&
+          RegExp(r'[0-9]').hasMatch(password[i + 1]) &&
+          RegExp(r'[0-9]').hasMatch(password[i + 2])) {
+        int n1 = int.parse(password[i]);
+        int n2 = int.parse(password[i + 1]);
+        int n3 = int.parse(password[i + 2]);
+        if ((n2 == n1 + 1 && n3 == n2 + 1) || (n2 == n1 - 1 && n3 == n2 - 1)) {
+          return 'La contraseña no debe tener secuencias numéricas';
+        }
+      }
+    }
+
+    for (int i = 0; i < password.length - 2; i++) {
+      if (RegExp(r'[a-zA-Z]').hasMatch(password[i]) &&
+          RegExp(r'[a-zA-Z]').hasMatch(password[i + 1]) &&
+          RegExp(r'[a-zA-Z]').hasMatch(password[i + 2])) {
+        int c1 = password[i].toLowerCase().codeUnitAt(0);
+        int c2 = password[i + 1].toLowerCase().codeUnitAt(0);
+        int c3 = password[i + 2].toLowerCase().codeUnitAt(0);
+        if ((c2 == c1 + 1 && c3 == c2 + 1) || (c2 == c1 - 1 && c3 == c2 - 1)) {
+          return 'La contraseña no debe tener secuencias de letras';
+        }
+      }
+    }
+
+    return null;
+  }
+
+  void _validatePasswordLive() {
+    final pw = _passwordController.text;
+    final status = PasswordValidationService.getValidationStatus(pw);
+
+    setState(() {
+      _passwordRules["8+ caracteres"] = status['minimum_length']!;
+      _passwordRules["1 mayúscula"] = status['uppercase']!;
+      _passwordRules["1 número"] = status['number']!;
+      _passwordRules["1 símbolo"] = status['symbol']!;
+      _passwordRules["Sin repetidos"] = status['no_repetition']!;
+      _passwordRules["Sin secuencias"] = status['no_sequence']!;
+    });
+  }
+
+  void _validateAndResetPassword() async {
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    setState(() {
+      _passwordError = password.isEmpty;
+      _confirmPasswordError = confirmPassword.isEmpty;
+    });
+
+    if (_passwordError || _confirmPasswordError) {
+      _showSnackbar('Por favor completa todos los campos', isError: true);
+      return;
+    }
+
+    // Validar que la contraseña cumpla con los requisitos
+    String? passwordError = _validatePassword(password);
+    if (passwordError != null) {
+      setState(() {
+        _passwordError = true;
+      });
+      _showSnackbar(passwordError, isError: true);
+      return;
+    }
+
+    // Validar que las contraseñas coincidan
+    if (password != confirmPassword) {
+      setState(() {
+        _confirmPasswordError = true;
+      });
+      _showSnackbar('Las contraseñas no coinciden', isError: true);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Llamar al servicio para resetear la contraseña
+      final result = await ResetPasswordService.resetPassword(
+        token: widget.token,
+        newPassword: password,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success'] == true) {
+        // ✅ CONTRASEÑA RESETEADA EXITOSAMENTE
+        // Si éxito (200):
+        // ✅ Mostrar snackbar de éxito
+        // → Esperar 2 segundos
+        // → Navegar a login
+
+        _showSnackbar(
+          '✅ ${result['message'] ?? 'Contraseña actualizada exitosamente'}',
+          isError: false,
+        );
+
+        // Navegar a login después de 2 segundos
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          context.go('/');
+        }
+      } else {
+        // ❌ ERROR AL RESETEAR CONTRASEÑA
+        _showSnackbar(
+          '❌ ${result['message'] ?? 'No se pudo resetear la contraseña'}',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      debugPrint('❌ Error en _validateAndResetPassword: $e');
+      _showSnackbar('❌ Error al resetear contraseña: $e', isError: true);
+    }
+  }
+
+  void _showSnackbar(String message, {required bool isError}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    try {
+      debugPrint('📝 [ResetPasswordPage] build - token: ${widget.token}');
+      debugPrint(
+        '📝 [ResetPasswordPage] token isEmpty: ${widget.token.isEmpty}',
+      );
+
+      // Si el token está vacío, mostrar error
+      if (widget.token.isEmpty) {
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'Error: Token inválido',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'El link de recuperación no es válido o ha expirado.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.go('/'),
+                  child: const Text('Volver al Login'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final primaryGreen = theme.colorScheme.primary;
+      final textColor = theme.colorScheme.onBackground;
+      final accentColor = isDark
+          ? const Color(0xFF1A1A1A)
+          : const Color(0xFFF5F5F5);
+      final borderColor = isDark
+          ? const Color(0xFF404040)
+          : const Color(0xFFB0B0B0);
+      const double borderRadius = 12;
+
+      return Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: AppBar(
+            backgroundColor: isDark ? Colors.black38 : const Color(0xFFE8E8E8),
+            leading: null,
+            automaticallyImplyLeading: false,
+            title: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: primaryGreen),
+                  tooltip: 'Volver',
+                  onPressed: () {
+                    context.go('/');
+                  },
+                ),
+                IconButton(
+                  icon: ValueListenableBuilder(
+                    valueListenable: isLightModeNotifier,
+                    builder: (context, isLightMode, child) {
+                      return Icon(
+                        isLightMode ? Icons.dark_mode : Icons.light_mode,
+                        color: primaryGreen,
+                      );
+                    },
+                  ),
+                  tooltip: 'Cambiar tema',
+                  onPressed: () {
+                    isLightModeNotifier.value = !isLightModeNotifier.value;
+                  },
+                ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Image.asset(
+                    'assets/images/boombetlogo.png',
+                    height: 80,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: Container(
+          color: theme.scaffoldBackgroundColor,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Título
+                  Text(
+                    'Restablecer Contraseña',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ingresa tu nueva contraseña',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Formulario
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      children: [
+                        // Input Contraseña
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          style: TextStyle(color: textColor),
+                          onChanged: (value) {
+                            if (_passwordError && value.isNotEmpty) {
+                              setState(() => _passwordError = false);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            labelStyle: TextStyle(
+                              color: _passwordError
+                                  ? Colors.red
+                                  : textColor.withOpacity(0.7),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock,
+                              color: _passwordError ? Colors.red : primaryGreen,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : primaryGreen,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: accentColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Mostrar reglas de validación en tiempo real
+                        if (_passwordController.text.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: accentColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _passwordRules.entries.map((e) {
+                                final isValid = e.value;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isValid
+                                            ? Icons.check_circle
+                                            : Icons.cancel,
+                                        color: isValid
+                                            ? Colors.green
+                                            : Colors.red,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        e.key,
+                                        style: TextStyle(
+                                          color: isValid
+                                              ? Colors.green
+                                              : textColor.withOpacity(0.6),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+
+                        // Input Confirmar Contraseña
+                        TextField(
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          style: TextStyle(color: textColor),
+                          onChanged: (value) {
+                            if (_confirmPasswordError && value.isNotEmpty) {
+                              setState(() => _confirmPasswordError = false);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Repetir Contraseña',
+                            labelStyle: TextStyle(
+                              color: _confirmPasswordError
+                                  ? Colors.red
+                                  : textColor.withOpacity(0.7),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock,
+                              color: _confirmPasswordError
+                                  ? Colors.red
+                                  : primaryGreen,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _confirmPasswordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _confirmPasswordError
+                                    ? Colors.red
+                                    : primaryGreen,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: accentColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Botón Restablecer Contraseña
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  borderRadius,
+                                ),
+                              ),
+                              elevation: 4,
+                            ),
+                            onPressed: _isLoading
+                                ? null
+                                : _validateAndResetPassword,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.black,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Restablecer Contraseña',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ [ResetPasswordPage] Error en build: $e');
+      debugPrint('❌ [ResetPasswordPage] Stack trace: ${StackTrace.current}');
+
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Error: No se pudo cargar la página',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('Detalles: $e', textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go('/'),
+                child: const Text('Volver'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+}

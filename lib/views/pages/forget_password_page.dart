@@ -1,10 +1,6 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/password_generator_service.dart';
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/forgot_password_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
-import 'package:boombet_app/views/pages/login_page.dart';
-import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/form_fields.dart';
-import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 
 class ForgetPasswordPage extends StatefulWidget {
@@ -16,56 +12,37 @@ class ForgetPasswordPage extends StatefulWidget {
 
 class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   late TextEditingController _emailController;
-  late TextEditingController _dniController;
-  late TextEditingController _newPasswordController;
-  late TextEditingController _confirmPasswordController;
 
   bool _emailError = false;
-  bool _dniError = false;
-  bool _newPasswordError = false;
-  bool _confirmPasswordError = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
-    _dniController = TextEditingController();
-    _newPasswordController = TextEditingController();
-    _confirmPasswordController = TextEditingController();
   }
 
   @override
   void dispose() {
     _emailController.dispose();
-    _dniController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _validateAndResetPassword() async {
-    // Validar campos vacíos
+  void _validateAndSendEmail() async {
     setState(() {
       _emailError = _emailController.text.trim().isEmpty;
-      _dniError = _dniController.text.trim().isEmpty;
-      _newPasswordError = _newPasswordController.text.trim().isEmpty;
-      _confirmPasswordError = _confirmPasswordController.text.trim().isEmpty;
     });
 
-    if (_emailError ||
-        _dniError ||
-        _newPasswordError ||
-        _confirmPasswordError) {
-      _showDialog(
-        'Campos incompletos',
-        'Por favor, completa todos los campos.',
-      );
+    if (_emailError) {
+      _showDialog('Campo vacío', 'Por favor, ingresa tu correo electrónico.');
       return;
     }
 
-    // Validar formato de email usando PasswordValidationService
+    // Validar formato de email
     final email = _emailController.text.trim();
+    debugPrint('📧 [ForgetPasswordPage] Email ingresado: "$email"');
+    debugPrint('📧 [ForgetPasswordPage] Email length: ${email.length}');
+
     if (!PasswordValidationService.isEmailValid(email)) {
       setState(() {
         _emailError = true;
@@ -77,132 +54,88 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
       return;
     }
 
-    // Validar formato de DNI usando PasswordValidationService
-    final dni = _dniController.text.trim();
-    if (!PasswordValidationService.isDniValid(dni)) {
-      setState(() {
-        _dniError = true;
-      });
-      _showDialog(
-        'DNI inválido',
-        PasswordValidationService.getDniValidationMessage(dni),
-      );
-      return;
-    }
-
-    // Validar que las contraseñas coincidan
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _newPasswordError = true;
-        _confirmPasswordError = true;
-      });
-      _showDialog(
-        'Las contraseñas no coinciden',
-        'Por favor, asegúrate de que ambas contraseñas sean iguales.',
-      );
-      return;
-    }
-
-    // Validar longitud mínima de contraseña
-    if (_newPasswordController.text.length < 6) {
-      setState(() {
-        _newPasswordError = true;
-        _confirmPasswordError = true;
-      });
-      _showDialog(
-        'Contraseña muy corta',
-        'La contraseña debe tener al menos 6 caracteres.',
-      );
-      return;
-    }
-
     // Mostrar indicador de carga
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Simular delay de red
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      // Mostrar mensaje de éxito y redirigir al login
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text(
-            'Contraseña actualizada',
-            style: TextStyle(color: textColor),
-          ),
-          content: Text(
-            'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Cerrar diálogo
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              },
-              child: const Text(
-                'Ir al inicio de sesión',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
+      // Llamar al backend para enviar email
+      debugPrint(
+        '📧 [ForgetPasswordPage] Llamando a ForgotPasswordService.sendPasswordResetEmail()',
       );
-    } catch (e) {
+      final result = await ForgotPasswordService.sendPasswordResetEmail(email);
+
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
       });
 
-      _showDialog('Error', 'No se pudo restablecer la contraseña: $e');
+      debugPrint('📧 [ForgetPasswordPage] Respuesta del servicio: $result');
+
+      if (result['success'] == true) {
+        // ✅ EMAIL ENVIADO EXITOSAMENTE
+        _showDialog(
+          '¡Email enviado!',
+          result['message'] ??
+              'Se ha enviado un correo de recuperación a $email con las instrucciones para restaurar tu contraseña.',
+          isSuccess: true,
+        );
+      } else {
+        // ❌ ERROR AL ENVIAR EMAIL
+        setState(() {
+          if (result['statusCode'] == 404) {
+            _emailError = true;
+          }
+        });
+        _showDialog(
+          'Error',
+          result['message'] ??
+              'No se pudo enviar el correo. Por favor intenta más tarde.',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error en _validateAndSendEmail: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      _showDialog('Error', 'Ocurrió un error inesperado: $e');
     }
   }
 
-  void _showDialog(String title, String message) {
+  void _showDialog(String title, String message, {bool isSuccess = false}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    final primaryGreen = theme.colorScheme.primary;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dialogBg,
-        title: Text(title, style: TextStyle(color: textColor)),
-        content: Text(message, style: TextStyle(color: textColor)),
+        backgroundColor: isDark
+            ? const Color(0xFF1A1A1A)
+            : const Color(0xFFE8E8E8),
+        title: Text(
+          title,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            onPressed: () {
+              Navigator.pop(context);
+              if (isSuccess) {
+                Navigator.pop(context); // Volver a login
+              }
+            },
+            child: Text('Entendido', style: TextStyle(color: primaryGreen)),
           ),
         ],
       ),
@@ -212,227 +145,176 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.colorScheme.onSurface;
-    const borderRadius = 12.0;
+    final textColor = theme.colorScheme.onBackground;
+    final accentColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFFF5F5F5);
+    final borderColor = isDark
+        ? const Color(0xFF404040)
+        : const Color(0xFFB0B0B0);
+    const double borderRadius = 12;
 
     return Scaffold(
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          backgroundColor: isDark ? Colors.black38 : const Color(0xFFE8E8E8),
+          leading: null,
+          automaticallyImplyLeading: false,
+          title: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: primaryGreen),
+                tooltip: 'Volver',
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              IconButton(
+                icon: ValueListenableBuilder(
+                  valueListenable: isLightModeNotifier,
+                  builder: (context, isLightMode, child) {
+                    return Icon(
+                      isLightMode ? Icons.dark_mode : Icons.light_mode,
+                      color: primaryGreen,
+                    );
+                  },
+                ),
+                tooltip: 'Cambiar tema',
+                onPressed: () {
+                  isLightModeNotifier.value = !isLightModeNotifier.value;
+                },
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Image.asset('assets/images/boombetlogo.png', height: 80),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: ResponsiveWrapper(
-          child: Container(
-            color: bgColor,
-            height: double.infinity,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Logo en la parte superior
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/boombetlogo.png',
-                        width: 200,
-                      ),
-                    ),
+      body: Container(
+        color: theme.scaffoldBackgroundColor,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Título
+                Text(
+                  'Recuperar Contraseña',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                    letterSpacing: 1,
                   ),
-                  const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ingresa tu correo electrónico',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: textColor.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 32),
 
-                  // Título de bienvenida
-                  Text(
-                    'Recuperar contraseña',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ingresa tu nueva contraseña',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Campos y botones
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+                // Formulario
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: Column(
                     children: [
-                      // TextField Email
-                      AppTextFormField(
-                        label: 'Correo Electrónico',
-                        hint: 'tu@email.com',
+                      // Input Email
+                      TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        hasError: _emailError,
-                        errorText: _emailError ? 'Email no válido' : null,
+                        style: TextStyle(color: textColor),
                         onChanged: (value) {
                           if (_emailError && value.isNotEmpty) {
                             setState(() => _emailError = false);
                           }
                         },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField DNI
-                      AppTextFormField(
-                        label: 'DNI',
-                        hint: '12345678',
-                        controller: _dniController,
-                        keyboardType: TextInputType.number,
-                        hasError: _dniError,
-                        errorText: _dniError ? 'DNI requerido' : null,
-                        onChanged: (value) {
-                          if (_dniError && value.isNotEmpty) {
-                            setState(() => _dniError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField Nueva Contraseña
-                      AppPasswordField(
-                        label: 'Nueva Contraseña',
-                        hint: 'Ingresa tu nueva contraseña',
-                        controller: _newPasswordController,
-                        hasError: _newPasswordError,
-                        errorText: _newPasswordError
-                            ? 'Contraseña inválida'
-                            : null,
-                        onChanged: (value) {
-                          if (_newPasswordError && value.isNotEmpty) {
-                            setState(() => _newPasswordError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Botón para generar contraseña sugerida
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            final email = _emailController.text.trim();
-                            final dni = _dniController.text.trim();
-
-                            if (email.isEmpty || dni.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Completa Email y DNI primero'),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
-                              return;
-                            }
-
-                            // Usar la parte local del email antes del @ como nombre
-                            final emailParts = email.split('@');
-                            final localPart = emailParts.isNotEmpty
-                                ? emailParts[0]
-                                : email;
-                            final primerNombre = localPart.length >= 2
-                                ? localPart
-                                : email;
-                            // Usar el dominio o parte del email como apellido
-                            final apellido = emailParts.length > 1
-                                ? emailParts[1].split('.')[0]
-                                : localPart;
-
-                            final password =
-                                PasswordGeneratorService.generatePassword(
-                                  primerNombre,
-                                  apellido,
-                                  dni,
-                                );
-
-                            setState(() {
-                              _newPasswordController.text = password;
-                              _confirmPasswordController.text = password;
-                              _newPasswordError = false;
-                              _confirmPasswordError = false;
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  '¡Contraseña generada y aplicada!',
-                                ),
-                                backgroundColor: primaryGreen,
-                              ),
-                            );
-                          },
-                          icon: Icon(
-                            Icons.auto_awesome,
-                            size: 18,
-                            color: primaryGreen,
+                        decoration: InputDecoration(
+                          labelText: 'Correo Electrónico',
+                          labelStyle: TextStyle(
+                            color: _emailError
+                                ? Colors.red
+                                : textColor.withOpacity(0.7),
                           ),
-                          label: Text(
-                            'Generar contraseña sugerida',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: primaryGreen,
-                              fontWeight: FontWeight.w500,
+                          prefixIcon: Icon(
+                            Icons.email,
+                            color: _emailError ? Colors.red : primaryGreen,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            borderSide: BorderSide(
+                              color: _emailError ? Colors.red : borderColor,
+                              width: 1.5,
                             ),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: primaryGreen.withValues(alpha: 0.5),
-                              width: 1,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(borderRadius),
+                            borderSide: BorderSide(
+                              color: _emailError ? Colors.red : primaryGreen,
+                              width: 2,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          filled: true,
+                          fillColor: accentColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      // TextField Confirmar Contraseña
-                      AppPasswordField(
-                        label: 'Confirmar Contraseña',
-                        hint: 'Repite tu nueva contraseña',
-                        controller: _confirmPasswordController,
-                        hasError: _confirmPasswordError,
-                        errorText: _confirmPasswordError
-                            ? 'Las contraseñas no coinciden'
-                            : null,
-                        onChanged: (value) {
-                          if (_confirmPasswordError && value.isNotEmpty) {
-                            setState(() => _confirmPasswordError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Botón Restablecer Contraseña (principal)
-                      AppButton(
-                        label: 'Restablecer contraseña',
-                        onPressed: _validateAndResetPassword,
-                        isLoading: _isLoading,
-                        icon: Icons.lock_reset,
+                      // Botón Enviar Email
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(borderRadius),
+                            ),
+                            elevation: 4,
+                          ),
+                          onPressed: _isLoading ? null : _validateAndSendEmail,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.black,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Enviar Correo',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                        ),
                       ),
                     ],
                   ),
-                  // Espacio disponible abajo
-                  const SizedBox(height: 20),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ),
