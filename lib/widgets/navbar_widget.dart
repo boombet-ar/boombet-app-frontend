@@ -9,44 +9,106 @@ class NavbarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    const greenColor = Color.fromARGB(255, 41, 255, 94);
-
-    // Light mode background for navbar
-    final navBarBg = isDark ? null : AppConstants.lightCardBg;
+    final primaryGreen = theme.colorScheme.primary;
+    final bgColor = isDark ? Colors.black87 : const Color(0xFFF8F8F8);
+    final selectedColor = primaryGreen;
+    final unselectedColor = isDark
+        ? const Color(0xFF808080)
+        : const Color(0xFF6C6C6C);
 
     return RepaintBoundary(
       child: ValueListenableBuilder<int>(
         valueListenable: selectedPageNotifier,
         builder: (context, selectedPage, child) {
-          return NavigationBar(
-            backgroundColor: navBarBg,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(Icons.home, color: greenColor),
-                label: "Home",
+          return Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              border: Border(
+                top: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF404040)
+                      : const Color(0xFFE0E0E0),
+                  width: 1,
+                ),
               ),
-              NavigationDestination(
-                icon: Icon(Icons.stars, color: greenColor),
-                label: "Puntos",
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.discount, color: greenColor),
-                label: "Descuentos",
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.sort, color: greenColor),
-                label: "Sorteos",
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.forum, color: greenColor),
-                label: "Foro",
-              ),
-            ],
-            onDestinationSelected: (int value) {
-              selectedPageNotifier.value = value;
-            },
-            selectedIndex: selectedPage,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            ),
+            child: NavigationBar(
+              backgroundColor: bgColor,
+              indicatorColor: primaryGreen.withValues(alpha: 0.15),
+              height: 70,
+              destinations: [
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.home_outlined,
+                    color: selectedPage == 0 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.home,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Home",
+                ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.star_outline,
+                    color: selectedPage == 1 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.star,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Puntos",
+                ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.local_offer_outlined,
+                    color: selectedPage == 2 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.local_offer,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Descuentos",
+                ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.card_giftcard_outlined,
+                    color: selectedPage == 3 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.card_giftcard,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Sorteos",
+                ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.forum_outlined,
+                    color: selectedPage == 4 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.forum,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Foro",
+                ),
+              ],
+              onDestinationSelected: (int value) {
+                selectedPageNotifier.value = value;
+              },
+              selectedIndex: selectedPage,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            ),
           );
         },
       ),

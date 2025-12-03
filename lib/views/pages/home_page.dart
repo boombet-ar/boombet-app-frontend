@@ -6,6 +6,7 @@ import 'package:boombet_app/views/pages/points_category_page.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
+import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -40,19 +41,17 @@ class _HomePageState extends State<HomePage> {
             showLogoutButton: true,
             showExitButton: false,
           ),
-          body: Center(
-            child: Container(
-              constraints: kIsWeb ? const BoxConstraints(maxWidth: 1200) : null,
-              child: IndexedStack(
-                index: selectedPage,
-                children: const [
-                  HomeContent(),
-                  PointsContent(),
-                  DiscountsContent(),
-                  RafflesPage(),
-                  ForumPage(),
-                ],
-              ),
+          body: ResponsiveWrapper(
+            maxWidth: 1200,
+            child: IndexedStack(
+              index: selectedPage,
+              children: const [
+                HomeContent(),
+                PointsContent(),
+                DiscountsContent(),
+                RafflesPage(),
+                ForumPage(),
+              ],
             ),
           ),
           bottomNavigationBar: const NavbarWidget(),
@@ -619,7 +618,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
           color: isSelected ? primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.5),
+            color: isSelected
+                ? primaryGreen
+                : primaryGreen.withValues(alpha: 0.5),
             width: 2,
           ),
         ),

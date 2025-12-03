@@ -1,6 +1,9 @@
-import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/reset_password_service.dart';
+import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
+import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -264,92 +267,77 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final primaryGreen = theme.colorScheme.primary;
-      final textColor = theme.colorScheme.onBackground;
+      final textColor = theme.colorScheme.onSurface;
       final accentColor = isDark
-          ? const Color(0xFF1A1A1A)
-          : const Color(0xFFF5F5F5);
+          ? AppConstants.borderDark
+          : AppConstants.lightAccent;
       final borderColor = isDark
-          ? const Color(0xFF404040)
+          ? AppConstants.borderDark
           : const Color(0xFFB0B0B0);
-      const double borderRadius = 12;
+      final borderRadius = AppConstants.borderRadius;
 
       return Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: AppBar(
-            backgroundColor: isDark ? Colors.black38 : const Color(0xFFE8E8E8),
-            leading: null,
-            automaticallyImplyLeading: false,
-            title: Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: primaryGreen),
-                  tooltip: 'Volver',
-                  onPressed: () {
-                    context.go('/');
-                  },
-                ),
-                IconButton(
-                  icon: ValueListenableBuilder(
-                    valueListenable: isLightModeNotifier,
-                    builder: (context, isLightMode, child) {
-                      return Icon(
-                        isLightMode ? Icons.dark_mode : Icons.light_mode,
-                        color: primaryGreen,
-                      );
-                    },
-                  ),
-                  tooltip: 'Cambiar tema',
-                  onPressed: () {
-                    isLightModeNotifier.value = !isLightModeNotifier.value;
-                  },
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Image.asset(
-                    'assets/images/boombetlogo.png',
-                    height: 80,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        appBar: const MainAppBar(
+          showSettings: false,
+          showProfileButton: false,
+          showBackButton: true,
         ),
-        body: Container(
-          color: theme.scaffoldBackgroundColor,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Título
-                  Text(
-                    'Restablecer Contraseña',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                      letterSpacing: 1,
+        body: GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+          },
+          child: ResponsiveWrapper(
+            maxWidth: 600,
+            child: Container(
+              color: theme.scaffoldBackgroundColor,
+              height: double.infinity,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Logo con Hero Animation
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20.0),
+                      child: Center(
+                        child: Hero(
+                          tag: 'boombet_logo',
+                          child: Image.asset(
+                            'assets/images/boombetlogo.png',
+                            width: 200,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ingresa tu nueva contraseña',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
-                  // Formulario
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: Column(
+                    // Título
+                    Text(
+                      'Restablecer Contraseña',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Subtítulo
+                    Text(
+                      'Ingresa tu nueva contraseña',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: textColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Campos y botones
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Input Contraseña
+                        // TextField Contraseña
                         TextField(
                           controller: _passwordController,
                           obscureText: true,
@@ -360,18 +348,24 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             }
                           },
                           decoration: InputDecoration(
-                            labelText: 'Contraseña',
-                            labelStyle: TextStyle(
-                              color: _passwordError
-                                  ? Colors.red
-                                  : textColor.withOpacity(0.7),
+                            hintText: 'Nueva contraseña',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF808080)
+                                  : const Color(0xFF6C6C6C),
                             ),
                             prefixIcon: Icon(
-                              Icons.lock,
+                              Icons.lock_outline,
                               color: _passwordError ? Colors.red : primaryGreen,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _passwordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
@@ -401,13 +395,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Mostrar reglas de validación en tiempo real
+                        // Validación de reglas de contraseña
                         if (_passwordController.text.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: accentColor,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(borderRadius),
                               border: Border.all(color: borderColor),
                             ),
                             child: Column(
@@ -425,7 +419,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                             ? Icons.check_circle
                                             : Icons.cancel,
                                         color: isValid
-                                            ? Colors.green
+                                            ? AppConstants.primaryGreen
                                             : Colors.red,
                                         size: 18,
                                       ),
@@ -434,8 +428,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                         e.key,
                                         style: TextStyle(
                                           color: isValid
-                                              ? Colors.green
-                                              : textColor.withOpacity(0.6),
+                                              ? AppConstants.primaryGreen
+                                              : textColor.withValues(
+                                                  alpha: 0.6,
+                                                ),
                                           fontSize: 12,
                                         ),
                                       ),
@@ -447,7 +443,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         const SizedBox(height: 24),
 
-                        // Input Confirmar Contraseña
+                        // TextField Confirmar Contraseña
                         TextField(
                           controller: _confirmPasswordController,
                           obscureText: true,
@@ -458,20 +454,26 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             }
                           },
                           decoration: InputDecoration(
-                            labelText: 'Repetir Contraseña',
-                            labelStyle: TextStyle(
-                              color: _confirmPasswordError
-                                  ? Colors.red
-                                  : textColor.withOpacity(0.7),
+                            hintText: 'Confirma tu contraseña',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF808080)
+                                  : const Color(0xFF6C6C6C),
                             ),
                             prefixIcon: Icon(
-                              Icons.lock,
+                              Icons.lock_outline,
                               color: _confirmPasswordError
                                   ? Colors.red
                                   : primaryGreen,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
+                              borderSide: BorderSide(
+                                color: _confirmPasswordError
+                                    ? Colors.red
+                                    : borderColor,
+                                width: 1.5,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(borderRadius),
@@ -501,48 +503,19 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Botón Restablecer Contraseña
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  borderRadius,
-                                ),
-                              ),
-                              elevation: 4,
-                            ),
-                            onPressed: _isLoading
-                                ? null
-                                : _validateAndResetPassword,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.black,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Restablecer Contraseña',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                          ),
+                        // Botón Restablecer
+                        AppButton(
+                          label: 'Restablecer Contraseña',
+                          onPressed: _validateAndResetPassword,
+                          isLoading: _isLoading,
+                          icon: Icons.lock_reset,
+                          borderRadius: borderRadius,
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
