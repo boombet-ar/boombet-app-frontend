@@ -49,6 +49,13 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
   @override
   void initState() {
     super.initState();
+    debugPrint('📱 EmailConfirmationPage initState');
+    debugPrint('📱 isFromDeepLink: ${widget.isFromDeepLink}');
+    debugPrint('📱 verificacionToken: ${widget.verificacionToken}');
+    debugPrint(
+      '📱 verificacionToken.isEmpty: ${widget.verificacionToken.isEmpty}',
+    );
+
     // Inicializar controllers
     if (widget.playerData != null) {
       final data = widget.playerData!;
@@ -61,7 +68,17 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
 
     // Si viene de deep link y el token no está vacío, confirmar automáticamente
     if (widget.isFromDeepLink && widget.verificacionToken.isNotEmpty) {
-      _confirmEmailWithToken();
+      debugPrint(
+        '🔗 Detectado deep link, ejecutando confirmación después del frame',
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          debugPrint(
+            '🔗 Post frame callback ejecutado, llamando _confirmEmailWithToken',
+          );
+          _confirmEmailWithToken();
+        }
+      });
     }
   }
 
@@ -86,19 +103,15 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       LoadingOverlay.show(context, message: 'Confirmando tu email...');
       debugPrint('🔗 [2] LoadingOverlay mostrado');
 
-      final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/verify');
-      debugPrint('📡 [3] URL de verificación: $url');
-      debugPrint(
-        '📦 [4] Payload: ${jsonEncode({'token': widget.verificacionToken})}',
+      // Cambiar a GET con el token como query parameter
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/users/auth/verify?token=${widget.verificacionToken}',
       );
+      debugPrint('📡 [3] URL de verificación: $url');
 
-      debugPrint('📡 [5] Enviando POST...');
+      debugPrint('📡 [5] Enviando GET...');
       final response = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'token': widget.verificacionToken}),
-          )
+          .get(url, headers: {'Content-Type': 'application/json'})
           .timeout(
             AppConstants.apiTimeout,
             onTimeout: () => http.Response('Request timeout', 408),
@@ -116,8 +129,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       }
 
       debugPrint('🔗 [9] Ocultando LoadingOverlay...');
-      LoadingOverlay.hide(context);
-      debugPrint('🔗 [10] LoadingOverlay ocultado');
+      if (mounted) {
+        LoadingOverlay.hide(context);
+        debugPrint('🔗 [10] LoadingOverlay ocultado');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ EMAIL CONFIRMADO EXITOSAMENTE
@@ -128,27 +143,23 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
           return;
         }
 
-        debugPrint('🔗 [13] Mostrando SnackBar de éxito...');
+        debugPrint('🔗 [13] Email verificado, actualizando UI...');
+        setState(() {
+          _emailConfirmed = true;
+        });
+        debugPrint('🔗 [14] Estado actualizado, _emailConfirmed = true');
+
+        debugPrint('🔗 [15] Mostrando SnackBar de éxito...');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Email confirmado exitosamente!'),
+            content: Text(
+              '¡Email confirmado exitosamente! Ya podés iniciar tu afiliación.',
+            ),
             backgroundColor: Color.fromARGB(255, 41, 255, 94),
-            duration: Duration(seconds: 2),
+            duration: Duration(seconds: 3),
           ),
         );
-        debugPrint('🔗 [14] SnackBar mostrado');
-
-        debugPrint('🔗 [15] Esperando 2 segundos...');
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (!mounted) {
-          debugPrint('❌ [16] Widget no está mounted, retornando');
-          return;
-        }
-
-        debugPrint('🔗 [17] Navegando a /...');
-        Navigator.pushReplacementNamed(context, '/');
-        debugPrint('🔗 [18] Navegación completada');
+        debugPrint('🔗 [16] SnackBar mostrado');
       } else {
         debugPrint('❌ [19] Error confirmando email: ${response.statusCode}');
         debugPrint('❌ Response body completo: ${response.body}');

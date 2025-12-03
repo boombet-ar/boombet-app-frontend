@@ -38,7 +38,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/confirm',
       builder: (context, state) {
-        final token = state.uri.queryParameters['token'] ?? '';
+        // Intentar obtener el token de diferentes parámetros posibles
+        final token =
+            state.uri.queryParameters['token'] ??
+            state.uri.queryParameters['verificacionToken'] ??
+            state.uri.queryParameters['verification_token'] ??
+            '';
+        debugPrint('🔗 Deep Link recibido - token: $token');
+        debugPrint('🔗 Query parameters: ${state.uri.queryParameters}');
         return EmailConfirmationPage(
           verificacionToken: token,
           isFromDeepLink: true,

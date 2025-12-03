@@ -50,13 +50,14 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    // Inicializar controllers vacíos
-    _usernameController = TextEditingController();
-    _emailController = TextEditingController();
-    _dniController = TextEditingController();
-    _phoneController = TextEditingController();
-    _passwordController = TextEditingController();
-    _confirmPasswordController = TextEditingController();
+    // Inicializar controllers con datos hardcodeados para testing
+    _usernameController = TextEditingController(text: 'test');
+    _emailController = TextEditingController(text: 'santinooliveto1@gmail.com');
+    _dniController = TextEditingController(text: '45614451');
+    _phoneController = TextEditingController(text: '1121895575');
+    _passwordController = TextEditingController(text: 'Test135!');
+    _confirmPasswordController = TextEditingController(text: 'Test135!');
+    _selectedGender = 'Masculino';
     _passwordController.addListener(_validatePasswordLive);
   }
 
