@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/models/cupon_model.dart';
+import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
 import 'package:boombet_app/views/pages/points_category_page.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';
@@ -10,6 +13,7 @@ import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_html/flutter_html.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -437,82 +441,99 @@ class DiscountsContent extends StatefulWidget {
 
 class _DiscountsContentState extends State<DiscountsContent> {
   String _selectedFilter = 'Todos';
+  late PageController _pageController;
+  int _currentPage = 1;
+  final int _pageSize = 10;
 
-  // Mock data de descuentos
-  final List<Map<String, dynamic>> _discounts = [
-    {
-      'id': 1,
-      'title': '50% OFF en Pizzas',
-      'merchant': 'Pizza Express',
-      'category': 'Gastronomía',
-      'discount': '50%',
-      'description':
-          'Llevá 2 pizzas familiares y pagá solo 1. Válido de lunes a jueves.',
-      'validUntil': '31/12/2025',
-      'terms':
-          'No acumulable con otras promociones. Válido para consumo en el local.',
-      'image': Icons.local_pizza,
-    },
-    {
-      'id': 2,
-      'title': '30% OFF en Ropa Deportiva',
-      'merchant': 'SportLife',
-      'category': 'Indumentaria',
-      'discount': '30%',
-      'description':
-          'Descuento en toda la línea de ropa deportiva. Incluye zapatillas.',
-      'validUntil': '15/01/2026',
-      'terms': 'Válido en compras mayores a \$50.000',
-      'image': Icons.sports,
-    },
-    {
-      'id': 3,
-      'title': '2x1 en Entradas de Cine',
-      'merchant': 'CineMax',
-      'category': 'Entretenimiento',
-      'discount': '2x1',
-      'description': 'Comprá 1 entrada y llevá 2. Válido de lunes a miércoles.',
-      'validUntil': '28/12/2025',
-      'terms': 'No válido para estrenos. Sujeto a disponibilidad.',
-      'image': Icons.movie,
-    },
-    {
-      'id': 4,
-      'title': '40% OFF en Mecánica',
-      'merchant': 'AutoService Pro',
-      'category': 'Autos',
-      'discount': '40%',
-      'description':
-          'Service completo con descuento. Incluye cambio de aceite y filtros.',
-      'validUntil': '31/01/2026',
-      'terms': 'Válido para autos hasta 2020',
-      'image': Icons.build,
-    },
-    {
-      'id': 5,
-      'title': '25% OFF en Spa',
-      'merchant': 'Relax Beauty',
-      'category': 'Belleza',
-      'discount': '25%',
-      'description':
-          'Masajes, tratamientos faciales y corporales con descuento.',
-      'validUntil': '20/12/2025',
-      'terms': 'Requiere reserva previa. Cupos limitados.',
-      'image': Icons.spa,
-    },
-    {
-      'id': 6,
-      'title': '15% OFF en Supermercado',
-      'merchant': 'MercadoMax',
-      'category': 'Compras',
-      'discount': '15%',
-      'description':
-          'Descuento en compras mayores a \$30.000. Todos los productos.',
-      'validUntil': '31/12/2025',
-      'terms': 'No incluye productos en oferta',
-      'image': Icons.shopping_cart,
-    },
-  ];
+  List<Cupon> _cupones = [];
+  List<Cupon> _filteredCupones = [];
+  bool _isLoading = false;
+  bool _hasError = false;
+  String _errorMessage = '';
+  bool _hasMore = false;
+  Map<String, List<String>> _categoriasByName = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _loadCupones();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCupones() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await CuponesService.getCupones(
+        page: _currentPage,
+        pageSize: _pageSize,
+        apiKey: ApiConfig.apiKey,
+        micrositioId: ApiConfig.micrositioId.toString(),
+        codigoAfiliado: ApiConfig.codigoAfiliado,
+      );
+
+      final newCupones = result['cupones'] as List<Cupon>? ?? [];
+
+      setState(() {
+        if (_currentPage == 1) {
+          _cupones = newCupones;
+        } else {
+          _cupones.addAll(newCupones);
+        }
+
+        _hasMore = result['has_more'] as bool? ?? false;
+        _hasError = false;
+        _isLoading = false;
+
+        // Actualizar categorías
+        _updateCategorias();
+        _applyFilter();
+      });
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _errorMessage =
+            'Error: ${e.toString()}\n\nIntenta revisar la consola de logs para más detalles.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _updateCategorias() {
+    _categoriasByName.clear();
+    for (var cupon in _cupones) {
+      for (var cat in cupon.categorias) {
+        _categoriasByName.putIfAbsent(cat.nombre, () => []).add(cupon.id);
+      }
+    }
+  }
+
+  void _applyFilter() {
+    if (_selectedFilter == 'Todos') {
+      _filteredCupones = _cupones;
+    } else {
+      final ids = _categoriasByName[_selectedFilter] ?? [];
+      _filteredCupones = _cupones.where((c) => ids.contains(c.id)).toList();
+    }
+  }
+
+  String _cleanHtml(String html) {
+    // Remover tags HTML simples
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .trim();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -521,11 +542,8 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
 
-    // Obtener categorías únicas
     final categories = <String>{'Todos'};
-    for (var discount in _discounts) {
-      categories.add(discount['category'] as String);
-    }
+    categories.addAll(_categoriasByName.keys);
 
     return Column(
       children: [
@@ -577,30 +595,93 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
         // Lista de descuentos
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _getFilteredDiscounts().length,
-            itemBuilder: (context, index) {
-              final discount = _getFilteredDiscounts()[index];
-              return _buildDiscountCard(
-                context,
-                discount,
-                primaryGreen,
-                textColor,
-                isDark,
-              );
-            },
-          ),
+          child: _isLoading && _cupones.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: primaryGreen),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Cargando cupones...',
+                        style: TextStyle(color: textColor),
+                      ),
+                    ],
+                  ),
+                )
+              : _hasError
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: textColor),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _currentPage = 1;
+                          _loadCupones();
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : _filteredCupones.isEmpty
+              ? Center(
+                  child: Text(
+                    'No hay cupones disponibles',
+                    style: TextStyle(color: textColor),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _filteredCupones.length + (_hasMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _filteredCupones.length) {
+                      // Load more button
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _currentPage++;
+                              _loadCupones();
+                            },
+                            icon: const Icon(Icons.download),
+                            label: const Text('Cargar más'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final cupon = _filteredCupones[index];
+                    return _buildCuponCard(
+                      context,
+                      cupon,
+                      primaryGreen,
+                      textColor,
+                      isDark,
+                    );
+                  },
+                ),
         ),
       ],
     );
-  }
-
-  List<Map<String, dynamic>> _getFilteredDiscounts() {
-    if (_selectedFilter == 'Todos') {
-      return _discounts;
-    }
-    return _discounts.where((d) => d['category'] == _selectedFilter).toList();
   }
 
   Widget _buildFilterChip(String label, Color primaryGreen, bool isDark) {
@@ -609,6 +690,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
       onTap: () {
         setState(() {
           _selectedFilter = label;
+          _applyFilter();
         });
       },
       borderRadius: BorderRadius.circular(20),
@@ -636,9 +718,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
-  Widget _buildDiscountCard(
+  Widget _buildCuponCard(
     BuildContext context,
-    Map<String, dynamic> discount,
+    Cupon cupon,
     Color primaryGreen,
     Color textColor,
     bool isDark,
@@ -649,7 +731,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
-          _showDiscountDetails(context, discount, primaryGreen, textColor);
+          _showCuponDetails(context, cupon, primaryGreen, textColor);
         },
         borderRadius: BorderRadius.circular(16),
         child: Column(
@@ -662,24 +744,46 @@ class _DiscountsContentState extends State<DiscountsContent> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    primaryGreen.withValues(alpha: 0.7),
-                    primaryGreen.withValues(alpha: 0.4),
-                  ],
-                ),
+                color: Colors.grey[300],
               ),
               child: Stack(
                 children: [
-                  Center(
-                    child: Icon(
-                      discount['image'],
-                      size: 60,
-                      color: Colors.white.withValues(alpha: 0.9),
+                  // Imagen de fondo
+                  if (cupon.fotoUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: Image.network(
+                        cupon.fotoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: primaryGreen.withValues(alpha: 0.2),
+                            child: Center(
+                              child: Icon(
+                                Icons.local_offer,
+                                size: 60,
+                                color: primaryGreen.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  // Overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.2),
+                            Colors.black.withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+                  // Badge de descuento
                   Positioned(
                     top: 12,
                     right: 12,
@@ -700,7 +804,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         ],
                       ),
                       child: Text(
-                        discount['discount'],
+                        cupon.descuento,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -709,25 +813,79 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       ),
                     ),
                   ),
+                  // Logo de empresa
                   Positioned(
                     bottom: 12,
                     left: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        discount['category'],
-                        style: TextStyle(
-                          color: primaryGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                      padding: const EdgeInsets.all(4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: cupon.logoUrl.isNotEmpty
+                            ? Image.network(
+                                cupon.logoUrl,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.grey[200],
+                                    child: Center(
+                                      child: Text(
+                                        cupon.empresa.nombre
+                                            .substring(
+                                              0,
+                                              (cupon.empresa.nombre.length)
+                                                  .clamp(0, 2),
+                                            )
+                                            .toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryGreen,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 60,
+                                height: 60,
+                                color: Colors.grey[200],
+                                child: Center(
+                                  child: Text(
+                                    cupon.empresa.nombre
+                                        .substring(
+                                          0,
+                                          (cupon.empresa.nombre.length).clamp(
+                                            0,
+                                            2,
+                                          ),
+                                        )
+                                        .toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryGreen,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -742,35 +900,41 @@ class _DiscountsContentState extends State<DiscountsContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    discount['title'],
+                    cupon.nombre,
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(
-                        Icons.store,
+                        Icons.business,
                         size: 16,
                         color: textColor.withValues(alpha: 0.6),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        discount['merchant'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textColor.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          cupon.empresa.nombre,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textColor.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    discount['description'],
+                    _cleanHtml(cupon.descripcionBreve),
                     style: TextStyle(
                       fontSize: 14,
                       color: textColor.withValues(alpha: 0.8),
@@ -778,6 +942,34 @@ class _DiscountsContentState extends State<DiscountsContent> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 12),
+                  if (cupon.categorias.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      children: cupon.categorias.take(2).map((cat) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primaryGreen.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: primaryGreen.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            cat.nombre,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: primaryGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -788,7 +980,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Válido hasta: ${discount['validUntil']}',
+                        'Válido hasta: ${cupon.fechaVencimiento.split(' ').first}',
                         style: TextStyle(
                           fontSize: 12,
                           color: textColor.withValues(alpha: 0.5),
@@ -801,9 +993,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        _showDiscountDetails(
+                        _showCuponDetails(
                           context,
-                          discount,
+                          cupon,
                           primaryGreen,
                           textColor,
                         );
@@ -829,9 +1021,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
-  void _showDiscountDetails(
+  void _showCuponDetails(
     BuildContext context,
-    Map<String, dynamic> discount,
+    Cupon cupon,
     Color primaryGreen,
     Color textColor,
   ) {
@@ -841,7 +1033,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -882,7 +1074,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                             ],
                           ),
                           child: Text(
-                            discount['discount'],
+                            cupon.descuento,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -893,7 +1085,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        discount['title'],
+                        cupon.nombre,
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -903,57 +1095,81 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.store, color: primaryGreen, size: 20),
+                          Icon(Icons.business, color: primaryGreen, size: 20),
                           const SizedBox(width: 8),
-                          Text(
-                            discount['merchant'],
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: primaryGreen,
-                              fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Text(
+                              cupon.empresa.nombre,
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: primaryGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: primaryGreen.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: primaryGreen.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Text(
-                          discount['category'],
-                          style: TextStyle(
-                            color: primaryGreen,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        children: cupon.categorias.map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              cat.nombre,
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Descripción',
+                        'Cómo usar',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: primaryGreen,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        discount['description'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: textColor,
-                          height: 1.5,
-                        ),
+                      const SizedBox(height: 12),
+                      Html(
+                        data: cupon.descripcionMicrositio,
+                        style: {
+                          'body': Style(
+                            color: textColor,
+                            fontSize: FontSize(14),
+                            lineHeight: LineHeight.number(1.6),
+                            margin: Margins.all(0),
+                            padding: HtmlPaddings.all(0),
+                          ),
+                          'p': Style(
+                            margin: Margins.symmetric(vertical: 8),
+                            color: textColor,
+                          ),
+                          'a': Style(
+                            color: primaryGreen,
+                            textDecoration: TextDecoration.underline,
+                          ),
+                          'b': Style(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                          'u': Style(textDecoration: TextDecoration.underline),
+                        },
                       ),
                       const SizedBox(height: 24),
                       Text(
@@ -964,14 +1180,19 @@ class _DiscountsContentState extends State<DiscountsContent> {
                           color: primaryGreen,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        discount['terms'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textColor.withValues(alpha: 0.7),
-                          height: 1.5,
-                        ),
+                      const SizedBox(height: 12),
+                      Html(
+                        data: cupon.legales,
+                        style: {
+                          'body': Style(
+                            color: textColor.withValues(alpha: 0.7),
+                            fontSize: FontSize(14),
+                            lineHeight: LineHeight.number(1.5),
+                            margin: Margins.all(0),
+                            padding: HtmlPaddings.all(0),
+                          ),
+                          'p': Style(margin: Margins.symmetric(vertical: 8)),
+                        },
                       ),
                       const SizedBox(height: 24),
                       Row(
@@ -991,7 +1212,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                             ),
                           ),
                           Text(
-                            discount['validUntil'],
+                            cupon.fechaVencimiento,
                             style: TextStyle(fontSize: 14, color: textColor),
                           ),
                         ],
@@ -1005,9 +1226,10 @@ class _DiscountsContentState extends State<DiscountsContent> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  '¡Descuento activado! Mostrá este código en ${discount['merchant']}',
+                                  '¡Descuento activado! Usá este código en ${cupon.empresa.nombre}',
                                 ),
                                 duration: const Duration(seconds: 3),
+                                backgroundColor: primaryGreen,
                                 action: SnackBarAction(
                                   label: 'OK',
                                   onPressed: () {},

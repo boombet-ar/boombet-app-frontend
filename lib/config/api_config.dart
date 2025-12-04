@@ -3,6 +3,12 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   static String customUrl = '';
+  // Variables de Bonda API desde docker-compose
+  static String apiKey =
+      '61099OdstDC6fGUHy6SHblguE9nrqT0VgCxVlTpPcRb0hryCwLQs9SnnZ9nfFGRY';
+  static int micrositioId = 911909;
+  static String codigoAfiliado =
+      '123456'; // BONDA_TESTID - reemplazar con valor propio más adelante
 
   static String get baseUrl {
     if (customUrl.isNotEmpty) return customUrl;
