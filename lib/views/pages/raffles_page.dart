@@ -1,6 +1,24 @@
-import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
-import 'package:boombet_app/widgets/responsive_wrapper.dart';
+
+class _RaffleData {
+  final String id;
+  final String titulo;
+  final String descripcion;
+  final IconData icono;
+  final String premio;
+  final int participantes;
+  final int minutosRestantes;
+
+  _RaffleData({
+    required this.id,
+    required this.titulo,
+    required this.descripcion,
+    required this.icono,
+    required this.premio,
+    required this.participantes,
+    required this.minutosRestantes,
+  });
+}
 
 class RafflesPage extends StatefulWidget {
   const RafflesPage({super.key});
@@ -10,546 +28,323 @@ class RafflesPage extends StatefulWidget {
 }
 
 class _RafflesPageState extends State<RafflesPage> {
-  // Mock data de sorteos
-  final List<Map<String, dynamic>> _raffles = [
-    {
-      'id': 1,
-      'name': 'Gran Sorteo de Verano',
-      'description':
-          'Participá por un viaje para 2 personas a las playas más hermosas del caribe. Incluye hospedaje y actividades.',
-      'startDate': '01/12/2025',
-      'endDate': '31/12/2025',
-      'prize': 'Viaje para 2 personas',
-      'participants': 1250,
-      'isActive': true,
-    },
-    {
-      'id': 2,
-      'name': 'Sorteo Tecnología Premium',
-      'description':
-          'Llevate el último smartphone del mercado más una tablet de última generación. No te lo pierdas!',
-      'startDate': '15/11/2025',
-      'endDate': '15/01/2026',
-      'prize': 'Smartphone + Tablet',
-      'participants': 890,
-      'isActive': true,
-    },
-    {
-      'id': 3,
-      'name': 'Sorteo Fin de Año',
-      'description':
-          'Celebrá el año nuevo con estilo. Ganate una cena para 4 personas en el mejor restaurant de la ciudad.',
-      'startDate': '20/12/2025',
-      'endDate': '28/12/2025',
-      'prize': 'Cena Premium para 4',
-      'participants': 450,
-      'isActive': true,
-    },
-  ];
-
-  String _selectedFilter = 'Todos';
+  Future<void> _refreshRaffles() async {
+    // Simular carga de datos desde el servidor
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Sorteos actualizados!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = theme.colorScheme.onSurface;
-    final primaryGreen = theme.colorScheme.primary;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return ResponsiveWrapper(
-      maxWidth: 900,
-      child: Column(
-        children: [
-          // Header con filtros
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppConstants.darkAccent
-                  : AppConstants.lightSurfaceVariant,
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? AppConstants.darkCardBg.withValues(alpha: 0.3)
-                      : AppConstants.lightDivider.withValues(alpha: 0.5),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.card_giftcard, color: primaryGreen, size: 28),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Sorteos Activos',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildFilterChip('Todos', primaryGreen, isDark),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFilterChip('Activos', primaryGreen, isDark),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFilterChip(
-                        'Finalizados',
-                        primaryGreen,
-                        isDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Lista de sorteos
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _raffles.length,
-              itemBuilder: (context, index) {
-                final raffle = _raffles[index];
-                return _buildRaffleCard(
-                  context,
-                  raffle,
-                  primaryGreen,
-                  textColor,
-                  isDark,
-                );
-              },
-            ),
-          ),
-        ],
+    // Mock data para sorteos
+    final sorteos = [
+      _RaffleData(
+        id: '1',
+        titulo: 'iPhone 15 Pro Max',
+        descripcion: 'Último modelo de Apple con cámara de 48MP',
+        icono: Icons.phone_iphone,
+        premio: '\$2,500',
+        participantes: 1245,
+        minutosRestantes: 1440,
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, Color primaryGreen, bool isDark) {
-    final isSelected = _selectedFilter == label;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? primaryGreen : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? primaryGreen : primaryGreen.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isSelected ? AppConstants.lightCardBg : primaryGreen,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
+      _RaffleData(
+        id: '2',
+        titulo: 'PlayStation 5',
+        descripcion: 'Consola de última generación con juegos',
+        icono: Icons.sports_esports,
+        premio: '\$800',
+        participantes: 892,
+        minutosRestantes: 720,
       ),
-    );
-  }
-
-  Widget _buildRaffleCard(
-    BuildContext context,
-    Map<String, dynamic> raffle,
-    Color primaryGreen,
-    Color textColor,
-    bool isDark,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () {
-          _showRaffleDetails(context, raffle, primaryGreen, textColor);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagen placeholder
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    primaryGreen.withValues(alpha: 0.6),
-                    primaryGreen.withValues(alpha: 0.3),
-                  ],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      Icons.card_giftcard,
-                      size: 80,
-                      color: AppConstants.lightCardBg.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  if (raffle['isActive'])
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppConstants.primaryGreen,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: AppConstants.lightCardBg,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'ACTIVO',
-                              style: TextStyle(
-                                color: AppConstants.lightCardBg,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // Contenido
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    raffle['name'],
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    raffle['description'],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Premio
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: primaryGreen.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.emoji_events, color: primaryGreen, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            raffle['prize'],
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Información de fechas y participantes
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildInfoChip(
-                          Icons.calendar_today,
-                          'Inicio: ${raffle['startDate']}',
-                          textColor,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildInfoChip(
-                          Icons.event,
-                          'Fin: ${raffle['endDate']}',
-                          textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInfoChip(
-                    Icons.people,
-                    '${raffle['participants']} participantes',
-                    textColor,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Botón de participar
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Participando en: ${raffle['name']}'),
-                            duration: AppConstants.snackbarDuration,
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Participar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: AppConstants.darkBg,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      _RaffleData(
+        id: '3',
+        titulo: 'Viaje a Miami',
+        descripcion: 'Tour de 5 días todo incluido en Miami',
+        icono: Icons.flight,
+        premio: '\$5,000',
+        participantes: 2341,
+        minutosRestantes: 2880,
       ),
-    );
-  }
+      _RaffleData(
+        id: '4',
+        titulo: 'Smart Watch Ultra',
+        descripcion: 'Reloj inteligente con GPS y resistencia al agua',
+        icono: Icons.watch,
+        premio: '\$600',
+        participantes: 567,
+        minutosRestantes: 360,
+      ),
+    ];
 
-  Widget _buildInfoChip(IconData icon, String text, Color textColor) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: textColor.withValues(alpha: 0.6)),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6)),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showRaffleDetails(
-    BuildContext context,
-    Map<String, dynamic> raffle,
-    Color primaryGreen,
-    Color textColor,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
+    return RefreshIndicator(
+      onRefresh: _refreshRaffles,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header con título
               Container(
-                margin: const EdgeInsets.only(top: 8),
-                width: 40,
-                height: 4,
                 decoration: BoxDecoration(
-                  color: textColor.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.purple.shade400, Colors.pink.shade400],
+                  ),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        raffle['name'],
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Descripción',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
-                        ),
+                      child: const Icon(
+                        Icons.card_giftcard,
+                        color: Colors.white,
+                        size: 28,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        raffle['description'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: textColor,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Detalles del Sorteo',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildDetailRow(
-                        Icons.emoji_events,
-                        'Premio',
-                        raffle['prize'],
-                        textColor,
-                      ),
-                      _buildDetailRow(
-                        Icons.calendar_today,
-                        'Fecha de inicio',
-                        raffle['startDate'],
-                        textColor,
-                      ),
-                      _buildDetailRow(
-                        Icons.event,
-                        'Fecha de fin',
-                        raffle['endDate'],
-                        textColor,
-                      ),
-                      _buildDetailRow(
-                        Icons.people,
-                        'Participantes',
-                        '${raffle['participants']}',
-                        textColor,
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '¡Participaste en: ${raffle['name']}!',
-                                ),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Confirmar Participación'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: AppConstants.darkBg,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Sorteos Activos',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${sorteos.length} premios esperándote',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 20),
+              // Listado de sorteos
+              ...sorteos.asMap().entries.map((entry) {
+                final index = entry.key;
+                final sorteo = entry.value;
+                final horas = sorteo.minutosRestantes ~/ 60;
+                final minutos = sorteo.minutosRestantes % 60;
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index < sorteos.length - 1 ? 16 : 0,
+                  ),
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.grey.shade50],
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Encabezado con icono y título
+                          Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  sorteo.icono,
+                                  color: Colors.blue.shade700,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      sorteo.titulo,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      sorteo.descripcion,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Información: Premio
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.amber.shade300,
+                                  Colors.orange.shade300,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              'Premio: ${sorteo.premio}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Fila con participantes y tiempo restante
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.people,
+                                      size: 18,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${sorteo.participantes}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'participantes',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.timer,
+                                      size: 18,
+                                      color: Colors.red.shade600,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      horas > 0
+                                          ? '${horas}h ${minutos}m'
+                                          : '${minutos}m',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'restante',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Botón de participar
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '¡Ya participas en ${sorteo.titulo}!',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple.shade600,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: const Text(
+                                'Participar',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(
-    IconData icon,
-    String label,
-    String value,
-    Color textColor,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: textColor.withValues(alpha: 0.6)),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor.withValues(alpha: 0.7),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(fontSize: 14, color: textColor),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

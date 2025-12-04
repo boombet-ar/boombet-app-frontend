@@ -67,7 +67,17 @@ class CuponesService {
         }
 
         final cupones = cuponList
-            .map((json) => Cupon.fromJson(json as Map<String, dynamic>))
+            .map((json) {
+              try {
+                return Cupon.fromJson(json as Map<String, dynamic>);
+              } catch (e) {
+                developer.log('ERROR CuponesService - Error parsing cupón: $e');
+                developer.log('ERROR CuponesService - Cupón data: $json');
+                // Retornar null para problematic cupones
+                return null;
+              }
+            })
+            .whereType<Cupon>()
             .toList();
 
         developer.log('DEBUG CuponesService - Got ${cupones.length} cupones');
@@ -147,15 +157,41 @@ class CuponesService {
           developer.log(
             'DEBUG CuponesService - Total: $total, List length: ${cuponList.length}',
           );
+
+          // Log detallado del primer cupón para ver estructura
+          if (cuponList.isNotEmpty) {
+            developer.log(
+              'DEBUG CuponesService - First cupon raw data: ${jsonEncode(cuponList.first)}',
+            );
+          }
         }
 
         final cupones = cuponList
-            .map((json) => Cupon.fromJson(json as Map<String, dynamic>))
+            .map((json) {
+              try {
+                return Cupon.fromJson(json as Map<String, dynamic>);
+              } catch (e) {
+                developer.log(
+                  'ERROR CuponesService - Error parsing cupón recibido: $e',
+                );
+                developer.log('ERROR CuponesService - Cupón data: $json');
+                // Retornar null para problematic cupones
+                return null;
+              }
+            })
+            .whereType<Cupon>()
             .toList();
 
         developer.log(
           'DEBUG CuponesService - Got ${cupones.length} cupones recibidos',
         );
+
+        // Log detallado del primer cupón parseado
+        if (cupones.isNotEmpty) {
+          developer.log(
+            'DEBUG CuponesService - First cupon parsed - ID: ${cupones.first.id}, Fecha: ${cupones.first.fechaVencimiento}',
+          );
+        }
 
         return {'cupones': cupones, 'total': total};
       } else {

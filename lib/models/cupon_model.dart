@@ -7,6 +7,7 @@ class Cupon {
   final String legales;
   final String instrucciones; // Para cupones reclamados
   final String fechaVencimiento;
+  final int precioPuntos; // Puntos requeridos para reclamar
   final bool permitirSms;
   final Map<String, bool> usarEn;
   final Map<String, String> fotoThumbnail;
@@ -23,6 +24,7 @@ class Cupon {
     required this.legales,
     required this.instrucciones,
     required this.fechaVencimiento,
+    required this.precioPuntos,
     required this.permitirSms,
     required this.usarEn,
     required this.fotoThumbnail,
@@ -41,7 +43,33 @@ class Cupon {
     return empresa.logoThumbnail['original'] ?? '';
   }
 
+  // Obtener fecha de vencimiento formateada
+  String get fechaVencimientoFormatted {
+    if (fechaVencimiento.isEmpty) return 'Fecha no disponible';
+
+    // Limpia espacios y obtiene solo la fecha (sin hora)
+    final trimmed = fechaVencimiento.trim();
+    if (trimmed.contains(' ')) {
+      return trimmed.split(' ').first;
+    }
+    return trimmed;
+  }
+
   factory Cupon.fromJson(Map<String, dynamic> json) {
+    // Para cupones reclamados, la fecha viene en envio.fecha
+    // Para cupones disponibles, viene en fecha_vencimiento
+    String fecha = '';
+
+    // Primero intenta obtener de fecha_vencimiento (cupones disponibles)
+    if (json['fecha_vencimiento'] != null &&
+        json['fecha_vencimiento'].toString().isNotEmpty) {
+      fecha = json['fecha_vencimiento'].toString();
+    }
+    // Si no existe, intenta obtener de envio.fecha (cupones reclamados)
+    else if (json['envio'] is Map && json['envio']['fecha'] != null) {
+      fecha = json['envio']['fecha'].toString();
+    }
+
     return Cupon(
       id: json['id']?.toString() ?? '',
       descuento: json['descuento']?.toString() ?? 'N/A',
@@ -50,7 +78,8 @@ class Cupon {
       descripcionMicrositio: json['descripcion_micrositio']?.toString() ?? '',
       legales: json['legales']?.toString() ?? '',
       instrucciones: json['instrucciones']?.toString() ?? '',
-      fechaVencimiento: json['fecha_vencimiento']?.toString() ?? '',
+      fechaVencimiento: fecha,
+      precioPuntos: int.tryParse(json['precio_puntos']?.toString() ?? '0') ?? 0,
       permitirSms: json['permitir_sms'] as bool? ?? false,
       usarEn: _parseUsarEn(json['usar_en']),
       fotoThumbnail: _parseFoto(json['foto_thumbnail']),

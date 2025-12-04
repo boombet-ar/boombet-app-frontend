@@ -76,6 +76,12 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _refreshProfile() async {
+    // Limpiar el estado y recargar
+    _isFetching = false;
+    await _loadUserData();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -92,13 +98,16 @@ class _ProfilePageState extends State<ProfilePage> {
         showBackButton: true,
         showProfileButton: false,
       ),
-      body: ResponsiveWrapper(
-        maxWidth: 900,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _errorMessage != null
-            ? _buildErrorView(textColor, primaryGreen)
-            : _buildProfileContent(textColor, isDark, primaryGreen),
+      body: RefreshIndicator(
+        onRefresh: _refreshProfile,
+        child: ResponsiveWrapper(
+          maxWidth: 900,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+              ? _buildErrorView(textColor, primaryGreen)
+              : _buildProfileContent(textColor, isDark, primaryGreen),
+        ),
       ),
     );
   }

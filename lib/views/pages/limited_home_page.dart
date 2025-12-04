@@ -53,7 +53,9 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
         // Verificar si el mensaje contiene playerData y responses
         if (message.containsKey('playerData') &&
             message.containsKey('responses')) {
-          debugPrint('[LimitedHomePage] ✅ Mensaje completo de afiliación recibido');
+          debugPrint(
+            '[LimitedHomePage] ✅ Mensaje completo de afiliación recibido',
+          );
           _affiliationCompleted = true;
 
           // Parsear el resultado
@@ -286,7 +288,10 @@ class LimitedHomeContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.2), width: 1),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.2),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -402,7 +407,11 @@ Widget _buildLockedContent(
                 width: 2,
               ),
             ),
-            child: Icon(icon, size: 64, color: textColor.withValues(alpha: 0.3)),
+            child: Icon(
+              icon,
+              size: 64,
+              color: textColor.withValues(alpha: 0.3),
+            ),
           ),
           const SizedBox(height: 24),
           Icon(
@@ -707,7 +716,10 @@ class LimitedForumContent extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.5)),
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.5),
+              ),
             ),
           ],
         ),

@@ -60,6 +60,20 @@ class _ForumPageState extends State<ForumPage> {
     }
   }
 
+  Future<void> _refreshForum() async {
+    // Simular carga de posts desde el servidor
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) {
+      // Aquí iría la lógica para recargar posts del servidor
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Foro actualizado!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
   void _createPost() {
     if (_postController.text.trim().isEmpty) return;
 
@@ -107,201 +121,207 @@ class _ForumPageState extends State<ForumPage> {
         },
         child: Scaffold(
           backgroundColor: bgColor,
-          body: Column(
-            children: [
-              // Área de crear publicación
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.forum, color: greenColor, size: 28),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Foro de la Comunidad',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (!_isLoggedIn) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppConstants.darkAccent
-                              : AppConstants.lightDivider,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade400,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.lock, color: textColor.withValues(alpha: 0.5)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Inicia sesión para publicar',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: textColor.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: greenColor,
-                                foregroundColor: AppConstants.lightCardBg,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                              ),
-                              child: const Text('Iniciar sesión'),
-                            ),
-                          ],
-                        ),
+          body: RefreshIndicator(
+            onRefresh: _refreshForum,
+            child: Column(
+              children: [
+                // Área de crear publicación
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    ] else ...[
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            backgroundColor: greenColor,
-                            child: Icon(
-                              Icons.person,
-                              color: isDark
-                                  ? AppConstants.darkBg
-                                  : AppConstants.lightCardBg,
-                            ),
-                          ),
+                          Icon(Icons.forum, color: greenColor, size: 28),
                           const SizedBox(width: 12),
-                          Expanded(
-                            child: Semantics(
-                              label: 'Campo para crear publicación',
-                              hint:
-                                  'Escribe qué deseas compartir con la comunidad',
-                              child: TextField(
-                                controller: _postController,
-                                maxLines: 3,
-                                maxLength: 500,
-                                keyboardType: TextInputType.multiline,
-                                textInputAction: TextInputAction.newline,
-                                style: TextStyle(color: textColor),
-                                decoration: InputDecoration(
-                                  hintText:
-                                      '¿Qué quieres compartir con la comunidad?',
-                                  hintStyle: TextStyle(
-                                    color: textColor.withValues(alpha: 0.5),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? AppConstants.darkCardBg
-                                      : AppConstants.lightInputBg,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: isDark
-                                          ? AppConstants.borderDark
-                                          : AppConstants.lightInputBorder,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: isDark
-                                          ? AppConstants.borderDark
-                                          : AppConstants.lightInputBorder,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: greenColor,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                          Text(
+                            'Foro de la Comunidad',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton.icon(
-                          onPressed: _createPost,
-                          icon: const Icon(Icons.send),
-                          label: const Text('Publicar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: greenColor,
-                            foregroundColor: isDark
-                                ? Colors.black
-                                : Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
+                      const SizedBox(height: 16),
+                      if (!_isLoggedIn) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppConstants.darkAccent
+                                : AppConstants.lightDivider,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade400,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.lock,
+                                color: textColor.withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Inicia sesión para publicar',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: textColor.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginPage(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: greenColor,
+                                  foregroundColor: AppConstants.lightCardBg,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                child: const Text('Iniciar sesión'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: greenColor,
+                              child: Icon(
+                                Icons.person,
+                                color: isDark
+                                    ? AppConstants.darkBg
+                                    : AppConstants.lightCardBg,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Semantics(
+                                label: 'Campo para crear publicación',
+                                hint:
+                                    'Escribe qué deseas compartir con la comunidad',
+                                child: TextField(
+                                  controller: _postController,
+                                  maxLines: 3,
+                                  maxLength: 500,
+                                  keyboardType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.newline,
+                                  style: TextStyle(color: textColor),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        '¿Qué quieres compartir con la comunidad?',
+                                    hintStyle: TextStyle(
+                                      color: textColor.withValues(alpha: 0.5),
+                                    ),
+                                    filled: true,
+                                    fillColor: isDark
+                                        ? AppConstants.darkCardBg
+                                        : AppConstants.lightInputBg,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: isDark
+                                            ? AppConstants.borderDark
+                                            : AppConstants.lightInputBorder,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: isDark
+                                            ? AppConstants.borderDark
+                                            : AppConstants.lightInputBorder,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: greenColor,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ElevatedButton.icon(
+                            onPressed: _createPost,
+                            icon: const Icon(Icons.send),
+                            label: const Text('Publicar'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: greenColor,
+                              foregroundColor: isDark
+                                  ? Colors.black
+                                  : Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
 
-              // Lista de publicaciones
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _posts.length,
-                  itemBuilder: (context, index) {
-                    final post = _posts[index];
-                    return _buildForumPostCard(
-                      post,
-                      cardColor,
-                      textColor,
-                      greenColor,
-                      isDark,
-                    );
-                  },
+                // Lista de publicaciones
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: _posts.length,
+                    itemBuilder: (context, index) {
+                      final post = _posts[index];
+                      return _buildForumPostCard(
+                        post,
+                        cardColor,
+                        textColor,
+                        greenColor,
+                        isDark,
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -439,7 +459,10 @@ class _ForumPageState extends State<ForumPage> {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
