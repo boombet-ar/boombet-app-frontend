@@ -5,6 +5,7 @@ class Cupon {
   final String descripcionBreve;
   final String descripcionMicrositio;
   final String legales;
+  final String instrucciones; // Para cupones reclamados
   final String fechaVencimiento;
   final bool permitirSms;
   final Map<String, bool> usarEn;
@@ -20,6 +21,7 @@ class Cupon {
     required this.descripcionBreve,
     required this.descripcionMicrositio,
     required this.legales,
+    required this.instrucciones,
     required this.fechaVencimiento,
     required this.permitirSms,
     required this.usarEn,
@@ -47,6 +49,7 @@ class Cupon {
       descripcionBreve: json['descripcion_breve']?.toString() ?? '',
       descripcionMicrositio: json['descripcion_micrositio']?.toString() ?? '',
       legales: json['legales']?.toString() ?? '',
+      instrucciones: json['instrucciones']?.toString() ?? '',
       fechaVencimiento: json['fecha_vencimiento']?.toString() ?? '',
       permitirSms: json['permitir_sms'] as bool? ?? false,
       usarEn: _parseUsarEn(json['usar_en']),
@@ -126,6 +129,11 @@ class Empresa {
     required this.logoThumbnail,
     required this.descripcion,
   });
+
+  // Obtener URL del logo (preferir original)
+  String get logo {
+    return logoThumbnail['original'] ?? '';
+  }
 
   factory Empresa.fromJson(Map<String, dynamic> json) {
     return Empresa(

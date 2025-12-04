@@ -52,21 +52,8 @@ class NavbarWidget extends StatelessWidget {
                 ),
                 NavigationDestination(
                   icon: Icon(
-                    Icons.star_outline,
-                    color: selectedPage == 1 ? selectedColor : unselectedColor,
-                    size: 26,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.star,
-                    color: selectedColor,
-                    size: 26,
-                  ),
-                  label: "Puntos",
-                ),
-                NavigationDestination(
-                  icon: Icon(
                     Icons.local_offer_outlined,
-                    color: selectedPage == 2 ? selectedColor : unselectedColor,
+                    color: selectedPage == 1 ? selectedColor : unselectedColor,
                     size: 26,
                   ),
                   selectedIcon: Icon(
@@ -75,6 +62,19 @@ class NavbarWidget extends StatelessWidget {
                     size: 26,
                   ),
                   label: "Descuentos",
+                ),
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.check_circle_outline,
+                    color: selectedPage == 2 ? selectedColor : unselectedColor,
+                    size: 26,
+                  ),
+                  selectedIcon: Icon(
+                    Icons.check_circle,
+                    color: selectedColor,
+                    size: 26,
+                  ),
+                  label: "Reclamados",
                 ),
                 NavigationDestination(
                   icon: Icon(
