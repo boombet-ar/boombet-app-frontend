@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
 ValueNotifier<bool> isLightModeNotifier = ValueNotifier(false);
+ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
 
 // Notifiers para datos de afiliación
 ValueNotifier<PlayerData?> affiliationPlayerDataNotifier = ValueNotifier(null);

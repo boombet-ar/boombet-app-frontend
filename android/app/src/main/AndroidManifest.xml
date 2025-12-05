@@ -26,19 +26,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- Deep link intent filter para confirmación de email -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <!-- Soporta http://localhost/confirm?token=... -->
-                <data android:scheme="http" android:host="localhost" android:pathPrefix="/confirm"/>
-            </intent-filter>
-            <!-- Deep link custom scheme para testing: boombet://confirm -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="boombet" android:pathPrefix="/confirm"/>
+                <!-- boombet://confirm?token=XYZ -->
+                <data android:scheme="https" android:host="192.168.0.8"/>
             </intent-filter>
             <!-- Deep link intent filter para reset de contraseña -->
             <intent-filter android:autoVerify="true">
@@ -46,17 +39,17 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <!-- Soporta http://localhost/reset?token=... -->
-                <data android:scheme="http" android:host="localhost" android:pathPrefix="/reset"/>
+                <data android:scheme="http" android:host="192.168.0.8" android:pathPrefix="/reset"/>
                 <!-- Soporta http://localhost/reset-password?token=... -->
-                <data android:scheme="http" android:host="localhost" android:pathPrefix="/reset-password"/>
+                <data android:scheme="http" android:host="192.168.0.8t" android:pathPrefix="/reset-password"/>
             </intent-filter>
             <!-- Deep link custom scheme para testing: boombet://reset y boombet://reset-password -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="boombet" android:pathPrefix="/reset"/>
-                <data android:scheme="boombet" android:pathPrefix="/reset-password"/>
+                <data android:scheme="http" android:host="192.168.0.8" android:pathPrefix="/reset"/>
+                <data android:scheme="http" android:host="192.168.0.8" android:pathPrefix="/reset-password"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

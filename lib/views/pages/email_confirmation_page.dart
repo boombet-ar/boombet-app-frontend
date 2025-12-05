@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/deep_link_service.dart';
+import 'package:boombet_app/services/email_verification_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -20,9 +23,8 @@ class EmailConfirmationPage extends StatefulWidget {
   final String? dni;
   final String? telefono;
   final String? genero;
-  final String verificacionToken;
+  final String? verificacionToken;
   final bool isFromDeepLink;
-
   const EmailConfirmationPage({
     super.key,
     this.playerData,
@@ -32,7 +34,7 @@ class EmailConfirmationPage extends StatefulWidget {
     this.dni,
     this.telefono,
     this.genero,
-    required this.verificacionToken,
+    this.verificacionToken,
     this.isFromDeepLink = false,
   });
 
@@ -46,21 +48,35 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
   final AffiliationService _affiliationService = AffiliationService();
   bool _isProcessing = false;
   bool _emailConfirmed = false;
+  bool _isCheckingStatus = false;
+  String? _statusMessage;
+  late final VoidCallback _emailVerifiedListener;
+  StreamSubscription<DeepLinkPayload>? _deepLinkSubscription;
 
   @override
   void initState() {
     super.initState();
     debugPrint('📱 EmailConfirmationPage initState');
-    debugPrint('📱 isFromDeepLink: ${widget.isFromDeepLink}');
-    debugPrint('📱 verificacionToken: ${widget.verificacionToken}');
-    debugPrint(
-      '📱 verificacionToken.isEmpty: ${widget.verificacionToken.isEmpty}',
-    );
 
-    // Cargar datos de SharedPreferences
+    _emailConfirmed = emailVerifiedNotifier.value;
+
+    _emailVerifiedListener = () {
+      if (!mounted) return;
+      final verified = emailVerifiedNotifier.value;
+      if (_emailConfirmed != verified) {
+        setState(() {
+          _emailConfirmed = verified;
+        });
+      }
+    };
+    emailVerifiedNotifier.addListener(_emailVerifiedListener);
+
+    _deepLinkSubscription = DeepLinkService.instance.stream.listen((payload) {
+      _handleDeepLinkPayload(payload, silent: false);
+    });
+
     _loadAffiliationData();
 
-    // Inicializar controllers
     if (widget.playerData != null) {
       final data = widget.playerData!;
       _nombreController = TextEditingController(text: data.nombre);
@@ -70,327 +86,133 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       _apellidoController = TextEditingController();
     }
 
-    // Si viene de deep link y el token no está vacío, confirmar automáticamente
-    if (widget.isFromDeepLink && widget.verificacionToken.isNotEmpty) {
-      debugPrint(
-        '🔗 Detectado deep link, ejecutando confirmación después del frame',
-      );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          debugPrint(
-            '🔗 Post frame callback ejecutado, llamando _confirmEmailWithToken',
-          );
-          _confirmEmailWithToken();
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pendingPayload = DeepLinkService.instance.lastPayload;
+      if (pendingPayload != null && pendingPayload.isEmailConfirmation) {
+        _handleDeepLinkPayload(pendingPayload, silent: true);
+        return;
+      }
+
+      final initialToken = widget.verificacionToken?.trim();
+      if (initialToken != null && initialToken.isNotEmpty) {
+        debugPrint(
+          '🔗 [EmailConfirmationPage] Token recibido via widget: $initialToken',
+        );
+        _checkEmailVerificationStatus(silent: true);
+        return;
+      }
+
+      _checkEmailVerificationStatus(silent: true);
+    });
   }
 
   @override
   void dispose() {
+    emailVerifiedNotifier.removeListener(_emailVerifiedListener);
+    _deepLinkSubscription?.cancel();
     _nombreController.dispose();
     _apellidoController.dispose();
     super.dispose();
   }
 
-  Future<void> _confirmEmailWithToken() async {
-    debugPrint(
-      '🔗 Deep Link - Confirmando email con token: ${widget.verificacionToken}',
-    );
-    debugPrint('🔗 Context mounted: $mounted');
-    debugPrint(
-      '🔗 Verificacion token vacío: ${widget.verificacionToken.isEmpty}',
-    );
-
-    try {
-      debugPrint('🔗 [1] Intentando mostrar LoadingOverlay...');
-      LoadingOverlay.show(context, message: 'Confirmando tu email...');
-      debugPrint('🔗 [2] LoadingOverlay mostrado');
-
-      // Cambiar a GET con el token como query parameter
-      final url = Uri.parse(
-        '${ApiConfig.baseUrl}/users/auth/verify?token=${widget.verificacionToken}',
-      );
-      debugPrint('📡 [3] URL de verificación: $url');
-
-      debugPrint('📡 [5] Enviando GET...');
-      final response = await http
-          .get(url, headers: {'Content-Type': 'application/json'})
-          .timeout(
-            AppConstants.apiTimeout,
-            onTimeout: () => http.Response('Request timeout', 408),
-          );
-
-      debugPrint('✉️ [6] Response recibido');
-      debugPrint('✉️ Response Status: ${response.statusCode}');
-      debugPrint('✉️ Response Body: "${response.body}"');
-      debugPrint('✉️ Response Headers: ${response.headers}');
-
-      debugPrint('🔗 [7] Verificando si mounted...');
-      if (!mounted) {
-        debugPrint('❌ [8] Widget no está mounted, retornando');
-        return;
-      }
-
-      debugPrint('🔗 [9] Ocultando LoadingOverlay...');
-      if (mounted) {
-        LoadingOverlay.hide(context);
-        debugPrint('🔗 [10] LoadingOverlay ocultado');
-      }
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // ✅ EMAIL CONFIRMADO EXITOSAMENTE
-        debugPrint('✅ [11] Email confirmado exitosamente');
-
-        if (!mounted) {
-          debugPrint('❌ [12] Widget no está mounted, retornando');
-          return;
-        }
-
-        debugPrint('🔗 [13] Email verificado, actualizando UI...');
-        setState(() {
-          _emailConfirmed = true;
-        });
-        debugPrint('🔗 [14] Estado actualizado, _emailConfirmed = true');
-
-        debugPrint('🔗 [15] Mostrando SnackBar de éxito...');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '¡Email confirmado exitosamente! Iniciando tu afiliación...',
-            ),
-            backgroundColor: Color.fromARGB(255, 41, 255, 94),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        debugPrint('🔗 [16] SnackBar mostrado');
-
-        debugPrint(
-          '🔗 [17] Esperando 2 segundos antes de iniciar afiliación...',
-        );
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (!mounted) {
-          debugPrint('❌ [18] Widget no está mounted, retornando');
-          return;
-        }
-
-        debugPrint('🔗 [19] Iniciando proceso de afiliación...');
-        await _startAffiliation();
-      } else {
-        debugPrint('❌ [19] Error confirmando email: ${response.statusCode}');
-        debugPrint('❌ Response body completo: ${response.body}');
-
-        if (!mounted) {
-          debugPrint('❌ [20] Widget no está mounted, retornando');
-          return;
-        }
-
-        // Mostrar el error exacto del servidor
-        String errorMessage = 'Error ${response.statusCode}: ${response.body}';
-        try {
-          final errorData = jsonDecode(response.body);
-          errorMessage = errorData['message'] ?? errorMessage;
-        } catch (e) {
-          debugPrint('⚠️ No se pudo parsear el error: $e');
-        }
-
-        debugPrint('🔗 [21] Mostrando SnackBar de error: $errorMessage');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $errorMessage'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 10),
-          ),
-        );
-        debugPrint('🔗 [22] SnackBar de error mostrado');
-      }
-    } catch (e) {
-      debugPrint('❌ Error crítico en confirmación: $e');
-      debugPrint('❌ Stack trace: ${StackTrace.current}');
-
-      if (!mounted) {
-        debugPrint('❌ Widget no está mounted después del error');
-        return;
-      }
-
-      debugPrint('🔗 [23] Ocultando LoadingOverlay después de error...');
-      LoadingOverlay.hide(context);
-      debugPrint('🔗 [24] LoadingOverlay ocultado');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 10),
-        ),
-      );
+  String? get _resolvedEmail {
+    final widgetEmail = widget.email?.trim();
+    if (widgetEmail != null && widgetEmail.isNotEmpty) {
+      return widgetEmail;
     }
+
+    final persisted = affiliationEmailNotifier.value.trim();
+    return persisted.isEmpty ? null : persisted;
   }
 
-  Future<void> _startAffiliation() async {
-    debugPrint('🔗 [AF-1] Iniciando proceso de afiliación');
+  Future<void> _handleDeepLinkPayload(
+    DeepLinkPayload payload, {
+    required bool silent,
+  }) async {
+    if (!payload.isEmailConfirmation) return;
 
-    // DEBUG: Verificar qué hay en los notifiers
-    debugPrint(
-      '📋 [DEBUG] affiliationPlayerDataNotifier: ${affiliationPlayerDataNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationEmailNotifier: ${affiliationEmailNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationUsernameNotifier: ${affiliationUsernameNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationPasswordNotifier: ${affiliationPasswordNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationDniNotifier: ${affiliationDniNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationTelefonoNotifier: ${affiliationTelefonoNotifier.value}',
-    );
-    debugPrint(
-      '📋 [DEBUG] affiliationGeneroNotifier: ${affiliationGeneroNotifier.value}',
-    );
+    final token = payload.token;
+    if (!silent) {
+      debugPrint('🔗 [DeepLink] Payload recibido: ${payload.uri}');
+    }
 
-    try {
-      // Obtener datos de los notifiers
-      final playerData = affiliationPlayerDataNotifier.value;
-      final email = affiliationEmailNotifier.value;
-      final username = affiliationUsernameNotifier.value;
-      final password = affiliationPasswordNotifier.value;
-      final dni = affiliationDniNotifier.value;
-      final telefono = affiliationTelefonoNotifier.value;
-      final genero = affiliationGeneroNotifier.value;
-
-      if (playerData == null || email.isEmpty) {
-        debugPrint('❌ [AF-2] Datos incompletos en notifiers');
-        if (!mounted) return;
+    if (token == null || token.isEmpty) {
+      if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Error: Datos de usuario no disponibles en memoria. Por favor intenta registrarte nuevamente.',
-            ),
+            content: Text('Enlace inválido: falta token.'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 5),
-          ),
-        );
-        return;
-      }
-
-      debugPrint('✅ [AF-3] Datos obtenidos de notifiers correctamente');
-
-      // Generar WebSocket URL
-      final wsUrl = WebSocketUrlService.generateAffiliationUrl();
-      debugPrint('📡 [AF-4] WebSocket URL generado: $wsUrl');
-
-      // Preparar payload para /affiliate
-      final affiliatePayload = {
-        'websocketLink': wsUrl,
-        'playerData': {
-          'nombre': playerData.nombre,
-          'apellido': playerData.apellido,
-          'email': email,
-          'telefono': telefono,
-          'genero': _normalizarGenero(genero),
-          'dni': dni,
-          'cuit': playerData.cuil,
-          'calle': playerData.calle,
-          'numCalle': playerData.numCalle,
-          'provincia': playerData.provincia,
-          'ciudad': playerData.localidad,
-          'cp': playerData.cp?.toString() ?? '',
-          'user': username,
-          'password': password,
-          'fecha_nacimiento': playerData.fechaNacimiento,
-          'est_civil': playerData.estadoCivil,
-        },
-      };
-
-      debugPrint('📦 [AF-5] Payload preparado');
-      debugPrint('📡 [AF-6] Enviando POST a /api/users/auth/affiliate');
-
-      // Enviar POST a /affiliate
-      final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/affiliate');
-      final response = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(affiliatePayload),
-          )
-          .timeout(
-            AppConstants.apiTimeout,
-            onTimeout: () => http.Response('Request timeout', 408),
-          );
-
-      debugPrint('✉️ [AF-7] Response recibido: ${response.statusCode}');
-
-      if (!mounted) {
-        debugPrint('❌ [AF-8] Widget no está mounted');
-        return;
-      }
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('✅ [AF-9] Afiliación iniciada exitosamente');
-
-        // Conectar WebSocket
-        final affiliationService = AffiliationService();
-        try {
-          debugPrint('🔗 [AF-10] Conectando al WebSocket...');
-          await affiliationService.connectToWebSocket(wsUrl: wsUrl);
-          debugPrint('✅ [AF-11] WebSocket conectado exitosamente');
-
-          // Navegar a LimitedHomePage
-          debugPrint('🎯 [AF-12] Navegando a LimitedHomePage');
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    LimitedHomePage(affiliationService: affiliationService),
-              ),
-            );
-          }
-        } catch (e) {
-          debugPrint('❌ [AF-13] Error conectando al WebSocket: $e');
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error conectando: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } else {
-        debugPrint('❌ [AF-14] Error en /affiliate: ${response.statusCode}');
-
-        if (!mounted) return;
-
-        String errorMessage = 'Error ${response.statusCode} en afiliación';
-        try {
-          final errorData = jsonDecode(response.body);
-          errorMessage = errorData['message'] ?? errorMessage;
-        } catch (e) {
-          debugPrint('⚠️ Error parseando respuesta: $e');
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
           ),
         );
       }
-    } catch (e) {
-      debugPrint('❌ [AF-15] Error crítico en _startAffiliation: $e');
+      return;
+    }
+
+    await _checkEmailVerificationStatus(silent: silent);
+  }
+
+  Future<void> _checkEmailVerificationStatus({bool silent = false}) async {
+    if (_isCheckingStatus) return;
+
+    setState(() {
+      _isCheckingStatus = true;
+      if (!silent) {
+        _statusMessage = null;
+      }
+    });
+
+    try {
+      final verified =
+          await EmailVerificationService.syncEmailVerificationStatus();
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (verified) {
+        setState(() {
+          _emailConfirmed = true;
+          if (!silent) {
+            _statusMessage =
+                '¡Email confirmado! Ya podés completar la afiliación.';
+          }
+        });
+
+        if (!silent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email confirmado.'),
+              backgroundColor: Color.fromARGB(255, 41, 255, 94),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else if (!silent) {
+        setState(() {
+          _statusMessage =
+              'Todavía no detectamos la confirmación. Probá nuevamente en unos segundos.';
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [EmailConfirmationPage] Error verificando email: $e');
+      if (!mounted) return;
+
+      if (!silent) {
+        setState(() {
+          _statusMessage = 'No pudimos consultar el estado. Intenta luego.';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verificando email: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingStatus = false;
+        });
+      }
     }
   }
 
@@ -556,19 +378,13 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     }
   }
 
-  void _confirmEmail() {
-    setState(() {
-      _emailConfirmed = true;
-    });
-    debugPrint('✅ Email confirmado por el usuario');
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    final resolvedEmail = _resolvedEmail;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -636,10 +452,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Email (solo mostrar si no es deep link)
-                    if (widget.email != null && widget.email!.isNotEmpty)
+                    if (resolvedEmail != null)
                       Text(
-                        widget.email!,
+                        resolvedEmail,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -675,8 +490,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Botón de afiliación (solo si NO es deep link y email confirmado)
-                    if (!widget.isFromDeepLink)
+                    if (_emailConfirmed)
                       if (_isProcessing)
                         Column(
                           children: [
@@ -691,29 +505,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                             const SizedBox(height: 16),
                             Text(
                               'Procesando tu afiliación...',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppConstants.lightHintText,
-                              ),
-                            ),
-                          ],
-                        )
-                      else if (!_emailConfirmed)
-                        Column(
-                          children: [
-                            const SizedBox(
-                              width: 40,
-                              height: 40,
-                              child: CircularProgressIndicator(
-                                color: primaryGreen,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Esperando confirmación...',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: isDark
@@ -752,30 +543,72 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                               ],
                             ),
                           ),
-                        ),
+                        )
+                    else
+                      Column(
+                        children: [
+                          SizedBox(
+                            height: 56,
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isCheckingStatus
+                                  ? null
+                                  : () => _checkEmailVerificationStatus(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryGreen,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 3,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (_isCheckingStatus)
+                                    const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.black,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  else
+                                    const Icon(Icons.email_outlined, size: 24),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _isCheckingStatus
+                                        ? 'Verificando...'
+                                        : 'Ya confirmé mi email',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (_statusMessage != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              _statusMessage!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark
+                                    ? Colors.white70
+                                    : AppConstants.lightHintText,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
+                      ),
                   ],
                 ),
               ),
             ),
-            // Botón invisible para simular confirmación de email (para testing)
-            if (!_emailConfirmed && !_isProcessing && !widget.isFromDeepLink)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: GestureDetector(
-                  onLongPress: _confirmEmail,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      border: Border.all(color: Colors.transparent),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.check, color: Colors.transparent),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

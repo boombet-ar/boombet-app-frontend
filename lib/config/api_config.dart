@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   static String customUrl = '';
   // Variables de Bonda API desde docker-compose
+  // Nada de esto tiene que estar aca, levantar de docker-compose
   static String apiKey =
       '61099OdstDC6fGUHy6SHblguE9nrqT0VgCxVlTpPcRb0hryCwLQs9SnnZ9nfFGRY';
   static int micrositioId = 911909;

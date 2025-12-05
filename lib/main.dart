@@ -1,18 +1,50 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // GlobalKey para acceder al Navigator desde cualquier lugar
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
+
+void _initializeDeepLinkHandling() {
+  _deepLinkChannel.setMethodCallHandler((call) async {
+    if (call.method != 'onDeepLink') {
+      return;
+    }
+
+    final Object? arguments = call.arguments;
+    if (arguments is! Map) return;
+
+    final raw = Map<dynamic, dynamic>.from(arguments as Map);
+    final uriString = raw['uri'] as String?;
+    if (uriString == null) return;
+
+    try {
+      final uri = Uri.parse(uriString);
+      DeepLinkService.instance.emit(
+        DeepLinkPayload(
+          uri: uri,
+          token: (raw['token'] as String?) ?? uri.queryParameters['token'],
+        ),
+      );
+    } catch (error) {
+      debugPrint('❌ [DeepLink] Invalid URI: $error');
+    }
+  });
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  _initializeDeepLinkHandling();
 
   // Capturar errores de Flutter no manejados
   FlutterError.onError = (FlutterErrorDetails details) {
