@@ -20,94 +20,109 @@ class NavbarWidget extends StatelessWidget {
       child: ValueListenableBuilder<int>(
         valueListenable: selectedPageNotifier,
         builder: (context, selectedPage, child) {
-          return Container(
-            decoration: BoxDecoration(
-              color: bgColor,
-              border: Border(
-                top: BorderSide(
-                  color: isDark
-                      ? const Color(0xFF404040)
-                      : const Color(0xFFE0E0E0),
-                  width: 1,
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(1.0)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: bgColor,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? const Color(0xFF404040)
+                        : const Color(0xFFE0E0E0),
+                    width: 1,
+                  ),
                 ),
               ),
-            ),
-            child: NavigationBar(
-              backgroundColor: bgColor,
-              indicatorColor: primaryGreen.withValues(alpha: 0.15),
-              height: 70,
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.home_outlined,
-                    color: selectedPage == 0 ? selectedColor : unselectedColor,
-                    size: 26,
+              child: NavigationBar(
+                backgroundColor: bgColor,
+                indicatorColor: primaryGreen.withValues(alpha: 0.15),
+                height: 70,
+                destinations: [
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.home_outlined,
+                      color: selectedPage == 0
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.home,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Home",
                   ),
-                  selectedIcon: Icon(
-                    Icons.home,
-                    color: selectedColor,
-                    size: 26,
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.local_offer_outlined,
+                      color: selectedPage == 1
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.local_offer,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Descuentos",
                   ),
-                  label: "Home",
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.local_offer_outlined,
-                    color: selectedPage == 1 ? selectedColor : unselectedColor,
-                    size: 26,
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.check_circle_outline,
+                      color: selectedPage == 2
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.check_circle,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Reclamados",
                   ),
-                  selectedIcon: Icon(
-                    Icons.local_offer,
-                    color: selectedColor,
-                    size: 26,
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.card_giftcard_outlined,
+                      color: selectedPage == 3
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.card_giftcard,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Sorteos",
                   ),
-                  label: "Descuentos",
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.check_circle_outline,
-                    color: selectedPage == 2 ? selectedColor : unselectedColor,
-                    size: 26,
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.forum_outlined,
+                      color: selectedPage == 4
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.forum,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Foro",
                   ),
-                  selectedIcon: Icon(
-                    Icons.check_circle,
-                    color: selectedColor,
-                    size: 26,
-                  ),
-                  label: "Reclamados",
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.card_giftcard_outlined,
-                    color: selectedPage == 3 ? selectedColor : unselectedColor,
-                    size: 26,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.card_giftcard,
-                    color: selectedColor,
-                    size: 26,
-                  ),
-                  label: "Sorteos",
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.forum_outlined,
-                    color: selectedPage == 4 ? selectedColor : unselectedColor,
-                    size: 26,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.forum,
-                    color: selectedColor,
-                    size: 26,
-                  ),
-                  label: "Foro",
-                ),
-              ],
-              onDestinationSelected: (int value) {
-                selectedPageNotifier.value = value;
-              },
-              selectedIndex: selectedPage,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                ],
+                onDestinationSelected: (int value) {
+                  selectedPageNotifier.value = value;
+                },
+                selectedIndex: selectedPage,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              ),
             ),
           );
         },

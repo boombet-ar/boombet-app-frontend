@@ -310,33 +310,39 @@ class GenderSelector extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: _GenderButton(
-                label: 'Masculino',
-                icon: Icons.male,
-                value: 'M',
-                isSelected: selectedGender == 'M',
-                onTap: () => onGenderChanged('M'),
-                primaryColor: primaryColor,
-                isDark: isDark,
-                unselectedBgColor: unselectedBgColor,
-                textColor: textColor,
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 120),
+                child: _GenderButton(
+                  label: 'Masculino',
+                  icon: Icons.male,
+                  value: 'M',
+                  isSelected: selectedGender == 'M',
+                  onTap: () => onGenderChanged('M'),
+                  primaryColor: primaryColor,
+                  isDark: isDark,
+                  unselectedBgColor: unselectedBgColor,
+                  textColor: textColor,
+                ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _GenderButton(
-                label: 'Femenino',
-                icon: Icons.female,
-                value: 'F',
-                isSelected: selectedGender == 'F',
-                onTap: () => onGenderChanged('F'),
-                primaryColor: primaryColor,
-                isDark: isDark,
-                unselectedBgColor: unselectedBgColor,
-                textColor: textColor,
+            const SizedBox(width: 20),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 120),
+                child: _GenderButton(
+                  label: 'Femenino',
+                  icon: Icons.female,
+                  value: 'F',
+                  isSelected: selectedGender == 'F',
+                  onTap: () => onGenderChanged('F'),
+                  primaryColor: primaryColor,
+                  isDark: isDark,
+                  unselectedBgColor: unselectedBgColor,
+                  textColor: textColor,
+                ),
               ),
             ),
           ],
@@ -374,115 +380,68 @@ class _GenderButton extends StatefulWidget {
   State<_GenderButton> createState() => _GenderButtonState();
 }
 
-class _GenderButtonState extends State<_GenderButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void didUpdateWidget(_GenderButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isSelected && !oldWidget.isSelected) {
-      _animationController.forward();
-    } else if (!widget.isSelected && oldWidget.isSelected) {
-      _animationController.reverse();
-    }
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
+class _GenderButtonState extends State<_GenderButton> {
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-            decoration: BoxDecoration(
-              gradient: widget.isSelected
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        widget.primaryColor,
-                        widget.primaryColor.withValues(alpha: 0.8),
-                      ],
-                    )
-                  : null,
-              color: widget.isSelected ? null : widget.unselectedBgColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: widget.isSelected
-                    ? widget.primaryColor.withValues(alpha: 0.5)
-                    : Colors.transparent,
-                width: 2,
-              ),
-              boxShadow: widget.isSelected
-                  ? [
-                      BoxShadow(
-                        color: widget.primaryColor.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 300),
-                  style: TextStyle(
-                    color: widget.isSelected ? Colors.white : Colors.grey[600],
-                    fontSize: widget.isSelected ? 28 : 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: widget.isSelected ? 28 : 24,
-                    color: widget.isSelected ? Colors.white : Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 300),
-                  style: TextStyle(
-                    color: widget.isSelected ? Colors.white : widget.textColor,
-                    fontSize: widget.isSelected ? 13 : 12,
-                    fontWeight: widget.isSelected
-                        ? FontWeight.bold
-                        : FontWeight.w500,
-                  ),
-                  child: Text(
-                    widget.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          gradient: widget.isSelected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    widget.primaryColor,
+                    widget.primaryColor.withValues(alpha: 0.85),
+                  ],
+                )
+              : null,
+          color: widget.isSelected ? null : widget.unselectedBgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isSelected
+                ? widget.primaryColor
+                : Colors.grey.withValues(alpha: 0.3),
+            width: 1.5,
           ),
+          boxShadow: widget.isSelected
+              ? [
+                  BoxShadow(
+                    color: widget.primaryColor.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              widget.icon,
+              size: 22,
+              color: widget.isSelected ? Colors.white : Colors.grey[500],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.label,
+              style: TextStyle(
+                color: widget.isSelected ? Colors.white : widget.textColor,
+                fontSize: 12,
+                fontWeight: widget.isSelected
+                    ? FontWeight.w600
+                    : FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

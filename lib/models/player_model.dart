@@ -18,6 +18,7 @@ class PlayerData {
   final int? cp;
   final int? edad;
   final String anioNacimiento;
+  final String username;
 
   PlayerData({
     required this.nombre,
@@ -35,6 +36,7 @@ class PlayerData {
     required this.provincia,
     required this.fechaNacimiento,
     required this.anioNacimiento,
+    required this.username,
     this.cp,
     this.edad,
   });
@@ -48,6 +50,7 @@ class PlayerData {
       correoElectronico: json['email'] ?? '',
       sexo: json['genero'] ?? '',
       fechaNacimiento: json['fecha_nacimiento'] ?? '',
+      username: json['username'] ?? '',
       // campos no usados en la vista:
       cuil: json['cuit'] ?? '',
       dni: json['dni'] ?? '',
@@ -153,6 +156,7 @@ class PlayerData {
       provincia: json['provincia']?.toString() ?? '',
       fechaNacimiento: fechaNacimiento,
       anioNacimiento: anioNacimiento,
+      username: json['username'] ?? '',
       cp: json['codigo_postal'] is int
           ? json['codigo_postal'] as int
           : int.tryParse('${json['codigo_postal']}'),
@@ -188,6 +192,7 @@ class PlayerData {
       'provincia': provincia,
       'fecha_nacimiento': fechaNacimiento,
       'añoNacimiento': anioNacimiento,
+      'username': username,
       'cp': cp,
       'edad': edad,
     };
@@ -211,6 +216,7 @@ class PlayerData {
       provincia: json['provincia'] ?? '',
       fechaNacimiento: json['fecha_nacimiento'] ?? '',
       anioNacimiento: json['añoNacimiento'] ?? '',
+      username: json['username'] ?? '',
       cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp'] ?? ''}'),
       edad: json['edad'] is int
           ? json['edad']
@@ -234,6 +240,7 @@ class PlayerData {
     String? provincia,
     String? fechaNacimiento,
     String? anioNacimiento,
+    String? username,
     int? cp,
     int? edad,
   }) {
@@ -253,6 +260,7 @@ class PlayerData {
       provincia: provincia ?? this.provincia,
       fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
       anioNacimiento: anioNacimiento ?? this.anioNacimiento,
+      username: username ?? this.username,
       cp: cp ?? this.cp,
       edad: edad ?? this.edad,
     );

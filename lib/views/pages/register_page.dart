@@ -38,6 +38,11 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedGender;
   bool _genderError = false;
 
+  // Terms and conditions acceptance flags
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
+  bool _dataAccepted = false;
+
   Map<String, bool> _passwordRules = {
     "8+ caracteres": false,
     "1 mayúscula": false,
@@ -73,6 +78,931 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _validateAndRegister() async {
+    // Check if all legal documents have been acknowledged
+    if (!_termsAccepted || !_privacyAccepted || !_dataAccepted) {
+      _showTermsDialog();
+      return;
+    }
+
+    setState(() {
+      _usernameError = _usernameController.text.trim().isEmpty;
+      _emailError = _emailController.text.trim().isEmpty;
+      _dniError = _dniController.text.trim().isEmpty;
+      _phoneError = _phoneController.text.trim().isEmpty;
+      _passwordError = _passwordController.text.trim().isEmpty;
+      _confirmPasswordError = _confirmPasswordController.text.trim().isEmpty;
+      _genderError = _selectedGender == null;
+    });
+
+    if (_usernameError ||
+        _emailError ||
+        _dniError ||
+        _phoneError ||
+        _passwordError ||
+        _confirmPasswordError ||
+        _genderError) {
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Campos incompletos', style: TextStyle(color: textColor)),
+          content: Text(
+            'Por favor, completa todos los campos obligatorios.',
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Validar formato de email usando PasswordValidationService
+    final email = _emailController.text.trim();
+    if (!PasswordValidationService.isEmailValid(email)) {
+      setState(() {
+        _emailError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Email inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getEmailValidationMessage(email),
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Validar formato de teléfono usando PasswordValidationService
+    final phone = _phoneController.text.trim();
+    if (!PasswordValidationService.isPhoneValid(phone)) {
+      setState(() {
+        _phoneError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Teléfono inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getPhoneValidationMessage(phone),
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Validar formato de DNI usando PasswordValidationService
+    final dni = _dniController.text.trim();
+    if (!PasswordValidationService.isDniValid(dni)) {
+      setState(() {
+        _dniError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('DNI inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            PasswordValidationService.getDniValidationMessage(dni),
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Validar formato de username (mínimo 4 caracteres, alfanumérico, sin espacios)
+    final username = _usernameController.text.trim();
+    if (username.length < 4 || !RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
+      setState(() {
+        _usernameError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Usuario inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            'El usuario debe tener mínimo 4 caracteres, solo letras, números y guión bajo (_).',
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Validar fortaleza de contraseña
+    String? passwordError = _validatePassword(_passwordController.text);
+    if (passwordError != null) {
+      setState(() {
+        _passwordError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text(
+            'Contraseña inválida',
+            style: TextStyle(color: textColor),
+          ),
+          content: Text(passwordError, style: TextStyle(color: textColor)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() {
+        _confirmPasswordError = true;
+      });
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text(
+            'Error en contraseña',
+            style: TextStyle(color: textColor),
+          ),
+          content: const Text(
+            'Las contraseñas no coinciden.',
+            style: TextStyle(color: AppConstants.textDark),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Mostrar overlay de carga
+    LoadingOverlay.show(context, message: 'Validando datos...');
+
+    try {
+      // Validar datos con el backend (sin crear cuenta todavía)
+      final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/userData');
+
+      final body = {
+        'dni': _dniController.text.trim(),
+        'genero': _selectedGender!,
+        'telefono': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+      };
+
+      debugPrint('📡 POST → $url');
+      debugPrint('📦 Body: $body');
+
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+
+      LoadingOverlay.hide(context);
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // DNI válido - parsear datos del jugador
+        final fullResponse = jsonDecode(response.body);
+
+        debugPrint('DEBUG - Response recibida: $fullResponse');
+
+        // Extraer el primer elemento de listaExistenciaFisica
+        final lista = fullResponse['listaExistenciaFisica'] as List?;
+        if (lista == null || lista.isEmpty) {
+          LoadingOverlay.hide(context);
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final dialogBg = isDark
+              ? AppConstants.darkAccent
+              : AppConstants.lightDialogBg;
+          final textColor = isDark
+              ? AppConstants.textDark
+              : AppConstants.lightLabelText;
+
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: dialogBg,
+              title: Text('Error', style: TextStyle(color: textColor)),
+              content: const Text(
+                'No se encontraron datos para el DNI ingresado.',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
+        final playerDataJson = lista[0] as Map<String, dynamic>;
+        debugPrint('DEBUG - Primer elemento: $playerDataJson');
+
+        // Parsear PlayerData desde la respuesta
+        PlayerData? playerData;
+        try {
+          playerData = PlayerData.fromRegisterResponse(playerDataJson);
+          debugPrint('DEBUG - PlayerData parseado: OK');
+        } catch (e, stackTrace) {
+          debugPrint('DEBUG - ERROR AL PARSEAR: $e');
+          debugPrint('DEBUG - STACK: $stackTrace');
+          playerData = null;
+        }
+
+        if (playerData != null) {
+          // Agregar email y teléfono que no vienen en listaExistenciaFisica
+          final updatedPlayerData = playerData.copyWith(
+            correoElectronico: _emailController.text.trim(),
+            telefono: _phoneController.text.trim(),
+          );
+
+          // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
+          Navigator.pushReplacement(
+            context,
+            SlideFadeRoute(
+              page: ConfirmPlayerDataPage(
+                playerData: updatedPlayerData,
+                email: _emailController.text.trim(),
+                username: _usernameController.text.trim(),
+                password: _passwordController.text,
+                dni: _dniController.text.trim(),
+                telefono: _phoneController.text.trim(),
+                genero: _selectedGender!,
+              ),
+            ),
+          );
+        } else {
+          // Error al parsear los datos
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final dialogBg = isDark
+              ? AppConstants.darkAccent
+              : AppConstants.lightDialogBg;
+          final textColor = isDark
+              ? AppConstants.textDark
+              : AppConstants.lightLabelText;
+
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: dialogBg,
+              title: Text('Error', style: TextStyle(color: textColor)),
+              content: const Text(
+                'Error al procesar los datos. Por favor, contacta con soporte.',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        // Error en la validación
+        debugPrint('DEBUG - Error status: ${response.statusCode}');
+        debugPrint('DEBUG - Error body: ${response.body}');
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
+
+        final errorData = jsonDecode(response.body);
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: dialogBg,
+            title: Text(
+              'Error de validación',
+              style: TextStyle(color: textColor),
+            ),
+            content: Text(
+              errorData['message'] ?? 'No se pudieron validar los datos',
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppConstants.primaryGreen),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      LoadingOverlay.hide(context);
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
+
+      // Error inesperado
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Error de conexión', style: TextStyle(color: textColor)),
+          content: Text(
+            'No se pudo conectar con el servidor: $e',
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _showTermsDialog() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: dialogBg,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header con título
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(AppConstants.borderRadius),
+                    topRight: Radius.circular(AppConstants.borderRadius),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Documentos Legales',
+                  style: TextStyle(
+                    color: AppConstants.primaryGreen,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Por favor, revisa y acepta los siguientes documentos:',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Términos y Condiciones
+                        _buildLegalDocumentItem(
+                          context,
+                          title: 'Términos y Condiciones',
+                          isAccepted: _termsAccepted,
+                          onTap: () async {
+                            // Open Terms document
+                            _openLegalDocument('Términos y Condiciones');
+                            setDialogState(() {
+                              _termsAccepted = true;
+                            });
+                            setState(() {
+                              _termsAccepted = true;
+                            });
+                          },
+                          setDialogState: setDialogState,
+                        ),
+                        const SizedBox(height: 16),
+                        // Políticas de Privacidad
+                        _buildLegalDocumentItem(
+                          context,
+                          title: 'Políticas de Privacidad',
+                          isAccepted: _privacyAccepted,
+                          onTap: () async {
+                            // Open Privacy document
+                            _openLegalDocument('Políticas de Privacidad');
+                            setDialogState(() {
+                              _privacyAccepted = true;
+                            });
+                            setState(() {
+                              _privacyAccepted = true;
+                            });
+                          },
+                          setDialogState: setDialogState,
+                        ),
+                        const SizedBox(height: 16),
+                        // Uso de Datos Personales
+                        _buildLegalDocumentItem(
+                          context,
+                          title: 'Uso de Datos Personales',
+                          isAccepted: _dataAccepted,
+                          onTap: () async {
+                            // Open Data usage document
+                            _openLegalDocument('Uso de Datos Personales');
+                            setDialogState(() {
+                              _dataAccepted = true;
+                            });
+                            setState(() {
+                              _dataAccepted = true;
+                            });
+                          },
+                          setDialogState: setDialogState,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Actions Footer
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed:
+                          (_termsAccepted && _privacyAccepted && _dataAccepted)
+                          ? () {
+                              Navigator.pop(context);
+                              // Proceed with validation
+                              _proceedWithRegistration();
+                            }
+                          : null,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        backgroundColor:
+                            (_termsAccepted &&
+                                _privacyAccepted &&
+                                _dataAccepted)
+                            ? AppConstants.primaryGreen.withValues(alpha: 0.15)
+                            : Colors.grey.withValues(alpha: 0.1),
+                      ),
+                      child: Text(
+                        'Continuar',
+                        style: TextStyle(
+                          color:
+                              (_termsAccepted &&
+                                  _privacyAccepted &&
+                                  _dataAccepted)
+                              ? AppConstants.primaryGreen
+                              : Colors.grey[400],
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegalDocumentItem(
+    BuildContext context, {
+    required String title,
+    required bool isAccepted,
+    required VoidCallback onTap,
+    required StateSetter setDialogState,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isAccepted
+                ? AppConstants.primaryGreen
+                : Colors.grey.withValues(alpha: 0.25),
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          color: isAccepted
+              ? AppConstants.primaryGreen.withValues(alpha: 0.08)
+              : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isAccepted ? Icons.check_circle : Icons.circle_outlined,
+              color: isAccepted ? AppConstants.primaryGreen : Colors.grey[400],
+              size: 28,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isAccepted ? '✓ Leído y aceptado' : '👁️ Tap para leer',
+                    style: TextStyle(
+                      color: isAccepted
+                          ? AppConstants.primaryGreen
+                          : Colors.grey[500],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openLegalDocument(String documentType) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    // Map document types to their content (placeholder for now)
+    final content = _getLegalDocumentContent(documentType);
+
+    showDialog(
+      context: context,
+      builder: (context) => _LegalDocumentDialog(
+        documentType: documentType,
+        content: content,
+        dialogBg: dialogBg,
+        textColor: textColor,
+        onAcknowledged: () {
+          Navigator.pop(context);
+          // Marcar el documento como leído
+          setState(() {
+            if (documentType == 'Términos y Condiciones') {
+              _termsAccepted = true;
+            } else if (documentType == 'Políticas de Privacidad') {
+              _privacyAccepted = true;
+            } else if (documentType == 'Uso de Datos Personales') {
+              _dataAccepted = true;
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  String _getLegalDocumentContent(String documentType) {
+    switch (documentType) {
+      case 'Términos y Condiciones':
+        return '''TÉRMINOS Y CONDICIONES
+
+1. Objeto
+El presente documento regula los términos bajo los cuales los usuarios (“Jugadores”) se afilian voluntariamente a la comunidad boombet (www.boombet-ar.com), administrada por WEST DIGITAL ALLIANCE SRL, en adelante “BoomBet”. BoomBet actúa como portal de afiliación e intermediario autorizado para registrar a sus miembros en casinos online y casas de apuestas legales que operen dentro de la República Argentina bajo licencias otorgadas por las autoridades competentes.
+
+2. Afiliación y autorización
+Al completar y enviar el formulario de registro, el Jugador:
+  - Declara que los datos ingresados son reales, completos y verificables.
+  - Acepta afiliarse a la comunidad BoomBet, participar en sus programas, beneficios, sorteos y promociones.
+  - Autoriza expresamente a BoomBet a efectuar, en su nombre, en la actualidad y a futuro, los registros o afiliaciones en todos los casinos online y casas de apuestas legales con los que BoomBet mantenga convenios vigentes, incluyendo pero no limitándose a Bplay, Sportsbet y otros operadores licenciados.
+  - Reconoce y acepta que dicha autorización implica también la aceptación, en su nombre, de los Términos y Condiciones, Políticas de Privacidad y normas de cada operador, conforme a su jurisdicción.
+  - Reconoce y acepta que dicha autorización implica también la aceptación, en su nombre, de los Términos y Condiciones, Políticas de Privacidad y normas de cada operador, conforme a su jurisdicción.
+
+3. Alcance de la representación
+BoomBet realiza la gestión administrativa del registro de los Jugadores, sin intervenir en la operación, el juego ni la administración de fondos.
+El Jugador entiende y acepta que:
+  - Cada casino u operador es único responsable del manejo de cuentas, depósitos, retiros, promociones, límites de juego y cumplimiento normativo.
+  - BoomBet no presta servicios de apuestas ni gestiona fondos, sino que actúa únicamente como intermediario de registro y beneficios.
+  - Las condiciones de cada casino podrán variar y están sujetas a las políticas propias de cada operador y a la normativa provincial correspondiente.
+
+4. Protección de datos personales
+El Jugador autoriza a BoomBet a recopilar, almacenar, usar y transferir sus datos personales exclusivamente para:
+  - Gestionar el proceso de afiliación a casinos y operadores asociados.
+  - Ofrecer beneficios, sorteos y promociones vinculadas a la comunidad.
+Los datos serán tratados conforme a la Ley 25.326 de Protección de Datos Personales y las políticas de privacidad publicadas en www.boombet-ar.com/form .
+
+5. Gratuito y sin obligación
+La afiliación a BoomBet es gratuita, legal y sin obligación de compra ni permanencia. El Jugador podrá solicitar su baja de la comunidad BoomBet en cualquier momento escribiendo a info@boombet-ar.com.
+
+6. Bajas y cancelaciones
+El Jugador entiende y acepta que:
+  - BoomBet solo puede gestionar la baja de la comunidad BoomBet, lo que implica dejar de recibir beneficios, promociones o comunicaciones.
+  - La baja de los casinos u operadores afiliados debe ser realizada directamente por el Jugador ante cada entidad, siguiendo los procedimientos establecidos por dichas plataformas.
+  - BoomBet no tiene acceso ni autoridad para eliminar, suspender o modificar cuentas dentro de los casinos, ya que cada uno opera bajo su propia licencia y autonomía administrativa.
+
+7. Responsabilidad limitada
+BoomBet no asume responsabilidad por:
+  - Interrupciones, suspensiones, bloqueos o decisiones tomadas por los casinos u operadores.
+  - Errores, demoras o inconvenientes en las acreditaciones, retiros o promociones gestionadas por terceros.
+  - Cualquier acción u omisión del Jugador dentro de las plataformas de apuestas.
+BoomBet garantiza únicamente la correcta tramitación de las afiliaciones y la gestión de beneficios dentro de su propia comunidad.
+
+8. Comunicaciones y promociones
+El Jugador acepta recibir información y comunicaciones relacionadas con beneficios, eventos, novedades o sorteos de la comunidad BoomBet a través de correo electrónico, WhatsApp, Instagram u otros medios digitales. Podrá darse de baja de dichas comunicaciones en cualquier momento mediante los canales habilitados.
+
+9. Modificaciones
+BoomBet podrá modificar estos Términos y Condiciones cuando sea necesario.
+Las actualizaciones serán publicadas en www.boombet-ar.com/form y entrarán en vigencia a partir de su publicación, considerándose aceptadas si el Jugador continúa participando en la comunidad.
+
+10. Legislación aplicable
+Estos Términos y Condiciones se rigen por las leyes de la República Argentina. Para cualquier controversia, las partes se someten a los tribunales ordinarios con jurisdicción en la Ciudad Autónoma de Buenos Aires.
+''';
+      case 'Políticas de Privacidad':
+        return '''POLÍTICAS DE PRIVACIDAD
+
+1. Alcance general
+La presente Política de Privacidad complementa los Términos y Condiciones de Afiliación y establece cómo boombet protege la información personal de los usuarios de su comunidad. El solo hecho de registrarse o mantenerse afiliado implica la aceptación de esta política en su totalidad.
+
+2. Finalidad del tratamiento
+Los datos personales brindados por los Jugadores son utilizados exclusivamente para:
+  - Gestionar su afiliación y registro en casinos online y casas de apuestas legales asociadas.
+  - Brindar beneficios, promociones y sorteos dentro de la comunidad BoomBet.
+  - Comunicarse con los Jugadores respecto de novedades, cambios y eventos.
+  - Cumplir con obligaciones legales o requerimientos regulatorios.
+BoomBet no realiza ningún otro tratamiento ajeno a estos fines ni comparte información con terceros fuera de los convenios operativos estrictamente necesarios.
+
+3. Cesión a operadores asociados
+El Jugador autoriza a BoomBet a transferir sus datos únicamente a casinos y operadores licenciados con los cuales mantenga acuerdos vigentes, a los fines de procesar su registro y habilitar su cuenta. Cada operador será responsable del uso que haga de dicha información conforme a sus propias políticas, las cuales el Jugador acepta al ser afiliado.
+
+4. Seguridad de la información
+BoomBet adopta medidas técnicas y administrativas razonables para preservar la confidencialidad e integridad de la información almacenada. No obstante, los usuarios reconocen que ningún sistema es infalible y liberan a BoomBet de toda responsabilidad por incidentes de seguridad que excedan su control razonable o dependan de terceros operadores.
+
+5. Derechos del usuario
+Los Jugadores podrán, en cualquier momento:
+  - Acceder a los datos que BoomBet conserva sobre ellos.
+  - Solicitar su actualización o corrección.
+  - Pedir su eliminación o baja de la comunidad.
+  - Revocar el consentimiento para el envío de comunicaciones promocionales.
+Dichas solicitudes podrán realizarse mediante correo a info@boombet-ar.com, conforme a los plazos establecidos por la Ley 25.326.
+
+6. Vigencia y modificaciones
+BoomBet podrá actualizar esta Política de Privacidad para adaptarla a cambios normativos o tecnológicos. La versión vigente estará siempre disponible en esta misma página, reemplazando automáticamente a las anteriores.
+''';
+      case 'Uso de Datos Personales':
+        return '''USO DE DATOS PERSONALES
+
+1. Principios generales
+BoomBet respeta los principios de licitud, finalidad, proporcionalidad, veracidad, seguridad y confidencialidad establecidos por la Ley 25.326 y las buenas prácticas internacionales (RGPD). El tratamiento de datos personales se realiza de manera transparente y con consentimiento informado.
+
+2. Naturaleza de los datos tratados
+BoomBet únicamente recopila los datos estrictamente necesarios para cumplir los fines detallados en los Términos y Condiciones y en la Política de Privacidad. Esto incluye información de identificación básica y, eventualmente, datos técnicos mínimos derivados del uso del sitio.
+
+3. Almacenamiento y conservación
+Los datos se almacenan en bases seguras administradas por BoomBet y/o proveedores tecnológicos que mantienen acuerdos de confidencialidad. Serán conservados durante el tiempo que dure la relación del usuario con BoomBet o mientras sea necesario para cumplir obligaciones legales o contractuales.
+
+4. Cesión y confidencialidad
+BoomBet no vende ni comercializa los datos personales de sus usuarios. Las únicas cesiones permitidas son las necesarias para ejecutar el proceso de afiliación o cumplir requerimientos legales o judiciales. Todo acceso o tratamiento por parte de terceros se rige por acuerdos de confidencialidad y uso limitado a la finalidad específica.
+
+5. Ejercicio de derechos ARCO
+Los usuarios pueden ejercer los derechos de Acceso, Rectificación, Cancelación y Oposición (ARCO) en cualquier momento enviando una solicitud formal a info@boombet-ar.com. BoomBet responderá dentro del plazo legal previsto por la normativa argentina.
+
+6. Autoridad de control
+El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia de Acceso a la Información Pública (www.argentina.gob.ar/aaip), organismo responsable del cumplimiento de la Ley 25.326 en la República Argentina.
+''';
+      default:
+        return 'Contenido no disponible';
+    }
+  }
+
+  void _proceedWithRegistration() async {
     setState(() {
       _usernameError = _usernameController.text.trim().isEmpty;
       _emailError = _emailController.text.trim().isEmpty;
@@ -942,15 +1872,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         icon: Icons.person_add,
                       ),
                       const SizedBox(height: 20),
-
-                      // Texto centrado debajo del botón
-                      Center(
-                        child: Text(
-                          "LA CONTRASEÑA NO DEBE POSEER SECUENCIAS DE TEXTO NI NÚMEROS O CARACTERES REPETIDOS Y DEBE TENER AL MENOS 8 CARACTERES, UNA MAYUSCULA, UN NUMERO Y UN SIMBOLO",
-                          style: TextStyle(color: textColor, fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -959,6 +1880,173 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Widget de diálogo para documentos legales con detección de scroll
+class _LegalDocumentDialog extends StatefulWidget {
+  final String documentType;
+  final String content;
+  final Color dialogBg;
+  final Color textColor;
+  final VoidCallback onAcknowledged;
+
+  const _LegalDocumentDialog({
+    required this.documentType,
+    required this.content,
+    required this.dialogBg,
+    required this.textColor,
+    required this.onAcknowledged,
+  });
+
+  @override
+  State<_LegalDocumentDialog> createState() => _LegalDocumentDialogState();
+}
+
+class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
+  late ScrollController _scrollController;
+  bool _isScrolledToBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Detectar si está en el fondo del scroll
+    final isAtBottom =
+        _scrollController.offset >=
+        _scrollController.position.maxScrollExtent - 50; // 50px de tolerancia
+
+    if (isAtBottom != _isScrolledToBottom) {
+      setState(() {
+        _isScrolledToBottom = isAtBottom;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: widget.dialogBg,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header con título
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppConstants.borderRadius),
+                topRight: Radius.circular(AppConstants.borderRadius),
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+            ),
+            child: Text(
+              widget.documentType,
+              style: TextStyle(
+                color: AppConstants.primaryGreen,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          // Content con scroll controller
+          Flexible(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  widget.content,
+                  style: TextStyle(
+                    color: widget.textColor,
+                    fontSize: 15,
+                    height: 1.6,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Indicador de scroll
+          if (!_isScrolledToBottom)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.arrow_downward,
+                    size: 16,
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Desliza para continuar',
+                    style: TextStyle(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Footer
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: TextButton(
+              onPressed: _isScrolledToBottom ? widget.onAcknowledged : null,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                'Entendido',
+                style: TextStyle(
+                  color: _isScrolledToBottom
+                      ? AppConstants.primaryGreen
+                      : Colors.grey[400],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

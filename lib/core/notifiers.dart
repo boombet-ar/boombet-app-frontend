@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
 ValueNotifier<bool> isLightModeNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
+ValueNotifier<double> fontSizeMultiplierNotifier = ValueNotifier(1.0);
 
 // Notifiers para datos de afiliación
 ValueNotifier<PlayerData?> affiliationPlayerDataNotifier = ValueNotifier(null);
@@ -24,6 +25,7 @@ const String _keyPassword = 'affiliation_password';
 const String _keyDni = 'affiliation_dni';
 const String _keyTelefono = 'affiliation_telefono';
 const String _keyGenero = 'affiliation_genero';
+const String _keyFontSizeMultiplier = 'font_size_multiplier';
 
 /// Guarda datos de afiliación en SharedPreferences
 Future<void> saveAffiliationData({
@@ -161,5 +163,29 @@ Future<void> clearAffiliationData() async {
     debugPrint('🗑️ [PERSIST] Datos de afiliación limpiados');
   } catch (e) {
     debugPrint('❌ [PERSIST] Error limpiando datos: $e');
+  }
+}
+
+/// Guarda el multiplicador de tamaño de fuente
+Future<void> saveFontSizeMultiplier(double multiplier) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyFontSizeMultiplier, multiplier);
+    fontSizeMultiplierNotifier.value = multiplier;
+    debugPrint('💾 [PERSIST] Font size multiplier guardado: $multiplier');
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando font size multiplier: $e');
+  }
+}
+
+/// Carga el multiplicador de tamaño de fuente
+Future<void> loadFontSizeMultiplier() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final multiplier = prefs.getDouble(_keyFontSizeMultiplier) ?? 1.0;
+    fontSizeMultiplierNotifier.value = multiplier;
+    debugPrint('💾 [PERSIST] Font size multiplier cargado: $multiplier');
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando font size multiplier: $e');
   }
 }

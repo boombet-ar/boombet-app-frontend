@@ -39,7 +39,11 @@ class ErrorParser {
   }
 
   /// Parsea una respuesta HTTP y retorna un mensaje según el código de estado
-  static String parseResponse(http.Response response) {
+  /// [context] puede ser 'login', 'api', etc. para mensajes específicos del contexto
+  static String parseResponse(
+    http.Response response, {
+    String context = 'api',
+  }) {
     // Intentar extraer mensaje del body
     String? bodyMessage;
     try {
@@ -74,6 +78,11 @@ class ErrorParser {
             'Datos inválidos. Verifica la información ingresada.';
 
       case 401:
+        // Diferenciar entre login fallido y sesión expirada
+        if (context == 'login') {
+          return bodyMessage ??
+              'Usuario/Email o contraseña incorrectos. Verifica tus datos.';
+        }
         return 'Sesión expirada. Por favor, inicia sesión nuevamente.';
 
       case 403:

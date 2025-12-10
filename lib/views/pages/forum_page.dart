@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/views/pages/home_page.dart' show buildSectionHeader;
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -125,6 +126,14 @@ class _ForumPageState extends State<ForumPage> {
             onRefresh: _refreshForum,
             child: Column(
               children: [
+                // Header normalizado
+                buildSectionHeader(
+                  'Foro de la Comunidad',
+                  '${_posts.length} publicaciones',
+                  Icons.forum,
+                  greenColor,
+                  isDark,
+                ),
                 // Área de crear publicación
                 Container(
                   padding: const EdgeInsets.all(16.0),
@@ -141,21 +150,6 @@ class _ForumPageState extends State<ForumPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.forum, color: greenColor, size: 28),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Foro de la Comunidad',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
                       if (!_isLoggedIn) ...[
                         Container(
                           padding: const EdgeInsets.all(16.0),

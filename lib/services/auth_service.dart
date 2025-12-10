@@ -52,10 +52,10 @@ class AuthService {
 
         return {'success': true, 'data': data};
       } else {
-        // Usar ErrorParser para mensajes consistentes
+        // Usar ErrorParser para mensajes consistentes (con contexto 'login')
         return {
           'success': false,
-          'message': ErrorParser.parseResponse(response),
+          'message': ErrorParser.parseResponse(response, context: 'login'),
         };
       }
     } catch (e) {

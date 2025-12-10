@@ -245,13 +245,13 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildVerifiedBadge(primaryGreen),
+          _buildVerifiedBadge(primaryGreen, _playerData?.username ?? ''),
         ],
       ),
     );
   }
 
-  Widget _buildVerifiedBadge(Color primaryGreen) {
+  Widget _buildVerifiedBadge(Color primaryGreen, String username) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
@@ -264,7 +264,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Icon(Icons.verified_user, size: 16, color: primaryGreen),
           const SizedBox(width: 6),
           Text(
-            "Usuario Verificado",
+            username,
             style: TextStyle(
               color: primaryGreen,
               fontSize: 14,

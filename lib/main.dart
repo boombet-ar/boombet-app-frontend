@@ -89,6 +89,9 @@ Future<void> main() async {
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
 
+  // Cargar preferencias de accesibilidad
+  await loadFontSizeMultiplier();
+
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {
     debugPrint('[MAIN] ­ƒö┤ 401 Detected - Navigating to LoginPage');
@@ -178,16 +181,29 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: isLightModeNotifier,
       builder: (context, isLightMode, child) {
-        return MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          scaffoldMessengerKey: scaffoldMessengerKey,
-          title: 'BoomBet App',
-          themeAnimationDuration: const Duration(milliseconds: 150),
-          themeAnimationCurve: Curves.fastOutSlowIn,
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
-          themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
-          routerConfig: appRouter,
+        return ValueListenableBuilder<double>(
+          valueListenable: fontSizeMultiplierNotifier,
+          builder: (context, fontSizeMultiplier, _) {
+            return MaterialApp.router(
+              debugShowCheckedModeBanner: false,
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              title: 'BoomBet App',
+              themeAnimationDuration: const Duration(milliseconds: 150),
+              themeAnimationCurve: Curves.fastOutSlowIn,
+              theme: _lightTheme,
+              darkTheme: _darkTheme,
+              themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
+              routerConfig: appRouter,
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(fontSizeMultiplier)),
+                  child: child!,
+                );
+              },
+            );
+          },
         );
       },
     );
