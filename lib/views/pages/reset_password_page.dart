@@ -1,4 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/reset_password_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -6,6 +7,7 @@ import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 class ResetPasswordPage extends StatefulWidget {
   final String token; // Token del email de recuperación
@@ -19,6 +21,8 @@ class ResetPasswordPage extends StatefulWidget {
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
+  late StreamSubscription<DeepLinkPayload> _deepLinkSubscription;
+  late String _currentToken;
 
   bool _passwordError = false;
   bool _confirmPasswordError = false;
@@ -37,10 +41,41 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   void initState() {
     super.initState();
     try {
-      debugPrint('📝 [ResetPasswordPage] initState - token: ${widget.token}');
+      _currentToken = widget.token;
+      debugPrint('📝 [ResetPasswordPage] initState - token: $_currentToken');
       _passwordController = TextEditingController();
       _confirmPasswordController = TextEditingController();
       _passwordController.addListener(_validatePasswordLive);
+
+      // Escuchar deep links por si se actualiza el token
+      _deepLinkSubscription = DeepLinkService.instance.stream.listen((payload) {
+        if (payload.isPasswordReset &&
+            payload.token != null &&
+            payload.token!.isNotEmpty) {
+          debugPrint(
+            '📝 [ResetPasswordPage] Token recibido del deep link: ${payload.token}',
+          );
+          setState(() {
+            _currentToken = payload.token!;
+          });
+        }
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Verificar si hay un pending payload del deep link
+        final pendingPayload = DeepLinkService.instance.lastPayload;
+        if (pendingPayload != null && pendingPayload.isPasswordReset) {
+          debugPrint(
+            '📝 [ResetPasswordPage] Payload pendiente del deep link recibido',
+          );
+          if (pendingPayload.token != null &&
+              pendingPayload.token!.isNotEmpty) {
+            setState(() {
+              _currentToken = pendingPayload.token!;
+            });
+          }
+        }
+      });
     } catch (e) {
       debugPrint('❌ [ResetPasswordPage] Error en initState: $e');
     }
@@ -51,6 +86,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     try {
       _passwordController.dispose();
       _confirmPasswordController.dispose();
+      _deepLinkSubscription.cancel();
     } catch (e) {
       debugPrint('❌ [ResetPasswordPage] Error en dispose: $e');
     }
@@ -166,7 +202,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     try {
       // Llamar al servicio para resetear la contraseña
       final result = await ResetPasswordService.resetPassword(
-        token: widget.token,
+        token: _currentToken,
         newPassword: password,
       );
 
@@ -230,13 +266,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     try {
-      debugPrint('📝 [ResetPasswordPage] build - token: ${widget.token}');
+      debugPrint('📝 [ResetPasswordPage] build - token: $_currentToken');
       debugPrint(
-        '📝 [ResetPasswordPage] token isEmpty: ${widget.token.isEmpty}',
+        '📝 [ResetPasswordPage] token isEmpty: ${_currentToken.isEmpty}',
       );
 
       // Si el token está vacío, mostrar error
-      if (widget.token.isEmpty) {
+      if (_currentToken.isEmpty) {
         return Scaffold(
           body: Center(
             child: Column(

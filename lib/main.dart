@@ -1,4 +1,4 @@
-import 'package:boombet_app/config/app_constants.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
@@ -13,6 +13,28 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
+
+void _scheduleNavigationToRoute(String route) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
+      debugPrint('[MAIN] 🌐 Navigating to deep link route: $route');
+      appRouter.go(route);
+    } catch (e) {
+      debugPrint('[MAIN] ❌ Error navigating to $route: $e');
+    }
+  });
+}
+
+void _handleDeepLinkNavigation(DeepLinkPayload payload) {
+  final route = DeepLinkService.instance.navigationPathForPayload(payload);
+  if (route == null) {
+    debugPrint('[MAIN] ⚠️ Deep link recibido sin token válido: ${payload.uri}');
+    return;
+  }
+
+  _scheduleNavigationToRoute(route);
+  DeepLinkService.instance.markPayloadHandled(payload);
+}
 
 void _initializeDeepLinkHandling() {
   _deepLinkChannel.setMethodCallHandler((call) async {
@@ -35,8 +57,13 @@ void _initializeDeepLinkHandling() {
           token: (raw['token'] as String?) ?? uri.queryParameters['token'],
         ),
       );
+
+      final payload = DeepLinkService.instance.lastPayload;
+      if (payload != null) {
+        _handleDeepLinkNavigation(payload);
+      }
     } catch (error) {
-      debugPrint('❌ [DeepLink] Invalid URI: $error');
+      debugPrint('ÔØî [DeepLink] Invalid URI: $error');
     }
   });
 }
@@ -46,10 +73,17 @@ Future<void> main() async {
 
   _initializeDeepLinkHandling();
 
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final pendingPayload = DeepLinkService.instance.lastPayload;
+    if (pendingPayload != null) {
+      _handleDeepLinkNavigation(pendingPayload);
+    }
+  });
+
   // Capturar errores de Flutter no manejados
   FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('❌ [FLUTTER ERROR] ${details.exception}');
-    debugPrint('❌ [FLUTTER ERROR] ${details.stack}');
+    debugPrint('ÔØî [FLUTTER ERROR] ${details.exception}');
+    debugPrint('ÔØî [FLUTTER ERROR] ${details.stack}');
   };
 
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
@@ -57,24 +91,24 @@ Future<void> main() async {
 
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {
-    debugPrint('[MAIN] 🔴 401 Detected - Navigating to LoginPage');
+    debugPrint('[MAIN] ­ƒö┤ 401 Detected - Navigating to LoginPage');
 
     // Usar navigatorKey para navegar sin contexto
     final navigator = navigatorKey.currentState;
     if (navigator != null) {
-      debugPrint('[MAIN] ✅ Navigator found - Pushing LoginPage');
+      debugPrint('[MAIN] Ô£à Navigator found - Pushing LoginPage');
       navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginPage()),
         (route) => false, // Eliminar todas las rutas previas
       );
 
-      // Mostrar SnackBar después de navegar
+      // Mostrar SnackBar despu├®s de navegar
       Future.delayed(const Duration(milliseconds: 500), () {
         final messenger = scaffoldMessengerKey.currentState;
         messenger?.showSnackBar(
           SnackBar(
             content: const Text(
-              'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+              'Tu sesi├│n ha expirado. Por favor, inicia sesi├│n nuevamente.',
             ),
             backgroundColor: AppConstants.warningOrange,
             duration: AppConstants.longSnackbarDuration,
@@ -82,7 +116,7 @@ Future<void> main() async {
         );
       });
     } else {
-      debugPrint('[MAIN] ❌ Navigator is null - Cannot navigate');
+      debugPrint('[MAIN] ÔØî Navigator is null - Cannot navigate');
     }
   };
 
@@ -160,10 +194,11 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//CUENTA
-//username: test
-//email: test@gmail.com
-//DNI: 45614451
-//contra: TGm.4751!
-
-//
+//A LA HORA DE TESTEAR COSAS CON EL MAIL
+//REINSTALAR APP
+//flutter pub get
+//flutter clean
+//flutter build apk
+//adb uninstall com.boombet.app
+//flutter install
+//Y ABRIR EMULADOR CON COLD BOOT

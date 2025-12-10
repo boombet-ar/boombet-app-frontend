@@ -50,8 +50,50 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
   bool _emailConfirmed = false;
   bool _isCheckingStatus = false;
   String? _statusMessage;
+  String? _verificationToken;
   late final VoidCallback _emailVerifiedListener;
   StreamSubscription<DeepLinkPayload>? _deepLinkSubscription;
+  bool _lockConfirmedView = false;
+
+  PlayerData? get _resolvedPlayerData =>
+      widget.playerData ?? affiliationPlayerDataNotifier.value;
+
+  String? _valueOrNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
+  String? get _resolvedUsername =>
+      _valueOrNull(widget.username) ??
+      _valueOrNull(affiliationUsernameNotifier.value);
+
+  String? get _resolvedPassword =>
+      _valueOrNull(widget.password) ??
+      _valueOrNull(affiliationPasswordNotifier.value);
+
+  String? get _resolvedDni =>
+      _valueOrNull(widget.dni) ?? _valueOrNull(affiliationDniNotifier.value);
+
+  String? get _resolvedTelefono =>
+      _valueOrNull(widget.telefono) ??
+      _valueOrNull(affiliationTelefonoNotifier.value);
+
+  String? get _resolvedGenero =>
+      _valueOrNull(widget.genero) ??
+      _valueOrNull(affiliationGeneroNotifier.value);
+
+  void _syncControllersWithPlayerData() {
+    final data = _resolvedPlayerData;
+    if (data == null) return;
+
+    if (_nombreController.text.isEmpty) {
+      _nombreController.text = data.nombre;
+    }
+    if (_apellidoController.text.isEmpty) {
+      _apellidoController.text = data.apellido;
+    }
+  }
 
   @override
   void initState() {
@@ -63,6 +105,13 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     _emailVerifiedListener = () {
       if (!mounted) return;
       final verified = emailVerifiedNotifier.value;
+      if (_lockConfirmedView && !verified) {
+        debugPrint(
+          '🔒 [EmailConfirmationPage] Ignorando cambio de emailVerifiedNotifier (false) porque la vista ya está confirmada.',
+        );
+        return;
+      }
+
       if (_emailConfirmed != verified) {
         setState(() {
           _emailConfirmed = verified;
@@ -75,16 +124,17 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       _handleDeepLinkPayload(payload, silent: false);
     });
 
-    _loadAffiliationData();
-
-    if (widget.playerData != null) {
-      final data = widget.playerData!;
+    final initialPlayer = _resolvedPlayerData;
+    if (initialPlayer != null) {
+      final data = initialPlayer;
       _nombreController = TextEditingController(text: data.nombre);
       _apellidoController = TextEditingController(text: data.apellido);
     } else {
       _nombreController = TextEditingController();
       _apellidoController = TextEditingController();
     }
+
+    _loadAffiliationData();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pendingPayload = DeepLinkService.instance.lastPayload;
@@ -98,11 +148,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
         debugPrint(
           '🔗 [EmailConfirmationPage] Token recibido via widget: $initialToken',
         );
-        _checkEmailVerificationStatus(silent: true);
+        _verificationToken = initialToken;
+        _verifyEmailToken(initialToken, silent: true);
         return;
       }
-
-      _checkEmailVerificationStatus(silent: true);
     });
   }
 
@@ -148,10 +197,24 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       return;
     }
 
-    await _checkEmailVerificationStatus(silent: silent);
+    if ((_emailConfirmed || _lockConfirmedView) &&
+        _verificationToken == token) {
+      debugPrint(
+        '🔁 [EmailConfirmationPage] Token ya confirmado, se ignora payload duplicado.',
+      );
+      return;
+    }
+
+    _verificationToken = token;
+    await _verifyEmailToken(token, silent: silent, sourcePayload: payload);
   }
 
-  Future<void> _checkEmailVerificationStatus({bool silent = false}) async {
+  /// Verifica el email del usuario llamando a /api/users/auth/verify con el token
+  Future<void> _verifyEmailToken(
+    String token, {
+    bool silent = false,
+    DeepLinkPayload? sourcePayload,
+  }) async {
     if (_isCheckingStatus) return;
 
     setState(() {
@@ -162,19 +225,29 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     });
 
     try {
-      final verified =
-          await EmailVerificationService.syncEmailVerificationStatus();
+      debugPrint(
+        '🔑 [EmailConfirmationPage] Verificando email con token: $token',
+      );
+
+      final verified = await EmailVerificationService.verifyEmailWithToken(
+        token,
+      );
 
       if (!mounted) return;
 
       if (verified) {
         setState(() {
           _emailConfirmed = true;
+          _lockConfirmedView = true;
           if (!silent) {
             _statusMessage =
                 '¡Email confirmado! Ya podés completar la afiliación.';
           }
         });
+
+        if (sourcePayload != null) {
+          DeepLinkService.instance.markPayloadHandled(sourcePayload);
+        }
 
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -188,8 +261,15 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
       } else if (!silent) {
         setState(() {
           _statusMessage =
-              'Todavía no detectamos la confirmación. Probá nuevamente en unos segundos.';
+              'El token no es válido o ya fue usado. Intenta con un nuevo enlace.';
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Token inválido o expirado.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e) {
       debugPrint('❌ [EmailConfirmationPage] Error verificando email: $e');
@@ -197,7 +277,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
 
       if (!silent) {
         setState(() {
-          _statusMessage = 'No pudimos consultar el estado. Intenta luego.';
+          _statusMessage = 'No pudimos verificar el email. Intenta luego.';
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -230,7 +310,8 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     if (_isProcessing) return;
 
     // Validar que tenemos los datos necesarios
-    if (widget.playerData == null) {
+    final playerData = _resolvedPlayerData;
+    if (playerData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: Datos de jugador no disponibles'),
@@ -257,20 +338,20 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
         'playerData': {
           'nombre': _nombreController.text.trim(),
           'apellido': _apellidoController.text.trim(),
-          'email': widget.email ?? '',
-          'telefono': widget.telefono ?? '',
-          'genero': _normalizarGenero(widget.genero ?? ''),
-          'dni': widget.dni ?? '',
-          'cuit': widget.playerData!.cuil,
-          'calle': widget.playerData!.calle,
-          'numCalle': widget.playerData!.numCalle,
-          'provincia': widget.playerData!.provincia,
-          'ciudad': widget.playerData!.localidad,
-          'cp': widget.playerData!.cp?.toString() ?? '',
-          'user': widget.username ?? '',
-          'password': widget.password ?? '',
-          'fecha_nacimiento': widget.playerData!.fechaNacimiento,
-          'est_civil': widget.playerData!.estadoCivil,
+          'email': _resolvedEmail ?? '',
+          'telefono': _resolvedTelefono ?? '',
+          'genero': _normalizarGenero(_resolvedGenero ?? ''),
+          'dni': _resolvedDni ?? '',
+          'cuit': playerData.cuil,
+          'calle': playerData.calle,
+          'numCalle': playerData.numCalle,
+          'provincia': playerData.provincia,
+          'ciudad': playerData.localidad,
+          'cp': playerData.cp?.toString() ?? '',
+          'user': _resolvedUsername ?? '',
+          'password': _resolvedPassword ?? '',
+          'fecha_nacimiento': playerData.fechaNacimiento,
+          'est_civil': playerData.estadoCivil,
         },
       };
 
@@ -551,9 +632,12 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                             height: 56,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isCheckingStatus
+                              onPressed:
+                                  (_isCheckingStatus ||
+                                      _verificationToken == null)
                                   ? null
-                                  : () => _checkEmailVerificationStatus(),
+                                  : () =>
+                                        _verifyEmailToken(_verificationToken!),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryGreen,
                                 foregroundColor: Colors.black,
@@ -624,5 +708,13 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     debugPrint('💾 [LOAD] email: ${affiliationEmailNotifier.value}');
     debugPrint('💾 [LOAD] username: ${affiliationUsernameNotifier.value}');
     debugPrint('💾 [LOAD] dni: ${affiliationDniNotifier.value}');
+
+    if (!mounted) return;
+
+    _syncControllersWithPlayerData();
+
+    if (widget.playerData == null) {
+      setState(() {});
+    }
   }
 }

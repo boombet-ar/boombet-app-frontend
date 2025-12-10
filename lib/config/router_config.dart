@@ -1,4 +1,4 @@
-import 'package:boombet_app/services/token_service.dart';
+﻿import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
@@ -6,12 +6,12 @@ import 'package:boombet_app/views/pages/reset_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-// Redirect callback para manejar autenticación
+// Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
-  debugPrint('🔀 ===== REDIRECT CALLBACK =====');
-  debugPrint('🔀 state.uri.path: ${state.uri.path}');
-  debugPrint('🔀 state.uri: ${state.uri}');
-  debugPrint('🔀 state.matchedLocation: ${state.matchedLocation}');
+  debugPrint('­ƒöÇ ===== REDIRECT CALLBACK =====');
+  debugPrint('­ƒöÇ state.uri.path: ${state.uri.path}');
+  debugPrint('­ƒöÇ state.uri: ${state.uri}');
+  debugPrint('­ƒöÇ state.matchedLocation: ${state.matchedLocation}');
 
   // Permitir siempre el acceso a /confirm, /reset, /reset-password, /password-reset sin login
   final isPublicRoute =
@@ -21,27 +21,27 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       state.uri.path == '/password-reset';
 
   if (isPublicRoute) {
-    debugPrint('🔀 Path coincide con ruta pública, permitir acceso');
+    debugPrint('­ƒöÇ Path coincide con ruta p├║blica, permitir acceso');
     return null; // No redirigir, permitir acceso sin login
   }
 
-  // Verificar si hay sesión activa
+  // Verificar si hay sesi├│n activa
   final isLoggedIn = await TokenService.isTokenValid();
-  debugPrint('🔀 isLoggedIn: $isLoggedIn');
+  debugPrint('­ƒöÇ isLoggedIn: $isLoggedIn');
 
-  // Si no está logueado y no está en / o rutas públicas, ir al login
+  // Si no est├í logueado y no est├í en / o rutas p├║blicas, ir al login
   if (!isLoggedIn && state.uri.path != '/' && !isPublicRoute) {
-    debugPrint('🔀 Redirigiendo a login (no logueado y path no permitido)');
+    debugPrint('­ƒöÇ Redirigiendo a login (no logueado y path no permitido)');
     return '/';
   }
 
-  // Si está logueado e intenta ir al login, ir al home
+  // Si est├í logueado e intenta ir al login, ir al home
   if (isLoggedIn && state.uri.path == '/') {
-    debugPrint('🔀 Redirigiendo a home (logueado en login)');
+    debugPrint('­ƒöÇ Redirigiendo a home (logueado en login)');
     return '/home';
   }
 
-  debugPrint('🔀 No redirigir');
+  debugPrint('­ƒöÇ No redirigir');
   return null; // No redirigir
 }
 
@@ -51,25 +51,25 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
-    // Deep link para confirmación de email
+    // Deep link para confirmaci├│n de email
     GoRoute(
       path: '/confirm',
       builder: (context, state) {
-        // Intentar obtener el token de diferentes parámetros posibles
+        // Intentar obtener el token de diferentes par├ímetros posibles
         final token =
             state.uri.queryParameters['token'] ??
             state.uri.queryParameters['verificacionToken'] ??
             state.uri.queryParameters['verification_token'] ??
             '';
-        debugPrint('🔗 Deep Link recibido - token: $token');
-        debugPrint('🔗 Query parameters: ${state.uri.queryParameters}');
+        debugPrint('­ƒöù Deep Link recibido - token: $token');
+        debugPrint('­ƒöù Query parameters: ${state.uri.queryParameters}');
         return EmailConfirmationPage(
           verificacionToken: token,
           isFromDeepLink: true,
         );
       },
     ),
-    // Deep link para resetear contraseña - MÚLTIPLES RUTAS SOPORTADAS
+    // Deep link para resetear contrase├▒a - M├ÜLTIPLES RUTAS SOPORTADAS
     // Soporta: /reset, /reset-password, /password-reset, etc.
     GoRoute(
       path: '/reset',
@@ -88,21 +88,21 @@ final GoRouter appRouter = GoRouter(
 
 Widget _buildResetPasswordPage(BuildContext context, GoRouterState state) {
   try {
-    debugPrint('🔗 ===== RESET PASSWORD ROUTE =====');
-    debugPrint('🔗 State path: ${state.uri.path}');
-    debugPrint('🔗 State uri: ${state.uri}');
-    debugPrint('🔗 Full URI string: ${state.uri.toString()}');
-    debugPrint('🔗 Query parameters: ${state.uri.queryParameters}');
+    debugPrint('­ƒöù ===== RESET PASSWORD ROUTE =====');
+    debugPrint('­ƒöù State path: ${state.uri.path}');
+    debugPrint('­ƒöù State uri: ${state.uri}');
+    debugPrint('­ƒöù Full URI string: ${state.uri.toString()}');
+    debugPrint('­ƒöù Query parameters: ${state.uri.queryParameters}');
 
     final token = state.uri.queryParameters['token'] ?? '';
-    debugPrint('🔗 Token extracted: $token');
-    debugPrint('🔗 Token length: ${token.length}');
-    debugPrint('🔗 Token isEmpty: ${token.isEmpty}');
-    debugPrint('🔗 ============================');
+    debugPrint('­ƒöù Token extracted: $token');
+    debugPrint('­ƒöù Token length: ${token.length}');
+    debugPrint('­ƒöù Token isEmpty: ${token.isEmpty}');
+    debugPrint('­ƒöù ============================');
 
     return ResetPasswordPage(token: token);
   } catch (e) {
-    debugPrint('❌ Error en reset route builder: $e');
+    debugPrint('ÔØî Error en reset route builder: $e');
     return Scaffold(
       body: Center(
         child: Column(

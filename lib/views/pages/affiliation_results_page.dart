@@ -1,7 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/casino_response.dart';
-import 'package:boombet_app/views/pages/home_page.dart';
+import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -221,7 +221,9 @@ class AffiliationResultsPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomePage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
                       (route) => false,
                     );
                   },
@@ -304,7 +306,9 @@ class AffiliationResultsPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomePage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
                       (route) => false,
                     );
                   },
