@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/games/boombet_shooter/game_screen.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
@@ -141,6 +142,41 @@ class _HomeContentState extends State<HomeContent> {
                   controller: _searchController,
                   onSearch: _handleSearch,
                   placeholder: '¿Qué estás buscando?',
+                ),
+                const SizedBox(height: 16),
+                // Botón del juego con logo
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GameScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/pixel_logo.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Expanded(
