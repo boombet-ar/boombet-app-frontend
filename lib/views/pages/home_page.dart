@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/games/boombet_shooter/game_screen.dart';
 import 'package:boombet_app/models/cupon_model.dart';
+import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
+import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -15,6 +17,9 @@ import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
+import 'package:boombet_app/config/api_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -88,21 +93,30 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   final TextEditingController _searchController = TextEditingController();
   final PageController _carouselController = PageController();
+  final PublicidadService _publicidadService = PublicidadService();
+  final Map<int, VideoPlayerController> _videoControllers = {};
+  final Map<int, Future<void>> _videoInitFutures = {};
+
   int _currentCarouselPage = 0;
   Timer? _autoScrollTimer;
+  List<Publicidad> _ads = [];
+  bool _adsLoading = true;
+  String? _adsError;
 
   @override
   void initState() {
     super.initState();
     // Auto-scroll del carrusel cada 30 segundos
     _startAutoScroll();
+    _fetchAds();
   }
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
     _autoScrollTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted && _carouselController.hasClients) {
-        final nextPage = (_currentCarouselPage + 1) % 5;
+        final total = _ads.isNotEmpty ? _ads.length : 1;
+        final nextPage = (_currentCarouselPage + 1) % total;
         _carouselController.animateToPage(
           nextPage,
           duration: AppConstants.mediumDelay,
@@ -114,15 +128,257 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   void dispose() {
+    for (final controller in _videoControllers.values) {
+      controller.dispose();
+    }
     _autoScrollTimer?.cancel();
     _searchController.dispose();
     _carouselController.dispose();
     super.dispose();
   }
 
+  Future<void> _fetchAds() async {
+    setState(() {
+      _adsLoading = true;
+      _adsError = null;
+    });
+
+    try {
+      final ads = await _publicidadService.getMyAds();
+      debugPrint('📡 HOME ads fetched: ${ads.length}');
+      for (var (idx, ad) in ads.indexed) {
+        debugPrint(
+          '   [$idx] mediaUrl="${ad.mediaUrl}" type="${ad.mediaType}" desc="${ad.description}"',
+        );
+      }
+      setState(() {
+        _ads = ads.where((a) => a.mediaUrl.isNotEmpty).toList();
+        _currentCarouselPage = 0;
+        _adsLoading = false;
+      });
+      if (_carouselController.hasClients && _ads.isNotEmpty) {
+        _carouselController.jumpToPage(0);
+      }
+      _restartAutoScroll();
+    } catch (e) {
+      setState(() {
+        _adsError = 'No se pudieron cargar las publicidades: $e';
+        _adsLoading = false;
+      });
+    }
+  }
+
+  void _restartAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _startAutoScroll();
+  }
+
   void _handleSearch(String query) {
     debugPrint('Buscando: $query');
     // Aquí puedes agregar la lógica de búsqueda
+  }
+
+  bool _isVideoUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.m3u8');
+  }
+
+  String _resolveUrl(String raw) {
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      // URL-encode espacios y caracteres especiales en URLs https
+      return Uri.encodeFull(raw);
+    }
+    final base = ApiConfig.baseUrl;
+    // Remove trailing '/api' to serve static files if needed.
+    final baseUri = Uri.parse(base);
+    final path = baseUri.path.replaceFirst(RegExp(r'/api/?$'), '');
+    final joined = Uri(
+      scheme: baseUri.scheme,
+      host: baseUri.host,
+      port: baseUri.port,
+      path: raw.startsWith('/') ? raw : '$path/$raw',
+    );
+    return joined.toString();
+  }
+
+  Future<VideoPlayerController> _ensureVideoController(int index, String url) {
+    if (_videoControllers.containsKey(index)) {
+      return Future.value(_videoControllers[index]!);
+    }
+
+    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    _videoControllers[index] = controller;
+    final init = controller.initialize().then((_) {
+      controller.setLooping(true);
+      controller.play();
+      return controller;
+    });
+    _videoInitFutures[index] = init;
+    return init;
+  }
+
+  Widget _buildMedia(Publicidad ad, int index) {
+    final resolvedUrl = _resolveUrl(ad.mediaUrl);
+    debugPrint(
+      '🖼️ Render media idx=$index raw="${ad.mediaUrl}" resolved="$resolvedUrl" type="${ad.mediaType}"',
+    );
+
+    if (_isVideoUrl(resolvedUrl) || ad.isVideo) {
+      final initFuture = _ensureVideoController(index, resolvedUrl);
+      return FutureBuilder<VideoPlayerController>(
+        future: initFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done ||
+              !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final controller = snapshot.data!;
+          return Center(
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: controller.value.size.width,
+                height: controller.value.size.height,
+                child: VideoPlayer(controller),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: resolvedUrl,
+      fit: BoxFit.contain,
+      placeholder: (context, url) =>
+          const Center(child: CircularProgressIndicator()),
+      errorWidget: (context, url, error) {
+        debugPrint('❌ Image load error for $url: $error');
+        return const Center(child: Icon(Icons.broken_image));
+      },
+    );
+  }
+
+  Widget _buildAdCard(
+    Publicidad ad,
+    int index,
+    Color primaryGreen,
+    Color textColor,
+  ) {
+    return AnimatedContainer(
+      duration: AppConstants.shortDelay,
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(19),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildMedia(ad, index),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '${index + 1}/${_ads.length}',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderCard(int index, Color primaryGreen, Color textColor) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(_getPromoIcon(index), size: 48, color: primaryGreen),
+                const SizedBox(height: 8),
+                Text(
+                  _getPromoTitle(index),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Próximamente',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: textColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: primaryGreen,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${index + 1}/5',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -133,200 +389,179 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SearchBarWidget(
+            controller: _searchController,
+            onSearch: _handleSearch,
+            placeholder: '¿Qué estás buscando?',
+          ),
+        ),
+        // Carrusel de promociones - ocupa casi toda la pantalla
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                SearchBarWidget(
-                  controller: _searchController,
-                  onSearch: _handleSearch,
-                  placeholder: '¿Qué estás buscando?',
-                ),
-                const SizedBox(height: 16),
-                // Botón del juego con logo
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const GameScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+          child: RepaintBoundary(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Column(
+                children: [
+                  // Header con información de la publicidad actual
+                  if (_ads.isNotEmpty && !_adsLoading)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Texto/Descripción
+                          Text(
+                            _ads[_currentCarouselPage].description ??
+                                'Publicidad',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                              height: 1.4,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 1.5,
+                            color: primaryGreen.withValues(alpha: 0.3),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          'assets/images/pixel_logo.png',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.home,
-                          size: 80,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'HOME',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Carrusel de promociones
-        RepaintBoundary(
-          child: Container(
-            height: 180,
-            margin: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView.builder(
-                    controller: _carouselController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentCarouselPage = index;
-                      });
-                    },
-                    itemCount: 5,
-                    itemBuilder: (context, index) {
-                      return AnimatedContainer(
-                        duration: AppConstants.shortDelay,
-                        curve: Curves.easeInOut,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryGreen.withValues(alpha: 0.3),
-                              primaryGreen.withValues(alpha: 0.1),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: primaryGreen.withValues(alpha: 0.5),
-                            width: 2,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Stack(
-                            children: [
-                              // Contenido del placeholder
-                              Center(
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _carouselController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentCarouselPage = index;
+                        });
+                      },
+                      itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                      itemBuilder: (context, index) {
+                        if (_adsLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        if (_adsError != null) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      _getPromoIcon(index),
-                                      size: 48,
-                                      color: primaryGreen,
+                                    const Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 36,
+                                      color: Colors.orange,
                                     ),
                                     const SizedBox(height: 8),
-                                    Text(
-                                      _getPromoTitle(index),
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: textColor,
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      child: Text(
+                                        _adsError!,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Próximamente',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: textColor.withValues(alpha: 0.7),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton.icon(
+                                      onPressed: _fetchAds,
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('Reintentar'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryGreen,
+                                        foregroundColor: Colors.black,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              // Badge de número
-                              Positioned(
-                                top: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: primaryGreen,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${index + 1}/5',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                          );
+                        }
+
+                        if (_ads.isNotEmpty) {
+                          final ad = _ads[index];
+                          debugPrint(
+                            '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
+                          );
+                          return _buildAdCard(
+                            ad,
+                            index,
+                            primaryGreen,
+                            textColor,
+                          );
+                        }
+
+                        // Placeholder cuando no hay publicidades
+                        return AnimatedContainer(
+                          duration: AppConstants.shortDelay,
+                          curve: Curves.easeInOut,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                primaryGreen.withValues(alpha: 0.3),
+                                primaryGreen.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: primaryGreen.withValues(alpha: 0.5),
+                              width: 2,
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                          child: _buildPlaceholderCard(
+                            index,
+                            primaryGreen,
+                            textColor,
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                // Indicadores de página
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    5,
-                    (index) => Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentCarouselPage == index ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _currentCarouselPage == index
-                            ? primaryGreen
-                            : primaryGreen.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(4),
+                  const SizedBox(height: 16),
+                  // Indicadores de página
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _ads.isNotEmpty ? _ads.length : 1,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
+                        width: _currentCarouselPage == index ? 32 : 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: _currentCarouselPage == index
+                              ? primaryGreen
+                              : primaryGreen.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

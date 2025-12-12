@@ -20,6 +20,7 @@ dependencies:
   flutter_html: ^3.0.0-beta.2
   cached_network_image: ^3.3.0
   flame: ^1.34.0
+  video_player: ^2.9.1
 
 dev_dependencies:
   flutter_test:
@@ -40,7 +41,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/games/boombet_shooter/sprites/
-    - assets/games/boombet_shooter/sprites/player/
-    - assets/games/boombet_shooter/sprites/enemies/
-    - assets/games/boombet_shooter/sprites/powerups/

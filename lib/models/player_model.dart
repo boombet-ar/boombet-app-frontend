@@ -43,6 +43,15 @@ class PlayerData {
 
   /// Factory para parsear desde el endpoint /auth/userData (datosJugador)
   factory PlayerData.fromJugadorJson(Map<String, dynamic> json) {
+    // Compatibilidad de claves: algunos backends envían num_calle en lugar de numcalle, cuit/cuil, etc.
+    final calle = (json['calle'] ?? '').toString();
+    final numCalleFromUnderscore = json['num_calle'] ?? json['numcalle'];
+    final numCalle = numCalleFromUnderscore?.toString() ?? '';
+
+    final direccionCompleta = (calle.isNotEmpty || numCalle.isNotEmpty)
+        ? ('$calle ${numCalle.isNotEmpty ? numCalle : ''}').trim()
+        : '';
+
     return PlayerData(
       nombre: json['nombre'] ?? '',
       apellido: json['apellido'] ?? '',
@@ -51,17 +60,17 @@ class PlayerData {
       sexo: json['genero'] ?? '',
       fechaNacimiento: json['fecha_nacimiento'] ?? '',
       username: json['username'] ?? '',
-      // campos no usados en la vista:
-      cuil: json['cuit'] ?? '',
+      // campos no usados directamente en la vista (se mantienen por compatibilidad):
+      cuil: json['cuit'] ?? json['cuil'] ?? '',
       dni: json['dni'] ?? '',
       estadoCivil: json['est_civil'] ?? '',
-      direccionCompleta: '',
-      calle: json['calle'] ?? '',
-      numCalle: json['numcalle'] ?? '',
+      direccionCompleta: direccionCompleta,
+      calle: calle,
+      numCalle: numCalle,
       localidad: json['ciudad'] ?? '',
       provincia: json['provincia'] ?? '',
       anioNacimiento: '',
-      cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp']}'),
+      cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp'] ?? ''}'),
       edad: null,
     );
   }
