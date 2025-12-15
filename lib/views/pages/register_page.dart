@@ -1524,29 +1524,33 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       return 'La contraseña no debe tener caracteres repetidos consecutivos';
     }
 
-    // Detectar secuencias numéricas ascendentes/descendentes (123, 321, etc.)
-    for (int i = 0; i < password.length - 2; i++) {
-      if (RegExp(r'[0-9]').hasMatch(password[i]) &&
-          RegExp(r'[0-9]').hasMatch(password[i + 1]) &&
-          RegExp(r'[0-9]').hasMatch(password[i + 2])) {
-        int n1 = int.parse(password[i]);
-        int n2 = int.parse(password[i + 1]);
-        int n3 = int.parse(password[i + 2]);
-        if ((n2 == n1 + 1 && n3 == n2 + 1) || (n2 == n1 - 1 && n3 == n2 - 1)) {
+    // Detectar secuencias numéricas ascendentes/descendentes (dos o más: 78, 87, 123, 321, etc.)
+    for (int i = 0; i < password.length - 1; i++) {
+      final a = password[i];
+      final b = password[i + 1];
+      if (RegExp(r'[0-9]').hasMatch(a) && RegExp(r'[0-9]').hasMatch(b)) {
+        final n1 = int.parse(a);
+        final n2 = int.parse(b);
+        if ((n2 - n1 == 1) || (n1 - n2 == 1)) {
           return 'La contraseña no debe tener secuencias numéricas';
         }
       }
     }
 
-    // Detectar secuencias alfabéticas (abc, xyz, cba, zyx, etc.)
+    // Detectar secuencias alfabéticas ascendentes/descendentes solo si son 3+ seguidas (abc, cba)
     for (int i = 0; i < password.length - 2; i++) {
-      if (RegExp(r'[a-zA-Z]').hasMatch(password[i]) &&
-          RegExp(r'[a-zA-Z]').hasMatch(password[i + 1]) &&
-          RegExp(r'[a-zA-Z]').hasMatch(password[i + 2])) {
-        int c1 = password[i].toLowerCase().codeUnitAt(0);
-        int c2 = password[i + 1].toLowerCase().codeUnitAt(0);
-        int c3 = password[i + 2].toLowerCase().codeUnitAt(0);
-        if ((c2 == c1 + 1 && c3 == c2 + 1) || (c2 == c1 - 1 && c3 == c2 - 1)) {
+      final a = password[i];
+      final b = password[i + 1];
+      final c = password[i + 2];
+      if (RegExp(r'[a-zA-Z]').hasMatch(a) &&
+          RegExp(r'[a-zA-Z]').hasMatch(b) &&
+          RegExp(r'[a-zA-Z]').hasMatch(c)) {
+        final c1 = a.toLowerCase().codeUnitAt(0);
+        final c2 = b.toLowerCase().codeUnitAt(0);
+        final c3 = c.toLowerCase().codeUnitAt(0);
+        final bool asc = (c2 - c1 == 1) && (c3 - c2 == 1);
+        final bool desc = (c1 - c2 == 1) && (c2 - c3 == 1);
+        if (asc || desc) {
           return 'La contraseña no debe tener secuencias de letras';
         }
       }

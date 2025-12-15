@@ -37,13 +37,40 @@ class PasswordValidationService {
     return RegExp(AppConstants.sequencePattern).hasMatch(password);
   }
 
-  /// Detecta secuencias comunes (abc, 123, etc.)
+  /// Detecta secuencias: dígitos (2+ asc/desc) y letras (3+ asc/desc)
   static bool hasSequence(String password) {
-    return RegExp(
-      r'(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)',
-      caseSensitive: false,
-    ).hasMatch(password);
+    if (password.length < 2) return false;
+
+    for (int i = 0; i < password.length - 1; i++) {
+      final String a = password[i];
+      final String b = password[i + 1];
+
+      // Números consecutivos (asc o desc)
+      if (_isDigit(a) && _isDigit(b)) {
+        final int d1 = a.codeUnitAt(0);
+        final int d2 = b.codeUnitAt(0);
+        if ((d2 - d1 == 1) || (d1 - d2 == 1)) return true;
+      }
+
+      // Letras consecutivas (asc o desc) pero solo si son 3+ seguidas
+      if (_isLetter(a) && _isLetter(b) && i < password.length - 2) {
+        final String c = password[i + 2];
+        if (_isLetter(c)) {
+          final int c1 = a.toLowerCase().codeUnitAt(0);
+          final int c2 = b.toLowerCase().codeUnitAt(0);
+          final int c3 = c.toLowerCase().codeUnitAt(0);
+          final bool asc = (c2 - c1 == 1) && (c3 - c2 == 1);
+          final bool desc = (c1 - c2 == 1) && (c2 - c3 == 1);
+          if (asc || desc) return true;
+        }
+      }
+    }
+
+    return false;
   }
+
+  static bool _isDigit(String c) => RegExp(r'^[0-9]$').hasMatch(c);
+  static bool _isLetter(String c) => RegExp(r'^[a-zA-Z]$').hasMatch(c);
 
   /// Retorna un mapa con el estado de cada validación
   static Map<String, bool> getValidationStatus(String password) {

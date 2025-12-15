@@ -3,6 +3,8 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final Map<String, TextEditingController> _c = {};
   bool _loading = false;
+  bool _isUnaffiliating = false;
 
   @override
   void initState() {
@@ -53,6 +56,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _showError(String msg) {
+    debugPrint('[UNAFFILIATE][UI] showError: $msg');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: Colors.white)),
@@ -261,6 +265,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
 
             const SizedBox(height: 20),
+
+            // Botón de desafiliación
+            SizedBox(
+              height: 52,
+              child: OutlinedButton(
+                onPressed: _loading ? null : _showUnaffiliateDialog,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.red.shade500, width: 1.5),
+                  foregroundColor: Colors.red.shade600,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded),
+                    SizedBox(width: 10),
+                    Text(
+                      'Desafiliarse',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -328,5 +363,158 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       ),
     );
+  }
+
+  // ------------------------
+  // DESAFILIACIÓN
+  // ------------------------
+
+  void _showUnaffiliateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final bg = isDark
+            ? const Color(0xFF1A1A1A)
+            : AppConstants.lightDialogBg;
+        final textColor = theme.colorScheme.onSurface;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 20),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 48,
+                  color: Colors.red.shade600,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Desafiliarse de Boombet',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Esto realiza una baja lógica: te desafiliamos de Boombet, pero no de los casinos asociados.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.8),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogCtx).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.grey.shade500),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isUnaffiliating
+                              ? null
+                              : _handleUnaffiliateConfirm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isUnaffiliating
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Sí, desafiliarme'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleUnaffiliateConfirm() async {
+    print('[UNAFFILIATE] start confirm');
+    if (!mounted) {
+      print('[UNAFFILIATE] not mounted, abort');
+      return;
+    }
+    setState(() => _isUnaffiliating = true);
+    Navigator.of(context, rootNavigator: true).pop(); // cerrar diálogo
+
+    try {
+      await PlayerService().unaffiliateCurrentUser();
+
+      if (!mounted) {
+        print('[UNAFFILIATE] not mounted after service');
+        return;
+      }
+
+      print('[UNAFFILIATE] success, navigating to result page');
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const UnaffiliateResultPage()),
+        (route) => false,
+      );
+    } catch (e) {
+      print('[UNAFFILIATE] exception: $e');
+      if (!mounted) return;
+      _showError('Error al procesar la desafiliación: $e');
+    }
+
+    if (mounted) {
+      setState(() => _isUnaffiliating = false);
+    }
   }
 }

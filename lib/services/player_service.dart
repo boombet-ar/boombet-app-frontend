@@ -4,6 +4,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/token_service.dart';
 
 class PlayerService {
   Future<PlayerData> getPlayerData(String idJugador) async {
@@ -42,5 +43,20 @@ class PlayerService {
     } else {
       throw Exception("Error ${response.statusCode}: ${response.body}");
     }
+  }
+
+  Future<void> unaffiliateCurrentUser() async {
+    final url = "${ApiConfig.baseUrl}/users/me";
+    log("DELETE → $url");
+
+    final response = await HttpClient.delete(url, includeAuth: true);
+    log("RESP → ${response.statusCode} ${response.body}");
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      await TokenService.deleteToken();
+      return;
+    }
+
+    throw Exception("Error ${response.statusCode}: ${response.body}");
   }
 }

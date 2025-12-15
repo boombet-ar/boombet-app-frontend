@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
@@ -96,6 +95,11 @@ class _HomeContentState extends State<HomeContent> {
   final PublicidadService _publicidadService = PublicidadService();
   final Map<int, VideoPlayerController> _videoControllers = {};
   final Map<int, Future<void>> _videoInitFutures = {};
+  final Map<String, Future<bool>> _mediaTypeCache = {};
+  late final HttpClient _mediaHttpClient;
+  final Set<int> _videoListenerAttached = {};
+  final Map<int, Timer> _videoEndTimers = {};
+  static const Duration _videoAdvanceDelay = Duration(seconds: 3);
 
   int _currentCarouselPage = 0;
   Timer? _autoScrollTimer;
@@ -106,8 +110,7 @@ class _HomeContentState extends State<HomeContent> {
   @override
   void initState() {
     super.initState();
-    // Auto-scroll del carrusel cada 30 segundos
-    _startAutoScroll();
+    _mediaHttpClient = HttpClient();
     _fetchAds();
   }
 
@@ -134,6 +137,10 @@ class _HomeContentState extends State<HomeContent> {
     _autoScrollTimer?.cancel();
     _searchController.dispose();
     _carouselController.dispose();
+    _mediaHttpClient.close(force: true);
+    _videoListenerAttached.clear();
+    _videoEndTimers.values.forEach((timer) => timer.cancel());
+    _videoEndTimers.clear();
     super.dispose();
   }
 
@@ -160,6 +167,10 @@ class _HomeContentState extends State<HomeContent> {
         _carouselController.jumpToPage(0);
       }
       _restartAutoScroll();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_preloadVideoAds());
+        unawaited(_prepareVideoForPage(0));
+      });
     } catch (e) {
       setState(() {
         _adsError = 'No se pudieron cargar las publicidades: $e';
@@ -185,10 +196,118 @@ class _HomeContentState extends State<HomeContent> {
         lower.endsWith('.m3u8');
   }
 
+  bool _shouldTreatAsVideo(Publicidad ad, String resolvedUrl) {
+    final mediaType = ad.mediaType?.toUpperCase() ?? '';
+    return ad.isVideo ||
+        mediaType.contains('VIDEO') ||
+        _isVideoUrl(resolvedUrl);
+  }
+
+  Future<void> _preloadVideoAds() async {
+    if (_ads.isEmpty) return;
+    debugPrint('[AD VIDEO] Preload start for ${_ads.length} ads');
+    for (final entry in _ads.indexed) {
+      final index = entry.$1;
+      final ad = entry.$2;
+      final resolvedUrl = _resolveUrl(ad.mediaUrl);
+      final shouldVideo = _shouldTreatAsVideo(ad, resolvedUrl);
+      if (!shouldVideo) continue;
+      final isVideo = await _resolveMediaType(resolvedUrl, shouldVideo);
+      if (!isVideo) {
+        debugPrint(
+          '[AD VIDEO] Preload skip idx=$index url=$resolvedUrl (not detected as video)',
+        );
+        continue;
+      }
+      unawaited(_initAndPauseVideo(index, resolvedUrl));
+    }
+  }
+
+  Future<void> _initAndPauseVideo(int index, String url) async {
+    try {
+      final controller = await _ensureVideoController(index, url);
+      if (!controller.value.isInitialized) return;
+      await controller.pause();
+      await controller.seekTo(Duration.zero);
+      debugPrint('[AD VIDEO] Preloaded idx=$index and paused at start');
+    } catch (e) {
+      debugPrint('[AD VIDEO] Preload failed idx=$index url=$url error=$e');
+    }
+  }
+
+  Future<void> _prepareVideoForPage(int index) async {
+    if (_ads.isEmpty || index < 0 || index >= _ads.length) return;
+    final ad = _ads[index];
+    final resolvedUrl = _resolveUrl(ad.mediaUrl);
+    if (!_shouldTreatAsVideo(ad, resolvedUrl)) return;
+    _autoScrollTimer?.cancel(); // don't count time while video readies
+    try {
+      final controller = await _ensureVideoController(index, resolvedUrl);
+      if (!controller.value.isInitialized) return;
+      await controller.seekTo(Duration.zero);
+      controller.play();
+      _cancelVideoEndTimer(index);
+      _restartAutoScroll();
+      debugPrint('[AD VIDEO] Play on enter idx=$index');
+    } catch (error) {
+      debugPrint('❌ Preparing video page $index failed: $error');
+    }
+  }
+
+  void _advanceCarouselAfterVideo(int index) {
+    if (!_carouselController.hasClients || _ads.isEmpty) return;
+    final nextPage = (index + 1) % _ads.length;
+    _carouselController.animateToPage(
+      nextPage,
+      duration: AppConstants.mediumDelay,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _handleVideoValueChange(int index, VideoPlayerController controller) {
+    final value = controller.value;
+    if (!value.isInitialized) return;
+    if (_currentCarouselPage != index) {
+      return;
+    }
+    final duration = value.duration;
+    if (duration == Duration.zero) return;
+    final isNearEnd =
+        value.position >= duration - const Duration(milliseconds: 250);
+    if (isNearEnd && !_videoEndTimers.containsKey(index)) {
+      debugPrint('[AD VIDEO] End detected idx=$index scheduling advance');
+      _videoEndTimers[index] = Timer(_videoAdvanceDelay, () {
+        _videoEndTimers.remove(index);
+        if (_currentCarouselPage != index) return;
+        _advanceCarouselAfterVideo(index);
+      });
+      unawaited(
+        controller.seekTo(Duration.zero).then((_) => controller.play()),
+      );
+    }
+  }
+
+  void _cancelVideoEndTimer(int index) {
+    final timer = _videoEndTimers.remove(index);
+    timer?.cancel();
+  }
+
+  Future<void> _pauseAndResetVideo(int index) async {
+    final controller = _videoControllers[index];
+    if (controller == null) return;
+    try {
+      await controller.pause();
+      await controller.seekTo(Duration.zero);
+      debugPrint('[AD VIDEO] Pause+reset idx=$index');
+    } catch (e) {
+      debugPrint('[AD VIDEO] Pause+reset failed idx=$index error=$e');
+    }
+  }
+
   String _resolveUrl(String raw) {
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      // URL-encode espacios y caracteres especiales en URLs https
-      return Uri.encodeFull(raw);
+      // Reemplazar espacios con %20 directamente para URLs de Azure
+      return raw.replaceAll(' ', '%20');
     }
     final base = ApiConfig.baseUrl;
     // Remove trailing '/api' to serve static files if needed.
@@ -203,60 +322,142 @@ class _HomeContentState extends State<HomeContent> {
     return joined.toString();
   }
 
+  Future<bool> _fetchRemoteMediaIsVideo(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final request = await _mediaHttpClient.headUrl(uri);
+      final response = await request.close();
+      final contentType = response.headers.contentType;
+      final isVideo = contentType?.primaryType == 'video';
+      debugPrint(
+        '🌐 Media HEAD ${url} contentType=${contentType?.mimeType} -> isVideo=$isVideo',
+      );
+      return isVideo;
+    } catch (e) {
+      debugPrint('⚠️ Failed to fetch media HEAD for $url: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _resolveMediaType(String url, bool fallbackVideo) {
+    return _mediaTypeCache.putIfAbsent(url, () async {
+      if (_isLikelyVideoFromUrl(url)) {
+        debugPrint('🎯 Forced video based on URL pattern: $url');
+        return true;
+      }
+      final isVideo = await _fetchRemoteMediaIsVideo(url);
+      return isVideo || fallbackVideo;
+    });
+  }
+
+  bool _isLikelyVideoFromUrl(String url) {
+    try {
+      final path = Uri.parse(url).path.toLowerCase();
+      return path.endsWith('.mp4');
+    } catch (_) {
+      return url.toLowerCase().endsWith('.mp4');
+    }
+  }
+
   Future<VideoPlayerController> _ensureVideoController(int index, String url) {
-    if (_videoControllers.containsKey(index)) {
-      return Future.value(_videoControllers[index]!);
+    final existing = _videoControllers[index];
+    final existingInit = _videoInitFutures[index];
+    if (existing != null) {
+      if (existingInit != null && !existing.value.isInitialized) {
+        debugPrint('[AD VIDEO] Awaiting existing init idx=$index');
+        return existingInit.then((_) => existing);
+      }
+      return Future.value(existing);
     }
 
+    debugPrint('🎥 Initializing video controller for index=$index url=$url');
     final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    if (_videoListenerAttached.add(index)) {
+      controller.addListener(() {
+        _handleVideoValueChange(index, controller);
+      });
+    }
     _videoControllers[index] = controller;
-    final init = controller.initialize().then((_) {
-      controller.setLooping(true);
-      controller.play();
-      return controller;
-    });
+    final init = controller
+        .initialize()
+        .then((_) {
+          debugPrint(
+            '✅ Video initialized successfully for index=$index duration=${controller.value.duration}',
+          );
+          controller.setLooping(false);
+          controller.pause();
+          return controller;
+        })
+        .catchError((error) {
+          debugPrint('❌ Video initialization error for index=$index: $error');
+          throw error;
+        });
     _videoInitFutures[index] = init;
     return init;
   }
 
   Widget _buildMedia(Publicidad ad, int index) {
     final resolvedUrl = _resolveUrl(ad.mediaUrl);
+    final fallbackVideo = _shouldTreatAsVideo(ad, resolvedUrl);
     debugPrint(
-      '🖼️ Render media idx=$index raw="${ad.mediaUrl}" resolved="$resolvedUrl" type="${ad.mediaType}"',
+      '🖼️ Render media idx=$index raw="${ad.mediaUrl}" resolved="$resolvedUrl" type="${ad.mediaType}" fallbackVideo=$fallbackVideo',
     );
 
-    if (_isVideoUrl(resolvedUrl) || ad.isVideo) {
-      final initFuture = _ensureVideoController(index, resolvedUrl);
-      return FutureBuilder<VideoPlayerController>(
-        future: initFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done ||
-              !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final controller = snapshot.data!;
-          return Center(
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: SizedBox(
-                width: controller.value.size.width,
-                height: controller.value.size.height,
-                child: VideoPlayer(controller),
-              ),
-            ),
-          );
-        },
-      );
-    }
+    return FutureBuilder<bool>(
+      future: _resolveMediaType(resolvedUrl, fallbackVideo),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done ||
+            !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final isVideo = snapshot.data!;
+        if (isVideo) {
+          return _buildVideoWidget(resolvedUrl, index);
+        }
+        return CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          fit: BoxFit.contain,
+          placeholder: (context, url) =>
+              const Center(child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) {
+            debugPrint('❌ Image load error for $url: $error');
+            return const Center(child: Icon(Icons.broken_image));
+          },
+        );
+      },
+    );
+  }
 
-    return CachedNetworkImage(
-      imageUrl: resolvedUrl,
-      fit: BoxFit.contain,
-      placeholder: (context, url) =>
-          const Center(child: CircularProgressIndicator()),
-      errorWidget: (context, url, error) {
-        debugPrint('❌ Image load error for $url: $error');
-        return const Center(child: Icon(Icons.broken_image));
+  Widget _buildVideoWidget(String url, int index) {
+    final initFuture = _ensureVideoController(index, url);
+    return FutureBuilder<VideoPlayerController>(
+      future: initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done ||
+            !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final controller = snapshot.data!;
+        if (_currentCarouselPage == index && controller.value.isInitialized) {
+          // Ensure playback starts even if init finished after page became visible.
+          unawaited(
+            controller.seekTo(Duration.zero).then((_) {
+              controller.play();
+              debugPrint('[AD VIDEO] Auto-play from builder idx=$index');
+              _restartAutoScroll();
+            }),
+          );
+        }
+        return Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: controller.value.size.width,
+              height: controller.value.size.height,
+              child: VideoPlayer(controller),
+            ),
+          ),
+        );
       },
     );
   }
@@ -436,9 +637,13 @@ class _HomeContentState extends State<HomeContent> {
                     child: PageView.builder(
                       controller: _carouselController,
                       onPageChanged: (index) {
+                        final previousIndex = _currentCarouselPage;
                         setState(() {
                           _currentCarouselPage = index;
                         });
+                        _cancelVideoEndTimer(previousIndex);
+                        unawaited(_pauseAndResetVideo(previousIndex));
+                        unawaited(_prepareVideoForPage(index));
                       },
                       itemCount: _ads.isNotEmpty ? _ads.length : 1,
                       itemBuilder: (context, index) {

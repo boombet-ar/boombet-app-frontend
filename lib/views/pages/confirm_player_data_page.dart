@@ -44,6 +44,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   late TextEditingController _sexoController;
 
   bool _isLoading = false;
+  String? _selectedGenero;
+  final List<String> _generOptions = ['Masculino', 'Femenino'];
 
   String _normalizarGenero(String genero) {
     if (genero == 'M') return 'Masculino';
@@ -62,6 +64,11 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _telefonoController = TextEditingController(text: data.telefono);
     _estadoCivilController = TextEditingController(text: data.estadoCivil);
     _sexoController = TextEditingController(text: data.sexo);
+
+    final generoNormalizado = _normalizarGenero(data.sexo);
+    if (_generOptions.contains(generoNormalizado)) {
+      _selectedGenero = generoNormalizado;
+    }
   }
 
   @override
@@ -77,6 +84,71 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
   Future<void> _onConfirmarDatos() async {
     if (_isLoading) return; // Prevenir doble tap
+
+    // Validar Nombre
+    final nombre = _nombreController.text.trim();
+    if (nombre.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, ingresa tu nombre.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (nombre.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El nombre debe tener al menos 2 caracteres.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar Apellido
+    final apellido = _apellidoController.text.trim();
+    if (apellido.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, ingresa tu apellido.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (apellido.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El apellido debe tener al menos 2 caracteres.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar Género
+    if (_selectedGenero == null || _selectedGenero!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, selecciona tu género.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar Estado Civil
+    final estadoCivil = _estadoCivilController.text.trim();
+    if (estadoCivil.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, ingresa tu estado civil.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     // Validar formato de email
     final email = _correoController.text.trim();
@@ -117,7 +189,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         correoElectronico: email,
         telefono: telefono,
         estadoCivil: _estadoCivilController.text.trim(),
-        sexo: _sexoController.text.trim(),
+        sexo: _selectedGenero ?? '',
       );
 
       debugPrint('PASO 1: Preparando payload para /register...');
@@ -130,7 +202,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           'apellido': updatedData.apellido,
           'email': email,
           'telefono': telefono,
-          'genero': _normalizarGenero(widget.genero),
+          'genero': _selectedGenero ?? 'Masculino',
           'dni': widget.dni,
           'cuit': updatedData.cuil,
           'calle': updatedData.calle,
@@ -380,7 +452,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
             _buildEditableField(context, 'Nombre', _nombreController),
             _buildEditableField(context, 'Apellido', _apellidoController),
-            _buildEditableField(context, 'Sexo', _sexoController),
+            _buildGeneroDropdown(context),
             _buildEditableField(
               context,
               'Estado Civil',
@@ -562,6 +634,75 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: focusedBorderColor, width: 2),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Construir dropdown de género
+  Widget _buildGeneroDropdown(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    final fillColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : AppConstants.lightInputBg;
+    final textColor = isDark ? Colors.white : AppConstants.lightLabelText;
+    final labelColor = isDark ? Colors.white70 : AppConstants.lightLabelText;
+    final borderColor = isDark ? primaryGreen : AppConstants.lightInputBorder;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Semantics(
+        label: 'Campo de Sexo',
+        hint: 'Puedes seleccionar tu sexo',
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Sexo',
+            labelStyle: TextStyle(color: labelColor),
+            filled: true,
+            fillColor: fillColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 6,
+            ),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedGenero,
+            hint: Text(
+              'Selecciona tu sexo',
+              style: TextStyle(color: labelColor),
+            ),
+            isExpanded: true,
+            underline: const SizedBox(),
+            dropdownColor: fillColor,
+            style: TextStyle(color: textColor, fontSize: 16),
+            items: _generOptions.map((String genero) {
+              return DropdownMenuItem<String>(
+                value: genero,
+                child: Text(genero),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedGenero = newValue;
+                });
+              }
+            },
           ),
         ),
       ),

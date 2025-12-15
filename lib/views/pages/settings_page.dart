@@ -1,6 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/views/pages/error_testing_page.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/forget_password_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
@@ -175,40 +174,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Accesibilidad - Contraste
-              Card(
-                color: surfaceColor,
-                child: SwitchListTile(
-                  secondary: Icon(
-                    Icons.contrast,
-                    color: AppConstants.primaryGreen,
-                  ),
-                  title: const Text('Modo de Alto Contraste'),
-                  subtitle: const Text('Mejora la legibilidad del texto'),
-                  value: false,
-                  activeThumbColor: AppConstants.primaryGreen,
-                  onChanged: (value) {},
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Accesibilidad - Animaciones
-              Card(
-                color: surfaceColor,
-                child: SwitchListTile(
-                  secondary: Icon(
-                    Icons.animation,
-                    color: AppConstants.primaryGreen,
-                  ),
-                  title: const Text('Reducir Animaciones'),
-                  subtitle: const Text('Desactiva efectos visuales'),
-                  value: false,
-                  activeThumbColor: AppConstants.primaryGreen,
-                  onChanged: (value) {},
-                ),
-              ),
               const SizedBox(height: 24),
 
               // Sección: Información y Soporte
@@ -244,21 +209,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Versión 1.0.0',
                 onTap: () {
                   _showAboutDialog(context);
-                },
-                surfaceColor: surfaceColor,
-              ),
-              _buildSettingsTile(
-                context: context,
-                icon: Icons.bug_report,
-                title: '🧪 Testing de Errores HTTP',
-                subtitle: 'Probar sistema de manejo de errores',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ErrorTestingPage(),
-                    ),
-                  );
                 },
                 surfaceColor: surfaceColor,
               ),

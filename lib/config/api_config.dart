@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  static String customUrl = '';
+  // URL del backend en Azure (incluye /api)
+  static String customUrl =
+      'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
   // Variables de Bonda API desde docker-compose
   // Nada de esto tiene que estar aca, levantar de docker-compose
   static String apiKey =
