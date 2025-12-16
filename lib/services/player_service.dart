@@ -22,11 +22,8 @@ class PlayerService {
     }
   }
 
-  Future<PlayerData> updatePlayerData(
-    String idJugador,
-    PlayerUpdateRequest data,
-  ) async {
-    final url = "${ApiConfig.baseUrl}/jugadores/update/$idJugador";
+  Future<PlayerData> updatePlayerData(PlayerUpdateRequest data) async {
+    final url = "${ApiConfig.baseUrl}/jugadores/update";
 
     log("PATCH → $url");
     log("BODY → ${data.toJson()}");
@@ -36,6 +33,8 @@ class PlayerService {
       body: data.toJson(),
       includeAuth: true,
     );
+
+    log("RESP PATCH ${response.statusCode} → ${response.body}");
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);

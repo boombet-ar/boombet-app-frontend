@@ -73,23 +73,8 @@ class NavbarWidget extends StatelessWidget {
                   ),
                   NavigationDestination(
                     icon: Icon(
-                      Icons.check_circle_outline,
-                      color: selectedPage == 2
-                          ? selectedColor
-                          : unselectedColor,
-                      size: 26,
-                    ),
-                    selectedIcon: Icon(
-                      Icons.check_circle,
-                      color: selectedColor,
-                      size: 26,
-                    ),
-                    label: "Reclamados",
-                  ),
-                  NavigationDestination(
-                    icon: Icon(
                       Icons.card_giftcard_outlined,
-                      color: selectedPage == 3
+                      color: selectedPage == 2
                           ? selectedColor
                           : unselectedColor,
                       size: 26,
@@ -104,7 +89,7 @@ class NavbarWidget extends StatelessWidget {
                   NavigationDestination(
                     icon: Icon(
                       Icons.forum_outlined,
-                      color: selectedPage == 4
+                      color: selectedPage == 3
                           ? selectedColor
                           : unselectedColor,
                       size: 26,

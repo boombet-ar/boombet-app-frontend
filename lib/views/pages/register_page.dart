@@ -385,7 +385,7 @@ class _RegisterPageState extends State<RegisterPage> {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       if (!mounted) return;
 
@@ -1304,7 +1304,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       if (!mounted) return;
 

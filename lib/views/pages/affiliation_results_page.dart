@@ -90,6 +90,38 @@ class AffiliationResultsPage extends StatelessWidget {
 
               const SizedBox(height: 32),
 
+              // Aviso de verificación por correo
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.6),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.mail_outline, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Para activar completamente cada una de tus cuentas, debés ingresar al correo electrónico que te ha enviado cada casino al que fuiste afiliado. Dentro de ese email, encontrarás un enlace de verificación o confirmación necesario para finalizar el registro.',
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.9),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Resumen de afiliaciones
               Container(
                 padding: const EdgeInsets.all(20),

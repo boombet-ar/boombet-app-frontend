@@ -209,12 +209,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-//A LA HORA DE TESTEAR COSAS CON EL MAIL
-//REINSTALAR APP
-//flutter pub get
-//flutter clean
-//flutter build apk
-//adb uninstall com.boombet.app
-//flutter install
-//Y ABRIR EMULADOR CON COLD BOOT

@@ -5,6 +5,58 @@ import 'dart:developer' as developer;
 import 'dart:convert';
 
 class CuponesService {
+  static Future<Map<String, dynamic>> afiliarAfiliado({
+    String? apiKey,
+    String? micrositioId,
+    String? codigoAfiliado,
+  }) async {
+    try {
+      final key = apiKey ?? ApiConfig.apiKey;
+      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
+      final affiliate = codigoAfiliado ?? ApiConfig.codigoAfiliado;
+
+      developer.log(
+        'DEBUG CuponesService - Afiliando a Bonda (key: $key, microId: $microId, affiliate: $affiliate)',
+      );
+
+      final url = '${ApiConfig.baseUrl}/cupones/afiliado';
+      developer.log('DEBUG CuponesService - URL: $url');
+
+      final response = await HttpClient.post(
+        url,
+        body: {
+          'key': key,
+          'micrositio_id': microId,
+          'codigo_afiliado': affiliate,
+        },
+      );
+
+      developer.log(
+        'DEBUG CuponesService - Response status: ${response.statusCode}',
+      );
+      developer.log('DEBUG CuponesService - Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body) as dynamic;
+        return {
+          'success': true,
+          'data': data,
+        };
+      }
+
+      developer.log('ERROR CuponesService - Status: ${response.statusCode}');
+      throw Exception(
+        'Error afiliando a Bonda: ${response.statusCode} - ${response.body}',
+      );
+    } catch (e) {
+      developer.log('ERROR CuponesService - Exception: $e');
+      developer.log(
+        'ERROR CuponesService - Stack trace: ${StackTrace.current}',
+      );
+      rethrow;
+    }
+  }
+
   static Future<Map<String, dynamic>> getCupones({
     required int page,
     required int pageSize,

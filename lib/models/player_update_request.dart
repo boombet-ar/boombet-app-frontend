@@ -41,9 +41,12 @@ class PlayerUpdateRequest {
       "fecha_nacimiento": fechaNacimiento,
       "dni": dni,
       "cuit": cuit,
+      // Backends mezclan naming: enviamos ambas variantes para compatibilidad
       "est_civil": estadoCivil,
+      "estado_civil": estadoCivil,
       "calle": calle,
       "numcalle": numCalle,
+      "num_calle": numCalle,
       "provincia": provincia,
       "ciudad": ciudad,
       "cp": cp,

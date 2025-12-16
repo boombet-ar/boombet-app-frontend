@@ -1,5 +1,6 @@
 class Cupon {
   final String id;
+  final String codigo; // Codigo real para canjear
   final String descuento;
   final String nombre;
   final String descripcionBreve;
@@ -17,6 +18,7 @@ class Cupon {
 
   Cupon({
     required this.id,
+    required this.codigo,
     required this.descuento,
     required this.nombre,
     required this.descripcionBreve,
@@ -43,6 +45,9 @@ class Cupon {
     return empresa.logoThumbnail['original'] ?? '';
   }
 
+  // Codigo a mostrar (prefiere codigo real, cae a id)
+  String get displayCode => codigo.isNotEmpty ? codigo : id;
+
   // Obtener fecha de vencimiento formateada
   String get fechaVencimientoFormatted {
     if (fechaVencimiento.isEmpty) return 'Fecha no disponible';
@@ -59,6 +64,7 @@ class Cupon {
     // Para cupones reclamados, la fecha viene en envio.fecha
     // Para cupones disponibles, viene en fecha_vencimiento
     String fecha = '';
+    String codigo = '';
 
     // Primero intenta obtener de fecha_vencimiento (cupones disponibles)
     if (json['fecha_vencimiento'] != null &&
@@ -70,8 +76,18 @@ class Cupon {
       fecha = json['envio']['fecha'].toString();
     }
 
+    // Intentar obtener el codigo real
+    if (json['codigo'] != null && json['codigo'].toString().isNotEmpty) {
+      codigo = json['codigo'].toString();
+    } else if (json['code'] != null && json['code'].toString().isNotEmpty) {
+      codigo = json['code'].toString();
+    } else if (json['envio'] is Map && json['envio']['codigo'] != null) {
+      codigo = json['envio']['codigo'].toString();
+    }
+
     return Cupon(
       id: json['id']?.toString() ?? '',
+      codigo: codigo,
       descuento: json['descuento']?.toString() ?? 'N/A',
       nombre: json['nombre']?.toString() ?? 'Sin nombre',
       descripcionBreve: json['descripcion_breve']?.toString() ?? '',

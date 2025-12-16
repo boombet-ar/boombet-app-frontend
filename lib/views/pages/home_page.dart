@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/cupon_model.dart';
@@ -15,11 +16,12 @@ import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:html/dom.dart' as dom;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
-import 'package:boombet_app/config/api_config.dart';
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -68,8 +70,8 @@ class _HomePageState extends State<HomePage> {
                     _claimedKey.currentState?.refreshClaimedCupones();
                     _discountsKey.currentState?.refreshClaimedIds();
                   },
+                  claimedKey: _claimedKey,
                 ),
-                ClaimedCouponsContent(key: _claimedKey),
                 const RafflesPage(),
                 const ForumPage(),
               ],
@@ -197,7 +199,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   bool _shouldTreatAsVideo(Publicidad ad, String resolvedUrl) {
-    final mediaType = ad.mediaType?.toUpperCase() ?? '';
+    final mediaType = ad.mediaType.toUpperCase();
     return ad.isVideo ||
         mediaType.contains('VIDEO') ||
         _isVideoUrl(resolvedUrl);
@@ -811,8 +813,9 @@ class _HomeContentState extends State<HomeContent> {
 
 class DiscountsContent extends StatefulWidget {
   final VoidCallback? onCuponClaimed;
+  final GlobalKey<_ClaimedCouponsContentState>? claimedKey;
 
-  const DiscountsContent({super.key, this.onCuponClaimed});
+  const DiscountsContent({super.key, this.onCuponClaimed, this.claimedKey});
 
   @override
   State<DiscountsContent> createState() => _DiscountsContentState();
@@ -823,6 +826,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
   late PageController _pageController;
   int _currentPage = 1;
   final int _pageSize = 10;
+  bool _showClaimed = false; // Switch entre descuentos y reclamados
 
   List<Cupon> _cupones = [];
   List<Cupon> _filteredCupones = [];
@@ -832,21 +836,34 @@ class _DiscountsContentState extends State<DiscountsContent> {
   String _errorMessage = '';
   bool _hasMore = false;
   Map<String, List<String>> _categoriasByName = {};
+  bool _affiliationCompleted = false;
+  bool _affiliationLoading = false;
+  String? _affiliationError;
+  String? _affiliationMessage;
+  static const String _affiliationAcceptedKey =
+      'affiliation_accepted_bonda';
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     // Cargar datos de forma asíncrona sin bloquear
-    // Cargar reclamados primero (más pequeño), luego descuentos
+    // Se pedirá consentimiento antes de cargar beneficios
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadClaimedCuponIds();
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _loadCupones();
-        }
-      });
+      _loadAffiliationAcceptance();
     });
+  }
+
+  Future<void> _loadAffiliationAcceptance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accepted = prefs.getBool(_affiliationAcceptedKey) ?? false;
+    if (!mounted || !accepted) return;
+
+    setState(() {
+      _affiliationCompleted = true;
+    });
+
+    await _runPostAffiliationLoadsWithRetry();
   }
 
   Future<void> refreshClaimedIds() async {
@@ -861,6 +878,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
   Future<void> _loadCupones() async {
     if (_isLoading) return;
+    if (!_affiliationCompleted) return;
 
     setState(() => _isLoading = true);
     try {
@@ -933,6 +951,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
   }
 
   Future<void> _loadClaimedCuponIds() async {
+    if (!_affiliationCompleted) return;
     try {
       final result =
           await CuponesService.getCuponesRecibidos(
@@ -971,6 +990,67 @@ class _DiscountsContentState extends State<DiscountsContent> {
         .trim();
   }
 
+  Future<void> _startAffiliation() async {
+    if (_affiliationLoading) return;
+
+    setState(() {
+      _affiliationLoading = true;
+      _affiliationError = null;
+      _affiliationMessage = null;
+    });
+
+    try {
+      _currentPage = 1;
+      final result = await CuponesService.afiliarAfiliado(
+        apiKey: ApiConfig.apiKey,
+        micrositioId: ApiConfig.micrositioId.toString(),
+        codigoAfiliado: ApiConfig.codigoAfiliado,
+      ).timeout(
+        const Duration(seconds: 45),
+        onTimeout: () {
+          debugPrint('ERROR: Timeout affiliating to Bonda');
+          throw TimeoutException('Timeout al afiliar a Bonda');
+        },
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _affiliationCompleted = true;
+        _affiliationMessage =
+            (result['data'] as Map<String, dynamic>?)?['message'] as String?;
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_affiliationAcceptedKey, true);
+      await _runPostAffiliationLoadsWithRetry();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _affiliationError =
+            'No pudimos activar tus beneficios en este momento. ${e.toString()}';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _affiliationLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _runPostAffiliationLoadsWithRetry() async {
+    const maxAttempts = 3;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await _loadClaimedCuponIds();
+        await _loadCupones();
+        return;
+      } catch (e) {
+        if (attempt == maxAttempts) rethrow;
+        await Future.delayed(Duration(seconds: 2 * attempt));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -981,231 +1061,525 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final categories = <String>{'Todos'};
     categories.addAll(_categoriasByName.keys);
 
+    if (!_affiliationCompleted) {
+      return RefreshIndicator(
+        onRefresh: _startAffiliation,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+          children: [_buildAffiliationCard(primaryGreen, textColor, isDark)],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _loadCupones,
       child: Column(
         children: [
-          // Header normalizado
-          buildSectionHeader(
-            'Descuentos Exclusivos',
-            '${_filteredCupones.length} ofertas disponibles',
-            Icons.local_offer,
-            primaryGreen,
-            isDark,
-          ),
+          // Header con switch entre Descuentos y Reclamados
+          if (_showClaimed)
+            buildSectionHeaderWithSwitch(
+              'Mis Cupones Reclamados',
+              'Ver cupones que ya reclamaste',
+              Icons.check_circle,
+              primaryGreen,
+              isDark,
+              isShowingClaimed: true,
+              onSwitchPressed: () {
+                setState(() {
+                  _showClaimed = false;
+                });
+              },
+            )
+          else
+            buildSectionHeaderWithSwitch(
+              'Descuentos Exclusivos',
+              '${_filteredCupones.length} ofertas disponibles',
+              Icons.local_offer,
+              primaryGreen,
+              isDark,
+              isShowingClaimed: false,
+              onSwitchPressed: () {
+                setState(() {
+                  _showClaimed = true;
+                });
+              },
+            ),
 
-          // Filtros mejorados
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.grey[50],
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  width: 1,
+          // Mostrar vista de reclamados si _showClaimed es true
+          if (_showClaimed)
+            Expanded(
+              child: ClaimedCouponsContent(
+                key: widget.claimedKey,
+                hideHeader: true,
+              ),
+            )
+          else
+            // Filtros mejorados (solo para descuentos)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.grey[50],
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: categories.map((category) {
+                    final isSelected = _selectedFilter == category;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        decoration: BoxDecoration(
+                          gradient: isSelected
+                              ? LinearGradient(
+                                  colors: [
+                                    primaryGreen,
+                                    primaryGreen.withValues(alpha: 0.8),
+                                  ],
+                                )
+                              : null,
+                          color: isSelected
+                              ? null
+                              : (isDark ? Colors.grey[800] : Colors.white),
+                          borderRadius: BorderRadius.circular(20),
+                          border: isSelected
+                              ? null
+                              : Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.3),
+                                  width: 1.5,
+                                ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: primaryGreen.withValues(alpha: 0.4),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedFilter = category;
+                                _applyFilter();
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                category,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : primaryGreen,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: categories.map((category) {
-                  final isSelected = _selectedFilter == category;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? LinearGradient(
-                                colors: [
-                                  primaryGreen,
-                                  primaryGreen.withValues(alpha: 0.8),
-                                ],
-                              )
-                            : null,
-                        color: isSelected
-                            ? null
-                            : (isDark ? Colors.grey[800] : Colors.white),
-                        borderRadius: BorderRadius.circular(20),
-                        border: isSelected
-                            ? null
-                            : Border.all(
-                                color: primaryGreen.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: primaryGreen.withValues(alpha: 0.4),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+          if (!_showClaimed)
+            // Lista de cupones con animaciones (solo para descuentos)
+            Expanded(
+              child: _isLoading && _cupones.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: primaryGreen,
+                            strokeWidth: 3,
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Cargando ofertas...',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _hasError
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: textColor),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _currentPage = 1;
+                              _loadCupones();
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Reintentar'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _filteredCupones.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No hay cupones disponibles',
+                        style: TextStyle(color: textColor),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      itemCount: _filteredCupones.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _filteredCupones.length) {
+                          // Load more button
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  _currentPage++;
+                                  _loadCupones();
+                                },
+                                icon: const Icon(Icons.download),
+                                label: const Text('Cargar más'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: Colors.black,
                                 ),
-                              ]
-                            : null,
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedFilter = category;
-                              _applyFilter();
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              category,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected ? Colors.white : primaryGreen,
-                                letterSpacing: 0.3,
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
+                          );
+                        }
 
-          // Lista de cupones con animaciones
-          Expanded(
-            child: _isLoading && _cupones.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          color: primaryGreen,
-                          strokeWidth: 3,
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Cargando ofertas...',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _hasError
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: textColor),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            _currentPage = 1;
-                            _loadCupones();
-                          },
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _filteredCupones.isEmpty
-                ? Center(
-                    child: Text(
-                      'No hay cupones disponibles',
-                      style: TextStyle(color: textColor),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredCupones.length + (_hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _filteredCupones.length) {
-                        // Load more button
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                _currentPage++;
-                                _loadCupones();
-                              },
-                              icon: const Icon(Icons.download),
-                              label: const Text('Cargar más'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryGreen,
-                                foregroundColor: Colors.black,
-                              ),
-                            ),
+                        final cupon = _filteredCupones[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildCuponCard(
+                            context,
+                            cupon,
+                            primaryGreen,
+                            textColor,
+                            isDark,
                           ),
                         );
-                      }
-
-                      final cupon = _filteredCupones[index];
-                      return _buildCuponCard(
-                        context,
-                        cupon,
-                        primaryGreen,
-                        textColor,
-                        isDark,
-                      );
-                    },
-                  ),
-          ),
+                      },
+                    ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, Color primaryGreen, bool isDark) {
-    final isSelected = _selectedFilter == label;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-          _applyFilter();
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? primaryGreen : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? primaryGreen
-                : primaryGreen.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : primaryGreen,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+  Widget _buildAffiliationCard(
+    Color primaryGreen,
+    Color textColor,
+    bool isDark,
+  ) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  isDark ? Colors.grey[850]! : Colors.white,
+                  isDark ? Colors.grey[900]! : Colors.grey[50]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.15),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                  spreadRadius: 2,
+                ),
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Ícono principal animado
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          primaryGreen.withValues(alpha: 0.15),
+                          primaryGreen.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.card_giftcard,
+                      color: primaryGreen,
+                      size: 48,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Título principal
+                  Text(
+                    '¿Querés recibir beneficios?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Descripción principal
+                  Text(
+                    'Al aceptar te afiliamos a Bonda para habilitar cupones, códigos y beneficios exclusivos en comercios asociados.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.75),
+                      fontSize: 15,
+                      height: 1.6,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Info box
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: primaryGreen.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: primaryGreen.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.check_circle,
+                            color: primaryGreen,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Proceso único. Puede demorar unos segundos en completarse.',
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.75),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  // Botón principal
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _affiliationLoading ? null : _startAffiliation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.black,
+                        disabledBackgroundColor: primaryGreen.withValues(
+                          alpha: 0.6,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 24,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 4,
+                        shadowColor: primaryGreen.withValues(alpha: 0.3),
+                      ),
+                      child: _affiliationLoading
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Procesando afiliación...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Text(
+                              'Sí, recibir beneficios',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                    ),
+                  ),
+                  // Error message
+                  if (_affiliationError != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _affiliationError!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // Success message
+                  if (_affiliationMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: primaryGreen.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: primaryGreen,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _affiliationMessage!,
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  // Footer text
+                  Text(
+                    'Al continuar aceptás que gestionemos tu afiliación a Bonda para liberar beneficios.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.5),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1231,9 +1605,15 @@ class _DiscountsContentState extends State<DiscountsContent> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+                spreadRadius: 1,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -1523,64 +1903,100 @@ class _DiscountsContentState extends State<DiscountsContent> {
                           ),
                           const SizedBox(height: 14),
 
-                          // Botón
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                LoadingOverlay.show(
-                                  context,
-                                  message: 'Reclamando cupón...',
-                                );
-
-                                try {
-                                  await CuponesService.claimCupon(
-                                    cuponId: cupon.id,
-                                  );
-
-                                  LoadingOverlay.hide(context);
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        '¡Cupón reclamado exitosamente!',
-                                      ),
-                                      duration: const Duration(seconds: 3),
-                                      backgroundColor: primaryGreen,
-                                      action: SnackBarAction(
-                                        label: 'OK',
-                                        onPressed: () {},
-                                      ),
+                          // Footer con branding y botón
+                          Row(
+                            children: [
+                              // Branding Bonda
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Beneficio provisto por',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: textColor.withValues(alpha: 0.5),
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  );
-
-                                  widget.onCuponClaimed?.call();
-                                } catch (e) {
-                                  LoadingOverlay.hide(context);
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Error: ${e.toString()}'),
-                                      duration: const Duration(seconds: 3),
-                                      backgroundColor: Colors.red,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  SizedBox(
+                                    height: 28,
+                                    width: 80,
+                                    child: Image.asset(
+                                      'assets/images/logo_bonda.png',
+                                      fit: BoxFit.contain,
                                     ),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.check_circle),
-                              label: const Text('Reclamar Cupón'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryGreen,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
+                                  ),
+                                ],
                               ),
-                            ),
+                              const Spacer(),
+                              // Botón Reclamar
+                              Flexible(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    LoadingOverlay.show(
+                                      context,
+                                      message: 'Reclamando cupón...',
+                                    );
+
+                                    try {
+                                      await CuponesService.claimCupon(
+                                        cuponId: cupon.id,
+                                      );
+
+                                      LoadingOverlay.hide(context);
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: const Text(
+                                            '¡Cupón reclamado exitosamente!',
+                                          ),
+                                          duration: const Duration(seconds: 3),
+                                          backgroundColor: primaryGreen,
+                                          action: SnackBarAction(
+                                            label: 'OK',
+                                            onPressed: () {},
+                                          ),
+                                        ),
+                                      );
+
+                                      widget.onCuponClaimed?.call();
+                                    } catch (e) {
+                                      LoadingOverlay.hide(context);
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error: ${e.toString()}',
+                                          ),
+                                          duration: const Duration(seconds: 3),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.check_circle),
+                                  label: const Text('Reclamar'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreen,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 14),
                         ],
@@ -1814,6 +2230,39 @@ class _DiscountsContentState extends State<DiscountsContent> {
                               );
                             }).toList(),
                           ),
+                          const SizedBox(height: 16),
+                          // Beneficio provisto por Bonda
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Beneficio provisto por ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 18,
+                                  width: 70,
+                                  child: Image.asset(
+                                    'assets/images/logo_bonda.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1936,7 +2385,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
 /// Página de Cupones Reclamados
 class ClaimedCouponsContent extends StatefulWidget {
-  const ClaimedCouponsContent({super.key});
+  final bool hideHeader;
+  final bool enablePullToRefresh;
+
+  const ClaimedCouponsContent({
+    super.key,
+    this.hideHeader = false,
+    this.enablePullToRefresh = true,
+  });
 
   @override
   State<ClaimedCouponsContent> createState() => _ClaimedCouponsContentState();
@@ -2003,11 +2459,9 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
 
-    return RefreshIndicator(
-      onRefresh: _loadClaimedCupones,
-      child: Column(
-        children: [
-          // Header normalizado
+    final content = Column(
+      children: [
+        if (!widget.hideHeader)
           buildSectionHeader(
             'Mis Cupones Reclamados',
             '${_claimedCupones.length} códigos disponibles',
@@ -2015,157 +2469,159 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
             primaryGreen,
             isDark,
           ),
-
-          // Lista de cupones reclamados
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          color: primaryGreen,
-                          strokeWidth: 3,
+        Expanded(
+          child: _isLoading
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: primaryGreen,
+                        strokeWidth: 3,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Cargando cupones reclamados...',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Cargando cupones reclamados...',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _hasError
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Oops, hubo un error',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.7),
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _loadClaimedCupones,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('Reintentar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _claimedCupones.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.card_giftcard,
-                            size: 48,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Sin cupones reclamados',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '¡Reclama un cupón para verlo aquí!',
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    itemCount: _claimedCupones.length,
-                    itemBuilder: (context, index) {
-                      final cupon = _claimedCupones[index];
-                      return TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: 1),
-                        duration: Duration(milliseconds: 300 + (index * 50)),
-                        curve: Curves.easeOut,
-                        builder: (context, value, child) {
-                          return Transform.translate(
-                            offset: Offset(0, 30 * (1 - value)),
-                            child: Opacity(opacity: value, child: child),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildClaimedCuponCard(
-                            context,
-                            cupon,
-                            primaryGreen,
-                            textColor,
-                            isDark,
-                          ),
-                        ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-          ),
-        ],
-      ),
+                )
+              : _hasError
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Oops, hubo un error',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadClaimedCupones,
+                        child: const Text('Reintentar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : _claimedCupones.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.card_giftcard,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Sin cupones reclamados',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '¡Reclama un cupón para verlo aquí!',
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  itemCount: _claimedCupones.length,
+                  itemBuilder: (context, index) {
+                    final cupon = _claimedCupones[index];
+                    return TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: 1),
+                      duration: Duration(milliseconds: 300 + (index * 50)),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) {
+                        return Transform.translate(
+                          offset: Offset(0, 30 * (1 - value)),
+                          child: Opacity(opacity: value, child: child),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildClaimedCuponCard(
+                          context,
+                          cupon,
+                          primaryGreen,
+                          textColor,
+                          isDark,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
+
+    if (widget.enablePullToRefresh) {
+      return RefreshIndicator(onRefresh: _loadClaimedCupones, child: content);
+    }
+
+    return content;
   }
 
   Widget _buildClaimedCuponCard(
@@ -2403,7 +2859,7 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        cupon.id,
+                                        cupon.displayCode,
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -2417,11 +2873,14 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 ),
                                 const SizedBox(width: 12),
                                 InkWell(
-                                  onTap: () {
+                                  onTap: () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: cupon.displayCode),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Código copiado: ${cupon.id}',
+                                          'Código copiado: ${cupon.displayCode}',
                                         ),
                                         duration: const Duration(seconds: 2),
                                         backgroundColor: Colors.green,
@@ -2468,6 +2927,37 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Footer con branding y código
+                          Row(
+                            children: [
+                              // Branding Bonda
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Beneficio provisto por',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: textColor.withValues(alpha: 0.5),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  SizedBox(
+                                    height: 28,
+                                    width: 80,
+                                    child: Image.asset(
+                                      'assets/images/logo_bonda.png',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -2726,7 +3216,7 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    cupon.id,
+                                    cupon.displayCode,
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -2737,11 +3227,14 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: () {
+                                  onTap: () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: cupon.displayCode),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Código copiado: ${cupon.id}',
+                                          'Código copiado: ${cupon.displayCode}',
                                         ),
                                         duration: const Duration(seconds: 2),
                                         backgroundColor: Colors.green,
@@ -2876,6 +3369,41 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
                           const SizedBox(height: 24),
 
+                          // Beneficio provisto por Bonda
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Beneficio provisto por ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 18,
+                                  width: 70,
+                                  child: Image.asset(
+                                    'assets/images/logo_bonda.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
                           // Botón cerrar
                           SizedBox(
                             width: double.infinity,
@@ -2966,6 +3494,87 @@ Widget buildSectionHeader(
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Widget de header con switch para alternar entre vistas
+Widget buildSectionHeaderWithSwitch(
+  String title,
+  String subtitle,
+  IconData icon,
+  Color primaryGreen,
+  bool isDark, {
+  required bool isShowingClaimed,
+  required VoidCallback onSwitchPressed,
+}) {
+  final headerBg = isDark ? Colors.grey[800] : Colors.grey[300];
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: BoxDecoration(
+      color: headerBg,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.1),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: primaryGreen.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: primaryGreen, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Botón toggle para cambiar de vista
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onSwitchPressed,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                isShowingClaimed
+                    ? Icons.local_offer_outlined
+                    : Icons.check_circle_outline,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
           ),
         ),
       ],
