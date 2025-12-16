@@ -18,6 +18,7 @@ class AuthService {
         url,
         body: {'identifier': identifier, 'password': password},
         includeAuth: false, // Login no requiere token previo
+        maxRetries: 1, // Login debe fallar rápido si no conecta
       );
 
       if (response.statusCode == 200) {

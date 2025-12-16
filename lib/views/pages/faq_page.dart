@@ -14,6 +14,50 @@ class FaqPage extends StatefulWidget {
 class _FaqPageState extends State<FaqPage> {
   bool _isLoggedIn = false;
   final _messageController = TextEditingController();
+  final List<Map<String, String>> _platformFaqs = [
+    {
+      'question': '¿Que es Boombet?',
+      'answer':
+          'BoomBet es el primer portal de Casinos Online en Argentina. Se trata de un solo lugar donde podes registrarte rápido y acceder a los mejores Casinos legales del país, con todas sus promociones y beneficios al alcance de tu mano.',
+    },
+    {
+      'question': '¿Como funciona la afiliacion?',
+      'answer':
+          'Al completar el formulario, nuestro equipo gestiona tu alta en los Casinos Online Legales según tu lugar de residencia. Durante el proceso vas a recibir e-mails oficiales de cada casino. Una vez finalizada la afiliación, te informaremos en qué casinos fuiste dado de alta, qué beneficios recibiste y los datos necesarios para comenzar a jugar. Es importante esperar nuestra confirmación antes de validar tus cuentas, ya que podrías necesitar información específica que te enviaremos. El proceso es simple, seguro, legal y suele completarse en menos de 24 horas.',
+    },
+    {
+      'question': '¿Puedo afiliarme siendo menor de 18 años?',
+      'answer':
+          'No, porque la ley solo permite el acceso a Casinos Online Legales a personas mayores de 18 años. Esta medida protege a los menores y garantiza un juego responsable.',
+    },
+    {
+      'question': '¿Que puedo hacer desde esta plataforma una vez afiliado?',
+      'answer':
+          'Podes acceder a promociones exclusivas para nuestros casinos, beneficios aplicables a diferentes negocios y categorias, juegos con rankings, sorteos, etc.',
+    },
+    {
+      'question': '¿Puedo desafiliarme de Boombet?',
+      'answer':
+          'Si! Desde la vista de perfil (icono de perfil) encontras el boton para desafiliarte, nosotros hacemos el proceso por vos. Recorda que desafiliarte de Boombet no te desafilia de nuestros casinos asociados.',
+    },
+  ];
+  final List<Map<String, String>> _benefitsFaqs = [
+    {
+      'question': '¿Como obtengo un beneficio?',
+      'answer':
+          'Afiliandote con nosotros, automaticamente te haces parte de BONDA, permitiendo acceder desde la pestaña de beneficios (icono de beneficio) de nuestro perfil para reclamar tus cupones y empezar a usarlos.',
+    },
+    {
+      'question': '¿Donde puedo ver mis beneficios disponibles?',
+      'answer':
+          'En la misma pestaña donde los reclamas, vas a ver un icono con un tilde (icono de reclamados). Al presionarlo, vas a pasar a la vista de los cupones reclamados donde vas a poder ver el codigo correspondiente al cupon, su fecha de vencimiento y como utilizarlo.',
+    },
+    {
+      'question': '¿Los beneficios tienen vencimiento?',
+      'answer':
+          'Sí. Cada beneficio tiene una fecha de expiración que se muestra en su tarjeta dentro de la app.',
+    },
+  ];
 
   @override
   void initState() {
@@ -54,6 +98,65 @@ class _FaqPageState extends State<FaqPage> {
     _messageController.clear();
   }
 
+  List<InlineSpan> _buildAnswerSpans(String text, Color textColor) {
+    final replacements = <String, Widget>{
+      '(icono de perfil)': Icon(
+        Icons.person_outline,
+        size: 18,
+        color: textColor,
+      ),
+      '(icono de beneficio)': Icon(
+        Icons.local_offer_outlined,
+        size: 18,
+        color: textColor,
+      ),
+      '(icono de reclamados)': Icon(
+        Icons.check_circle_outline,
+        size: 18,
+        color: textColor,
+      ),
+    };
+
+    final spans = <InlineSpan>[];
+    var remaining = text;
+
+    while (remaining.isNotEmpty) {
+      int? firstIndex;
+      String? foundToken;
+
+      for (final token in replacements.keys) {
+        final idx = remaining.indexOf(token);
+        if (idx != -1 && (firstIndex == null || idx < firstIndex)) {
+          firstIndex = idx;
+          foundToken = token;
+        }
+      }
+
+      if (firstIndex == null || foundToken == null) {
+        spans.add(TextSpan(text: remaining));
+        break;
+      }
+
+      if (firstIndex > 0) {
+        spans.add(TextSpan(text: remaining.substring(0, firstIndex)));
+      }
+
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: replacements[foundToken]!,
+          ),
+        ),
+      );
+
+      remaining = remaining.substring(firstIndex + foundToken.length);
+    }
+
+    return spans.isEmpty ? [TextSpan(text: text)] : spans;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -61,7 +164,6 @@ class _FaqPageState extends State<FaqPage> {
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? const Color(0xFFE0E0E0) : Colors.black87;
-    final greenColor = theme.colorScheme.primary;
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -71,15 +173,12 @@ class _FaqPageState extends State<FaqPage> {
       ),
       backgroundColor: bgColor,
       body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
+        onTap: () => FocusScope.of(context).unfocus(),
         child: ResponsiveWrapper(
           maxWidth: 800,
           child: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              // Título
               Text(
                 'Ayuda',
                 style: TextStyle(
@@ -90,21 +189,22 @@ class _FaqPageState extends State<FaqPage> {
               ),
               const SizedBox(height: 24),
 
-              // Secciones de FAQ
               _buildFaqSection(
                 context,
                 icon: Icons.home,
                 title: 'Plataforma',
                 cardColor: cardColor,
                 textColor: textColor,
+                items: _platformFaqs,
               ),
               const SizedBox(height: 12),
               _buildFaqSection(
                 context,
                 icon: Icons.local_offer,
-                title: 'Descuentos',
+                title: 'Beneficios',
                 cardColor: cardColor,
                 textColor: textColor,
+                items: _benefitsFaqs,
               ),
               const SizedBox(height: 12),
               _buildFaqSection(
@@ -113,6 +213,7 @@ class _FaqPageState extends State<FaqPage> {
                 title: 'Puntos',
                 cardColor: cardColor,
                 textColor: textColor,
+                disabled: true,
               ),
               const SizedBox(height: 12),
               _buildFaqSection(
@@ -121,6 +222,7 @@ class _FaqPageState extends State<FaqPage> {
                 title: 'Actividades',
                 cardColor: cardColor,
                 textColor: textColor,
+                disabled: true,
               ),
               const SizedBox(height: 12),
               _buildFaqSection(
@@ -129,10 +231,10 @@ class _FaqPageState extends State<FaqPage> {
                 title: 'Sorteos',
                 cardColor: cardColor,
                 textColor: textColor,
+                disabled: true,
               ),
               const SizedBox(height: 32),
 
-              // Sección de comentarios/sugerencias
               Container(
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
@@ -147,193 +249,45 @@ class _FaqPageState extends State<FaqPage> {
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      '¿Tienes sugerencias o comentarios?',
+                      'POWERED BY',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
                         color: textColor,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Nos gustaría saber qué tipo de beneficios quieres que agreguemos a la plataforma o alguna sugerencia para mejorarla.\nPuedes completar el formulario o enviarnos un mail a:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: textColor.withValues(alpha: 0.8),
-                        height: 1.5,
-                      ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Image.asset(
+                              'assets/images/bplay_logo.webp',
+                              height: 60,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Image.asset(
+                              'assets/images/sportsbet_logo.webp',
+                              height: 60,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : const Color(0xFFF0F0F0),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'ventas@bonda.com',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Área de mensaje - bloqueada si no está logueado
-                    if (!_isLoggedIn) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.black26 : Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade400,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.lock,
-                              size: 40,
-                              color: textColor.withValues(alpha: 0.5),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Inicia sesión para completar el formulario',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: textColor.withValues(alpha: 0.7),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LoginPage(),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: greenColor,
-                                  foregroundColor: isDark
-                                      ? Colors.black
-                                      : Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 3,
-                                  shadowColor: greenColor.withValues(alpha: 0.4),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.login, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Iniciar sesión',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? Colors.black
-                                            : Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      // Formulario de mensaje
-                      Semantics(
-                        label: 'Campo de mensaje',
-                        hint: 'Escribe tu consulta o mensaje',
-                        child: TextField(
-                          controller: _messageController,
-                          maxLines: 5,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          decoration: InputDecoration(
-                            hintText: 'Escribe tu mensaje aquí...',
-                            hintStyle: TextStyle(
-                              color: textColor.withValues(alpha: 0.5),
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? const Color(0xFF2A2A2A)
-                                : Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: greenColor,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _sendMessage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: greenColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Enviar mensaje',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -350,7 +304,11 @@ class _FaqPageState extends State<FaqPage> {
     required String title,
     required Color cardColor,
     required Color textColor,
+    List<Map<String, String>> items = const [],
+    bool disabled = false,
   }) {
+    final hasItems = items.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
@@ -363,27 +321,103 @@ class _FaqPageState extends State<FaqPage> {
           ),
         ],
       ),
-      child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
-        ),
-        trailing: Icon(Icons.chevron_right, color: textColor.withValues(alpha: 0.5)),
-        onTap: () {
-          // Aquí iría la navegación a la página de detalle de cada sección
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Abriendo sección: $title'),
-              duration: const Duration(seconds: 1),
+      child: hasItems
+          ? Theme(
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+                splashColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+              ),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                leading: Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                iconColor: Theme.of(context).colorScheme.primary,
+                collapsedIconColor: textColor.withValues(alpha: 0.6),
+                children: items
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['question'] ?? '',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.45,
+                                  color: textColor.withValues(alpha: 0.8),
+                                ),
+                                children: _buildAnswerSpans(
+                                  item['answer'] ?? '',
+                                  textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
+          : ListTile(
+              leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+              title: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: disabled
+                      ? textColor.withValues(alpha: 0.4)
+                      : textColor,
+                ),
+              ),
+              trailing: Icon(
+                disabled ? Icons.lock_outline : Icons.chevron_right,
+                color: textColor.withValues(alpha: disabled ? 0.3 : 0.5),
+              ),
+              subtitle: disabled
+                  ? Text(
+                      'Próximamente',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.5),
+                        fontSize: 13,
+                      ),
+                    )
+                  : null,
+              onTap: disabled
+                  ? null
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Abriendo sección: $title'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
             ),
-          );
-        },
-      ),
     );
   }
 }

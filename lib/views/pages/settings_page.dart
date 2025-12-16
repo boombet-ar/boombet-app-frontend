@@ -301,26 +301,75 @@ class _SettingsPageState extends State<SettingsPage> {
     final textColor = isDark
         ? AppConstants.textDark
         : AppConstants.lightLabelText;
+    final surface = isDark ? AppConstants.darkAccent : Colors.white;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Acerca de BoomBet', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        title: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: surface.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Image.asset(
+                  'assets/images/boombetlogo.png',
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Acerca de BoomBet',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Versión: 1.0.0', style: TextStyle(color: textColor)),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: AppConstants.primaryGreen,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Versión 1.0',
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Text(
-              'BoomBet - Tu plataforma de afiliación a casinos de confianza.',
-              style: TextStyle(color: textColor),
+              'BoomBet es el primer portal de Casinos Online en Argentina.',
+              style: TextStyle(color: textColor, height: 1.4),
             ),
             const SizedBox(height: 16),
             Text(
-              '© 2024 BoomBet. Todos los derechos reservados.',
-              style: TextStyle(color: textColor),
+              '© 2025 BoomBet. Todos los derechos reservados.',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.8),
+                fontSize: 13,
+              ),
             ),
           ],
         ),

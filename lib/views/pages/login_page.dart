@@ -147,13 +147,6 @@ class _LoginPageState extends State<LoginPage> {
         // Login exitoso - El token ya fue guardado por AuthService
         debugPrint('DEBUG Login - Token guardado correctamente');
 
-        // Verificar que el token esté guardado
-        final token = await TokenService.getToken();
-        debugPrint(
-          'DEBUG Login - Token verificado: ${token != null ? "existe" : "null"}',
-        );
-        if (!mounted) return;
-
         // Navegar directamente a HomePage
         // Los usuarios que hacen login ya pasaron por el proceso de confirmación de datos
         Navigator.pushReplacement(context, ScaleRoute(page: const HomePage()));

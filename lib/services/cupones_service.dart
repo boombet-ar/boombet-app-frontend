@@ -38,10 +38,7 @@ class CuponesService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as dynamic;
-        return {
-          'success': true,
-          'data': data,
-        };
+        return {'success': true, 'data': data};
       }
 
       developer.log('ERROR CuponesService - Status: ${response.statusCode}');
@@ -81,6 +78,7 @@ class CuponesService {
               'micrositio_id': microId,
               'codigo_afiliado': affiliate,
               'page': page.toString(),
+              'page_size': pageSize.toString(),
               'subcategories': 'false',
             },
           )

@@ -18,10 +18,13 @@ import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:video_player/video_player.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -824,8 +827,10 @@ class DiscountsContent extends StatefulWidget {
 class _DiscountsContentState extends State<DiscountsContent> {
   String _selectedFilter = 'Todos';
   late PageController _pageController;
-  int _currentPage = 1;
-  final int _pageSize = 10;
+  int _currentPage = 1; // Página visible en UI
+  int _apiPage = 1; // Página usada en llamadas al backend
+  final int _pageSize = 5;
+  bool _isPrefetching = false;
   bool _showClaimed = false; // Switch entre descuentos y reclamados
 
   List<Cupon> _cupones = [];
@@ -840,8 +845,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
   bool _affiliationLoading = false;
   String? _affiliationError;
   String? _affiliationMessage;
-  static const String _affiliationAcceptedKey =
-      'affiliation_accepted_bonda';
+  static const String _affiliationAcceptedKey = 'affiliation_accepted_bonda';
 
   @override
   void initState() {
@@ -876,15 +880,25 @@ class _DiscountsContentState extends State<DiscountsContent> {
     super.dispose();
   }
 
-  Future<void> _loadCupones() async {
+  Future<void> _loadCupones({int? pageOverride, bool reset = false}) async {
     if (_isLoading) return;
     if (!_affiliationCompleted) return;
 
-    setState(() => _isLoading = true);
+    final targetPage = pageOverride ?? _apiPage;
+
+    setState(() {
+      _isLoading = true;
+      if (reset) {
+        _cupones.clear();
+        _filteredCupones.clear();
+        _apiPage = 1;
+        _currentPage = 1;
+      }
+    });
     try {
       final result =
           await CuponesService.getCupones(
-            page: _currentPage,
+            page: targetPage,
             pageSize: _pageSize,
             apiKey: ApiConfig.apiKey,
             micrositioId: ApiConfig.micrositioId.toString(),
@@ -898,22 +912,35 @@ class _DiscountsContentState extends State<DiscountsContent> {
           );
 
       final newCupones = result['cupones'] as List<Cupon>? ?? [];
+      final cappedCupones = newCupones.take(_pageSize).toList();
 
       if (mounted) {
         setState(() {
-          if (_currentPage == 1) {
-            _cupones = newCupones;
+          if (reset || targetPage == 1) {
+            _cupones = cappedCupones;
+            _apiPage = 1;
+            _currentPage = 1;
           } else {
-            _cupones.addAll(newCupones);
+            _cupones.addAll(cappedCupones);
+            _apiPage = targetPage;
           }
-
-          _hasMore = result['has_more'] as bool? ?? false;
+          _hasMore =
+              (result['has_more'] as bool? ?? false) ||
+              newCupones.length >= _pageSize;
           _hasError = false;
-          _isLoading = false;
 
           // Actualizar categorías
           _updateCategorias();
           _applyFilter();
+        });
+      }
+
+      // Asegurar que haya suficientes cupones para la página visible (post-filtro)
+      await _ensurePageHasData(_currentPage);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -926,6 +953,59 @@ class _DiscountsContentState extends State<DiscountsContent> {
         });
       }
     }
+  }
+
+  Future<void> _ensurePageHasData(int pageNumber) async {
+    if (_isPrefetching) return;
+    _isPrefetching = true;
+    final requiredItems = pageNumber * _pageSize;
+
+    while (mounted && _filteredCupones.length < requiredItems) {
+      final nextPage = _apiPage + 1;
+      try {
+        final result =
+            await CuponesService.getCupones(
+              page: nextPage,
+              pageSize: _pageSize,
+              apiKey: ApiConfig.apiKey,
+              micrositioId: ApiConfig.micrositioId.toString(),
+              codigoAfiliado: ApiConfig.codigoAfiliado,
+            ).timeout(
+              const Duration(seconds: 20),
+              onTimeout: () {
+                debugPrint('ERROR: Timeout loading extra cupones');
+                throw TimeoutException('Timeout cargando cupones');
+              },
+            );
+
+        final newCupones = result['cupones'] as List<Cupon>? ?? [];
+        final cappedCupones = newCupones.take(_pageSize).toList();
+
+        if (!mounted || cappedCupones.isEmpty) {
+          _hasMore = false;
+          break;
+        }
+
+        setState(() {
+          _cupones.addAll(cappedCupones);
+          _apiPage = nextPage;
+          _hasMore =
+              (result['has_more'] as bool? ?? false) ||
+              newCupones.length >= _pageSize;
+          _updateCategorias();
+          _applyFilter();
+        });
+
+        if (cappedCupones.length < _pageSize) {
+          _hasMore = false;
+          break;
+        }
+      } catch (_) {
+        break;
+      }
+    }
+
+    _isPrefetching = false;
   }
 
   void _updateCategorias() {
@@ -947,6 +1027,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
       _filteredCupones = _cupones
           .where((c) => ids.contains(c.id) && !_claimedCuponIds.contains(c.id))
           .toList();
+    }
+    // Recalcular página visible si la actual queda fuera de rango después del filtro
+    final maxPage = (_filteredCupones.length / _pageSize).ceil().clamp(
+      1,
+      1 << 30,
+    );
+    if (_currentPage > maxPage) {
+      _currentPage = maxPage;
     }
   }
 
@@ -1000,18 +1088,18 @@ class _DiscountsContentState extends State<DiscountsContent> {
     });
 
     try {
-      _currentPage = 1;
-      final result = await CuponesService.afiliarAfiliado(
-        apiKey: ApiConfig.apiKey,
-        micrositioId: ApiConfig.micrositioId.toString(),
-        codigoAfiliado: ApiConfig.codigoAfiliado,
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          debugPrint('ERROR: Timeout affiliating to Bonda');
-          throw TimeoutException('Timeout al afiliar a Bonda');
-        },
-      );
+      final result =
+          await CuponesService.afiliarAfiliado(
+            apiKey: ApiConfig.apiKey,
+            micrositioId: ApiConfig.micrositioId.toString(),
+            codigoAfiliado: ApiConfig.codigoAfiliado,
+          ).timeout(
+            const Duration(seconds: 45),
+            onTimeout: () {
+              debugPrint('ERROR: Timeout affiliating to Bonda');
+              throw TimeoutException('Timeout al afiliar a Bonda');
+            },
+          );
 
       if (!mounted) return;
       setState(() {
@@ -1057,13 +1145,23 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
+    final pagedFilteredCupones = _filteredCupones
+        .skip((_currentPage - 1) * _pageSize)
+        .take(_pageSize)
+        .toList();
+    final canGoPrevious = _currentPage > 1;
+    final canGoNext = pagedFilteredCupones.length == _pageSize || _hasMore;
 
     final categories = <String>{'Todos'};
     categories.addAll(_categoriasByName.keys);
 
     if (!_affiliationCompleted) {
       return RefreshIndicator(
-        onRefresh: _startAffiliation,
+        onRefresh: () async {
+          _apiPage = 1;
+          _currentPage = 1;
+          await _startAffiliation();
+        },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -1073,7 +1171,11 @@ class _DiscountsContentState extends State<DiscountsContent> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadCupones,
+      onRefresh: () async {
+        _apiPage = 1;
+        _currentPage = 1;
+        await _loadCupones(pageOverride: 1, reset: true);
+      },
       child: Column(
         children: [
           // Header con switch entre Descuentos y Reclamados
@@ -1169,11 +1271,13 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () {
+                            onTap: () async {
                               setState(() {
                                 _selectedFilter = category;
+                                _currentPage = 1;
                                 _applyFilter();
                               });
+                              await _ensurePageHasData(1);
                             },
                             borderRadius: BorderRadius.circular(20),
                             child: Padding(
@@ -1264,43 +1368,98 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         style: TextStyle(color: textColor),
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                      itemCount: _filteredCupones.length + (_hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _filteredCupones.length) {
-                          // Load more button
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  _currentPage++;
-                                  _loadCupones();
-                                },
-                                icon: const Icon(Icons.download),
-                                label: const Text('Cargar más'),
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                            itemCount: pagedFilteredCupones.length,
+                            itemBuilder: (context, index) {
+                              final cupon = pagedFilteredCupones[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildCuponCard(
+                                  context,
+                                  cupon,
+                                  primaryGreen,
+                                  textColor,
+                                  isDark,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Row(
+                            children: [
+                              if (_isLoading && _filteredCupones.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: primaryGreen,
+                                    ),
+                                  ),
+                                ),
+                              ElevatedButton.icon(
+                                onPressed: (_isLoading || !canGoPrevious)
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _currentPage -= 1;
+                                        });
+                                      },
+                                icon: const Icon(Icons.chevron_left),
+                                label: const Text('Anterior'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreen,
                                   foregroundColor: Colors.black,
                                 ),
                               ),
-                            ),
-                          );
-                        }
-
-                        final cupon = _filteredCupones[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildCuponCard(
-                            context,
-                            cupon,
-                            primaryGreen,
-                            textColor,
-                            isDark,
+                              const Spacer(),
+                              Text(
+                                'Página $_currentPage',
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.75),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const Spacer(),
+                              ElevatedButton.icon(
+                                onPressed: (_isLoading || !canGoNext)
+                                    ? null
+                                    : () async {
+                                        final nextPage = _currentPage + 1;
+                                        final needed = nextPage * _pageSize;
+                                        if (_filteredCupones.length < needed &&
+                                            _hasMore) {
+                                          await _loadCupones(
+                                            pageOverride: _apiPage + 1,
+                                          );
+                                        }
+                                        if (mounted &&
+                                            _filteredCupones.length >=
+                                                (_currentPage * _pageSize)) {
+                                          setState(() {
+                                            _currentPage = nextPage;
+                                          });
+                                        }
+                                      },
+                                icon: const Icon(Icons.chevron_right),
+                                label: const Text('Siguiente'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
             ),
         ],
@@ -1963,6 +2122,10 @@ class _DiscountsContentState extends State<DiscountsContent> {
                                         ),
                                       );
 
+                                      setState(() {
+                                        _claimedCuponIds.add(cupon.id);
+                                        _applyFilter();
+                                      });
                                       widget.onCuponClaimed?.call();
                                     } catch (e) {
                                       LoadingOverlay.hide(context);
@@ -2400,6 +2563,8 @@ class ClaimedCouponsContent extends StatefulWidget {
 
 class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   List<Cupon> _claimedCupones = [];
+  int _claimedPage = 1;
+  final int _claimedPageSize = 5;
   bool _isLoading = false;
   bool _hasError = false;
   String _errorMessage = '';
@@ -2417,7 +2582,19 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     await _loadClaimedCupones();
   }
 
+  List<Cupon> _currentPageClaimedCupones() {
+    final start = (_claimedPage - 1) * _claimedPageSize;
+    return _claimedCupones.skip(start).take(_claimedPageSize).toList();
+  }
+
+  int get _claimedTotalPages {
+    if (_claimedCupones.isEmpty) return 1;
+    return (_claimedCupones.length / _claimedPageSize).ceil();
+  }
+
   Future<void> _loadClaimedCupones() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -2438,11 +2615,16 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
             },
           );
 
+      if (!mounted) return;
+
       setState(() {
         _claimedCupones = result['cupones'] ?? [];
+        _claimedPage = 1;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _hasError = true;
         _errorMessage =
@@ -2458,6 +2640,10 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
+    final pagedCupones = _currentPageClaimedCupones();
+    final claimedTotalPages = _claimedTotalPages;
+    final canGoPrevious = _claimedPage > 1;
+    final canGoNext = _claimedPage < claimedTotalPages;
 
     final content = Column(
       children: [
@@ -2582,44 +2768,94 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  itemCount: _claimedCupones.length,
-                  itemBuilder: (context, index) {
-                    final cupon = _claimedCupones[index];
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0, end: 1),
-                      duration: Duration(milliseconds: 300 + (index * 50)),
-                      curve: Curves.easeOut,
-                      builder: (context, value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, 30 * (1 - value)),
-                          child: Opacity(opacity: value, child: child),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildClaimedCuponCard(
-                          context,
-                          cupon,
-                          primaryGreen,
-                          textColor,
-                          isDark,
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
+                        itemCount: pagedCupones.length,
+                        itemBuilder: (context, index) {
+                          final cupon = pagedCupones[index];
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween<double>(begin: 0, end: 1),
+                            duration: Duration(
+                              milliseconds: 300 + (index * 50),
+                            ),
+                            curve: Curves.easeOut,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 30 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildClaimedCuponCard(
+                                context,
+                                cupon,
+                                primaryGreen,
+                                textColor,
+                                isDark,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: (_isLoading || !canGoPrevious)
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _claimedPage -= 1;
+                                    });
+                                  },
+                            icon: const Icon(Icons.chevron_left),
+                            label: const Text('Anterior'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Página $_claimedPage de $claimedTotalPages',
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          ElevatedButton.icon(
+                            onPressed: (_isLoading || !canGoNext)
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _claimedPage += 1;
+                                    });
+                                  },
+                            icon: const Icon(Icons.chevron_right),
+                            label: const Text('Siguiente'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
         ),
       ],
     );
-
-    if (widget.enablePullToRefresh) {
-      return RefreshIndicator(onRefresh: _loadClaimedCupones, child: content);
-    }
 
     return content;
   }
