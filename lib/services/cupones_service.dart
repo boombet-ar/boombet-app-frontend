@@ -60,15 +60,24 @@ class CuponesService {
     String? apiKey,
     String? micrositioId,
     String? codigoAfiliado,
+    String? categoryId,
+    String? categoryName,
+    String? searchQuery,
   }) async {
     try {
       // Usar valores por defecto si no se proporcionan
-      final key = apiKey ?? '';
-      final microId = micrositioId ?? '';
-      final affiliate = codigoAfiliado ?? '';
+      final key = apiKey ?? ApiConfig.apiKey;
+      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
+      final affiliate = codigoAfiliado ?? ApiConfig.codigoAfiliado;
+      final category = categoryId?.toString().trim();
+      final categoryLabel = categoryName?.toString().trim();
+      final categoryFilter = (category != null && category.isNotEmpty)
+          ? category
+          : categoryLabel;
+      final normalizedSearch = searchQuery?.trim();
 
       developer.log(
-        'DEBUG CuponesService - Fetching cupones (page: $page, key: $key, microId: $microId, affiliate: $affiliate)',
+        'DEBUG CuponesService - Fetching cupones (page: $page, key: $key, microId: $microId, affiliate: $affiliate, category: ${categoryFilter ?? '-'}, search: ${normalizedSearch ?? '-'} )',
       );
 
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
@@ -79,14 +88,28 @@ class CuponesService {
               'codigo_afiliado': affiliate,
               'page': page.toString(),
               'page_size': pageSize.toString(),
-              'subcategories': 'false',
+              // Incluir cupones en subcategorías (ej: Cines bajo Entretenimiento)
+              'subcategories': 'true',
+              // Enviar filtro de categoría si se especificó; priorizar clave 'categoria'
+              if (categoryFilter != null && categoryFilter.isNotEmpty) ...{
+                'categoria': categoryFilter,
+              },
+              if (normalizedSearch != null && normalizedSearch.isNotEmpty) ...{
+                'search': normalizedSearch,
+              },
             },
           )
           .toString();
 
+      developer.log('[CuponesService] URL final: $url');
+
       developer.log('DEBUG CuponesService - URL: $url');
 
-      final response = await HttpClient.get(url, includeAuth: true);
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        timeout: const Duration(seconds: 60),
+      );
 
       developer.log(
         'DEBUG CuponesService - Response status: ${response.statusCode}',
@@ -109,11 +132,20 @@ class CuponesService {
           // Extraer los cupones de 'results'
           cuponList = data['results'] ?? data['data'] ?? data['cupones'] ?? [];
           total = data['count'] ?? cuponList.length;
-          hasMore = (data['next'] != null);
+          // Si el backend no envía 'next', inferimos con count; si la página viene vacía, no seguimos paginando
+          hasMore =
+              cuponList.isNotEmpty &&
+              ((data['next'] != null) || (total > page * pageSize));
 
           developer.log(
             'DEBUG CuponesService - Total: $total, HasMore: $hasMore, List length: ${cuponList.length}',
           );
+
+          if (cuponList.isNotEmpty) {
+            developer.log(
+              'DEBUG CuponesService - First cupon raw data: ${jsonEncode(cuponList.first)}',
+            );
+          }
         }
 
         final cupones = cuponList
@@ -154,10 +186,81 @@ class CuponesService {
     }
   }
 
+  static Future<List<Categoria>> getCategorias({
+    String? apiKey,
+    String? micrositioId,
+  }) async {
+    try {
+      final key = apiKey ?? ApiConfig.apiKey;
+      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
+
+      developer.log(
+        'DEBUG CuponesService - Fetching categorias (key: $key, microId: $microId)',
+      );
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/cupones/categorias')
+          .replace(queryParameters: {'key': key, 'micrositio_id': microId})
+          .toString();
+
+      developer.log('DEBUG CuponesService - Categorias URL: $url');
+
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        timeout: const Duration(seconds: 40),
+      );
+
+      developer.log(
+        'DEBUG CuponesService - Categorias status: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          return data
+              .map((item) {
+                try {
+                  return Categoria.fromJson(item as Map<String, dynamic>);
+                } catch (e) {
+                  developer.log(
+                    'WARN CuponesService - Skipping categoria parse error: $e',
+                  );
+                  return null;
+                }
+              })
+              .whereType<Categoria>()
+              .toList();
+        }
+        if (data is Map && data['data'] is List) {
+          return (data['data'] as List)
+              .map((item) {
+                try {
+                  return Categoria.fromJson(item as Map<String, dynamic>);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<Categoria>()
+              .toList();
+        }
+        return [];
+      }
+
+      throw Exception(
+        'Error fetching categorias: ${response.statusCode} - ${response.body}',
+      );
+    } catch (e) {
+      developer.log('ERROR CuponesService - Categorias exception: $e');
+      rethrow;
+    }
+  }
+
   static Future<Map<String, dynamic>> getCuponesRecibidos({
     String? apiKey,
     String? micrositioId,
     String? codigoAfiliado,
+    int page = 1,
+    int pageSize = 25,
   }) async {
     try {
       // Usar valores por defecto si no se proporcionan
@@ -175,13 +278,19 @@ class CuponesService {
               'key': key,
               'micrositio_id': microId,
               'codigo_afiliado': affiliate,
+              'page': page.toString(),
+              'page_size': pageSize.toString(),
             },
           )
           .toString();
 
       developer.log('DEBUG CuponesService - URL: $url');
 
-      final response = await HttpClient.get(url, includeAuth: true);
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        timeout: const Duration(seconds: 60),
+      );
 
       developer.log(
         'DEBUG CuponesService - Response status: ${response.statusCode}',
@@ -198,11 +307,15 @@ class CuponesService {
         // El backend devuelve: { count, results: [...] }
         List<dynamic> cuponList = [];
         int total = 0;
+        bool hasMore = false;
 
         if (data is Map) {
           // Extraer los cupones de 'results'
           cuponList = data['results'] ?? data['data'] ?? data['cupones'] ?? [];
           total = data['count'] ?? cuponList.length;
+          hasMore =
+              cuponList.isNotEmpty &&
+              ((data['next'] != null) || (total > page * pageSize));
 
           developer.log(
             'DEBUG CuponesService - Total: $total, List length: ${cuponList.length}',
@@ -243,7 +356,13 @@ class CuponesService {
           );
         }
 
-        return {'cupones': cupones, 'total': total};
+        return {
+          'cupones': cupones,
+          'total': total,
+          'has_more': hasMore,
+          'page': page,
+          'page_size': pageSize,
+        };
       } else {
         developer.log('ERROR CuponesService - Status: ${response.statusCode}');
         throw Exception(

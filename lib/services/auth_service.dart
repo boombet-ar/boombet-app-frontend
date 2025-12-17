@@ -19,6 +19,7 @@ class AuthService {
         body: {'identifier': identifier, 'password': password},
         includeAuth: false, // Login no requiere token previo
         maxRetries: 1, // Login debe fallar rápido si no conecta
+        timeout: const Duration(seconds: 60),
       );
 
       if (response.statusCode == 200) {

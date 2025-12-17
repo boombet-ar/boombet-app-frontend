@@ -14,7 +14,7 @@ import 'token_service.dart';
 /// - Timeout configurable
 /// - Logs detallados de todas las requests
 class HttpClient {
-  static const Duration _defaultTimeout = Duration(seconds: 15);
+  static const Duration _defaultTimeout = Duration(seconds: 60);
   static const int _defaultMaxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
   static const Duration _defaultGetCacheTtl = Duration(seconds: 25);

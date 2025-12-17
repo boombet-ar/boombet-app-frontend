@@ -22,9 +22,11 @@ class _DiscountsPageState extends State<DiscountsPage> {
   bool _hasError = false;
   String _errorMessage = '';
   int _currentPage = 1;
-  static const int _pageSize = 10;
+  int _apiPage = 1;
+  bool _isPrefetching = false;
+  static const int _pageSize = 15;
 
-  Map<String, bool> _categoriasByName = {};
+  final Map<String, Categoria> _categoriaByName = {};
   String? _selectedCategory;
 
   @override
@@ -40,13 +42,24 @@ class _DiscountsPageState extends State<DiscountsPage> {
     super.dispose();
   }
 
-  Future<void> _loadCupones() async {
+  Future<void> _loadCupones({int? pageOverride, bool reset = false}) async {
     if (_isLoading) return;
+    final targetPage = pageOverride ?? _apiPage;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      if (reset) {
+        _cupones.clear();
+        _filteredCupones.clear();
+        _apiPage = 1;
+        _currentPage = 1;
+        _categoriaByName.clear();
+      }
+    });
+
     try {
       final result = await CuponesService.getCupones(
-        page: _currentPage,
+        page: targetPage,
         pageSize: _pageSize,
         apiKey: ApiConfig.apiKey,
         micrositioId: ApiConfig.micrositioId.toString(),
@@ -56,17 +69,21 @@ class _DiscountsPageState extends State<DiscountsPage> {
       final newCupones = result['cupones'] as List<Cupon>? ?? [];
 
       setState(() {
-        if (_currentPage == 1) {
+        if (reset || targetPage == 1) {
           _cupones = newCupones;
+          _apiPage = 1;
+          _currentPage = 1;
         } else {
           _cupones.addAll(newCupones);
+          _apiPage = targetPage;
         }
 
-        _hasMore = result['has_more'] as bool? ?? false;
+        _hasMore =
+            (result['has_more'] as bool? ?? false) ||
+            newCupones.length >= _pageSize;
         _hasError = false;
         _isLoading = false;
 
-        // Actualizar categorías
         _updateCategorias();
         _applyFilter();
       });
@@ -81,39 +98,43 @@ class _DiscountsPageState extends State<DiscountsPage> {
   }
 
   void _updateCategorias() {
-    _categoriasByName.clear();
     for (var cupon in _cupones) {
       for (var categoria in cupon.categorias) {
-        _categoriasByName[categoria.nombre] = false;
+        if (categoria.nombre.isNotEmpty) {
+          _categoriaByName.putIfAbsent(categoria.nombre, () => categoria);
+        }
       }
     }
   }
 
   void _applyFilter() {
-    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-      _filteredCupones = _cupones;
-    } else {
-      _filteredCupones = _cupones.where((cupon) {
-        return cupon.categorias.any((cat) => cat.nombre == _selectedCategory);
-      }).toList();
-    }
+    final selectedName = _selectedCategory;
+    final selectedId = selectedName != null
+        ? _categoriaByName[selectedName]?.id?.toString()
+        : null;
+
+    _filteredCupones = _cupones.where((c) {
+      if (selectedId == null) return true;
+      return c.categorias.any((cat) => cat.id?.toString() == selectedId);
+    }).toList();
   }
 
   void _onCategoryToggle(String categoryName) {
     setState(() {
-      _selectedCategory = _categoriasByName[categoryName] == true
+      _selectedCategory = (_selectedCategory == categoryName)
           ? null
           : categoryName;
-      _categoriasByName.forEach((key, value) {
-        _categoriasByName[key] = (key == _selectedCategory);
-      });
-      _applyFilter();
+      _currentPage = 1;
+      _apiPage = 1;
     });
+    _loadCupones(pageOverride: 1, reset: true);
   }
 
   void _loadMore() {
-    _currentPage++;
-    _loadCupones();
+    if (_isLoading) return;
+    final nextPage = _apiPage + 1;
+    _currentPage = nextPage;
+    _loadCupones(pageOverride: nextPage);
   }
 
   void _showHowToEarnPoints(BuildContext context) {
@@ -349,18 +370,18 @@ class _DiscountsPageState extends State<DiscountsPage> {
               Column(
                 children: [
                   // Filtros de categorías
-                  if (_categoriasByName.isNotEmpty)
+                  if (_categoriaByName.isNotEmpty)
                     SizedBox(
                       height: 50,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: _categoriasByName.length,
+                        itemCount: _categoriaByName.length,
                         itemBuilder: (context, index) {
-                          final categoryName = _categoriasByName.keys.elementAt(
+                          final categoryName = _categoriaByName.keys.elementAt(
                             index,
                           );
-                          final isSelected = _categoriasByName[categoryName]!;
+                          final isSelected = _selectedCategory == categoryName;
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: FilterChip(

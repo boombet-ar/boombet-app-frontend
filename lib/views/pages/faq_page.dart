@@ -269,20 +269,38 @@ class _FaqPageState extends State<FaqPage> {
                         Flexible(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Image.asset(
-                              'assets/images/bplay_logo.webp',
-                              height: 60,
-                              fit: BoxFit.contain,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.transparent
+                                    : Colors.grey[900],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Image.asset(
+                                'assets/images/bplay_logo.webp',
+                                height: 60,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
                         Flexible(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Image.asset(
-                              'assets/images/sportsbet_logo.webp',
-                              height: 60,
-                              fit: BoxFit.contain,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.transparent
+                                    : Colors.grey[900],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Image.asset(
+                                'assets/images/sportsbet_logo.webp',
+                                height: 60,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),

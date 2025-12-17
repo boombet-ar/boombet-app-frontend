@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
@@ -18,9 +19,6 @@ import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:video_player/video_player.dart';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:html/dom.dart' as dom;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
@@ -66,7 +64,7 @@ class _HomePageState extends State<HomePage> {
             child: IndexedStack(
               index: selectedPage,
               children: [
-                const HomeContent(),
+                HomeContent(),
                 DiscountsContent(
                   key: _discountsKey,
                   onCuponClaimed: () {
@@ -88,14 +86,13 @@ class _HomePageState extends State<HomePage> {
 }
 
 class HomeContent extends StatefulWidget {
-  const HomeContent({super.key});
+  // Carrusel de promociones - ocupa casi toda la pantalla
 
   @override
   State<HomeContent> createState() => _HomeContentState();
 }
 
 class _HomeContentState extends State<HomeContent> {
-  final TextEditingController _searchController = TextEditingController();
   final PageController _carouselController = PageController();
   final PublicidadService _publicidadService = PublicidadService();
   final Map<int, VideoPlayerController> _videoControllers = {};
@@ -140,7 +137,6 @@ class _HomeContentState extends State<HomeContent> {
       controller.dispose();
     }
     _autoScrollTimer?.cancel();
-    _searchController.dispose();
     _carouselController.dispose();
     _mediaHttpClient.close(force: true);
     _videoListenerAttached.clear();
@@ -187,11 +183,6 @@ class _HomeContentState extends State<HomeContent> {
   void _restartAutoScroll() {
     _autoScrollTimer?.cancel();
     _startAutoScroll();
-  }
-
-  void _handleSearch(String query) {
-    debugPrint('Buscando: $query');
-    // Aquí puedes agregar la lógica de búsqueda
   }
 
   bool _isVideoUrl(String url) {
@@ -538,6 +529,7 @@ class _HomeContentState extends State<HomeContent> {
       borderRadius: BorderRadius.circular(14),
       child: Stack(
         children: [
+          Container(color: primaryGreen.withValues(alpha: 0.05)),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -547,7 +539,7 @@ class _HomeContentState extends State<HomeContent> {
                 Text(
                   _getPromoTitle(index),
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
@@ -563,25 +555,6 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
           ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: primaryGreen,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${index + 1}/5',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -595,14 +568,6 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SearchBarWidget(
-            controller: _searchController,
-            onSearch: _handleSearch,
-            placeholder: '¿Qué estás buscando?',
-          ),
-        ),
         // Carrusel de promociones - ocupa casi toda la pantalla
         Expanded(
           child: RepaintBoundary(
@@ -825,13 +790,24 @@ class DiscountsContent extends StatefulWidget {
 }
 
 class _DiscountsContentState extends State<DiscountsContent> {
+  final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'Todos';
+  String? _selectedCategoryId;
   late PageController _pageController;
+  late final ScrollController _listScrollController;
   int _currentPage = 1; // Página visible en UI
   int _apiPage = 1; // Página usada en llamadas al backend
-  final int _pageSize = 5;
+  final int _pageSize = 15;
+  List<Categoria> _remoteCategories = [];
+  // Page size grande para traer todos los cupones de una categoría o para
+  // poblar el listado inicial de categorías sin depender de la paginación.
+  static const int _apiAllPageSize = 2000;
   bool _isPrefetching = false;
+  bool _isBulkFetching = false;
   bool _showClaimed = false; // Switch entre descuentos y reclamados
+  bool _pageChangeLocked = false;
+  DateTime? _pageLockUntil;
+  static const Duration _pageCooldown = Duration(seconds: 5);
 
   List<Cupon> _cupones = [];
   List<Cupon> _filteredCupones = [];
@@ -840,22 +816,109 @@ class _DiscountsContentState extends State<DiscountsContent> {
   bool _hasError = false;
   String _errorMessage = '';
   bool _hasMore = false;
-  Map<String, List<String>> _categoriasByName = {};
+  final Map<String, Categoria> _categoriaByName = {};
   bool _affiliationCompleted = false;
   bool _affiliationLoading = false;
   String? _affiliationError;
   String? _affiliationMessage;
   static const String _affiliationAcceptedKey = 'affiliation_accepted_bonda';
+  static const String _cachedCuponesKey = 'cached_cupones_bonda';
+  static const String _cachedCuponesTsKey = 'cached_cupones_ts_bonda';
+  static const String _cachedPageKey = 'cached_cupones_page';
+  static const String _cachedHasMoreKey = 'cached_cupones_has_more';
+  bool _cacheApplied = false;
+  DateTime? _cacheTimestamp;
+  static const Duration _cacheTtl = Duration(hours: 6);
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _listScrollController = ScrollController();
     // Cargar datos de forma asíncrona sin bloquear
     // Se pedirá consentimiento antes de cargar beneficios
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAffiliationAcceptance();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadCuponCache();
+      await _loadAffiliationAcceptance();
     });
+  }
+
+  Future<void> _loadCuponCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(_cachedCuponesKey);
+      if (cached == null || cached.isEmpty) return;
+      final cachedTs = prefs.getString(_cachedCuponesTsKey);
+      if (cachedTs != null) {
+        _cacheTimestamp = DateTime.tryParse(cachedTs);
+      }
+      if (_cacheTimestamp != null &&
+          DateTime.now().difference(_cacheTimestamp!) > _cacheTtl) {
+        return;
+      }
+      final decoded = jsonDecode(cached);
+      if (decoded is! List) return;
+      final cachedCupones = decoded
+          .map((item) {
+            try {
+              return Cupon.fromJson(item as Map<String, dynamic>);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<Cupon>()
+          .toList();
+      if (cachedCupones.isEmpty) return;
+      if (!mounted) return;
+      setState(() {
+        _cupones = cachedCupones;
+        _updateCategorias();
+        _applyFilter();
+        _cacheApplied = true;
+        _apiPage = prefs.getInt(_cachedPageKey) ?? _apiPage;
+        _hasMore = prefs.getBool(_cachedHasMoreKey) ?? _hasMore;
+      });
+    } catch (e) {
+      debugPrint('WARN: No se pudo cargar cache de cupones: $e');
+    }
+  }
+
+  Future<void> _persistCuponCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = _cupones.map((c) => c.toJson()).toList();
+      await prefs.setString(_cachedCuponesKey, jsonEncode(data));
+      await prefs.setString(
+        _cachedCuponesTsKey,
+        DateTime.now().toIso8601String(),
+      );
+      await prefs.setInt(_cachedPageKey, _apiPage);
+      await prefs.setBool(_cachedHasMoreKey, _hasMore);
+    } catch (e) {
+      debugPrint('WARN: No se pudo guardar cache de cupones: $e');
+    }
+  }
+
+  Future<void> _loadCategorias() async {
+    try {
+      final cats = await CuponesService.getCategorias(
+        apiKey: ApiConfig.apiKey,
+        micrositioId: ApiConfig.micrositioId.toString(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _remoteCategories = cats;
+        // Mapear al diccionario para chips y filtros
+        for (final cat in cats) {
+          if (cat.nombre.isNotEmpty) {
+            _categoriaByName.putIfAbsent(cat.nombre, () => cat);
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('WARN: No se pudieron cargar categorías: $e');
+    }
   }
 
   Future<void> _loadAffiliationAcceptance() async {
@@ -877,14 +940,46 @@ class _DiscountsContentState extends State<DiscountsContent> {
   @override
   void dispose() {
     _pageController.dispose();
+    _listScrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCupones({int? pageOverride, bool reset = false}) async {
+  void _scrollListToTop() {
+    if (!_listScrollController.hasClients) return;
+    _listScrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _loadCupones({
+    int? pageOverride,
+    bool reset = false,
+    String? searchQuery,
+    String? categoryId,
+    String? categoryName,
+    bool fetchAll = false,
+    bool ignoreCategory = false,
+  }) async {
     if (_isLoading) return;
     if (!_affiliationCompleted) return;
 
-    final targetPage = pageOverride ?? _apiPage;
+    final normalizedSearch = (searchQuery ?? _searchQuery).trim();
+    final normalizedCategoryId = ignoreCategory
+        ? null
+        : categoryId ??
+              _selectedCategoryId ??
+              _categoriaByName[_selectedFilter]?.id?.toString();
+    final normalizedCategoryName = ignoreCategory
+        ? null
+        : categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
+    final shouldFetchAll =
+        fetchAll ||
+        (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty);
+    final targetPage = shouldFetchAll ? 1 : (pageOverride ?? _apiPage);
+    final apiPageSize = shouldFetchAll ? _apiAllPageSize : _pageSize;
 
     setState(() {
       _isLoading = true;
@@ -893,16 +988,21 @@ class _DiscountsContentState extends State<DiscountsContent> {
         _filteredCupones.clear();
         _apiPage = 1;
         _currentPage = 1;
+        // Conservar categorías obtenidas del endpoint para no perder IDs
+        // en selecciones posteriores.
       }
     });
     try {
       final result =
           await CuponesService.getCupones(
             page: targetPage,
-            pageSize: _pageSize,
+            pageSize: apiPageSize,
             apiKey: ApiConfig.apiKey,
             micrositioId: ApiConfig.micrositioId.toString(),
             codigoAfiliado: ApiConfig.codigoAfiliado,
+            searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
+            categoryId: normalizedCategoryId,
+            categoryName: normalizedCategoryName,
           ).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
@@ -912,31 +1012,51 @@ class _DiscountsContentState extends State<DiscountsContent> {
           );
 
       final newCupones = result['cupones'] as List<Cupon>? ?? [];
-      final cappedCupones = newCupones.take(_pageSize).toList();
 
       if (mounted) {
         setState(() {
-          if (reset || targetPage == 1) {
-            _cupones = cappedCupones;
-            _apiPage = 1;
+          final existingIds = _cupones.map((c) => c.id).toSet();
+          if (reset) {
+            _cupones = newCupones;
+            _apiPage = targetPage;
             _currentPage = 1;
           } else {
-            _cupones.addAll(cappedCupones);
+            final merged = List<Cupon>.from(_cupones);
+            for (final c in newCupones) {
+              if (c.id == null || existingIds.contains(c.id)) continue;
+              merged.add(c);
+            }
+            _cupones = merged;
             _apiPage = targetPage;
           }
-          _hasMore =
+          final hasMoreResponse =
               (result['has_more'] as bool? ?? false) ||
-              newCupones.length >= _pageSize;
+              newCupones.length >= apiPageSize;
+          _hasMore = shouldFetchAll ? false : hasMoreResponse;
           _hasError = false;
 
-          // Actualizar categorías
+          // Actualizar categorías vistas (se mantienen acumuladas)
           _updateCategorias();
           _applyFilter();
+          unawaited(_persistCuponCache());
         });
       }
 
-      // Asegurar que haya suficientes cupones para la página visible (post-filtro)
-      await _ensurePageHasData(_currentPage);
+      // Si no se pidió traer todo en una sola llamada, seguimos con el prefetch.
+      if (!shouldFetchAll) {
+        await _ensurePageHasData(
+          _currentPage,
+          searchQuery: normalizedSearch,
+          categoryId: normalizedCategoryId,
+          categoryName: normalizedCategoryName,
+        );
+        await _ensurePageHasData(
+          _currentPage + 1,
+          searchQuery: normalizedSearch,
+          categoryId: normalizedCategoryId,
+          categoryName: normalizedCategoryName,
+        );
+      }
 
       if (mounted) {
         setState(() {
@@ -955,79 +1075,178 @@ class _DiscountsContentState extends State<DiscountsContent> {
     }
   }
 
-  Future<void> _ensurePageHasData(int pageNumber) async {
-    if (_isPrefetching) return;
-    _isPrefetching = true;
-    final requiredItems = pageNumber * _pageSize;
-
-    while (mounted && _filteredCupones.length < requiredItems) {
-      final nextPage = _apiPage + 1;
+  Future<void> _fetchAllCuponesInBackground() async {
+    // Si tenemos cache aplicada pero aún hay páginas pendientes, continuar.
+    if (_cacheApplied && _cupones.isNotEmpty && !_hasMore) return;
+    if (_isBulkFetching) return;
+    _isBulkFetching = true;
+    var nextPage = _apiPage + 1;
+    while (mounted && _hasMore) {
       try {
-        final result =
-            await CuponesService.getCupones(
-              page: nextPage,
-              pageSize: _pageSize,
-              apiKey: ApiConfig.apiKey,
-              micrositioId: ApiConfig.micrositioId.toString(),
-              codigoAfiliado: ApiConfig.codigoAfiliado,
-            ).timeout(
-              const Duration(seconds: 20),
-              onTimeout: () {
-                debugPrint('ERROR: Timeout loading extra cupones');
-                throw TimeoutException('Timeout cargando cupones');
-              },
-            );
-
-        final newCupones = result['cupones'] as List<Cupon>? ?? [];
-        final cappedCupones = newCupones.take(_pageSize).toList();
-
-        if (!mounted || cappedCupones.isEmpty) {
-          _hasMore = false;
-          break;
-        }
-
-        setState(() {
-          _cupones.addAll(cappedCupones);
-          _apiPage = nextPage;
-          _hasMore =
-              (result['has_more'] as bool? ?? false) ||
-              newCupones.length >= _pageSize;
-          _updateCategorias();
-          _applyFilter();
-        });
-
-        if (cappedCupones.length < _pageSize) {
-          _hasMore = false;
-          break;
-        }
+        await _loadCupones(
+          pageOverride: nextPage,
+          reset: false,
+          fetchAll: false,
+          ignoreCategory: true,
+        );
+        nextPage = _apiPage + 1;
       } catch (_) {
         break;
       }
     }
+    _isBulkFetching = false;
+  }
 
-    _isPrefetching = false;
+  Future<void> _ensurePageHasData(
+    int pageNumber, {
+    String? searchQuery,
+    String? categoryId,
+    String? categoryName,
+  }) async {
+    if (_isPrefetching) return;
+    _isPrefetching = true;
+    final requiredItems = pageNumber * _pageSize;
+    final normalizedSearch = (searchQuery ?? _searchQuery).trim();
+    final normalizedCategoryId =
+        categoryId ??
+        _selectedCategoryId ??
+        _categoriaByName[_selectedFilter]?.id?.toString();
+    final normalizedCategoryName =
+        categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
+
+    // Si estamos en modo fetchAll por categoría, no necesitamos prefetch.
+    if (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty) {
+      _isPrefetching = false;
+      return;
+    }
+
+    if (_filteredCupones.length >= requiredItems || !_hasMore) {
+      _isPrefetching = false;
+      return;
+    }
+
+    final nextPage = _apiPage + 1;
+    try {
+      final result =
+          await CuponesService.getCupones(
+            page: nextPage,
+            pageSize: _pageSize,
+            apiKey: ApiConfig.apiKey,
+            micrositioId: ApiConfig.micrositioId.toString(),
+            codigoAfiliado: ApiConfig.codigoAfiliado,
+            searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
+            categoryId: normalizedCategoryId,
+            categoryName: normalizedCategoryName,
+          ).timeout(
+            const Duration(seconds: 20),
+            onTimeout: () {
+              debugPrint('ERROR: Timeout loading extra cupones');
+              throw TimeoutException('Timeout cargando cupones');
+            },
+          );
+
+      final newCupones = result['cupones'] as List<Cupon>? ?? [];
+      if (!mounted || newCupones.isEmpty) {
+        setState(() {
+          _hasMore = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _cupones.addAll(newCupones);
+        _apiPage = nextPage;
+        _hasMore =
+            (result['has_more'] as bool? ?? false) ||
+            newCupones.length >= _pageSize;
+        _updateCategorias();
+        _applyFilter();
+        unawaited(_persistCuponCache());
+      });
+    } catch (_) {
+      // Silenciar prefetch errors
+    } finally {
+      _isPrefetching = false;
+    }
+  }
+
+  void _setPageLock() {
+    final now = DateTime.now();
+    final until = now.add(_pageCooldown);
+    _pageLockUntil = until;
+    if (!_pageChangeLocked && mounted) {
+      setState(() {
+        _pageChangeLocked = true;
+      });
+    } else {
+      _pageChangeLocked = true;
+    }
+    Future.delayed(_pageCooldown, () {
+      if (!mounted) return;
+      _tryUnlockPageLock();
+    });
+  }
+
+  void _tryUnlockPageLock() {
+    if (!mounted) return;
+    if (_pageLockUntil != null && DateTime.now().isBefore(_pageLockUntil!)) {
+      final remaining = _pageLockUntil!.difference(DateTime.now());
+      Future.delayed(remaining, () {
+        if (!mounted) return;
+        _pageChangeLocked = false;
+        _pageLockUntil = null;
+        setState(() {});
+      });
+      return;
+    }
+    if (_pageChangeLocked) {
+      setState(() {
+        _pageChangeLocked = false;
+        _pageLockUntil = null;
+      });
+    }
   }
 
   void _updateCategorias() {
-    _categoriasByName.clear();
     for (var cupon in _cupones) {
       for (var cat in cupon.categorias) {
-        _categoriasByName.putIfAbsent(cat.nombre, () => []).add(cupon.id);
+        if (cat.nombre.isNotEmpty) {
+          _categoriaByName.putIfAbsent(cat.nombre, () => cat);
+        }
       }
     }
   }
 
   void _applyFilter() {
-    if (_selectedFilter == 'Todos') {
-      _filteredCupones = _cupones
-          .where((c) => !_claimedCuponIds.contains(c.id))
-          .toList();
-    } else {
-      final ids = _categoriasByName[_selectedFilter] ?? [];
-      _filteredCupones = _cupones
-          .where((c) => ids.contains(c.id) && !_claimedCuponIds.contains(c.id))
-          .toList();
-    }
+    final selectedName = _selectedFilter == 'Todos' ? null : _selectedFilter;
+    final selectedId = selectedName != null
+        ? (_categoriaByName[selectedName]?.finalId?.toString() ??
+              _categoriaByName[selectedName]?.id?.toString())
+        : null;
+    final query = _searchQuery.trim().toLowerCase();
+
+    _filteredCupones = _cupones.where((c) {
+      if (_claimedCuponIds.contains(c.id)) return false;
+
+      if (selectedId != null &&
+          !c.categorias.any((cat) {
+            final catId = cat.id?.toString();
+            final catFinalId = cat.finalId?.toString();
+            return catId == selectedId || catFinalId == selectedId;
+          })) {
+        return false;
+      }
+
+      if (query.isEmpty) return true;
+
+      final nameMatch = c.nombre.toLowerCase().contains(query);
+      final companyMatch = c.empresa.nombre.toLowerCase().contains(query);
+      final categoryMatch = c.categorias.any(
+        (cat) => (cat.nombre).toLowerCase().contains(query),
+      );
+
+      return nameMatch || companyMatch || categoryMatch;
+    }).toList();
     // Recalcular página visible si la actual queda fuera de rango después del filtro
     final maxPage = (_filteredCupones.length / _pageSize).ceil().clamp(
       1,
@@ -1036,6 +1255,15 @@ class _DiscountsContentState extends State<DiscountsContent> {
     if (_currentPage > maxPage) {
       _currentPage = maxPage;
     }
+  }
+
+  void _onSearch(String query) {
+    setState(() {
+      _searchQuery = query;
+      _applyFilter();
+    });
+    // Continuar trayendo páginas en segundo plano; la búsqueda se aplica localmente.
+    unawaited(_fetchAllCuponesInBackground());
   }
 
   Future<void> _loadClaimedCuponIds() async {
@@ -1129,8 +1357,12 @@ class _DiscountsContentState extends State<DiscountsContent> {
     const maxAttempts = 3;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        await _loadCategorias();
         await _loadClaimedCuponIds();
-        await _loadCupones();
+        if (!_cacheApplied) {
+          await _loadCupones(fetchAll: false, reset: true);
+          unawaited(_fetchAllCuponesInBackground());
+        }
         return;
       } catch (e) {
         if (attempt == maxAttempts) rethrow;
@@ -1153,7 +1385,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final canGoNext = pagedFilteredCupones.length == _pageSize || _hasMore;
 
     final categories = <String>{'Todos'};
-    categories.addAll(_categoriasByName.keys);
+    categories.addAll(_remoteCategories.map((c) => c.nombre));
 
     if (!_affiliationCompleted) {
       return RefreshIndicator(
@@ -1172,9 +1404,15 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        _apiPage = 1;
-        _currentPage = 1;
-        await _loadCupones(pageOverride: 1, reset: true);
+        // Refrescar solo la página visible, sin cambiar paginación ni filtrar por categoría
+        await _loadCupones(
+          pageOverride: _currentPage,
+          reset: false,
+          categoryId: null,
+          categoryName: null,
+          fetchAll: false,
+          ignoreCategory: true,
+        );
       },
       child: Column(
         children: [
@@ -1229,80 +1467,117 @@ class _DiscountsContentState extends State<DiscountsContent> {
                   ),
                 ),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: categories.map((category) {
-                    final isSelected = _selectedFilter == category;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        decoration: BoxDecoration(
-                          gradient: isSelected
-                              ? LinearGradient(
-                                  colors: [
-                                    primaryGreen,
-                                    primaryGreen.withValues(alpha: 0.8),
-                                  ],
-                                )
-                              : null,
-                          color: isSelected
-                              ? null
-                              : (isDark ? Colors.grey[800] : Colors.white),
-                          borderRadius: BorderRadius.circular(20),
-                          border: isSelected
-                              ? null
-                              : Border.all(
-                                  color: primaryGreen.withValues(alpha: 0.3),
-                                  width: 1.5,
-                                ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: primaryGreen.withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SearchBarWidget(
+                    controller: _searchController,
+                    onSearch: _onSearch,
+                    onChanged: _onSearch,
+                    placeholder:
+                        'Buscar por nombre de cupón, empresa o categoría',
+                  ),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: categories.map((category) {
+                        final isSelected = _selectedFilter == category;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            decoration: BoxDecoration(
+                              gradient: isSelected
+                                  ? LinearGradient(
+                                      colors: [
+                                        primaryGreen,
+                                        primaryGreen.withValues(alpha: 0.8),
+                                      ],
+                                    )
+                                  : null,
+                              color: isSelected
+                                  ? null
+                                  : (isDark ? Colors.grey[800] : Colors.white),
+                              borderRadius: BorderRadius.circular(20),
+                              border: isSelected
+                                  ? null
+                                  : Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () async {
+                                  final selectedCat = category == 'Todos'
+                                      ? null
+                                      : (_remoteCategories.firstWhere(
+                                          (c) => c.nombre == category,
+                                          orElse: () =>
+                                              _categoriaByName[category] ??
+                                              Categoria(
+                                                id: category,
+                                                nombre: category,
+                                              ),
+                                        ));
+                                  final selectedId = selectedCat == null
+                                      ? null
+                                      : (selectedCat.finalId?.toString() ??
+                                            selectedCat.id?.toString());
+                                  setState(() {
+                                    _selectedFilter = category;
+                                    _selectedCategoryId = selectedId;
+                                    _currentPage = 1;
+                                    _apiPage = 1;
+                                  });
+                                  _scrollListToTop();
+                                  // Solo re-aplicar filtro sobre lo ya cargado; el
+                                  // fetch en segundo plano seguirá trayendo más páginas.
+                                  _applyFilter();
+                                  unawaited(_fetchAllCuponesInBackground());
+                                },
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
                                   ),
-                                ]
-                              : null,
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () async {
-                              setState(() {
-                                _selectedFilter = category;
-                                _currentPage = 1;
-                                _applyFilter();
-                              });
-                              await _ensurePageHasData(1);
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              child: Text(
-                                category,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : primaryGreen,
-                                  letterSpacing: 0.3,
+                                  child: Text(
+                                    category,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : primaryGreen,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
           if (!_showClaimed)
@@ -1349,7 +1624,17 @@ class _DiscountsContentState extends State<DiscountsContent> {
                           ElevatedButton.icon(
                             onPressed: () {
                               _currentPage = 1;
-                              _loadCupones();
+                              _loadCupones(
+                                pageOverride: 1,
+                                reset: false,
+                                categoryId: _selectedCategoryId,
+                                categoryName: _selectedFilter == 'Todos'
+                                    ? null
+                                    : _selectedFilter,
+                                fetchAll: false,
+                                ignoreCategory: true,
+                              );
+                              unawaited(_fetchAllCuponesInBackground());
                             },
                             icon: const Icon(Icons.refresh),
                             label: const Text('Reintentar'),
@@ -1372,6 +1657,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
                       children: [
                         Expanded(
                           child: ListView.builder(
+                            controller: _listScrollController,
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             itemCount: pagedFilteredCupones.length,
                             itemBuilder: (context, index) {
@@ -1406,18 +1692,26 @@ class _DiscountsContentState extends State<DiscountsContent> {
                                   ),
                                 ),
                               ElevatedButton.icon(
-                                onPressed: (_isLoading || !canGoPrevious)
+                                onPressed: (_pageChangeLocked || !canGoPrevious)
                                     ? null
                                     : () {
+                                        _setPageLock();
                                         setState(() {
                                           _currentPage -= 1;
                                         });
+                                        _scrollListToTop();
+                                        // Prefetch siguiente página en segundo plano
+                                        unawaited(
+                                          _ensurePageHasData(_currentPage + 1),
+                                        );
                                       },
                                 icon: const Icon(Icons.chevron_left),
                                 label: const Text('Anterior'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreen,
                                   foregroundColor: Colors.black,
+                                  disabledBackgroundColor: Colors.grey.shade400,
+                                  disabledForegroundColor: Colors.black54,
                                 ),
                               ),
                               const Spacer(),
@@ -1430,30 +1724,27 @@ class _DiscountsContentState extends State<DiscountsContent> {
                               ),
                               const Spacer(),
                               ElevatedButton.icon(
-                                onPressed: (_isLoading || !canGoNext)
+                                onPressed: (_pageChangeLocked || !canGoNext)
                                     ? null
-                                    : () async {
+                                    : () {
+                                        _setPageLock();
                                         final nextPage = _currentPage + 1;
-                                        final needed = nextPage * _pageSize;
-                                        if (_filteredCupones.length < needed &&
-                                            _hasMore) {
-                                          await _loadCupones(
-                                            pageOverride: _apiPage + 1,
-                                          );
-                                        }
-                                        if (mounted &&
-                                            _filteredCupones.length >=
-                                                (_currentPage * _pageSize)) {
-                                          setState(() {
-                                            _currentPage = nextPage;
-                                          });
-                                        }
+                                        setState(() {
+                                          _currentPage = nextPage;
+                                        });
+                                        _scrollListToTop();
+                                        // Prefetch próxima página en segundo plano
+                                        unawaited(
+                                          _ensurePageHasData(nextPage + 1),
+                                        );
                                       },
                                 icon: const Icon(Icons.chevron_right),
                                 label: const Text('Siguiente'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreen,
                                   foregroundColor: Colors.black,
+                                  disabledBackgroundColor: Colors.grey.shade400,
+                                  disabledForegroundColor: Colors.black54,
                                 ),
                               ),
                             ],
@@ -2564,10 +2855,11 @@ class ClaimedCouponsContent extends StatefulWidget {
 class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   List<Cupon> _claimedCupones = [];
   int _claimedPage = 1;
-  final int _claimedPageSize = 5;
+  final int _claimedPageSize = 25;
   bool _isLoading = false;
   bool _hasError = false;
   String _errorMessage = '';
+  bool _claimedHasMore = false;
 
   @override
   void initState() {
@@ -2582,18 +2874,9 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     await _loadClaimedCupones();
   }
 
-  List<Cupon> _currentPageClaimedCupones() {
-    final start = (_claimedPage - 1) * _claimedPageSize;
-    return _claimedCupones.skip(start).take(_claimedPageSize).toList();
-  }
-
-  int get _claimedTotalPages {
-    if (_claimedCupones.isEmpty) return 1;
-    return (_claimedCupones.length / _claimedPageSize).ceil();
-  }
-
-  Future<void> _loadClaimedCupones() async {
+  Future<void> _loadClaimedCupones({int? pageOverride}) async {
     if (!mounted) return;
+    final targetPage = pageOverride ?? _claimedPage;
 
     setState(() {
       _isLoading = true;
@@ -2607,6 +2890,8 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
             apiKey: ApiConfig.apiKey,
             micrositioId: ApiConfig.micrositioId.toString(),
             codigoAfiliado: ApiConfig.codigoAfiliado,
+            page: targetPage,
+            pageSize: _claimedPageSize,
           ).timeout(
             const Duration(seconds: 15),
             onTimeout: () {
@@ -2619,7 +2904,8 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
       setState(() {
         _claimedCupones = result['cupones'] ?? [];
-        _claimedPage = 1;
+        _claimedHasMore = result['has_more'] as bool? ?? false;
+        _claimedPage = targetPage;
         _isLoading = false;
       });
     } catch (e) {
@@ -2640,10 +2926,10 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
-    final pagedCupones = _currentPageClaimedCupones();
-    final claimedTotalPages = _claimedTotalPages;
+    final pagedCupones = _claimedCupones;
+    final claimedTotalPages = _claimedHasMore ? _claimedPage + 1 : _claimedPage;
     final canGoPrevious = _claimedPage > 1;
-    final canGoNext = _claimedPage < claimedTotalPages;
+    final canGoNext = _claimedHasMore;
 
     final content = Column(
       children: [
@@ -2813,9 +3099,11 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             onPressed: (_isLoading || !canGoPrevious)
                                 ? null
                                 : () {
-                                    setState(() {
-                                      _claimedPage -= 1;
-                                    });
+                                    final prevPage = (_claimedPage - 1).clamp(
+                                      1,
+                                      _claimedPage,
+                                    );
+                                    _loadClaimedCupones(pageOverride: prevPage);
                                   },
                             icon: const Icon(Icons.chevron_left),
                             label: const Text('Anterior'),
@@ -2837,9 +3125,8 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             onPressed: (_isLoading || !canGoNext)
                                 ? null
                                 : () {
-                                    setState(() {
-                                      _claimedPage += 1;
-                                    });
+                                    final nextPage = _claimedPage + 1;
+                                    _loadClaimedCupones(pageOverride: nextPage);
                                   },
                             icon: const Icon(Icons.chevron_right),
                             label: const Text('Siguiente'),

@@ -35,6 +35,27 @@ class Cupon {
     required this.empresa,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'codigo': codigo,
+      'descuento': descuento,
+      'nombre': nombre,
+      'descripcion_breve': descripcionBreve,
+      'descripcion_micrositio': descripcionMicrositio,
+      'legales': legales,
+      'instrucciones': instrucciones,
+      'fecha_vencimiento': fechaVencimiento,
+      'precio_puntos': precioPuntos,
+      'permitir_sms': permitirSms,
+      'usar_en': usarEn,
+      'foto_thumbnail': fotoThumbnail,
+      'foto_principal': fotoPrincipal,
+      'categorias': categorias.map((c) => c.toJson()).toList(),
+      'empresa': empresa.toJson(),
+    };
+  }
+
   // Obtener URL de imagen principal (preferir 280x190, fallback a original)
   String get fotoUrl {
     return fotoPrincipal['280x190'] ?? fotoPrincipal['original'] ?? '';
@@ -85,6 +106,9 @@ class Cupon {
       codigo = json['envio']['codigo'].toString();
     }
 
+    final categoriasData =
+        json['categorias'] ?? json['categoria'] ?? json['categories'];
+
     return Cupon(
       id: json['id']?.toString() ?? '',
       codigo: codigo,
@@ -100,7 +124,7 @@ class Cupon {
       usarEn: _parseUsarEn(json['usar_en']),
       fotoThumbnail: _parseFoto(json['foto_thumbnail']),
       fotoPrincipal: _parseFoto(json['foto_principal']),
-      categorias: _parseCategorias(json['categorias']),
+      categorias: _parseCategorias(categoriasData),
       empresa: Empresa.fromJson(json['empresa'] ?? {}),
     );
   }
@@ -139,8 +163,23 @@ class Cupon {
   static List<Categoria> _parseCategorias(dynamic data) {
     if (data is List) {
       return data
-          .map((item) => Categoria.fromJson(item as Map<String, dynamic>))
+          .map((item) {
+            if (item is Map<String, dynamic>) {
+              return Categoria.fromJson(item);
+            }
+            if (item is String) {
+              return Categoria(id: item, nombre: item);
+            }
+            return null;
+          })
+          .whereType<Categoria>()
           .toList();
+    }
+    if (data is Map<String, dynamic>) {
+      return [Categoria.fromJson(data)];
+    }
+    if (data is String) {
+      return [Categoria(id: data, nombre: data)];
     }
     return [];
   }
@@ -150,14 +189,36 @@ class Categoria {
   final dynamic id;
   final String nombre;
   final dynamic parentId;
+  final int? finalId;
+  final String? image;
 
-  Categoria({required this.id, required this.nombre, this.parentId});
+  Categoria({
+    required this.id,
+    required this.nombre,
+    this.parentId,
+    this.finalId,
+    this.image,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'parent_id': parentId,
+      'final_id': finalId,
+      'image': image,
+    };
+  }
 
   factory Categoria.fromJson(Map<String, dynamic> json) {
     return Categoria(
       id: json['id'],
       nombre: json['nombre']?.toString() ?? '',
-      parentId: json['parent_id'],
+      parentId: json['parent_id'] ?? json['parent_final_id'],
+      finalId: json['final_id'] is int
+          ? json['final_id'] as int
+          : int.tryParse('${json['final_id']}'),
+      image: json['image']?.toString(),
     );
   }
 }
@@ -174,6 +235,15 @@ class Empresa {
     required this.logoThumbnail,
     required this.descripcion,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'logo_thumbnail': logoThumbnail,
+      'descripcion': descripcion,
+    };
+  }
 
   // Obtener URL del logo (preferir original)
   String get logo {
