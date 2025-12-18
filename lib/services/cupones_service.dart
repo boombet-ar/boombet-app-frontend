@@ -63,6 +63,7 @@ class CuponesService {
     String? categoryId,
     String? categoryName,
     String? searchQuery,
+    String? orderBy,
   }) async {
     try {
       // Usar valores por defecto si no se proporcionan
@@ -75,9 +76,12 @@ class CuponesService {
           ? category
           : categoryLabel;
       final normalizedSearch = searchQuery?.trim();
+      final normalizedOrderBy = (orderBy?.trim().isNotEmpty ?? false)
+          ? orderBy!.trim()
+          : 'relevant';
 
       developer.log(
-        'DEBUG CuponesService - Fetching cupones (page: $page, key: $key, microId: $microId, affiliate: $affiliate, category: ${categoryFilter ?? '-'}, search: ${normalizedSearch ?? '-'} )',
+        'DEBUG CuponesService - Fetching cupones (page: $page, key: $key, microId: $microId, affiliate: $affiliate, category: ${categoryFilter ?? '-'}, query: ${normalizedSearch ?? '-'} )',
       );
 
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
@@ -88,6 +92,8 @@ class CuponesService {
               'codigo_afiliado': affiliate,
               'page': page.toString(),
               'page_size': pageSize.toString(),
+              'orderBy': normalizedOrderBy,
+              'with_locations': 'false',
               // Incluir cupones en subcategorías (ej: Cines bajo Entretenimiento)
               'subcategories': 'true',
               // Enviar filtro de categoría si se especificó; priorizar clave 'categoria'
@@ -95,7 +101,7 @@ class CuponesService {
                 'categoria': categoryFilter,
               },
               if (normalizedSearch != null && normalizedSearch.isNotEmpty) ...{
-                'search': normalizedSearch,
+                'query': normalizedSearch,
               },
             },
           )

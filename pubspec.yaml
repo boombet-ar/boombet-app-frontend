@@ -45,6 +45,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/games/game_01/sprites/
+    - assets/images/games/game_01/backgrounds/
+    - assets/images/games/game_01/obstacles/
 
 flutter_native_splash:
   color: "#000000"

@@ -195,11 +195,18 @@ class MyApp extends StatelessWidget {
               themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
               routerConfig: appRouter,
               builder: (context, child) {
+                final mediaQuery = MediaQuery.of(context);
                 return MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(textScaler: TextScaler.linear(fontSizeMultiplier)),
-                  child: child!,
+                  data: mediaQuery.copyWith(
+                    textScaler: TextScaler.linear(fontSizeMultiplier),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    left: false,
+                    right: false,
+                    bottom: true,
+                    child: child!,
+                  ),
                 );
               },
             );

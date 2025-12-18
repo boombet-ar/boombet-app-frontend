@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
@@ -568,6 +569,61 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
+        // Botón para acceder a Game01
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const Game01Page()),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.15),
+                    primaryGreen.withValues(alpha: 0.08),
+                  ],
+                ),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/pixel_logo.png',
+                    width: 32,
+                    height: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Juega Ahora',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         // Carrusel de promociones - ocupa casi toda la pantalla
         Expanded(
           child: RepaintBoundary(
@@ -798,16 +854,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
   int _currentPage = 1; // Página visible en UI
   int _apiPage = 1; // Página usada en llamadas al backend
   final int _pageSize = 15;
+  final Map<int, List<Cupon>> _pageCache = {};
   List<Categoria> _remoteCategories = [];
-  // Page size grande para traer todos los cupones de una categoría o para
-  // poblar el listado inicial de categorías sin depender de la paginación.
-  static const int _apiAllPageSize = 2000;
-  bool _isPrefetching = false;
-  bool _isBulkFetching = false;
   bool _showClaimed = false; // Switch entre descuentos y reclamados
-  bool _pageChangeLocked = false;
-  DateTime? _pageLockUntil;
-  static const Duration _pageCooldown = Duration(seconds: 5);
 
   List<Cupon> _cupones = [];
   List<Cupon> _filteredCupones = [];
@@ -877,7 +926,9 @@ class _DiscountsContentState extends State<DiscountsContent> {
         _applyFilter();
         _cacheApplied = true;
         _apiPage = prefs.getInt(_cachedPageKey) ?? _apiPage;
+        _currentPage = _apiPage;
         _hasMore = prefs.getBool(_cachedHasMoreKey) ?? _hasMore;
+        _pageCache[_apiPage] = cachedCupones;
       });
     } catch (e) {
       debugPrint('WARN: No se pudo cargar cache de cupones: $e');
@@ -954,14 +1005,22 @@ class _DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
+  void _jumpPages(int delta) {
+    if (_isLoading) return;
+    final target = (_currentPage + delta).clamp(1, 1 << 30);
+    if (target == _currentPage) return;
+    _scrollListToTop();
+    unawaited(_loadCupones(pageOverride: target));
+  }
+
   Future<void> _loadCupones({
     int? pageOverride,
     bool reset = false,
     String? searchQuery,
     String? categoryId,
     String? categoryName,
-    bool fetchAll = false,
     bool ignoreCategory = false,
+    bool forceRefresh = false,
   }) async {
     if (_isLoading) return;
     if (!_affiliationCompleted) return;
@@ -975,11 +1034,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final normalizedCategoryName = ignoreCategory
         ? null
         : categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
-    final shouldFetchAll =
-        fetchAll ||
-        (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty);
-    final targetPage = shouldFetchAll ? 1 : (pageOverride ?? _apiPage);
-    final apiPageSize = shouldFetchAll ? _apiAllPageSize : _pageSize;
+    final targetPage = (pageOverride ?? _currentPage).clamp(1, 1 << 30);
 
     setState(() {
       _isLoading = true;
@@ -988,21 +1043,42 @@ class _DiscountsContentState extends State<DiscountsContent> {
         _filteredCupones.clear();
         _apiPage = 1;
         _currentPage = 1;
+        _pageCache.clear();
+        _hasMore = false;
+        _hasError = false;
         // Conservar categorías obtenidas del endpoint para no perder IDs
         // en selecciones posteriores.
       }
     });
+
+    if (!reset && !forceRefresh && _pageCache.containsKey(targetPage)) {
+      if (mounted) {
+        setState(() {
+          _cupones = List<Cupon>.from(_pageCache[targetPage]!);
+          _apiPage = targetPage;
+          _currentPage = targetPage;
+          _hasError = false;
+          _hasMore = _hasMore; // keep previous value
+          _updateCategorias();
+          _applyFilter();
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
     try {
       final result =
           await CuponesService.getCupones(
             page: targetPage,
-            pageSize: apiPageSize,
+            pageSize: _pageSize,
             apiKey: ApiConfig.apiKey,
             micrositioId: ApiConfig.micrositioId.toString(),
             codigoAfiliado: ApiConfig.codigoAfiliado,
             searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
             categoryId: normalizedCategoryId,
             categoryName: normalizedCategoryName,
+            orderBy: 'relevant',
           ).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
@@ -1015,47 +1091,19 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
       if (mounted) {
         setState(() {
-          final existingIds = _cupones.map((c) => c.id).toSet();
-          if (reset) {
-            _cupones = newCupones;
-            _apiPage = targetPage;
-            _currentPage = 1;
-          } else {
-            final merged = List<Cupon>.from(_cupones);
-            for (final c in newCupones) {
-              if (c.id == null || existingIds.contains(c.id)) continue;
-              merged.add(c);
-            }
-            _cupones = merged;
-            _apiPage = targetPage;
-          }
-          final hasMoreResponse =
-              (result['has_more'] as bool? ?? false) ||
-              newCupones.length >= apiPageSize;
-          _hasMore = shouldFetchAll ? false : hasMoreResponse;
+          _cupones = newCupones;
+          _apiPage = targetPage;
+          _currentPage = targetPage;
+          final hasMoreResponse = result['has_more'] as bool? ?? false;
+          _hasMore = hasMoreResponse;
           _hasError = false;
+          _pageCache[targetPage] = List<Cupon>.from(newCupones);
 
           // Actualizar categorías vistas (se mantienen acumuladas)
           _updateCategorias();
           _applyFilter();
           unawaited(_persistCuponCache());
         });
-      }
-
-      // Si no se pidió traer todo en una sola llamada, seguimos con el prefetch.
-      if (!shouldFetchAll) {
-        await _ensurePageHasData(
-          _currentPage,
-          searchQuery: normalizedSearch,
-          categoryId: normalizedCategoryId,
-          categoryName: normalizedCategoryName,
-        );
-        await _ensurePageHasData(
-          _currentPage + 1,
-          searchQuery: normalizedSearch,
-          categoryId: normalizedCategoryId,
-          categoryName: normalizedCategoryName,
-        );
       }
 
       if (mounted) {
@@ -1072,138 +1120,6 @@ class _DiscountsContentState extends State<DiscountsContent> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  Future<void> _fetchAllCuponesInBackground() async {
-    // Si tenemos cache aplicada pero aún hay páginas pendientes, continuar.
-    if (_cacheApplied && _cupones.isNotEmpty && !_hasMore) return;
-    if (_isBulkFetching) return;
-    _isBulkFetching = true;
-    var nextPage = _apiPage + 1;
-    while (mounted && _hasMore) {
-      try {
-        await _loadCupones(
-          pageOverride: nextPage,
-          reset: false,
-          fetchAll: false,
-          ignoreCategory: true,
-        );
-        nextPage = _apiPage + 1;
-      } catch (_) {
-        break;
-      }
-    }
-    _isBulkFetching = false;
-  }
-
-  Future<void> _ensurePageHasData(
-    int pageNumber, {
-    String? searchQuery,
-    String? categoryId,
-    String? categoryName,
-  }) async {
-    if (_isPrefetching) return;
-    _isPrefetching = true;
-    final requiredItems = pageNumber * _pageSize;
-    final normalizedSearch = (searchQuery ?? _searchQuery).trim();
-    final normalizedCategoryId =
-        categoryId ??
-        _selectedCategoryId ??
-        _categoriaByName[_selectedFilter]?.id?.toString();
-    final normalizedCategoryName =
-        categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
-
-    // Si estamos en modo fetchAll por categoría, no necesitamos prefetch.
-    if (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty) {
-      _isPrefetching = false;
-      return;
-    }
-
-    if (_filteredCupones.length >= requiredItems || !_hasMore) {
-      _isPrefetching = false;
-      return;
-    }
-
-    final nextPage = _apiPage + 1;
-    try {
-      final result =
-          await CuponesService.getCupones(
-            page: nextPage,
-            pageSize: _pageSize,
-            apiKey: ApiConfig.apiKey,
-            micrositioId: ApiConfig.micrositioId.toString(),
-            codigoAfiliado: ApiConfig.codigoAfiliado,
-            searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
-            categoryId: normalizedCategoryId,
-            categoryName: normalizedCategoryName,
-          ).timeout(
-            const Duration(seconds: 20),
-            onTimeout: () {
-              debugPrint('ERROR: Timeout loading extra cupones');
-              throw TimeoutException('Timeout cargando cupones');
-            },
-          );
-
-      final newCupones = result['cupones'] as List<Cupon>? ?? [];
-      if (!mounted || newCupones.isEmpty) {
-        setState(() {
-          _hasMore = false;
-        });
-        return;
-      }
-
-      setState(() {
-        _cupones.addAll(newCupones);
-        _apiPage = nextPage;
-        _hasMore =
-            (result['has_more'] as bool? ?? false) ||
-            newCupones.length >= _pageSize;
-        _updateCategorias();
-        _applyFilter();
-        unawaited(_persistCuponCache());
-      });
-    } catch (_) {
-      // Silenciar prefetch errors
-    } finally {
-      _isPrefetching = false;
-    }
-  }
-
-  void _setPageLock() {
-    final now = DateTime.now();
-    final until = now.add(_pageCooldown);
-    _pageLockUntil = until;
-    if (!_pageChangeLocked && mounted) {
-      setState(() {
-        _pageChangeLocked = true;
-      });
-    } else {
-      _pageChangeLocked = true;
-    }
-    Future.delayed(_pageCooldown, () {
-      if (!mounted) return;
-      _tryUnlockPageLock();
-    });
-  }
-
-  void _tryUnlockPageLock() {
-    if (!mounted) return;
-    if (_pageLockUntil != null && DateTime.now().isBefore(_pageLockUntil!)) {
-      final remaining = _pageLockUntil!.difference(DateTime.now());
-      Future.delayed(remaining, () {
-        if (!mounted) return;
-        _pageChangeLocked = false;
-        _pageLockUntil = null;
-        setState(() {});
-      });
-      return;
-    }
-    if (_pageChangeLocked) {
-      setState(() {
-        _pageChangeLocked = false;
-        _pageLockUntil = null;
-      });
     }
   }
 
@@ -1247,23 +1163,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
 
       return nameMatch || companyMatch || categoryMatch;
     }).toList();
-    // Recalcular página visible si la actual queda fuera de rango después del filtro
-    final maxPage = (_filteredCupones.length / _pageSize).ceil().clamp(
-      1,
-      1 << 30,
-    );
-    if (_currentPage > maxPage) {
-      _currentPage = maxPage;
-    }
   }
 
   void _onSearch(String query) {
     setState(() {
       _searchQuery = query;
-      _applyFilter();
     });
-    // Continuar trayendo páginas en segundo plano; la búsqueda se aplica localmente.
-    unawaited(_fetchAllCuponesInBackground());
+    // Reiniciar paginación y pedir la página 1 con el término buscado.
+    unawaited(_loadCupones(pageOverride: 1, reset: true, searchQuery: query));
   }
 
   Future<void> _loadClaimedCuponIds() async {
@@ -1360,8 +1267,7 @@ class _DiscountsContentState extends State<DiscountsContent> {
         await _loadCategorias();
         await _loadClaimedCuponIds();
         if (!_cacheApplied) {
-          await _loadCupones(fetchAll: false, reset: true);
-          unawaited(_fetchAllCuponesInBackground());
+          await _loadCupones(reset: true);
         }
         return;
       } catch (e) {
@@ -1377,12 +1283,12 @@ class _DiscountsContentState extends State<DiscountsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
-    final pagedFilteredCupones = _filteredCupones
-        .skip((_currentPage - 1) * _pageSize)
-        .take(_pageSize)
-        .toList();
+    final pagedFilteredCupones = _filteredCupones;
     final canGoPrevious = _currentPage > 1;
-    final canGoNext = pagedFilteredCupones.length == _pageSize || _hasMore;
+    final canGoNext = _hasMore || pagedFilteredCupones.length == _pageSize;
+    final canJumpBack5 = _currentPage > 5;
+    final canJumpBack10 = _currentPage > 10;
+    final canJumpForward = canGoNext;
 
     final categories = <String>{'Todos'};
     categories.addAll(_remoteCategories.map((c) => c.nombre));
@@ -1410,8 +1316,8 @@ class _DiscountsContentState extends State<DiscountsContent> {
           reset: false,
           categoryId: null,
           categoryName: null,
-          fetchAll: false,
           ignoreCategory: true,
+          forceRefresh: true,
         );
       },
       child: Column(
@@ -1547,10 +1453,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
                                     _apiPage = 1;
                                   });
                                   _scrollListToTop();
-                                  // Solo re-aplicar filtro sobre lo ya cargado; el
-                                  // fetch en segundo plano seguirá trayendo más páginas.
-                                  _applyFilter();
-                                  unawaited(_fetchAllCuponesInBackground());
+                                  unawaited(
+                                    _loadCupones(
+                                      pageOverride: 1,
+                                      reset: true,
+                                      categoryId: selectedId,
+                                      categoryName: selectedCat?.nombre,
+                                    ),
+                                  );
                                 },
                                 borderRadius: BorderRadius.circular(20),
                                 child: Padding(
@@ -1626,15 +1536,14 @@ class _DiscountsContentState extends State<DiscountsContent> {
                               _currentPage = 1;
                               _loadCupones(
                                 pageOverride: 1,
-                                reset: false,
+                                reset: true,
                                 categoryId: _selectedCategoryId,
                                 categoryName: _selectedFilter == 'Todos'
                                     ? null
                                     : _selectedFilter,
-                                fetchAll: false,
                                 ignoreCategory: true,
+                                forceRefresh: true,
                               );
-                              unawaited(_fetchAllCuponesInBackground());
                             },
                             icon: const Icon(Icons.refresh),
                             label: const Text('Reintentar'),
@@ -1656,98 +1565,301 @@ class _DiscountsContentState extends State<DiscountsContent> {
                   : Column(
                       children: [
                         Expanded(
-                          child: ListView.builder(
-                            controller: _listScrollController,
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            itemCount: pagedFilteredCupones.length,
-                            itemBuilder: (context, index) {
-                              final cupon = pagedFilteredCupones[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildCuponCard(
-                                  context,
-                                  cupon,
-                                  primaryGreen,
-                                  textColor,
-                                  isDark,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: Row(
+                          child: Stack(
                             children: [
+                              ListView.builder(
+                                controller: _listScrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  24,
+                                ),
+                                itemCount: pagedFilteredCupones.length,
+                                itemBuilder: (context, index) {
+                                  final cupon = pagedFilteredCupones[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: _buildCuponCard(
+                                      context,
+                                      cupon,
+                                      primaryGreen,
+                                      textColor,
+                                      isDark,
+                                    ),
+                                  );
+                                },
+                              ),
                               if (_isLoading && _filteredCupones.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: primaryGreen,
+                                Positioned(
+                                  top: 12,
+                                  right: 16,
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: primaryGreen,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ElevatedButton.icon(
-                                onPressed: (_pageChangeLocked || !canGoPrevious)
-                                    ? null
-                                    : () {
-                                        _setPageLock();
-                                        setState(() {
-                                          _currentPage -= 1;
-                                        });
-                                        _scrollListToTop();
-                                        // Prefetch siguiente página en segundo plano
-                                        unawaited(
-                                          _ensurePageHasData(_currentPage + 1),
-                                        );
-                                      },
-                                icon: const Icon(Icons.chevron_left),
-                                label: const Text('Anterior'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: primaryGreen,
-                                  foregroundColor: Colors.black,
-                                  disabledBackgroundColor: Colors.grey.shade400,
-                                  disabledForegroundColor: Colors.black54,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                'Página $_currentPage',
-                                style: TextStyle(
-                                  color: textColor.withValues(alpha: 0.75),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const Spacer(),
-                              ElevatedButton.icon(
-                                onPressed: (_pageChangeLocked || !canGoNext)
-                                    ? null
-                                    : () {
-                                        _setPageLock();
-                                        final nextPage = _currentPage + 1;
-                                        setState(() {
-                                          _currentPage = nextPage;
-                                        });
-                                        _scrollListToTop();
-                                        // Prefetch próxima página en segundo plano
-                                        unawaited(
-                                          _ensurePageHasData(nextPage + 1),
-                                        );
-                                      },
-                                icon: const Icon(Icons.chevron_right),
-                                label: const Text('Siguiente'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: primaryGreen,
-                                  foregroundColor: Colors.black,
-                                  disabledBackgroundColor: Colors.grey.shade400,
-                                  disabledForegroundColor: Colors.black54,
-                                ),
-                              ),
                             ],
+                          ),
+                        ),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // -10
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: canJumpBack10
+                                        ? () => _jumpPages(-10)
+                                        : null,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canJumpBack10 ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '-10',
+                                      style: TextStyle(
+                                        color: canJumpBack10
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                // -5
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: canJumpBack5
+                                        ? () => _jumpPages(-5)
+                                        : null,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canJumpBack5 ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '-5',
+                                      style: TextStyle(
+                                        color: canJumpBack5
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                // -1
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: !canGoPrevious
+                                        ? null
+                                        : () {
+                                            _scrollListToTop();
+                                            final prevPage = (_currentPage - 1)
+                                                .clamp(1, 1 << 30);
+                                            unawaited(
+                                              _loadCupones(
+                                                pageOverride: prevPage,
+                                              ),
+                                            );
+                                          },
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canGoPrevious ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '-1',
+                                      style: TextStyle(
+                                        color: canGoPrevious
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'P$_currentPage',
+                                  style: TextStyle(
+                                    color: textColor.withValues(alpha: 0.65),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // +1
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: !canGoNext
+                                        ? null
+                                        : () {
+                                            _scrollListToTop();
+                                            final nextPage = _currentPage + 1;
+                                            unawaited(
+                                              _loadCupones(
+                                                pageOverride: nextPage,
+                                              ),
+                                            );
+                                          },
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canGoNext ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '+1',
+                                      style: TextStyle(
+                                        color: canGoNext
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                // +5
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: canJumpForward
+                                        ? () => _jumpPages(5)
+                                        : null,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canJumpForward ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '+5',
+                                      style: TextStyle(
+                                        color: canJumpForward
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                // +10
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: OutlinedButton(
+                                    onPressed: canJumpForward
+                                        ? () => _jumpPages(10)
+                                        : null,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(
+                                        color: primaryGreen.withValues(
+                                          alpha: canJumpForward ? 0.7 : 0.15,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '+10',
+                                      style: TextStyle(
+                                        color: canJumpForward
+                                            ? primaryGreen
+                                            : textColor.withValues(alpha: 0.25),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        height: 1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -3057,85 +3169,330 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
               : Column(
                   children: [
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        itemCount: pagedCupones.length,
-                        itemBuilder: (context, index) {
-                          final cupon = pagedCupones[index];
-                          return TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0, end: 1),
-                            duration: Duration(
-                              milliseconds: 300 + (index * 50),
+                      child: Stack(
+                        children: [
+                          ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                            curve: Curves.easeOut,
-                            builder: (context, value, child) {
-                              return Transform.translate(
-                                offset: Offset(0, 30 * (1 - value)),
-                                child: Opacity(opacity: value, child: child),
+                            itemCount: pagedCupones.length,
+                            itemBuilder: (context, index) {
+                              final cupon = pagedCupones[index];
+                              return TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: 1),
+                                duration: Duration(
+                                  milliseconds: 300 + (index * 50),
+                                ),
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Transform.translate(
+                                    offset: Offset(0, 30 * (1 - value)),
+                                    child: Opacity(
+                                      opacity: value,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildClaimedCuponCard(
+                                    context,
+                                    cupon,
+                                    primaryGreen,
+                                    textColor,
+                                    isDark,
+                                  ),
+                                ),
                               );
                             },
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildClaimedCuponCard(
-                                context,
-                                cupon,
-                                primaryGreen,
-                                textColor,
-                                isDark,
+                          ),
+                          if (_isLoading && _claimedCupones.isNotEmpty)
+                            Positioned(
+                              top: 12,
+                              right: 16,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: primaryGreen,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          );
-                        },
+                        ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: (_isLoading || !canGoPrevious)
-                                ? null
-                                : () {
-                                    final prevPage = (_claimedPage - 1).clamp(
-                                      1,
-                                      _claimedPage,
-                                    );
-                                    _loadClaimedCupones(pageOverride: prevPage);
-                                  },
-                            icon: const Icon(Icons.chevron_left),
-                            label: const Text('Anterior'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              foregroundColor: Colors.black,
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // -10
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: (_claimedPage <= 1)
+                                    ? null
+                                    : () {
+                                        final prevPage = (_claimedPage - 10)
+                                            .clamp(1, 1 << 30);
+                                        _loadClaimedCupones(
+                                          pageOverride: prevPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: (_claimedPage > 1) ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '-10',
+                                  style: TextStyle(
+                                    color: (_claimedPage > 1)
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            'Página $_claimedPage de $claimedTotalPages',
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.75),
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(width: 3),
+                            // -5
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: (_claimedPage <= 1)
+                                    ? null
+                                    : () {
+                                        final prevPage = (_claimedPage - 5)
+                                            .clamp(1, 1 << 30);
+                                        _loadClaimedCupones(
+                                          pageOverride: prevPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: (_claimedPage > 1) ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '-5',
+                                  style: TextStyle(
+                                    color: (_claimedPage > 1)
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          ElevatedButton.icon(
-                            onPressed: (_isLoading || !canGoNext)
-                                ? null
-                                : () {
-                                    final nextPage = _claimedPage + 1;
-                                    _loadClaimedCupones(pageOverride: nextPage);
-                                  },
-                            icon: const Icon(Icons.chevron_right),
-                            label: const Text('Siguiente'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              foregroundColor: Colors.black,
+                            const SizedBox(width: 3),
+                            // -1
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: !canGoPrevious
+                                    ? null
+                                    : () {
+                                        final prevPage = (_claimedPage - 1)
+                                            .clamp(1, 1 << 30);
+                                        _loadClaimedCupones(
+                                          pageOverride: prevPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: canGoPrevious ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '-1',
+                                  style: TextStyle(
+                                    color: canGoPrevious
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Text(
+                              'P$_claimedPage',
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.65),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // +1
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: !canGoNext
+                                    ? null
+                                    : () {
+                                        final nextPage = _claimedPage + 1;
+                                        _loadClaimedCupones(
+                                          pageOverride: nextPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: canGoNext ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '+1',
+                                  style: TextStyle(
+                                    color: canGoNext
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            // +5
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: !canGoNext
+                                    ? null
+                                    : () {
+                                        final nextPage = _claimedPage + 5;
+                                        _loadClaimedCupones(
+                                          pageOverride: nextPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: canGoNext ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '+5',
+                                  style: TextStyle(
+                                    color: canGoNext
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            // +10
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: !canGoNext
+                                    ? null
+                                    : () {
+                                        final nextPage = _claimedPage + 10;
+                                        _loadClaimedCupones(
+                                          pageOverride: nextPage,
+                                        );
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(
+                                    color: primaryGreen.withValues(
+                                      alpha: canGoNext ? 0.7 : 0.15,
+                                    ),
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '+10',
+                                  style: TextStyle(
+                                    color: canGoNext
+                                        ? primaryGreen
+                                        : textColor.withValues(alpha: 0.25),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
