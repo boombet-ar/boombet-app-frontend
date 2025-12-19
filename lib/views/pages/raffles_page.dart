@@ -1,3 +1,4 @@
+import 'package:boombet_app/views/pages/home/widgets/section_headers.dart';
 import 'package:boombet_app/views/pages/home_page.dart' show buildSectionHeader;
 import 'package:flutter/material.dart';
 

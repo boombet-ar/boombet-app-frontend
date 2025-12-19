@@ -17,15 +17,15 @@ class DifficultySnapshot {
 class DifficultyManager {
   double _elapsed = 0;
 
-  // Baseline values (start easy)
-  final double _baseGap = 150;
-  final double _minGap = 110;
+  // Baseline values (start easy, ramp in ~35s for short runs)
+  final double _baseGap = 170;
+  final double _minGap = 115;
 
-  final double _baseSpawn = 2.0;
-  final double _minSpawn = 1.0;
+  final double _baseSpawn = 1.8;
+  final double _minSpawn = 0.9;
 
-  final double _baseSpeed = 220;
-  final double _maxSpeed = 340;
+  final double _baseSpeed = 210;
+  final double _maxSpeed = 360;
 
   // Fixed wide pipes across all difficulty
   final double _baseTubeWidth = 2.3;
@@ -36,7 +36,7 @@ class DifficultyManager {
   }
 
   DifficultySnapshot get snapshot {
-    final progress = min(_elapsed / 60.0, 1.0); // Hardest at ~60s
+    final progress = min(_elapsed / 35.0, 1.0); // Hardest at ~35s
 
     final gap = _lerp(_baseGap, _minGap, progress);
     final spawnInterval = _lerp(_baseSpawn, _minSpawn, progress);

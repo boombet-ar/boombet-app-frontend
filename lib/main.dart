@@ -216,3 +216,10 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+//comando para correr siempre en el mismo puerto en chrome
+//flutter run -d chrome --web-hostname localhost --web-port 8080
+//
+//comando para buildear el apk
+//flutter build apk --release
+

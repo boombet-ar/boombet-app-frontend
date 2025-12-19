@@ -7,6 +7,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,11 +17,27 @@ import 'components/ground.dart';
 
 class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   Player? player;
+  Ground? ground;
 
   final ValueNotifier<int> score = ValueNotifier<int>(0);
   final ValueNotifier<int> bestScore = ValueNotifier<int>(0);
   bool isGameOver = false;
   bool isPaused = true; // start paused until user taps Play
+
+  static const double groundHeight = 12.0;
+  static const double groundOffset = 6.0;
+
+  bool _soundsReady = false;
+  final List<String> _sfxFiles = [
+    // Nota: FlameAudio usa por defecto el prefijo assets/audio/, por eso quitamos "audio/"
+    'sfx/game_01/jump.mp3',
+    'sfx/game_01/hit.mp3',
+    'sfx/game_01/point.mp3',
+  ];
+
+  bool _bgmReady = false;
+  final String _bgmFile = 'sfx/game_01/music.mp3';
+  bool _bgmStarted = false;
 
   // Sprites
   late Sprite playerSprite;
@@ -39,8 +56,12 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     add(DarkOverlay(size));
 
     // Suelo: más bajo y fino para no cortar la pantalla
-    const groundHeight = 12.0;
-    add(Ground(y: size.y - groundHeight + 6, width: size.x, height: groundHeight));
+    ground = Ground(
+      y: size.y - groundHeight + groundOffset,
+      width: size.x,
+      height: groundHeight,
+    );
+    add(ground!);
 
     // Player
     player = Player(onDie: gameOver, sprite: playerSprite)
@@ -60,6 +81,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   void addPoint() {
     if (!isGameOver) {
       score.value += 1;
+      _playPoint();
     }
   }
 
@@ -73,6 +95,8 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       bestScore.value = score.value;
       unawaited(_saveBestScore(score.value));
     }
+
+    playHit();
   }
 
   void pauseGame() {
@@ -107,6 +131,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     // Resetea la escena completa
     player = null;
+    ground = null;
     final toRemove = children.toList();
     for (final c in toRemove) {
       c.removeFromParent();
@@ -119,6 +144,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     // Arranca usando el mismo flujo que el arranque inicial
     startGame();
+
+    // Reanuda música si no está sonando
+    _startBgmLoop();
   }
 
   // ========================
@@ -126,10 +154,23 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   // ========================
 
   @override
+  void onGameResize(Vector2 canvasSize) {
+    super.onGameResize(canvasSize);
+    if (ground != null) {
+      ground!
+        ..position.y = canvasSize.y - groundHeight + groundOffset
+        ..size = Vector2(canvasSize.x, groundHeight);
+    }
+  }
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
 
     debugPrint('🎮 [Game01] Loading assets...');
+
+    // Asegura prefijo correcto para audios
+    FlameAudio.audioCache.prefix = 'assets/audio/';
 
     // 🔹 CARGA DE ASSETS (UNA SOLA VEZ)
     await images.loadAll([
@@ -145,6 +186,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       'games/game_01/backgrounds/bg_mid.png',
       'games/game_01/backgrounds/bg_near.png',
     ]);
+
+    _soundsReady = await _tryLoadAudio();
+    _bgmReady = await _tryLoadMusic();
 
     debugPrint('🎮 [Game01] Assets loaded');
 
@@ -173,6 +217,8 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     // Start paused showing menu overlay
     isPaused = true;
     overlays.add('menu');
+
+    _startBgmLoop();
   }
 
   // ========================
@@ -198,6 +244,8 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   void onRemove() {
     score.dispose();
     bestScore.dispose();
+    ground = null;
+    FlameAudio.bgm.stop();
     super.onRemove();
   }
 
@@ -209,8 +257,59 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     }
   }
 
+  Future<bool> _tryLoadAudio() async {
+    if (_soundsReady) return true;
+    try {
+      await FlameAudio.audioCache.loadAll(_sfxFiles);
+      return _soundsReady = true;
+    } catch (e) {
+      debugPrint('🔇 [Game01] SFX no cargados: $e');
+      return false;
+    }
+  }
+
+  void _playSafe(String file) {
+    if (!_soundsReady) {
+      return;
+    }
+    try {
+      FlameAudio.play(file, volume: 0.9);
+    } catch (e) {
+      debugPrint('🔇 [Game01] error reproduciendo $file: $e');
+    }
+  }
+
+  void playFlap() => _playSafe('sfx/game_01/jump.mp3');
+  void playHit() => _playSafe('sfx/game_01/hit.mp3');
+  void _playPoint() => _playSafe('sfx/game_01/point.mp3');
+
   Future<void> _saveBestScore(int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('game01_best_score', value);
   }
+
+  Future<bool> _tryLoadMusic() async {
+    if (_bgmReady) return true;
+    try {
+      await FlameAudio.bgm.initialize();
+      // Preload the BGM file using the audio cache (Bgm no longer exposes load)
+      await FlameAudio.audioCache.load(_bgmFile);
+      return _bgmReady = true;
+    } catch (e) {
+      debugPrint('🔇 [Game01] BGM no cargado: $e');
+      return false;
+    }
+  }
+
+  Future<void> _startBgmLoop() async {
+    if (!_bgmReady) return;
+    if (_bgmStarted && FlameAudio.bgm.isPlaying) return;
+    try {
+      await FlameAudio.bgm.play(_bgmFile, volume: 0.45);
+      _bgmStarted = true;
+    } catch (e) {
+      debugPrint('🔇 [Game01] error reproduciendo BGM: $e');
+    }
+  }
+
 }

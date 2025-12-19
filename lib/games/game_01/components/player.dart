@@ -1,17 +1,16 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:boombet_app/games/game_01/game_01.dart';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
-import 'package:flame/game.dart';
 import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
-import '../game_01.dart';
 
 import 'ground.dart';
 import 'column_component.dart';
 
 class Player extends SpriteComponent
-  with CollisionCallbacks, HasGameRef<Game01> {
+    with CollisionCallbacks, HasGameRef<Game01> {
   Player({required this.onDie, required Sprite sprite})
     : super(
         sprite: sprite,
@@ -24,12 +23,12 @@ class Player extends SpriteComponent
 
   double velocity = 0;
 
-  // Physic tuning: faster rise/fall for snappier control
-  final double gravity = 1150;
-  final double jumpImpulse = -380;
-  final double maxFallSpeed = 620;
-  final double maxRiseSpeed = -420;
-  final double rotationLerp = 12;
+  // Physic tuning: vertical but un poco más controlable
+  final double gravity = 1250;
+  final double jumpImpulse = -410;
+  final double maxFallSpeed = 680;
+  final double maxRiseSpeed = -480;
+  final double rotationLerp = 13;
 
   bool isAlive = true;
   late CircleComponent _halo;
@@ -39,13 +38,17 @@ class Player extends SpriteComponent
     await super.onLoad();
 
     add(
-      RectangleHitbox()
+      RectangleHitbox.relative(
+          Vector2(0.7, 0.7), // 70% del ancho/alto del sprite
+          parentSize: size,
+          position:
+              (size * 0.15), // centra el 70% dejando 15% de margen por lado
+        )
         ..collisionType = CollisionType.active
-        ..debugMode = true
-        ..renderShape = false
-        ..isSolid = false
-          ..position = Vector2(-4, -4)
-          ..size = Vector2(size.x - 8, size.y - 8),
+        ..debugMode =
+            true // dejamos debug para que veas la caja
+        ..renderShape = true
+        ..isSolid = false,
     );
 
     // Halo sutil, más compacto y con transparencia menor
@@ -69,13 +72,14 @@ class Player extends SpriteComponent
 
     position.y += velocity * dt;
 
-    final targetAngle = (velocity / maxFallSpeed).clamp(-1.0, 1.0) * 0.55;
+    final targetAngle = (velocity / maxFallSpeed).clamp(-1.0, 1.0) * 0.38;
     angle = lerpDouble(angle, targetAngle, (rotationLerp * dt).clamp(0, 1))!;
   }
 
   void flap() {
     if (!isAlive) return;
     velocity = jumpImpulse;
+    gameRef.playFlap();
     _burst();
   }
 
@@ -86,6 +90,7 @@ class Player extends SpriteComponent
     _halo.removeFromParent();
     _deathBurst();
     removeFromParent();
+    gameRef.playHit();
     onDie();
   }
 
