@@ -11,6 +11,8 @@ import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
+import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
+import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -76,6 +78,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const RafflesPage(),
                 const ForumPage(),
+                const GamesContent(),
               ],
             ),
           ),
@@ -569,61 +572,6 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
-        // Botón para acceder a Game01
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const Game01Page()),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    primaryGreen.withValues(alpha: 0.15),
-                    primaryGreen.withValues(alpha: 0.08),
-                  ],
-                ),
-                border: Border.all(
-                  color: primaryGreen.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/images/pixel_logo.png',
-                    width: 32,
-                    height: 32,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Juega Ahora',
-                    style: TextStyle(
-                      color: primaryGreen,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
         // Carrusel de promociones - ocupa casi toda la pantalla
         Expanded(
           child: RepaintBoundary(
@@ -1123,6 +1071,35 @@ class _DiscountsContentState extends State<DiscountsContent> {
     }
   }
 
+  void _resetDiscountsState({required bool triggerLoad}) {
+    setState(() {
+      _selectedFilter = 'Todos';
+      _selectedCategoryId = null;
+      _searchQuery = '';
+      _searchController.clear();
+      _pageCache.clear();
+      _cupones.clear();
+      _filteredCupones.clear();
+      _apiPage = 1;
+      _currentPage = 1;
+      _hasMore = false;
+      _hasError = false;
+    });
+
+    if (triggerLoad) {
+      unawaited(
+        _loadCupones(
+          reset: true,
+          pageOverride: 1,
+          categoryId: null,
+          categoryName: null,
+          searchQuery: '',
+          ignoreCategory: false,
+        ),
+      );
+    }
+  }
+
   void _updateCategorias() {
     for (var cupon in _cupones) {
       for (var cat in cupon.categorias) {
@@ -1332,9 +1309,8 @@ class _DiscountsContentState extends State<DiscountsContent> {
               isDark,
               isShowingClaimed: true,
               onSwitchPressed: () {
-                setState(() {
-                  _showClaimed = false;
-                });
+                _showClaimed = false;
+                _resetDiscountsState(triggerLoad: true);
               },
             )
           else
@@ -1349,6 +1325,8 @@ class _DiscountsContentState extends State<DiscountsContent> {
                 setState(() {
                   _showClaimed = true;
                 });
+                // Preparar descuentos para que al volver arranquen en página 1 / Todos
+                _resetDiscountsState(triggerLoad: false);
               },
             ),
 
@@ -1594,23 +1572,10 @@ class _DiscountsContentState extends State<DiscountsContent> {
                                 Positioned(
                                   top: 12,
                                   right: 16,
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
-                                      child: SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: primaryGreen,
-                                        ),
-                                      ),
-                                    ),
+                                  child: LoadingBadge(
+                                    color: primaryGreen,
+                                    size: 36,
+                                    spinnerSize: 18,
                                   ),
                                 ),
                             ],
@@ -1619,246 +1584,32 @@ class _DiscountsContentState extends State<DiscountsContent> {
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // -10
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: canJumpBack10
-                                        ? () => _jumpPages(-10)
-                                        : null,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canJumpBack10 ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '-10',
-                                      style: TextStyle(
-                                        color: canJumpBack10
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                // -5
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: canJumpBack5
-                                        ? () => _jumpPages(-5)
-                                        : null,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canJumpBack5 ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '-5',
-                                      style: TextStyle(
-                                        color: canJumpBack5
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                // -1
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: !canGoPrevious
-                                        ? null
-                                        : () {
-                                            _scrollListToTop();
-                                            final prevPage = (_currentPage - 1)
-                                                .clamp(1, 1 << 30);
-                                            unawaited(
-                                              _loadCupones(
-                                                pageOverride: prevPage,
-                                              ),
-                                            );
-                                          },
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canGoPrevious ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '-1',
-                                      style: TextStyle(
-                                        color: canGoPrevious
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'P$_currentPage',
-                                  style: TextStyle(
-                                    color: textColor.withValues(alpha: 0.65),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // +1
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: !canGoNext
-                                        ? null
-                                        : () {
-                                            _scrollListToTop();
-                                            final nextPage = _currentPage + 1;
-                                            unawaited(
-                                              _loadCupones(
-                                                pageOverride: nextPage,
-                                              ),
-                                            );
-                                          },
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canGoNext ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '+1',
-                                      style: TextStyle(
-                                        color: canGoNext
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                // +5
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: canJumpForward
-                                        ? () => _jumpPages(5)
-                                        : null,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canJumpForward ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '+5',
-                                      style: TextStyle(
-                                        color: canJumpForward
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                // +10
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: OutlinedButton(
-                                    onPressed: canJumpForward
-                                        ? () => _jumpPages(10)
-                                        : null,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: BorderSide(
-                                        color: primaryGreen.withValues(
-                                          alpha: canJumpForward ? 0.7 : 0.15,
-                                        ),
-                                        width: 0.8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '+10',
-                                      style: TextStyle(
-                                        color: canJumpForward
-                                            ? primaryGreen
-                                            : textColor.withValues(alpha: 0.25),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                        height: 1,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: PaginationBar(
+                              currentPage: _currentPage,
+                              canGoPrevious: canGoPrevious,
+                              canGoNext: canGoNext,
+                              canJumpBack5: canJumpBack5,
+                              canJumpBack10: canJumpBack10,
+                              canJumpForward: canJumpForward,
+                              onPrev: () {
+                                _scrollListToTop();
+                                final prevPage = (_currentPage - 1).clamp(
+                                  1,
+                                  1 << 30,
+                                );
+                                unawaited(_loadCupones(pageOverride: prevPage));
+                              },
+                              onNext: () {
+                                _scrollListToTop();
+                                final nextPage = _currentPage + 1;
+                                unawaited(_loadCupones(pageOverride: nextPage));
+                              },
+                              onJumpBack5: () => _jumpPages(-5),
+                              onJumpBack10: () => _jumpPages(-10),
+                              onJumpForward5: () => _jumpPages(5),
+                              onJumpForward10: () => _jumpPages(10),
+                              primaryColor: primaryGreen,
+                              textColor: textColor,
                             ),
                           ),
                         ),
@@ -2949,6 +2700,203 @@ class _DiscountsContentState extends State<DiscountsContent> {
   }
 }
 
+class GamesContent extends StatelessWidget {
+  const GamesContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryGreen = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.colorScheme.onSurface;
+
+    final games = [
+      (
+        title: 'Space Runner',
+        subtitle: 'Arcade de reflejos',
+        description:
+            'Esquiva columnas, suma puntos y pausa cuando necesites un respiro.',
+        badge: 'Nuevo',
+        onPlay: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Game01Page())),
+      ),
+    ];
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          buildSectionHeader(
+            'Juegos',
+            'Explora los minijuegos de BoomBet',
+            Icons.videogame_asset,
+            primaryGreen,
+            isDark,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: games
+                  .map(
+                    (g) => _GameCard(
+                      title: g.title,
+                      subtitle: g.subtitle,
+                      description: g.description,
+                      badge: g.badge,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      onPlay: g.onPlay,
+                      isDark: isDark,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GameCard extends StatelessWidget {
+  const _GameCard({
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.badge,
+    required this.primaryGreen,
+    required this.textColor,
+    required this.onPlay,
+    required this.isDark,
+  });
+
+  final String title;
+  final String subtitle;
+  final String description;
+  final String badge;
+  final Color primaryGreen;
+  final Color textColor;
+  final VoidCallback onPlay;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onPlay,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              primaryGreen.withValues(alpha: 0.14),
+              primaryGreen.withValues(alpha: 0.06),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: primaryGreen.withValues(alpha: 0.35),
+            width: 1.4,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.videogame_asset, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        badge,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.bolt, color: primaryGreen, size: 18),
+                const SizedBox(width: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.75),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.35,
+                          color: textColor.withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 64,
+                  width: 64,
+                  child: Image.asset(
+                    'assets/images/pixel_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Página de Cupones Reclamados
 class ClaimedCouponsContent extends StatefulWidget {
   final bool hideHeader;
@@ -3042,6 +2990,9 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final claimedTotalPages = _claimedHasMore ? _claimedPage + 1 : _claimedPage;
     final canGoPrevious = _claimedPage > 1;
     final canGoNext = _claimedHasMore;
+    final claimedCanJumpBack5 = _claimedPage > 1;
+    final claimedCanJumpBack10 = _claimedPage > 1;
+    final claimedCanJumpForward = canGoNext;
 
     final content = Column(
       children: [
@@ -3211,23 +3162,11 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             Positioned(
                               top: 12,
                               right: 16,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: primaryGreen,
-                                    ),
-                                  ),
-                                ),
+                              child: LoadingBadge(
+                                color: primaryGreen,
+                                size: 36,
+                                spinnerSize: 18,
+                                backgroundColor: Colors.black.withOpacity(0.75),
                               ),
                             ),
                         ],
@@ -3236,262 +3175,48 @@ class _ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // -10
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: (_claimedPage <= 1)
-                                    ? null
-                                    : () {
-                                        final prevPage = (_claimedPage - 10)
-                                            .clamp(1, 1 << 30);
-                                        _loadClaimedCupones(
-                                          pageOverride: prevPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: (_claimedPage > 1) ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '-10',
-                                  style: TextStyle(
-                                    color: (_claimedPage > 1)
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            // -5
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: (_claimedPage <= 1)
-                                    ? null
-                                    : () {
-                                        final prevPage = (_claimedPage - 5)
-                                            .clamp(1, 1 << 30);
-                                        _loadClaimedCupones(
-                                          pageOverride: prevPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: (_claimedPage > 1) ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '-5',
-                                  style: TextStyle(
-                                    color: (_claimedPage > 1)
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            // -1
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: !canGoPrevious
-                                    ? null
-                                    : () {
-                                        final prevPage = (_claimedPage - 1)
-                                            .clamp(1, 1 << 30);
-                                        _loadClaimedCupones(
-                                          pageOverride: prevPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: canGoPrevious ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '-1',
-                                  style: TextStyle(
-                                    color: canGoPrevious
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'P$_claimedPage',
-                              style: TextStyle(
-                                color: textColor.withValues(alpha: 0.65),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // +1
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: !canGoNext
-                                    ? null
-                                    : () {
-                                        final nextPage = _claimedPage + 1;
-                                        _loadClaimedCupones(
-                                          pageOverride: nextPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: canGoNext ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '+1',
-                                  style: TextStyle(
-                                    color: canGoNext
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            // +5
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: !canGoNext
-                                    ? null
-                                    : () {
-                                        final nextPage = _claimedPage + 5;
-                                        _loadClaimedCupones(
-                                          pageOverride: nextPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: canGoNext ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '+5',
-                                  style: TextStyle(
-                                    color: canGoNext
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            // +10
-                            SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: !canGoNext
-                                    ? null
-                                    : () {
-                                        final nextPage = _claimedPage + 10;
-                                        _loadClaimedCupones(
-                                          pageOverride: nextPage,
-                                        );
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(
-                                    color: primaryGreen.withValues(
-                                      alpha: canGoNext ? 0.7 : 0.15,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '+10',
-                                  style: TextStyle(
-                                    color: canGoNext
-                                        ? primaryGreen
-                                        : textColor.withValues(alpha: 0.25),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: PaginationBar(
+                          currentPage: _claimedPage,
+                          canGoPrevious: canGoPrevious,
+                          canGoNext: canGoNext,
+                          canJumpBack5: claimedCanJumpBack5,
+                          canJumpBack10: claimedCanJumpBack10,
+                          canJumpForward: claimedCanJumpForward,
+                          onPrev: () {
+                            final prevPage = (_claimedPage - 1).clamp(
+                              1,
+                              1 << 30,
+                            );
+                            _loadClaimedCupones(pageOverride: prevPage);
+                          },
+                          onNext: () {
+                            final nextPage = _claimedPage + 1;
+                            _loadClaimedCupones(pageOverride: nextPage);
+                          },
+                          onJumpBack5: () {
+                            final prevPage = (_claimedPage - 5).clamp(
+                              1,
+                              1 << 30,
+                            );
+                            _loadClaimedCupones(pageOverride: prevPage);
+                          },
+                          onJumpBack10: () {
+                            final prevPage = (_claimedPage - 10).clamp(
+                              1,
+                              1 << 30,
+                            );
+                            _loadClaimedCupones(pageOverride: prevPage);
+                          },
+                          onJumpForward5: () {
+                            final nextPage = _claimedPage + 5;
+                            _loadClaimedCupones(pageOverride: nextPage);
+                          },
+                          onJumpForward10: () {
+                            final nextPage = _claimedPage + 10;
+                            _loadClaimedCupones(pageOverride: nextPage);
+                          },
+                          primaryColor: primaryGreen,
+                          textColor: textColor,
                         ),
                       ),
                     ),

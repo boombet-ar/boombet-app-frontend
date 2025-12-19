@@ -101,6 +101,21 @@ class NavbarWidget extends StatelessWidget {
                     ),
                     label: "Foro",
                   ),
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.videogame_asset_outlined,
+                      color: selectedPage == 4
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.videogame_asset,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Juegos",
+                  ),
                 ],
                 onDestinationSelected: (int value) {
                   selectedPageNotifier.value = value;

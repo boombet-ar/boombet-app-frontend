@@ -6,6 +6,6 @@ class DarkOverlay extends RectangleComponent {
     : super(
         size: gameSize,
         position: Vector2.zero(),
-        paint: Paint()..color = Colors.black.withOpacity(0.50), // 👈 AJUSTÁ ACÁ
+        paint: Paint()..color = Colors.black.withOpacity(0.38),
       );
 }

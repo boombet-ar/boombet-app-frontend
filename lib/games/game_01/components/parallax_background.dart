@@ -15,8 +15,8 @@ class ParallaxBackground extends ParallaxComponent with HasGameRef<FlameGame> {
         ParallaxImageData('games/game_01/backgrounds/bg_mid.png'),
         ParallaxImageData('games/game_01/backgrounds/bg_near.png'),
       ],
-      baseVelocity: Vector2(20, 0),
-      velocityMultiplierDelta: Vector2(0.3, 0),
+      baseVelocity: Vector2(24, 0),
+      velocityMultiplierDelta: Vector2(0.45, 0),
     );
 
     size = gameRef.size; // ✅ ahora sí existe

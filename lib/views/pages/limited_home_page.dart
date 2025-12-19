@@ -128,6 +128,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
               const LimitedDiscountsContent(),
               const LimitedRafflesContent(),
               const LimitedForumContent(), // Foro limitado sin publicar
+              const LimitedGamesContent(),
             ],
           ),
           bottomNavigationBar: const NavbarWidget(),
@@ -866,6 +867,20 @@ class LimitedRafflesContent extends StatelessWidget {
       Icons.card_giftcard,
       'Sorteos',
       'Podrás participar en sorteos una vez completada tu afiliación.',
+    );
+  }
+}
+
+class LimitedGamesContent extends StatelessWidget {
+  const LimitedGamesContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildLockedContent(
+      context,
+      Icons.videogame_asset,
+      'Juegos',
+      'Los minijuegos estarán disponibles al completar tu afiliación.',
     );
   }
 }

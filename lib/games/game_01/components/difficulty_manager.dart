@@ -1,0 +1,55 @@
+import 'dart:math';
+
+class DifficultySnapshot {
+  const DifficultySnapshot({
+    required this.gap,
+    required this.spawnInterval,
+    required this.speed,
+    required this.tubeWidthFactor,
+  });
+
+  final double gap;
+  final double spawnInterval;
+  final double speed;
+  final double tubeWidthFactor;
+}
+
+class DifficultyManager {
+  double _elapsed = 0;
+
+  // Baseline values (start easy)
+  final double _baseGap = 150;
+  final double _minGap = 110;
+
+  final double _baseSpawn = 2.0;
+  final double _minSpawn = 1.0;
+
+  final double _baseSpeed = 220;
+  final double _maxSpeed = 340;
+
+  // Fixed wide pipes across all difficulty
+  final double _baseTubeWidth = 2.3;
+  final double _maxTubeWidth = 2.3;
+
+  void update(double dt) {
+    _elapsed += dt;
+  }
+
+  DifficultySnapshot get snapshot {
+    final progress = min(_elapsed / 60.0, 1.0); // Hardest at ~60s
+
+    final gap = _lerp(_baseGap, _minGap, progress);
+    final spawnInterval = _lerp(_baseSpawn, _minSpawn, progress);
+    final speed = _lerp(_baseSpeed, _maxSpeed, progress);
+    final tubeWidthFactor = _lerp(_baseTubeWidth, _maxTubeWidth, progress);
+
+    return DifficultySnapshot(
+      gap: gap,
+      spawnInterval: spawnInterval,
+      speed: speed,
+      tubeWidthFactor: tubeWidthFactor,
+    );
+  }
+
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
+}

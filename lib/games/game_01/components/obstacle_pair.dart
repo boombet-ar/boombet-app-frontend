@@ -8,16 +8,27 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
     required this.gameSize,
     required this.topSprite,
     required this.midSprite,
-    required this.bottomSprite,
+    required this.gap,
+    required this.speed,
+    required this.tubeWidthFactor,
   });
 
   final Vector2 gameSize;
   final Sprite topSprite;
   final Sprite midSprite;
-  final Sprite bottomSprite;
-
-  final double gap = 150;
+  final double gap;
+  final double speed;
+  final double tubeWidthFactor;
   bool scored = false;
+
+  // Vertical drift
+  late final double _verticalAmplitude;
+  late final double _verticalSpeed;
+  late final double _verticalPhase;
+  double _t = 0;
+  late double _baseTopY;
+  late double _baseBottomY;
+  late double _bottomHeight;
 
   late ColumnComponent topColumn;
   late ColumnComponent bottomColumn;
@@ -30,36 +41,57 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
     size = Vector2(gameSize.x + 100, gameSize.y);
 
     final random = Random();
-    const minMargin = 80.0;
+    const minMargin = 12.0; // minimal margin to maximize column height
+    const double extraStretch =
+        96.0; // over-extend columns to avoid visible gaps
 
     final usableHeight = gameSize.y - minMargin * 2;
-    final gapCenterY = minMargin + random.nextDouble() * (usableHeight - gap);
+    final gapTop = minMargin + random.nextDouble() * (usableHeight - gap);
+    final gapCenterY = gapTop + gap / 2;
 
-    final topHeight = gapCenterY - gap / 2;
-    final bottomY = gapCenterY + gap / 2;
-    final bottomHeight = gameSize.y - bottomY;
+    final topHeight =
+        gapTop + extraStretch; // extends upward, bottom stays at gapTop
+    final bottomY = gapTop + gap; // keep gap start intact
+    final bottomHeight =
+        gameSize.y - bottomY + extraStretch; // extends downward
+    _baseTopY = -extraStretch;
+    _baseBottomY = bottomY;
+    _bottomHeight = bottomHeight;
 
     topColumn = ColumnComponent(
-      capNearGap: bottomSprite,
+      capNearGap: topSprite,
       mid: midSprite,
       capFarFromGap: topSprite,
       heightPx: topHeight,
+      widthFactor: tubeWidthFactor,
+      speed: speed,
     )..position = Vector2(gameSize.x, 0);
 
     bottomColumn = ColumnComponent(
       capNearGap: topSprite,
       mid: midSprite,
-      capFarFromGap: bottomSprite,
+      capFarFromGap: topSprite,
       heightPx: bottomHeight,
+      widthFactor: tubeWidthFactor,
+      speed: speed,
     )..position = Vector2(gameSize.x, bottomY);
 
     add(topColumn);
     add(bottomColumn);
+
+    // Vertical drift parameters (small, gentle movement)
+    _verticalAmplitude = random.nextDouble() * 16 + 8; // 8..24 px
+    _verticalSpeed = random.nextDouble() * 0.6 + 0.6; // 0.6..1.2 rad/s
+    _verticalPhase = random.nextDouble() * pi * 2;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (game.isPaused || game.isGameOver) {
+      return;
+    }
 
     if (!scored &&
         (topColumn.position.x + topColumn.size.x) < game.player!.position.x) {
@@ -67,8 +99,22 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
       game.addPoint();
     }
 
+    _t += dt;
+    _applyVerticalDrift();
+
     if (topColumn.position.x + topColumn.size.x < 0) {
       removeFromParent();
     }
+  }
+
+  void _applyVerticalDrift() {
+    final rawOffset =
+        sin(_t * _verticalSpeed + _verticalPhase) * _verticalAmplitude;
+    // Allow gentle wiggle up/down; clamp to avoid extreme shifts
+    const double clampRange = 24;
+    final offset = rawOffset.clamp(-clampRange, clampRange);
+
+    topColumn.position.y = _baseTopY + offset;
+    bottomColumn.position.y = _baseBottomY + offset;
   }
 }

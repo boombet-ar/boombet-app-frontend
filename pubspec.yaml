@@ -48,6 +48,12 @@ flutter:
     - assets/images/games/game_01/sprites/
     - assets/images/games/game_01/backgrounds/
     - assets/images/games/game_01/obstacles/
+    - assets/fonts/
+
+  fonts:
+    - family: ThaleahFat
+      fonts:
+        - asset: assets/fonts/ThaleahFat.ttf
 
 flutter_native_splash:
   color: "#000000"
