@@ -1,5 +1,4 @@
-import 'package:boombet_app/views/pages/home/widgets/section_headers.dart';
-import 'package:boombet_app/views/pages/home_page.dart' show buildSectionHeader;
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 class RafflesPage extends StatelessWidget {
@@ -18,12 +17,10 @@ class RafflesPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildSectionHeader(
-              'Sorteos',
-              'Próximamente disponibles',
-              Icons.card_giftcard,
-              primaryGreen,
-              isDark,
+            SectionHeaderWidget(
+              title: 'Sorteos',
+              subtitle: 'Próximamente disponibles',
+              icon: Icons.card_giftcard,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),

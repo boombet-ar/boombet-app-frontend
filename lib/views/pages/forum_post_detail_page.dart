@@ -20,6 +20,8 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   String? _errorMessage;
   final _replyController = TextEditingController();
   String? _currentUsername;
+  int _repliesPage = 0;
+  bool _hasMoreReplies = true;
 
   @override
   void initState() {
@@ -41,6 +43,57 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     }
   }
 
+  void _goToNextRepliesPage() {
+    if (!_hasMoreReplies || _isLoading) return;
+    setState(() {
+      _repliesPage++;
+    });
+    _loadReplies();
+  }
+
+  void _goToPreviousRepliesPage() {
+    if (_repliesPage == 0 || _isLoading) return;
+    setState(() {
+      _repliesPage--;
+    });
+    _loadReplies();
+  }
+
+  Future<void> _loadReplies() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      print(
+        '🔄 [DetailPage] Loading replies page $_repliesPage for ${widget.postId}...',
+      );
+      final response = await ForumService.getReplies(
+        widget.postId,
+        page: _repliesPage,
+        size: 10,
+      );
+      print('✅ [DetailPage] Replies loaded: ${response.length} replies');
+
+      if (!mounted) return;
+      setState(() {
+        _replies = response;
+        _hasMoreReplies = response.length >= 10;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ [DetailPage] Error loading replies: $e');
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Error al cargar respuestas';
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() {
@@ -53,17 +106,15 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
       final post = await ForumService.getPostById(widget.postId);
       print('✅ [DetailPage] Post loaded: ${post.id} - ${post.username}');
 
-      print('🔄 [DetailPage] Loading replies for ${widget.postId}...');
-      final replies = await ForumService.getReplies(widget.postId);
-      print('✅ [DetailPage] Replies loaded: ${replies.length} replies');
-
       if (!mounted) return;
       setState(() {
         _post = post;
-        _replies = replies;
         _isLoading = false;
       });
-      print('✅ [DetailPage] UI updated successfully');
+      print('✅ [DetailPage] Post UI updated successfully');
+
+      // Load replies with pagination
+      await _loadReplies();
     } catch (e, stackTrace) {
       print('❌ [DetailPage] Error loading data: $e');
       print('📋 [DetailPage] Stack trace: $stackTrace');
@@ -224,6 +275,9 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               ..._replies.map(
                 (reply) => _buildReplyCard(reply, isDark, accent),
               ),
+              if (_replies.isNotEmpty) const SizedBox(height: 16),
+              if (_replies.isNotEmpty)
+                _buildRepliesPaginationBar(isDark, accent),
             ],
           ),
         ),
@@ -320,6 +374,22 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                   ],
                 ),
               ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 22),
+                  onPressed: _deletePost,
+                  color: Colors.red.shade400,
+                  tooltip: 'Eliminar publicación',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -369,8 +439,6 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   }
 
   Widget _buildReplyCard(ForumPost reply, bool isDark, Color accent) {
-    final isOwner = _currentUsername == reply.username;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -458,19 +526,23 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                   ],
                 ),
               ),
-              if (isOwner)
-                Container(
-                  margin: const EdgeInsets.only(left: 8),
-                  child: IconButton(
-                    icon: const Icon(Icons.delete_rounded, size: 18),
-                    onPressed: () => _deleteReply(reply.id),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.red.withOpacity(0.1),
-                      padding: const EdgeInsets.all(8),
-                    ),
-                    color: Colors.red,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
                   ),
                 ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                  onPressed: () => _deleteReply(reply.id),
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.red.shade400,
+                  tooltip: 'Eliminar respuesta',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -489,93 +561,137 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   }
 
   Widget _buildReplyInput(bool isDark, Color accent) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border(
+            top: BorderSide(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+              width: 1,
+            ),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: accent.withOpacity(0.2), width: 1),
+                ),
+                child: TextField(
+                  controller: _replyController,
+                  decoration: InputDecoration(
+                    hintText: 'Escribe una respuesta...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                  ),
+                  maxLines: null,
+                  maxLength: 500,
+                  buildCounter:
+                      (
+                        context, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) => null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _submitReply(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accent, accent.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: _submitReply,
+                icon: const Icon(Icons.send_rounded, size: 22),
+                color: Colors.white,
+                padding: const EdgeInsets.all(14),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildRepliesPaginationBar(bool isDark, Color accent) {
+    final canGoBack = _repliesPage > 0;
+    final canGoForward = _hasMoreReplies;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
-            width: 1,
-          ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.1),
+          width: 1,
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: accent.withOpacity(0.2), width: 1),
-              ),
-              child: TextField(
-                controller: _replyController,
-                decoration: InputDecoration(
-                  hintText: 'Escribe una respuesta...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                ),
-                maxLines: null,
-                maxLength: 500,
-                buildCounter:
-                    (
-                      context, {
-                      required currentLength,
-                      required isFocused,
-                      maxLength,
-                    }) => null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submitReply(),
-              ),
+          IconButton(
+            onPressed: canGoBack ? _goToPreviousRepliesPage : null,
+            icon: const Icon(Icons.chevron_left),
+            color: canGoBack ? accent : Colors.grey,
+            tooltip: 'Respuestas anteriores',
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Página ${_repliesPage + 1}',
+              style: TextStyle(fontWeight: FontWeight.w600, color: accent),
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accent, accent.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              onPressed: _submitReply,
-              icon: const Icon(Icons.send_rounded, size: 22),
-              color: Colors.white,
-              padding: const EdgeInsets.all(14),
-            ),
+          IconButton(
+            onPressed: canGoForward ? _goToNextRepliesPage : null,
+            icon: const Icon(Icons.chevron_right),
+            color: canGoForward ? accent : Colors.grey,
+            tooltip: 'Más respuestas',
           ),
         ],
       ),

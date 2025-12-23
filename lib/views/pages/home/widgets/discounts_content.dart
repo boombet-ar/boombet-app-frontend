@@ -8,8 +8,8 @@ import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/views/pages/home/widgets/section_headers.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1583,32 +1583,28 @@ class DiscountsContentState extends State<DiscountsContent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (_showClaimed)
-            buildSectionHeaderWithSwitch(
-              'Mis Cupones Reclamados',
-              'Ver cupones que ya reclamaste',
-              Icons.check_circle,
-              primaryGreen,
-              isDark,
-              isShowingClaimed: true,
-              onSwitchPressed: () {
+            SectionHeaderWidget(
+              title: 'Mis Cupones Reclamados',
+              subtitle: 'Ver cupones que ya reclamaste',
+              icon: Icons.check_circle,
+              onSwitch: () {
                 _showClaimed = false;
                 _resetDiscountsState(triggerLoad: true);
               },
+              switchIcon: Icons.local_offer_outlined,
             )
           else
-            buildSectionHeaderWithSwitch(
-              'Descuentos Exclusivos',
-              '${_filteredCupones.length} ofertas disponibles',
-              Icons.local_offer,
-              primaryGreen,
-              isDark,
-              isShowingClaimed: false,
-              onSwitchPressed: () {
+            SectionHeaderWidget(
+              title: 'Descuentos Exclusivos',
+              subtitle: '${_filteredCupones.length} ofertas disponibles',
+              icon: Icons.local_offer,
+              onSwitch: () {
                 setState(() {
                   _showClaimed = true;
                 });
                 _resetDiscountsState(triggerLoad: false);
               },
+              switchIcon: Icons.check_circle_outline,
             ),
           if (_showClaimed)
             Expanded(

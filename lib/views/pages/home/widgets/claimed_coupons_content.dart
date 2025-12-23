@@ -6,7 +6,7 @@ import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/views/pages/home/widgets/section_headers.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -127,12 +127,11 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final content = Column(
       children: [
         if (!widget.hideHeader)
-          buildSectionHeader(
-            'Mis Cupones Reclamados',
-            '${_claimedCupones.length} códigos disponibles',
-            Icons.check_circle,
-            primaryGreen,
-            isDark,
+          SectionHeaderWidget(
+            title: 'Mis Cupones Reclamados',
+            subtitle: '${_claimedCupones.length} códigos disponibles',
+            icon: Icons.check_circle,
+            onRefresh: _loadClaimedCupones,
           ),
         Expanded(
           child: _isLoading

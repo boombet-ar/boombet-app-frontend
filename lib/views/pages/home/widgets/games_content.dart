@@ -1,5 +1,5 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
-import 'package:boombet_app/views/pages/home/widgets/section_headers.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 class GamesContent extends StatelessWidget {
@@ -29,12 +29,10 @@ class GamesContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          buildSectionHeader(
-            'Juegos',
-            'Explora los minijuegos de BoomBet',
-            Icons.videogame_asset,
-            primaryGreen,
-            isDark,
+          SectionHeaderWidget(
+            title: 'Juegos',
+            subtitle: 'Explora los minijuegos de BoomBet',
+            icon: Icons.videogame_asset,
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

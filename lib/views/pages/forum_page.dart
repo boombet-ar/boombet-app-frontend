@@ -1,6 +1,8 @@
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
+import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,11 +19,46 @@ class _ForumPageState extends State<ForumPage> {
   String? _errorMessage;
   int _currentPage = 0;
   bool _hasMore = true;
+  int _totalPages = 0;
 
   @override
   void initState() {
     super.initState();
     _loadPosts();
+  }
+
+  void _goToNextPage() {
+    if (!_hasMore || _isLoading) return;
+    setState(() {
+      _currentPage++;
+    });
+    _loadPosts();
+  }
+
+  void _goToPreviousPage() {
+    if (_currentPage == 0 || _isLoading) return;
+    setState(() {
+      _currentPage--;
+    });
+    _loadPosts();
+  }
+
+  void _goToPage(int page) {
+    if (_isLoading || page < 0) return;
+    setState(() {
+      _currentPage = page;
+    });
+    _loadPosts();
+  }
+
+  void _jumpBackPages(int pages) {
+    final newPage = (_currentPage - pages).clamp(0, double.infinity).toInt();
+    _goToPage(newPage);
+  }
+
+  void _jumpForwardPages(int pages) {
+    if (!_hasMore && pages > 0) return;
+    _goToPage(_currentPage + pages);
   }
 
   Future<void> _loadPosts({bool refresh = false}) async {
@@ -45,7 +82,7 @@ class _ForumPageState extends State<ForumPage> {
     try {
       final response = await ForumService.getPosts(
         page: _currentPage,
-        size: 20,
+        size: 10,
       );
 
       if (!mounted) return;
@@ -65,6 +102,7 @@ class _ForumPageState extends State<ForumPage> {
       setState(() {
         _posts = mainPosts;
         _hasMore = !response.last;
+        _totalPages = response.totalPages;
         _isLoading = false;
       });
     } catch (e) {
@@ -138,27 +176,20 @@ class _ForumPageState extends State<ForumPage> {
                 ? _buildError()
                 : _posts.isEmpty
                 ? _buildEmpty(isDark, accent)
-                : _buildPostsList(isDark, accent),
+                : Column(
+                    children: [
+                      Expanded(child: _buildPostsList(isDark, accent)),
+                      _buildPaginationBar(isDark, accent),
+                    ],
+                  ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreatePostDialog,
-        icon: const Icon(Icons.edit_rounded, size: 20),
-        label: const Text(
-          'Nueva Publicación',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: accent,
-        elevation: 6,
-        extendedPadding: const EdgeInsets.symmetric(horizontal: 20),
       ),
     );
   }
 
   Widget _buildHeader(Color accent, bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -177,53 +208,53 @@ class _ForumPageState extends State<ForumPage> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: accent.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accent.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.forum_rounded, color: accent, size: 28),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Foro Boombet',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                          letterSpacing: -0.5,
-                        ),
+                child: Icon(Icons.forum_rounded, color: accent, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Foro Boombet',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                        letterSpacing: -0.5,
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: accent,
-                              shape: BoxShape.circle,
-                            ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
                             '${_posts.length} ${_posts.length == 1 ? 'publicación' : 'publicaciones'}',
                             style: TextStyle(
                               fontSize: 13,
@@ -231,29 +262,45 @@ class _ForumPageState extends State<ForumPage> {
                               color: (isDark ? Colors.white : Colors.black87)
                                   .withOpacity(0.6),
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.refresh_rounded),
-                    onPressed: () => _loadPosts(refresh: true),
-                    color: accent,
-                    iconSize: 24,
-                  ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-          ],
+                child: IconButton(
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: _showCreatePostDialog,
+                  color: accent,
+                  tooltip: 'Nueva publicación',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => _loadPosts(refresh: true),
+                  color: accent,
+                  tooltip: 'Actualizar',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -344,8 +391,97 @@ class _ForumPageState extends State<ForumPage> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         itemCount: _posts.length,
-        itemBuilder: (context, index) =>
-            _PostCard(post: _posts[index], isDark: isDark, accent: accent),
+        itemBuilder: (context, index) => _PostCard(
+          post: _posts[index],
+          isDark: isDark,
+          accent: accent,
+          onDelete: _deletePost,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deletePost(int postId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Publicación'),
+        content: const Text(
+          '¿Estás seguro de que quieres eliminar esta publicación?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ForumService.deletePost(postId);
+        _loadPosts(refresh: true);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
+  }
+
+  Widget _buildPaginationBar(bool isDark, Color accent) {
+    // No mostrar paginación si no hay posts
+    if (_posts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final canGoBack = _currentPage > 0;
+    final canGoForward = _hasMore;
+    final canJumpBack5 = _currentPage >= 5;
+    final canJumpBack10 = _currentPage >= 10;
+    final canJumpForward5 = _currentPage + 5 < _totalPages;
+    final canJumpForward10 = _currentPage + 10 < _totalPages;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Center(
+        child: PaginationBar(
+          currentPage: _currentPage + 1,
+          canGoPrevious: canGoBack,
+          canGoNext: canGoForward,
+          canJumpBack5: canJumpBack5,
+          canJumpBack10: canJumpBack10,
+          canJumpForward: canJumpForward5,
+          onPrev: _goToPreviousPage,
+          onNext: _goToNextPage,
+          onJumpBack5: () => _jumpBackPages(5),
+          onJumpBack10: () => _jumpBackPages(10),
+          onJumpForward5: () => _jumpForwardPages(5),
+          onJumpForward10: () => _jumpForwardPages(10),
+          primaryColor: accent,
+          textColor: textColor,
+        ),
       ),
     );
   }
@@ -355,11 +491,13 @@ class _PostCard extends StatelessWidget {
   final ForumPost post;
   final bool isDark;
   final Color accent;
+  final Function(int) onDelete;
 
   const _PostCard({
     required this.post,
     required this.isDark,
     required this.accent,
+    required this.onDelete,
   });
 
   String _formatDate(DateTime date) {
@@ -474,6 +612,28 @@ class _PostCard extends StatelessWidget {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                        ),
+                        onPressed: () => onDelete(post.id),
+                        padding: const EdgeInsets.all(6),
+                        color: Colors.red.shade400,
+                        tooltip: 'Eliminar',
+                        constraints: const BoxConstraints(),
                       ),
                     ),
                     Icon(
