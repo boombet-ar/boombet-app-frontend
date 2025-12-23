@@ -2,24 +2,40 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  // URL del backend en Azure (incluye /api)
-  static String customUrl =
-      'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
-  // Variables de Bonda API desde docker-compose
-  // Nada de esto tiene que estar aca, levantar de docker-compose
+  // Compile-time environment variables
+  // Default: Local Docker (development)
+  // Override with: --dart-define=API_HOST=your-azure-host.com --dart-define=API_PORT=443 --dart-define=API_SCHEME=https
+  static const String _envHost = String.fromEnvironment(
+    'API_HOST',
+    defaultValue: '', // Empty means use platform-specific defaults
+  );
+  static const String _envPort = String.fromEnvironment(
+    'API_PORT',
+    defaultValue: '7070',
+  );
+  static const String _envScheme = String.fromEnvironment(
+    'API_SCHEME',
+    defaultValue: 'http',
+  );
+
+  // Variables de Bonda API
   static String apiKey =
       '61099OdstDC6fGUHy6SHblguE9nrqT0VgCxVlTpPcRb0hryCwLQs9SnnZ9nfFGRY';
   static int micrositioId = 911909;
-  static String codigoAfiliado =
-      '123456'; // BONDA_TESTID - reemplazar con valor propio más adelante
+  static String codigoAfiliado = '123456';
 
   static String get baseUrl {
-    if (customUrl.isNotEmpty) return customUrl;
+    // If API_HOST is explicitly set, use it
+    if (_envHost.isNotEmpty) {
+      final port = _envPort.isNotEmpty ? ':$_envPort' : '';
+      return '$_envScheme://$_envHost$port/api';
+    }
 
+    // Otherwise, use platform-specific defaults (local Docker)
     if (kIsWeb) {
       return 'http://localhost:7070/api';
     } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:7070/api';
+      return 'http://10.0.2.2:7070/api'; // Android emulator → Docker host
     } else if (Platform.isIOS) {
       return 'http://localhost:7070/api';
     } else {
@@ -36,6 +52,13 @@ class ApiConfig {
 
     // Le saco el /api del path
     final pathWithoutApi = uri.path.replaceFirst('/api', '');
+
+    return Uri(
+      scheme: scheme,
+      host: uri.host,
+      port: uri.port,
+      path: pathWithoutApi, // normalmente '', o '/'
+    ).toString().replaceFirst(RegExp(r'/$'), '');
 
     return Uri(
       scheme: scheme,

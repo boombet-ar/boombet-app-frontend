@@ -1,4 +1,5 @@
-﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
@@ -70,6 +71,18 @@ void _initializeDeepLinkHandling() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ============================================
+  // 🌐 Environment Configuration Verification
+  // ============================================
+  debugPrint('');
+  debugPrint('╔════════════════════════════════════════╗');
+  debugPrint('║   🌐 API CONFIGURATION                ║');
+  debugPrint('╠════════════════════════════════════════╣');
+  debugPrint('║  Base URL: ${ApiConfig.baseUrl.padRight(30)}║');
+  debugPrint('║  WebSocket: ${ApiConfig.wsBaseUrl.padRight(28)}║');
+  debugPrint('╚════════════════════════════════════════╝');
+  debugPrint('');
 
   _initializeDeepLinkHandling();
 
@@ -222,4 +235,3 @@ class MyApp extends StatelessWidget {
 //
 //comando para buildear el apk
 //flutter build apk --release
-

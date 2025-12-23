@@ -617,6 +617,19 @@ class HttpClient {
       rethrow;
     }
   }
+
+  /// Limpia el caché para una URL específica o para todas las URLs que coincidan con el patrón
+  static void clearCache({String? urlPattern}) {
+    if (urlPattern == null) {
+      log('[HttpClient] 🗑️ Clearing all cache');
+      _getCache.clear();
+      _inflightGets.clear();
+    } else {
+      log('[HttpClient] 🗑️ Clearing cache for pattern: $urlPattern');
+      _getCache.removeWhere((key, value) => key.contains(urlPattern));
+      _inflightGets.removeWhere((key, value) => key.contains(urlPattern));
+    }
+  }
 }
 
 class _CachedItem {
