@@ -5,8 +5,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/deep_link_service.dart';
-import 'package:boombet_app/services/email_verification_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -42,18 +40,15 @@ class EmailConfirmationPage extends StatefulWidget {
   State<EmailConfirmationPage> createState() => _EmailConfirmationPageState();
 }
 
-class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
+class _EmailConfirmationPageState extends State<EmailConfirmationPage>
+    with WidgetsBindingObserver {
   late TextEditingController _nombreController;
   late TextEditingController _apellidoController;
   final AffiliationService _affiliationService = AffiliationService();
   bool _isProcessing = false;
-  bool _emailConfirmed = false;
-  bool _isCheckingStatus = false;
-  String? _statusMessage;
-  String? _verificationToken;
-  late final VoidCallback _emailVerifiedListener;
-  StreamSubscription<DeepLinkPayload>? _deepLinkSubscription;
-  bool _lockConfirmedView = false;
+  bool _isVerified = false;
+  bool _isCheckingVerification = false;
+  Timer? _verificationTimer;
 
   PlayerData? get _resolvedPlayerData =>
       widget.playerData ?? affiliationPlayerDataNotifier.value;
@@ -100,29 +95,8 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     super.initState();
     debugPrint('📱 EmailConfirmationPage initState');
 
-    _emailConfirmed = emailVerifiedNotifier.value;
-
-    _emailVerifiedListener = () {
-      if (!mounted) return;
-      final verified = emailVerifiedNotifier.value;
-      if (_lockConfirmedView && !verified) {
-        debugPrint(
-          '🔒 [EmailConfirmationPage] Ignorando cambio de emailVerifiedNotifier (false) porque la vista ya está confirmada.',
-        );
-        return;
-      }
-
-      if (_emailConfirmed != verified) {
-        setState(() {
-          _emailConfirmed = verified;
-        });
-      }
-    };
-    emailVerifiedNotifier.addListener(_emailVerifiedListener);
-
-    _deepLinkSubscription = DeepLinkService.instance.stream.listen((payload) {
-      _handleDeepLinkPayload(payload, silent: false);
-    });
+    // Agregar observer para detectar cuando vuelve a la app
+    WidgetsBinding.instance.addObserver(this);
 
     final initialPlayer = _resolvedPlayerData;
     if (initialPlayer != null) {
@@ -136,32 +110,32 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
 
     _loadAffiliationData();
 
+    // Iniciar verificación de is_verified usando email
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final pendingPayload = DeepLinkService.instance.lastPayload;
-      if (pendingPayload != null && pendingPayload.isEmailConfirmation) {
-        _handleDeepLinkPayload(pendingPayload, silent: true);
-        return;
-      }
-
-      final initialToken = widget.verificacionToken?.trim();
-      if (initialToken != null && initialToken.isNotEmpty) {
-        debugPrint(
-          '🔗 [EmailConfirmationPage] Token recibido via widget: $initialToken',
-        );
-        _verificationToken = initialToken;
-        _verifyEmailToken(initialToken, silent: true);
-        return;
-      }
+      _startVerificationPolling();
     });
   }
 
   @override
   void dispose() {
-    emailVerifiedNotifier.removeListener(_emailVerifiedListener);
-    _deepLinkSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _verificationTimer?.cancel();
     _nombreController.dispose();
     _apellidoController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('🔄 [EmailConfirmation] App state changed: $state');
+
+    // Cuando la app vuelve al foreground, reiniciar polling si no está verificado
+    if (state == AppLifecycleState.resumed && !_isVerified) {
+      debugPrint('🔄 [EmailConfirmation] App resumed, reiniciando polling');
+      _verificationTimer?.cancel();
+      _startVerificationPolling();
+    }
   }
 
   String? get _resolvedEmail {
@@ -174,123 +148,144 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
     return persisted.isEmpty ? null : persisted;
   }
 
-  Future<void> _handleDeepLinkPayload(
-    DeepLinkPayload payload, {
-    required bool silent,
-  }) async {
-    if (!payload.isEmailConfirmation) return;
+  /// Inicia polling para verificar is_verified cada 3 segundos
+  void _startVerificationPolling() {
+    // Verificar inmediatamente
+    _checkIsVerified();
 
-    final token = payload.token;
-    if (!silent) {
-      debugPrint('🔗 [DeepLink] Payload recibido: ${payload.uri}');
-    }
-
-    if (token == null || token.isEmpty) {
-      if (!silent && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Enlace inválido: falta token.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    if ((_emailConfirmed || _lockConfirmedView) &&
-        _verificationToken == token) {
-      debugPrint(
-        '🔁 [EmailConfirmationPage] Token ya confirmado, se ignora payload duplicado.',
-      );
-      return;
-    }
-
-    _verificationToken = token;
-    await _verifyEmailToken(token, silent: silent, sourcePayload: payload);
+    // Luego verificar cada 3 segundos
+    _verificationTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _checkIsVerified(),
+    );
   }
 
-  /// Verifica el email del usuario llamando a /api/users/auth/verify con el token
-  Future<void> _verifyEmailToken(
-    String token, {
-    bool silent = false,
-    DeepLinkPayload? sourcePayload,
-  }) async {
-    if (_isCheckingStatus) return;
+  /// Verifica el estado is_verified del usuario usando su email
+  Future<void> _checkIsVerified() async {
+    if (_isCheckingVerification || _isVerified) return;
+
+    // Obtener el email del usuario
+    final email = _resolvedEmail;
+    if (email == null || email.isEmpty) {
+      debugPrint(
+        '⚠️ [EmailConfirmation] No hay email disponible, deteniendo polling',
+      );
+      _verificationTimer?.cancel();
+      return;
+    }
 
     setState(() {
-      _isCheckingStatus = true;
-      if (!silent) {
-        _statusMessage = null;
-      }
+      _isCheckingVerification = true;
     });
 
     try {
-      debugPrint(
-        '🔑 [EmailConfirmationPage] Verificando email con token: $token',
-      );
+      // GET request con email como query parameter
+      final url =
+          '${ApiConfig.baseUrl}/users/auth/isVerified?email=${Uri.encodeComponent(email)}';
 
-      final verified = await EmailVerificationService.verifyEmailWithToken(
-        token,
-      );
+      debugPrint('🔍 [EmailConfirmation] ===== REQUEST =====');
+      debugPrint('🔍 URL: $url');
+      debugPrint('🔍 Method: GET');
+      debugPrint('📧 Email: $email');
+
+      final response = await http.get(Uri.parse(url));
+
+      debugPrint('📥 [EmailConfirmation] ===== RESPONSE =====');
+      debugPrint('📥 Status: ${response.statusCode}');
+      debugPrint('📥 Headers: ${response.headers}');
+      debugPrint('📥 Body: ${response.body}');
 
       if (!mounted) return;
 
-      if (verified) {
-        setState(() {
-          _emailConfirmed = true;
-          _lockConfirmedView = true;
-          if (!silent) {
-            _statusMessage =
-                '¡Email confirmado! Ya podés completar la afiliación.';
-          }
-        });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('📦 [EmailConfirmation] Data parsed: $data');
 
-        if (sourcePayload != null) {
-          DeepLinkService.instance.markPayloadHandled(sourcePayload);
+        // Intentar múltiples formas de parsear is_verified
+        bool isVerified = false;
+
+        if (data is Map<String, dynamic>) {
+          // Caso 1: {is_verified: true}
+          if (data.containsKey('is_verified')) {
+            isVerified =
+                data['is_verified'] == true || data['is_verified'] == 1;
+          }
+          // Caso 2: {isVerified: true}
+          else if (data.containsKey('isVerified')) {
+            isVerified = data['isVerified'] == true || data['isVerified'] == 1;
+          }
+          // Caso 3: {verified: true}
+          else if (data.containsKey('verified')) {
+            isVerified = data['verified'] == true || data['verified'] == 1;
+          }
+        }
+        // Caso 4: respuesta directa booleana
+        else if (data is bool) {
+          isVerified = data;
         }
 
-        if (!silent) {
+        debugPrint('🔑 [EmailConfirmation] is_verified: $isVerified');
+
+        if (isVerified && !_isVerified) {
+          setState(() {
+            _isVerified = true;
+          });
+
+          // Detener el polling
+          _verificationTimer?.cancel();
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Email confirmado.'),
+              content: Text('¡Email verificado! Ya podés continuar.'),
               backgroundColor: Color.fromARGB(255, 41, 255, 94),
               duration: Duration(seconds: 2),
             ),
           );
+        } else if (!isVerified) {
+          setState(() {
+            _isVerified = false;
+          });
         }
-      } else if (!silent) {
-        setState(() {
-          _statusMessage =
-              'El token no es válido o ya fue usado. Intenta con un nuevo enlace.';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Token inválido o expirado.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
-          ),
+      } else if (response.statusCode == 403) {
+        debugPrint('🚫 [EmailConfirmation] Error 403 - Forbidden');
+        debugPrint('🚫 Esto puede indicar:');
+        debugPrint(
+          '   - El endpoint requiere autenticación (aunque dijiste que no)',
         );
-      }
-    } catch (e) {
-      debugPrint('❌ [EmailConfirmationPage] Error verificando email: $e');
-      if (!mounted) return;
+        debugPrint('   - El formato del email no es el esperado');
+        debugPrint('   - Hay validaciones de seguridad en el backend');
+        debugPrint(
+          '🚫 Request enviado: GET ${ApiConfig.baseUrl}/users/auth/isVerified?email=$email',
+        );
+        debugPrint('🚫 Response: ${response.body}');
 
-      if (!silent) {
-        setState(() {
-          _statusMessage = 'No pudimos verificar el email. Intenta luego.';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error verificando email: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        // NO detener el polling, seguir intentando
+        debugPrint('⚠️ Continuando polling a pesar del 403...');
+      } else if (response.statusCode == 400) {
+        debugPrint('⚠️ [EmailConfirmation] Error 400 - Bad Request');
+        debugPrint('⚠️ El backend rechazó el formato del request');
+        debugPrint('⚠️ Body: ${response.body}');
+        // Detener polling si es Bad Request
+        _verificationTimer?.cancel();
+      } else if (response.statusCode == 404) {
+        debugPrint('⚠️ [EmailConfirmation] Error 404 - Endpoint no encontrado');
+        debugPrint(
+          '⚠️ URL: ${ApiConfig.baseUrl}/users/auth/isVerified?email=$email',
         );
+        _verificationTimer?.cancel();
+      } else {
+        debugPrint(
+          '⚠️ [EmailConfirmation] Status inesperado: ${response.statusCode}',
+        );
+        debugPrint('⚠️ Response body: ${response.body}');
       }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [EmailConfirmation] Exception verificando: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
     } finally {
       if (mounted) {
         setState(() {
-          _isCheckingStatus = false;
+          _isCheckingVerification = false;
         });
       }
     }
@@ -493,22 +488,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                         color: primaryGreen.withValues(alpha: 0.2),
                       ),
                       child: Icon(
-                        _emailConfirmed
-                            ? Icons.check_circle
-                            : Icons.mail_outline,
+                        Icons.mail_outline,
                         size: 60,
-                        color: _emailConfirmed
-                            ? primaryGreen
-                            : primaryGreen.withValues(alpha: 0.7),
+                        color: primaryGreen.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 32),
 
                     // Título
                     Text(
-                      _emailConfirmed
-                          ? '¡Email confirmado!'
-                          : 'Confirmá tu email',
+                      'Confirmación de email',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -520,9 +509,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
 
                     // Subtítulo
                     Text(
-                      _emailConfirmed
-                          ? 'Tu email ha sido verificado exitosamente'
-                          : 'Te enviamos un enlace de confirmación a:',
+                      'Te enviamos un enlace de confirmación a:',
                       style: TextStyle(
                         fontSize: 16,
                         color: isDark
@@ -556,9 +543,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                         ),
                       ),
                       child: Text(
-                        _emailConfirmed
-                            ? 'Ya podés completar tu afiliación haciendo click en el botón de abajo.'
-                            : 'Haz click en el enlace que recibiste para verificar tu email y poder continuar con tu afiliación.',
+                        'Haz click en el enlace que recibiste para verificar tu email. Una vez verificado, podés continuar con tu afiliación haciendo click en el botón de abajo.',
                         style: TextStyle(
                           fontSize: 14,
                           color: isDark
@@ -571,60 +556,30 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                     ),
                     const SizedBox(height: 32),
 
-                    if (_emailConfirmed)
-                      if (_isProcessing)
-                        Column(
-                          children: [
-                            const SizedBox(
-                              width: 40,
-                              height: 40,
-                              child: CircularProgressIndicator(
-                                color: primaryGreen,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Procesando tu afiliación...',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppConstants.lightHintText,
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        SizedBox(
-                          height: 56,
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _processAfiliation,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 3,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle, size: 24),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Completar afiliación',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                    // Botón siempre visible
+                    if (_isProcessing)
+                      Column(
+                        children: [
+                          const SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              color: primaryGreen,
+                              strokeWidth: 2,
                             ),
                           ),
-                        )
+                          const SizedBox(height: 16),
+                          Text(
+                            'Procesando tu afiliación...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppConstants.lightHintText,
+                            ),
+                          ),
+                        ],
+                      )
                     else
                       Column(
                         children: [
@@ -632,15 +587,18 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                             height: 56,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed:
-                                  (_isCheckingStatus ||
-                                      _verificationToken == null)
-                                  ? null
-                                  : () =>
-                                        _verifyEmailToken(_verificationToken!),
+                              onPressed: _isVerified
+                                  ? _processAfiliation
+                                  : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryGreen,
                                 foregroundColor: Colors.black,
+                                disabledBackgroundColor: Colors.grey.withValues(
+                                  alpha: 0.3,
+                                ),
+                                disabledForegroundColor: Colors.grey.withValues(
+                                  alpha: 0.5,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -649,22 +607,27 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  if (_isCheckingStatus)
+                                  if (_isCheckingVerification)
                                     const SizedBox(
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
-                                        color: Colors.black,
+                                        color: Colors.grey,
                                         strokeWidth: 2,
                                       ),
                                     )
                                   else
-                                    const Icon(Icons.email_outlined, size: 24),
+                                    Icon(
+                                      _isVerified
+                                          ? Icons.check_circle
+                                          : Icons.lock,
+                                      size: 24,
+                                    ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    _isCheckingStatus
+                                    _isCheckingVerification
                                         ? 'Verificando...'
-                                        : 'Ya confirmé mi email',
+                                        : 'Completar afiliación',
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -674,19 +637,18 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage> {
                               ),
                             ),
                           ),
-                          if (_statusMessage != null) ...[
+                          if (!_isVerified && !_isCheckingVerification)
                             const SizedBox(height: 16),
-                            Text(
-                              _statusMessage!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppConstants.lightHintText,
-                              ),
-                              textAlign: TextAlign.center,
+                          Text(
+                            'Esperando verificación de email...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppConstants.lightHintText,
                             ),
-                          ],
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
                   ],

@@ -3,19 +3,20 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Compile-time environment variables
-  // Default: Local Docker (development)
-  // Override with: --dart-define=API_HOST=your-azure-host.com --dart-define=API_PORT=443 --dart-define=API_SCHEME=https
+  // Default: Azure Backend (production)
+  // Override with: --dart-define=API_HOST=localhost --dart-define=API_PORT=7070 --dart-define=API_SCHEME=http for local Docker
   static const String _envHost = String.fromEnvironment(
     'API_HOST',
-    defaultValue: '', // Empty means use platform-specific defaults
+    defaultValue:
+        'boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io',
   );
   static const String _envPort = String.fromEnvironment(
     'API_PORT',
-    defaultValue: '7070',
+    defaultValue: '', // Empty for default HTTPS port (443)
   );
   static const String _envScheme = String.fromEnvironment(
     'API_SCHEME',
-    defaultValue: 'http',
+    defaultValue: 'https',
   );
 
   // Variables de Bonda API
@@ -25,21 +26,21 @@ class ApiConfig {
   static String codigoAfiliado = '123456';
 
   static String get baseUrl {
-    // If API_HOST is explicitly set, use it
+    // If API_HOST is explicitly set or using default Azure backend
     if (_envHost.isNotEmpty) {
       final port = _envPort.isNotEmpty ? ':$_envPort' : '';
       return '$_envScheme://$_envHost$port/api';
     }
 
-    // Otherwise, use platform-specific defaults (local Docker)
+    // Fallback to platform-specific defaults (should not reach here with new defaults)
     if (kIsWeb) {
-      return 'http://localhost:7070/api';
+      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
     } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:7070/api'; // Android emulator → Docker host
+      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
     } else if (Platform.isIOS) {
-      return 'http://localhost:7070/api';
+      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
     } else {
-      return 'http://localhost:7070/api';
+      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
     }
   }
 
