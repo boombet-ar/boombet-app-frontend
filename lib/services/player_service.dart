@@ -44,6 +44,21 @@ class PlayerService {
     }
   }
 
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    final url = "${ApiConfig.baseUrl}/users/me";
+    log("🌐 GET → $url");
+
+    final response = await HttpClient.get(url, includeAuth: true);
+    log("📥 getCurrentUser response: ${response.statusCode} ${response.body}");
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      return jsonData;
+    } else {
+      throw Exception("Error ${response.statusCode}: ${response.body}");
+    }
+  }
+
   Future<void> unaffiliateCurrentUser() async {
     final url = "${ApiConfig.baseUrl}/users/me";
     log("DELETE → $url");

@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
+import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
@@ -152,15 +153,38 @@ class DiscountsContentState extends State<DiscountsContent> {
   }
 
   Future<void> _loadAffiliationAcceptance() async {
-    final prefs = await SharedPreferences.getInstance();
-    final accepted = prefs.getBool(_affiliationAcceptedKey) ?? false;
-    if (!mounted || !accepted) return;
+    try {
+      // Verificar bonda_enabled desde el endpoint /users/me
+      final userData = await PlayerService().getCurrentUser();
+      final bondaEnabled = userData['bonda_enabled'] as bool? ?? false;
 
-    setState(() {
-      _affiliationCompleted = true;
-    });
+      if (!mounted) return;
 
-    await _runPostAffiliationLoadsWithRetry();
+      if (bondaEnabled) {
+        // Si bonda_enabled es true, marcar como completado y cargar cupones
+        setState(() {
+          _affiliationCompleted = true;
+        });
+        await _runPostAffiliationLoadsWithRetry();
+      } else {
+        // Si bonda_enabled es false, mostrar cartel de afiliación
+        setState(() {
+          _affiliationCompleted = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('ERROR verificando bonda_enabled: $e');
+      // En caso de error, verificar el estado local como fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accepted = prefs.getBool(_affiliationAcceptedKey) ?? false;
+      if (!mounted || !accepted) return;
+
+      setState(() {
+        _affiliationCompleted = true;
+      });
+
+      await _runPostAffiliationLoadsWithRetry();
+    }
   }
 
   Future<void> refreshClaimedIds() async {
@@ -442,6 +466,7 @@ class DiscountsContentState extends State<DiscountsContent> {
     });
 
     try {
+      // Paso 1: Afiliar al usuario en Bonda
       final result =
           await CuponesService.afiliarAfiliado(
             apiKey: ApiConfig.apiKey,
@@ -455,14 +480,28 @@ class DiscountsContentState extends State<DiscountsContent> {
             },
           );
 
+      // Paso 2: Verificar que bonda_enabled cambió a true en el backend
+      final userData = await PlayerService().getCurrentUser();
+      final bondaEnabled = userData['bonda_enabled'] as bool? ?? false;
+
+      if (!bondaEnabled) {
+        throw Exception(
+          'La afiliación no se completó correctamente. Intenta nuevamente.',
+        );
+      }
+
       if (!mounted) return;
       setState(() {
         _affiliationCompleted = true;
         _affiliationMessage =
             (result['data'] as Map<String, dynamic>?)?['message'] as String?;
       });
+
+      // Guardar estado local
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_affiliationAcceptedKey, true);
+
+      // Cargar cupones
       await _runPostAffiliationLoadsWithRetry();
     } catch (e) {
       if (!mounted) return;
@@ -1247,293 +1286,383 @@ class DiscountsContentState extends State<DiscountsContent> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: const Color(0xFF0A1A1A),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: primaryGreen.withValues(alpha: 0.3),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: primaryGreen.withValues(alpha: 0.2),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 20,
-                offset: const Offset(0, -5),
+                offset: const Offset(0, 10),
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                controller: scrollController,
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: textColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryGreen.withValues(alpha: 0.1),
-                            Colors.red.withValues(alpha: 0.05),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header con gradiente
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryGreen.withValues(alpha: 0.15),
+                              Colors.red.withValues(alpha: 0.1),
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Badge de descuento
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.red.shade500,
+                                    Colors.red.shade600,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withValues(alpha: 0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                cupon.descuento,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 36,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Título
+                            Text(
+                              cupon.nombre,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Empresa
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.business,
+                                  color: primaryGreen,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  cupon.empresa.nombre,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: primaryGreen,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            // Categorías
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: cupon.categorias.map((cat) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cat.nombre,
+                                    style: TextStyle(
+                                      color: primaryGreen,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            // Logo Bonda
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Beneficio provisto por ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 18,
+                                    width: 70,
+                                    child: Image.asset(
+                                      'assets/images/logo_bonda.png',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
+                      // Contenido
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSection(
+                              'Cómo usar',
+                              Icons.info_outline,
+                              primaryGreen,
+                              cupon.descripcionMicrositio,
+                              textColor,
+                              isDark,
                             ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.red.shade500,
-                                  Colors.red.shade600,
+                            const SizedBox(height: 18),
+                            _buildSection(
+                              'Términos y Condiciones',
+                              Icons.gavel,
+                              primaryGreen,
+                              cupon.legales,
+                              textColor.withValues(alpha: 0.8),
+                              isDark,
+                            ),
+                            const SizedBox(height: 18),
+                            // Fecha vencimiento
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    color: Colors.orange.shade700,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Válido hasta',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          cupon.fechaVencimientoFormatted,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.red.withValues(alpha: 0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              cupon.descuento,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 36,
-                                height: 1.0,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            cupon.nombre,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.business,
-                                color: primaryGreen,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                cupon.empresa.nombre,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: primaryGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: cupon.categorias.map((cat) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: primaryGreen.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: primaryGreen.withValues(alpha: 0.4),
-                                    width: 1,
+                            const SizedBox(height: 22),
+                            // Botón cerrar
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 8,
+                                  shadowColor: primaryGreen.withValues(
+                                    alpha: 0.5,
                                   ),
                                 ),
-                                child: Text(
-                                  cat.nombre,
+                                child: const Text(
+                                  'CERRAR',
                                   style: TextStyle(
-                                    color: primaryGreen,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 10,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Beneficio provisto por ',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 18,
-                                  width: 70,
-                                  child: Image.asset(
-                                    'assets/images/logo_bonda.png',
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle(
-                            'Cómo usar',
-                            primaryGreen,
-                            textColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildContentBox(
-                            cupon.descripcionMicrositio,
-                            textColor,
-                            primaryGreen,
-                            isDark,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildSectionTitle(
-                            'Términos y Condiciones',
-                            primaryGreen,
-                            textColor,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildContentBox(
-                            cupon.legales,
-                            textColor.withValues(alpha: 0.8),
-                            primaryGreen,
-                            isDark,
-                          ),
-                          const SizedBox(height: 20),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.orange.withValues(alpha: 0.3),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.orange.shade700,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Válido hasta',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.orange.shade700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        cupon.fechaVencimientoFormatted,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              icon: const Icon(Icons.close, size: 18),
-                              label: const Text('Cerrar'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryGreen,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+                // Botón cerrar en esquina
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.close,
+                      color: Colors.white.withValues(alpha: 0.7),
                     ),
-                  ],
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(
+    String title,
+    IconData icon,
+    Color primaryGreen,
+    String content,
+    Color textColor,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: primaryGreen.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: primaryGreen, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen,
                 ),
               ),
             ],
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: primaryGreen.withValues(alpha: 0.15)),
+          ),
+          child: Html(
+            data: content,
+            style: {
+              'body': Style(
+                margin: Margins.zero,
+                padding: HtmlPaddings.zero,
+                fontSize: FontSize(13),
+                color: textColor,
+                lineHeight: const LineHeight(1.5),
+              ),
+              'p': Style(margin: Margins.only(bottom: 8)),
+              'ul': Style(margin: Margins.only(left: 16, bottom: 8)),
+              'li': Style(margin: Margins.only(bottom: 4)),
+            },
+          ),
+        ),
+      ],
     );
   }
 

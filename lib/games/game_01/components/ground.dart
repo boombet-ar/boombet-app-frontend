@@ -15,7 +15,7 @@ class Ground extends PositionComponent with CollisionCallbacks {
     add(
       RectangleHitbox()
         ..collisionType = CollisionType.passive
-        ..debugMode = true,
+        ..debugMode = false,
     );
   }
 }

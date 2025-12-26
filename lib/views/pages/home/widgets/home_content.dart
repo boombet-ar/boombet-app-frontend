@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -8,6 +8,7 @@ import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 
 class HomeContent extends StatefulWidget {
@@ -21,7 +22,6 @@ class _HomeContentState extends State<HomeContent> {
   final Map<int, VideoPlayerController> _videoControllers = {};
   final Map<int, Future<void>> _videoInitFutures = {};
   final Map<String, Future<bool>> _mediaTypeCache = {};
-  late final HttpClient _mediaHttpClient;
   final Set<int> _videoListenerAttached = {};
   final Map<int, Timer> _videoEndTimers = {};
   static const Duration _videoAdvanceDelay = Duration(seconds: 3);
@@ -35,7 +35,6 @@ class _HomeContentState extends State<HomeContent> {
   @override
   void initState() {
     super.initState();
-    _mediaHttpClient = HttpClient();
     _fetchAds();
   }
 
@@ -61,7 +60,6 @@ class _HomeContentState extends State<HomeContent> {
     }
     _autoScrollTimer?.cancel();
     _carouselController.dispose();
-    _mediaHttpClient.close(force: true);
     _videoListenerAttached.clear();
     _videoEndTimers.values.forEach((timer) => timer.cancel());
     _videoEndTimers.clear();
@@ -75,6 +73,7 @@ class _HomeContentState extends State<HomeContent> {
     });
 
     try {
+      debugPrint('📡 [${kIsWeb ? "WEB" : "MOBILE"}] Fetching ads...');
       final ads = await _publicidadService.getMyAds();
       debugPrint('📡 HOME ads fetched: ${ads.length}');
       for (var (idx, ad) in ads.indexed) {
@@ -82,8 +81,16 @@ class _HomeContentState extends State<HomeContent> {
           '   [$idx] mediaUrl="${ad.mediaUrl}" type="${ad.mediaType}" desc="${ad.description}"',
         );
       }
+
+      final filteredAds = ads.where((a) => a.mediaUrl.isNotEmpty).toList();
+      debugPrint('📡 Filtered ads (non-empty mediaUrl): ${filteredAds.length}');
+
+      if (filteredAds.isEmpty) {
+        debugPrint('⚠️ No ads with valid mediaUrl');
+      }
+
       setState(() {
-        _ads = ads.where((a) => a.mediaUrl.isNotEmpty).toList();
+        _ads = filteredAds;
         _currentCarouselPage = 0;
         _adsLoading = false;
       });
@@ -95,7 +102,9 @@ class _HomeContentState extends State<HomeContent> {
         unawaited(_preloadVideoAds());
         unawaited(_prepareVideoForPage(0));
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error fetching ads: $e');
+      debugPrint('Stack trace: $stackTrace');
       setState(() {
         _adsError = 'No se pudieron cargar las publicidades: $e';
         _adsLoading = false;
@@ -225,7 +234,23 @@ class _HomeContentState extends State<HomeContent> {
 
   String _resolveUrl(String raw) {
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      return raw.replaceAll(' ', '%20');
+      // Parsear la URL y codificar correctamente cada componente
+      try {
+        final uri = Uri.parse(raw);
+        // Reconstruir la URL con path segments correctamente codificados
+        final encodedUri = Uri(
+          scheme: uri.scheme,
+          host: uri.host,
+          port: uri.port,
+          pathSegments: uri.pathSegments,
+        );
+        debugPrint('🔧 URL encoded: $raw -> ${encodedUri.toString()}');
+        return encodedUri.toString();
+      } catch (e) {
+        debugPrint('⚠️ Error parsing URL $raw: $e');
+        // Fallback: reemplazar espacios manualmente
+        return raw.replaceAll(' ', '%20');
+      }
     }
     final base = ApiConfig.baseUrl;
     final baseUri = Uri.parse(base);
@@ -239,19 +264,56 @@ class _HomeContentState extends State<HomeContent> {
     return joined.toString();
   }
 
+  String _proxyImageForWeb(String url) {
+    if (!kIsWeb) return url;
+    try {
+      // No doble codificar: la URL ya viene con %20.
+      // Weserv acepta la URL completa tal cual en el query param.
+      final proxied = 'https://images.weserv.nl/?url=$url';
+      debugPrint('🌀 Web image proxy: $url -> $proxied');
+      return proxied;
+    } catch (e) {
+      debugPrint('⚠️ Proxy failed for $url: $e');
+      return url;
+    }
+  }
+
+  String _proxyVideoForWeb(String url) {
+    if (!kIsWeb) return url;
+    // Proxy simple para sortear CORS en web. Si falla, se usa la URL original.
+    const corsProxy = 'https://cors.isomorphic-git.org/';
+    final proxied = '$corsProxy$url';
+    debugPrint('🎥 Web video proxy: $url -> $proxied');
+    return proxied;
+  }
+
   Future<bool> _fetchRemoteMediaIsVideo(String url) async {
     try {
       final uri = Uri.parse(url);
-      final request = await _mediaHttpClient.headUrl(uri);
-      final response = await request.close();
-      final contentType = response.headers.contentType;
-      final isVideo = contentType?.primaryType == 'video';
-      debugPrint(
-        '🌐 Media HEAD ${url} contentType=${contentType?.mimeType} -> isVideo=$isVideo',
-      );
-      return isVideo;
+      final response = await http
+          .head(uri)
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => http.Response('', 408),
+          );
+
+      if (response.statusCode == 200) {
+        final contentType = response.headers['content-type']?.toLowerCase();
+        final isVideo = contentType?.startsWith('video/') ?? false;
+        debugPrint(
+          '🌐 Media HEAD $url contentType=$contentType -> isVideo=$isVideo',
+        );
+        return isVideo;
+      }
+
+      debugPrint('⚠️ HEAD request failed for $url: ${response.statusCode}');
+      return false;
     } catch (e) {
       debugPrint('⚠️ Failed to fetch media HEAD for $url: $e');
+      // En web, si falla el HEAD, intentar detectar por extensión
+      if (kIsWeb) {
+        return _isVideoUrl(url);
+      }
       return false;
     }
   }
@@ -287,7 +349,9 @@ class _HomeContentState extends State<HomeContent> {
       return Future.value(existing);
     }
 
-    debugPrint('🎥 Initializing video controller for index=$index url=$url');
+    debugPrint(
+      '🎥 Initializing video controller for index=$index url=$url (web: $kIsWeb)',
+    );
     final controller = VideoPlayerController.networkUrl(Uri.parse(url));
     if (_videoListenerAttached.add(index)) {
       controller.addListener(() {
@@ -297,6 +361,13 @@ class _HomeContentState extends State<HomeContent> {
     _videoControllers[index] = controller;
     final init = controller
         .initialize()
+        .timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            debugPrint('⏱️ Video initialization timeout for index=$index');
+            throw TimeoutException('Video initialization timeout');
+          },
+        )
         .then((_) {
           debugPrint(
             '✅ Video initialized successfully for index=$index duration=${controller.value.duration}',
@@ -307,18 +378,21 @@ class _HomeContentState extends State<HomeContent> {
         })
         .catchError((error) {
           debugPrint('❌ Video initialization error for index=$index: $error');
+          if (kIsWeb) {
+            debugPrint(
+              '⚠️ Web video error - esto puede ser CORS o formato no soportado',
+            );
+          }
           throw error;
         });
-    _videoInitFutures[index] = init;
+
+    _videoInitFutures[index] = init.then((_) {});
     return init;
   }
 
   Widget _buildMedia(Publicidad ad, int index) {
     final resolvedUrl = _resolveUrl(ad.mediaUrl);
     final fallbackVideo = _shouldTreatAsVideo(ad, resolvedUrl);
-    debugPrint(
-      '🖼️ Render media idx=$index raw="${ad.mediaUrl}" resolved="$resolvedUrl" type="${ad.mediaType}" fallbackVideo=$fallbackVideo',
-    );
 
     return FutureBuilder<bool>(
       future: _resolveMediaType(resolvedUrl, fallbackVideo),
@@ -329,16 +403,44 @@ class _HomeContentState extends State<HomeContent> {
         }
         final isVideo = snapshot.data!;
         if (isVideo) {
-          return _buildVideoWidget(resolvedUrl, index);
+          // En web usar la URL directa; los proxys suelen romper streaming MP4.
+          final videoUrl = resolvedUrl;
+          if (kIsWeb &&
+              !videoUrl.contains(Uri.parse(ApiConfig.baseUrl).host)) {
+            debugPrint(
+              '⚠️ Web: video desde dominio externo puede tener problemas de CORS',
+            );
+          }
+          return _buildVideoWidget(videoUrl, index);
         }
+        final displayUrl = kIsWeb
+            ? _proxyImageForWeb(resolvedUrl)
+            : resolvedUrl;
         return CachedNetworkImage(
-          imageUrl: resolvedUrl,
+          imageUrl: displayUrl,
           fit: BoxFit.contain,
           placeholder: (context, url) =>
               const Center(child: CircularProgressIndicator()),
           errorWidget: (context, url, error) {
             debugPrint('❌ Image load error for $url: $error');
-            return const Center(child: Icon(Icons.broken_image));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.broken_image, size: 48),
+                  const SizedBox(height: 8),
+                  if (kIsWeb)
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        'Imagen no disponible\n(puede ser un problema de CORS)',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+            );
           },
         );
       },
@@ -523,6 +625,14 @@ class _HomeContentState extends State<HomeContent> {
                   Expanded(
                     child: PageView.builder(
                       controller: _carouselController,
+                      scrollBehavior: kIsWeb
+                          ? MaterialScrollBehavior().copyWith(
+                              dragDevices: {
+                                PointerDeviceKind.touch,
+                                PointerDeviceKind.mouse,
+                              },
+                            )
+                          : null,
                       onPageChanged: (index) {
                         final previousIndex = _currentCarouselPage;
                         setState(() {
@@ -637,15 +747,30 @@ class _HomeContentState extends State<HomeContent> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _ads.isNotEmpty ? _ads.length : 1,
-                      (index) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 5),
-                        width: _currentCarouselPage == index ? 32 : 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: _currentCarouselPage == index
-                              ? primaryGreen
-                              : primaryGreen.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(5),
+                      (index) => GestureDetector(
+                        onTap: () {
+                          if (_carouselController.hasClients &&
+                              _ads.isNotEmpty) {
+                            _carouselController.animateToPage(
+                              index,
+                              duration: AppConstants.mediumDelay,
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        },
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 5),
+                            width: _currentCarouselPage == index ? 32 : 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _currentCarouselPage == index
+                                  ? primaryGreen
+                                  : primaryGreen.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
                         ),
                       ),
                     ),

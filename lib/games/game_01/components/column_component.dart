@@ -4,7 +4,7 @@ import 'package:flame/collisions.dart';
 import '../game_01.dart';
 
 class ColumnComponent extends PositionComponent
-  with CollisionCallbacks, HasGameRef<Game01> {
+    with CollisionCallbacks, HasGameRef<Game01> {
   ColumnComponent({
     required this.capNearGap,
     required this.mid,
@@ -42,7 +42,7 @@ class ColumnComponent extends PositionComponent
         size: size,
         position: Vector2.zero(),
         collisionType: CollisionType.passive,
-      )..debugMode = true,
+      )..debugMode = false,
     );
 
     SpriteComponent part(

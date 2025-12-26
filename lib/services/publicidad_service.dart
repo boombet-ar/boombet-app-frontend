@@ -4,13 +4,16 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:flutter/foundation.dart';
 
 class PublicidadService {
   Future<List<Publicidad>> getMyAds() async {
     final token = await TokenService.getToken();
     final url = '${ApiConfig.baseUrl}/publicidades/me';
 
-    log('📡 Publicidades: endpoint único -> $url');
+    log(
+      '📡 Publicidades [${kIsWeb ? "WEB" : "MOBILE"}]: endpoint único -> $url',
+    );
     if (token == null || token.isEmpty) {
       log('⚠️ Publicidades: token ausente antes de llamar');
     } else {
@@ -23,24 +26,30 @@ class PublicidadService {
     }
 
     log('📡 GET → $url');
-    final response = await HttpClient.get(url, includeAuth: true);
-    log('📡 Publicidades request headers: ${response.request?.headers}');
-    log('📡 Publicidades status: ${response.statusCode}');
+    try {
+      final response = await HttpClient.get(url, includeAuth: true);
+      log('📡 Publicidades request headers: ${response.request?.headers}');
+      log('📡 Publicidades status: ${response.statusCode}');
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      log('📥 Publicidades raw body: ${response.body}');
-      try {
-        final data = jsonDecode(response.body);
-        final ads = Publicidad.listFromJson(data);
-        log('📥 Publicidades parseadas: ${ads.length}');
-        return ads;
-      } catch (e) {
-        log('❌ Error parseando publicidades desde $url: $e');
-        return const [];
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        log('📥 Publicidades raw body: ${response.body}');
+        try {
+          final data = jsonDecode(response.body);
+          final ads = Publicidad.listFromJson(data);
+          log('📥 Publicidades parseadas: ${ads.length}');
+          return ads;
+        } catch (e) {
+          log('❌ Error parseando publicidades desde $url: $e');
+          return const [];
+        }
       }
-    }
 
-    log('❌ Publicidades status ${response.statusCode} body=${response.body}');
-    return const [];
+      log('❌ Publicidades status ${response.statusCode} body=${response.body}');
+      return const [];
+    } catch (e, stackTrace) {
+      log('❌ Error en request de publicidades: $e');
+      log('Stack trace: $stackTrace');
+      return const [];
+    }
   }
 }

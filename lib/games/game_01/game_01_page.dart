@@ -23,6 +23,8 @@ class _Game01PageState extends State<Game01Page> {
 
   @override
   void dispose() {
+    // Liberar recursos del juego antes de cerrar
+    game.onDispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -240,6 +242,8 @@ class _MenuOverlay extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 18),
+              _VolumeControls(game: game),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -492,6 +496,8 @@ class _PauseOverlay extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
+            _VolumeControls(game: game),
+            const SizedBox(height: 14),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -567,6 +573,121 @@ class _PauseOverlay extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Widget de controles de volumen con sliders para m�sica y efectos
+class _VolumeControls extends StatelessWidget {
+  const _VolumeControls({required this.game});
+
+  final Game01 game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.music_note,
+                color: Colors.greenAccent.withOpacity(0.8),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'M�SICA',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontFamily: 'ThaleahFat',
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: ValueListenableBuilder<double>(
+                  valueListenable: game.musicVolume,
+                  builder: (_, value, __) => SliderTheme(
+                    data: SliderThemeData(
+                      activeTrackColor: Colors.greenAccent,
+                      inactiveTrackColor: Colors.white.withOpacity(0.2),
+                      thumbColor: Colors.greenAccent,
+                      overlayColor: Colors.greenAccent.withOpacity(0.3),
+                      trackHeight: 3,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                    ),
+                    child: Slider(
+                      value: value,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: (newValue) => game.setMusicVolume(newValue),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.volume_up,
+                color: Colors.greenAccent.withOpacity(0.8),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'EFECTOS',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontFamily: 'ThaleahFat',
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: ValueListenableBuilder<double>(
+                  valueListenable: game.sfxVolume,
+                  builder: (_, value, __) => SliderTheme(
+                    data: SliderThemeData(
+                      activeTrackColor: Colors.greenAccent,
+                      inactiveTrackColor: Colors.white.withOpacity(0.2),
+                      thumbColor: Colors.greenAccent,
+                      overlayColor: Colors.greenAccent.withOpacity(0.3),
+                      trackHeight: 3,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                    ),
+                    child: Slider(
+                      value: value,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: (newValue) => game.setSfxVolume(newValue),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

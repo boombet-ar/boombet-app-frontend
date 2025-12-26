@@ -1,7 +1,10 @@
 import 'dart:math';
 import 'package:flame/components.dart';
+import 'package:flame/particles.dart';
+import 'package:flutter/material.dart';
 import '../game_01.dart';
 import 'column_component.dart';
+import 'camera_shake.dart';
 
 class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
   ObstaclePair({
@@ -45,13 +48,26 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
     const double extraStretch =
         96.0; // over-extend columns to avoid visible gaps
 
+    // 🎯 AJUSTE: Limitar el rango vertical para que el gap sea alcanzable
+    // Definimos una zona "jugable" más centrada (dejamos 25% arriba y 25% abajo)
     final usableHeight = gameSize.y - minMargin * 2;
-    final gapTop = minMargin + random.nextDouble() * (usableHeight - gap);
-    final gapCenterY = gapTop + gap / 2;
+    final screenCenter = gameSize.y / 2;
+
+    // El gap puede aparecer en el 50% central de la pantalla (25% arriba y 25% abajo del centro)
+    final safeZoneHeight = usableHeight * 0.50; // 50% del alto total
+    final safeZoneStart = screenCenter - (safeZoneHeight / 2);
+    final safeZoneEnd = screenCenter + (safeZoneHeight / 2);
+
+    // Generamos el centro del gap dentro de la zona segura
+    final gapCenterY = safeZoneStart + random.nextDouble() * safeZoneHeight;
+    final gapTop = gapCenterY - (gap / 2);
+
+    // Aseguramos que el gap no se salga de los límites mínimos
+    final clampedGapTop = gapTop.clamp(minMargin, gameSize.y - gap - minMargin);
 
     final topHeight =
-        gapTop + extraStretch; // extends upward, bottom stays at gapTop
-    final bottomY = gapTop + gap; // keep gap start intact
+        clampedGapTop + extraStretch; // extends upward, bottom stays at gapTop
+    final bottomY = clampedGapTop + gap; // keep gap start intact
     final bottomHeight =
         gameSize.y - bottomY + extraStretch; // extends downward
     _baseTopY = -extraStretch;
@@ -97,6 +113,10 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
         (topColumn.position.x + topColumn.size.x) < game.player!.position.x) {
       scored = true;
       game.addPoint();
+      _spawnPassParticles();
+
+      // Shake leve al pasar obstáculo
+      CameraShake.shake(intensity: 0.15, duration: 0.15);
     }
 
     _t += dt;
@@ -116,5 +136,73 @@ class ObstaclePair extends PositionComponent with HasGameRef<Game01> {
 
     topColumn.position.y = _baseTopY + offset;
     bottomColumn.position.y = _baseBottomY + offset;
+  }
+
+  void _spawnPassParticles() {
+    final rand = Random();
+    final gapCenterY = bottomColumn.position.y - (gap / 2);
+
+    // Partículas desde ambos lados del gap
+    for (var side in [
+      topColumn.position.y + topColumn.size.y,
+      bottomColumn.position.y,
+    ]) {
+      gameRef.add(
+        ParticleSystemComponent(
+          position: Vector2(topColumn.position.x + topColumn.size.x / 2, side),
+          anchor: Anchor.center,
+          particle: Particle.generate(
+            count: 8,
+            lifespan: 0.5,
+            generator: (i) {
+              final angle =
+                  (side < gapCenterY ? pi / 2 : -pi / 2) +
+                  (rand.nextDouble() - 0.5) * pi * 0.5;
+              final speed = 80 + rand.nextDouble() * 60;
+              final dir = Vector2(cos(angle), sin(angle));
+
+              return AcceleratedParticle(
+                speed: dir * speed,
+                acceleration: Vector2.zero(),
+                child: CircleParticle(
+                  radius: 1.5 + rand.nextDouble() * 1.5,
+                  paint: Paint()
+                    ..color = const Color(0xFF00FFB3).withOpacity(0.8)
+                    ..blendMode = BlendMode.plus,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    // Burst central celebratorio
+    gameRef.add(
+      ParticleSystemComponent(
+        position: Vector2(topColumn.position.x + topColumn.size.x, gapCenterY),
+        anchor: Anchor.center,
+        particle: Particle.generate(
+          count: 12,
+          lifespan: 0.6,
+          generator: (i) {
+            final angle = (i / 12) * pi * 2;
+            final speed = 100 + rand.nextDouble() * 80;
+            final dir = Vector2(cos(angle), sin(angle));
+
+            return AcceleratedParticle(
+              speed: dir * speed,
+              acceleration: dir * -100,
+              child: CircleParticle(
+                radius: 2,
+                paint: Paint()
+                  ..color = const Color(0xFFFFFFFF).withOpacity(0.9)
+                  ..blendMode = BlendMode.plus,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

@@ -196,65 +196,263 @@ class _DiscountsPageState extends State<DiscountsPage> {
   }
 
   void _showCuponDetails(Cupon cupon) {
-    showModalBottomSheet(
+    final primaryGreen = const Color(0xFF00D084);
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        builder: (context, scrollController) => ListView(
-          controller: scrollController,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A1A1A),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: primaryGreen.withOpacity(0.3), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: primaryGreen.withOpacity(0.2),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header con imagen y close button
+              Stack(
                 children: [
-                  Text(
-                    cupon.nombre,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Descuento: ${cupon.descuento}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (cupon.descripcionMicrositio.isNotEmpty) ...[
-                    const Text(
-                      'Instrucciones:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                  Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(22),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          primaryGreen.withOpacity(0.3),
+                          primaryGreen.withOpacity(0.1),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Html(data: cupon.descripcionMicrositio),
-                    const SizedBox(height: 16),
-                  ],
-                  if (cupon.legales.isNotEmpty) ...[
-                    const Text(
-                      'Términos y Condiciones:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    child: Center(
+                      child: Icon(
+                        Icons.local_offer_rounded,
+                        size: 80,
+                        color: primaryGreen.withOpacity(0.8),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Html(data: cupon.legales),
-                  ],
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
+
+              // Content scrollable
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título
+                      Text(
+                        cupon.nombre,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'ThaleahFat',
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Descuento badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryGreen,
+                              primaryGreen.withOpacity(0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryGreen.withOpacity(0.4),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.percent,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              cupon.descuento,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontFamily: 'ThaleahFat',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      if (cupon.descripcionMicrositio.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _buildSection(
+                          'Instrucciones',
+                          Icons.info_outline,
+                          primaryGreen,
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: primaryGreen.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Html(
+                            data: cupon.descripcionMicrositio,
+                            style: {
+                              "body": Style(
+                                color: Colors.white70,
+                                fontSize: FontSize(14),
+                                margin: Margins.zero,
+                              ),
+                            },
+                          ),
+                        ),
+                      ],
+
+                      if (cupon.legales.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _buildSection(
+                          'Términos y Condiciones',
+                          Icons.description_outlined,
+                          primaryGreen,
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: primaryGreen.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Html(
+                            data: cupon.legales,
+                            style: {
+                              "body": Style(
+                                color: Colors.white60,
+                                fontSize: FontSize(12),
+                                margin: Margins.zero,
+                              ),
+                            },
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+
+                      // Action button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 8,
+                            shadowColor: primaryGreen.withOpacity(0.5),
+                          ),
+                          child: const Text(
+                            'Entendido',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'ThaleahFat',
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontFamily: 'ThaleahFat',
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
     );
   }
 
