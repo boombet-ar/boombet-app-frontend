@@ -472,13 +472,20 @@ class AffiliationResultsPage extends StatelessWidget {
   }
 
   String _formatCasinoName(String key) {
-    // Convertir camelCase a título
-    // Ej: "sportsbetPba" → "Sportsbet Pba"
-    return key
+    // Convertir camelCase a título y quedarse solo con la primera palabra
+    final cleaned = key.trim();
+    if (cleaned.isEmpty) return 'Casino';
+
+    final words = cleaned
         .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}')
         .trim()
         .split(' ')
+        .where((word) => word.isNotEmpty)
         .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
+        .toList();
+
+    if (words.isEmpty) return cleaned;
+
+    return words.first;
   }
 }

@@ -17,6 +17,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   web_socket_channel: ^3.0.1
   go_router: ^14.0.0
+  flutter_dotenv: ^5.1.0
   flutter_html: ^3.0.0-beta.2
   cached_network_image: ^3.3.0
   flame: ^1.34.0
@@ -46,6 +47,7 @@ flutter_app_name:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/images/
     - assets/images/games/game_01/sprites/
     - assets/images/games/game_01/backgrounds/

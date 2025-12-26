@@ -6,7 +6,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
+import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart' hide RefreshIndicator;
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -134,10 +134,7 @@ class DiscountsContentState extends State<DiscountsContent> {
 
   Future<void> _loadCategorias() async {
     try {
-      final cats = await CuponesService.getCategorias(
-        apiKey: ApiConfig.apiKey,
-        micrositioId: ApiConfig.micrositioId.toString(),
-      );
+      final cats = await CuponesService.getCategorias();
       if (!mounted) return;
       setState(() {
         _remoteCategories = cats;
@@ -273,9 +270,6 @@ class DiscountsContentState extends State<DiscountsContent> {
           await CuponesService.getCupones(
             page: targetPage,
             pageSize: _pageSize,
-            apiKey: ApiConfig.apiKey,
-            micrositioId: ApiConfig.micrositioId.toString(),
-            codigoAfiliado: ApiConfig.codigoAfiliado,
             searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
             categoryId: normalizedCategoryId,
             categoryName: normalizedCategoryName,
@@ -403,18 +397,13 @@ class DiscountsContentState extends State<DiscountsContent> {
   Future<void> _loadClaimedCuponIds() async {
     if (!_affiliationCompleted) return;
     try {
-      final result =
-          await CuponesService.getCuponesRecibidos(
-            apiKey: ApiConfig.apiKey,
-            micrositioId: ApiConfig.micrositioId.toString(),
-            codigoAfiliado: ApiConfig.codigoAfiliado,
-          ).timeout(
-            const Duration(seconds: 20),
-            onTimeout: () {
-              debugPrint('ERROR: Timeout loading claimed cupones');
-              throw TimeoutException('Timeout cargando cupones reclamados');
-            },
-          );
+      final result = await CuponesService.getCuponesRecibidos().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          debugPrint('ERROR: Timeout loading claimed cupones');
+          throw TimeoutException('Timeout cargando cupones reclamados');
+        },
+      );
       final claimedCupones = result['cupones'] as List<Cupon>? ?? [];
 
       if (mounted) {
@@ -452,8 +441,10 @@ class DiscountsContentState extends State<DiscountsContent> {
   String _imageUrlForPlatform(String url) {
     final safe = _safeImageUrl(url);
     if (!kIsWeb || safe.isEmpty) return safe;
+    final proxyBase = ApiConfig.imageProxyBase;
+    if (proxyBase.isEmpty) return safe;
     final encoded = Uri.encodeComponent(safe);
-    return 'https://images.weserv.nl/?url=$encoded';
+    return '$proxyBase$encoded';
   }
 
   Future<void> _startAffiliation() async {
@@ -467,18 +458,13 @@ class DiscountsContentState extends State<DiscountsContent> {
 
     try {
       // Paso 1: Afiliar al usuario en Bonda
-      final result =
-          await CuponesService.afiliarAfiliado(
-            apiKey: ApiConfig.apiKey,
-            micrositioId: ApiConfig.micrositioId.toString(),
-            codigoAfiliado: ApiConfig.codigoAfiliado,
-          ).timeout(
-            const Duration(seconds: 45),
-            onTimeout: () {
-              debugPrint('ERROR: Timeout affiliating to Bonda');
-              throw TimeoutException('Timeout al afiliar a Bonda');
-            },
-          );
+      final result = await CuponesService.afiliarAfiliado().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () {
+          debugPrint('ERROR: Timeout affiliating to Bonda');
+          throw TimeoutException('Timeout al afiliar a Bonda');
+        },
+      );
 
       // Paso 2: Verificar que bonda_enabled cambió a true en el backend
       final userData = await PlayerService().getCurrentUser();

@@ -194,18 +194,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             // --- SECCIÓN 3 ---
             _section("Documentación"),
-            _field("DNI", _c["dni"]!),
-            _field("CUIL", _c["cuit"]!),
+            _field("DNI", _c["dni"]!, readOnly: true),
+            _field("CUIL", _c["cuit"]!, readOnly: true),
 
             const SizedBox(height: 24),
 
             // --- SECCIÓN 4 ---
             _section("Dirección"),
-            _field("Calle", _c["calle"]!),
-            _field("Número", _c["numCalle"]!),
-            _field("Ciudad", _c["ciudad"]!),
-            _field("Provincia", _c["provincia"]!),
-            _field("Código Postal", _c["cp"]!),
+            _field("Calle", _c["calle"]!, readOnly: true),
+            _field("Número", _c["numCalle"]!, readOnly: true),
+            _field("Ciudad", _c["ciudad"]!, readOnly: true),
+            _field("Provincia", _c["provincia"]!, readOnly: true),
+            _field("Código Postal", _c["cp"]!, readOnly: true),
 
             const SizedBox(height: 32),
 
@@ -275,18 +275,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String label,
     TextEditingController controller, {
     TextInputType keyboard = TextInputType.text,
+    bool readOnly = false,
   }) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    final borderColor = primaryGreen.withValues(alpha: readOnly ? 0.35 : 0.8);
+    final textColor = onSurface.withValues(alpha: readOnly ? 0.8 : 1.0);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
         keyboardType: keyboard,
-        style: TextStyle(color: onSurface),
+        readOnly: readOnly,
+        enableInteractiveSelection: !readOnly,
+        enabled: !readOnly,
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: onSurface.withValues(alpha: 0.7)),
@@ -296,14 +302,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
               : AppConstants.lightInputBg,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primaryGreen.withValues(alpha: 0.8)),
+            borderSide: BorderSide(color: borderColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: primaryGreen.withValues(alpha: 0.8),
-              width: 1.5,
-            ),
+            borderSide: BorderSide(color: borderColor, width: 1.5),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: borderColor, width: 1.2),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

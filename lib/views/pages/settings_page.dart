@@ -437,6 +437,7 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         backgroundColor: dialogBg,
         title: Text(
           'Documentos Legales',
@@ -446,47 +447,50 @@ class _SettingsPageState extends State<SettingsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Selecciona un documento para consultar:',
-                style: TextStyle(color: textColor, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              _buildLegalsButton(
-                context,
-                title: 'Términos y Condiciones',
-                icon: Icons.description,
-                onTap: () {
-                  Navigator.pop(context);
-                  _openLegalDocument('Términos y Condiciones');
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildLegalsButton(
-                context,
-                title: 'Políticas de Privacidad',
-                icon: Icons.lock,
-                onTap: () {
-                  Navigator.pop(context);
-                  _openLegalDocument('Políticas de Privacidad');
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildLegalsButton(
-                context,
-                title: 'Uso de Datos Personales',
-                icon: Icons.data_usage,
-                onTap: () {
-                  Navigator.pop(context);
-                  _openLegalDocument('Uso de Datos Personales');
-                },
-              ),
-            ],
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Selecciona un documento para consultar:',
+                  style: TextStyle(color: textColor, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                _buildLegalsButton(
+                  context,
+                  title: 'Términos y Condiciones',
+                  icon: Icons.description,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openLegalDocument('Términos y Condiciones');
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildLegalsButton(
+                  context,
+                  title: 'Políticas de Privacidad',
+                  icon: Icons.lock,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openLegalDocument('Políticas de Privacidad');
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildLegalsButton(
+                  context,
+                  title: 'Uso de Datos Personales',
+                  icon: Icons.data_usage,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openLegalDocument('Uso de Datos Personales');
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         actions: [

@@ -18,11 +18,7 @@ class EmailVerificationService {
     }
 
     final baseUrl = ApiConfig.baseUrl;
-    final headers = {'api-key': ApiConfig.apiKey};
-    final meta = {
-      'codigoAfiliado': ApiConfig.codigoAfiliado,
-      'micrositioId': ApiConfig.micrositioId.toString(),
-    };
+    const Map<String, String> headers = {};
 
     Future<bool> runGet(
       String description,
@@ -32,7 +28,7 @@ class EmailVerificationService {
     }) async {
       final uri = Uri.parse(
         '$baseUrl$_verifyPath',
-      ).replace(queryParameters: includeMeta ? {...meta, ...params} : params);
+      ).replace(queryParameters: params);
       log('[EmailVerificationService] Intentando $description: $uri');
       final response = await HttpClient.get(
         uri.toString(),
@@ -74,11 +70,7 @@ class EmailVerificationService {
       );
       final response = await HttpClient.post(
         '$baseUrl$_verifyPath',
-        body: {
-          if (includeMeta) ...meta,
-          ...body,
-          if (includeMeta) 'apiKey': ApiConfig.apiKey,
-        },
+        body: {...body},
         includeAuth: false,
         headers: includeHeaders ? headers : null,
       );
@@ -103,10 +95,6 @@ class EmailVerificationService {
       }),
       () => runGet('GET query verification_token', {
         'verification_token': trimmedToken,
-      }),
-      () => runGet('GET query token+meta', {
-        'token': trimmedToken,
-        'apiKey': ApiConfig.apiKey,
       }),
       () => runGetPath('GET path /{token}', '/$trimmedToken'),
       () => runGetPath('GET path /token/{token}', '/token/$trimmedToken'),

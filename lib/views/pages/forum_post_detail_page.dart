@@ -1,6 +1,7 @@
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -221,28 +222,18 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         ),
         backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
         elevation: 0,
-        actions: [
-          if (_post != null && _currentUsername == _post!.username)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: IconButton(
-                icon: const Icon(Icons.delete_rounded),
-                onPressed: _deletePost,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.red.withOpacity(0.1),
-                ),
-                color: Colors.red,
-              ),
-            ),
-        ],
+        actions: const [],
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: accent, strokeWidth: 3),
-            )
-          : _errorMessage != null
-          ? _buildError()
-          : _buildContent(isDark, accent),
+      body: ResponsiveWrapper(
+        maxWidth: 1200,
+        child: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(color: accent, strokeWidth: 3),
+              )
+            : _errorMessage != null
+            ? _buildError()
+            : _buildContent(isDark, accent),
+      ),
     );
   }
 
@@ -372,22 +363,6 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                       ],
                     ),
                   ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.red.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, size: 22),
-                  onPressed: _deletePost,
-                  color: Colors.red.shade400,
-                  tooltip: 'Eliminar publicación',
                 ),
               ),
             ],

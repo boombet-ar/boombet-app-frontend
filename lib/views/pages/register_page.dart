@@ -594,190 +594,178 @@ class _RegisterPageState extends State<RegisterPage> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           backgroundColor: dialogBg,
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header con título
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppConstants.primaryGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(AppConstants.borderRadius),
-                    topRight: Radius.circular(AppConstants.borderRadius),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header con título
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(AppConstants.borderRadius),
+                      topRight: Radius.circular(AppConstants.borderRadius),
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
                   ),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppConstants.primaryGreen.withValues(alpha: 0.3),
-                      width: 2,
+                  child: Text(
+                    'Documentos Legales',
+                    style: TextStyle(
+                      color: AppConstants.primaryGreen,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Por favor, revisa y acepta los siguientes documentos:',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildLegalDocumentItem(
+                            context,
+                            title: 'Términos y Condiciones',
+                            isAccepted: _termsAccepted,
+                            onTap: () {
+                              _openLegalDocument('Términos y Condiciones');
+                              setDialogState(() {});
+                            },
+                            setDialogState: setDialogState,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildLegalDocumentItem(
+                            context,
+                            title: 'Políticas de Privacidad',
+                            isAccepted: _privacyAccepted,
+                            onTap: () {
+                              _openLegalDocument('Políticas de Privacidad');
+                              setDialogState(() {});
+                            },
+                            setDialogState: setDialogState,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildLegalDocumentItem(
+                            context,
+                            title: 'Uso de Datos Personales',
+                            isAccepted: _dataAccepted,
+                            onTap: () {
+                              _openLegalDocument('Uso de Datos Personales');
+                              setDialogState(() {});
+                            },
+                            setDialogState: setDialogState,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                child: Text(
-                  'Documentos Legales',
-                  style: TextStyle(
-                    color: AppConstants.primaryGreen,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              // Content
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Por favor, revisa y acepta los siguientes documentos:',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            height: 1.4,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        // Términos y Condiciones
-                        _buildLegalDocumentItem(
-                          context,
-                          title: 'Términos y Condiciones',
-                          isAccepted: _termsAccepted,
-                          onTap: () async {
-                            // Open Terms document
-                            _openLegalDocument('Términos y Condiciones');
-                            setDialogState(() {
-                              _termsAccepted = true;
-                            });
-                            setState(() {
-                              _termsAccepted = true;
-                            });
-                          },
-                          setDialogState: setDialogState,
-                        ),
-                        const SizedBox(height: 16),
-                        // Políticas de Privacidad
-                        _buildLegalDocumentItem(
-                          context,
-                          title: 'Políticas de Privacidad',
-                          isAccepted: _privacyAccepted,
-                          onTap: () async {
-                            // Open Privacy document
-                            _openLegalDocument('Políticas de Privacidad');
-                            setDialogState(() {
-                              _privacyAccepted = true;
-                            });
-                            setState(() {
-                              _privacyAccepted = true;
-                            });
-                          },
-                          setDialogState: setDialogState,
-                        ),
-                        const SizedBox(height: 16),
-                        // Uso de Datos Personales
-                        _buildLegalDocumentItem(
-                          context,
-                          title: 'Uso de Datos Personales',
-                          isAccepted: _dataAccepted,
-                          onTap: () async {
-                            // Open Data usage document
-                            _openLegalDocument('Uso de Datos Personales');
-                            setDialogState(() {
-                              _dataAccepted = true;
-                            });
-                            setState(() {
-                              _dataAccepted = true;
-                            });
-                          },
-                          setDialogState: setDialogState,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // Actions Footer
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    TextButton(
-                      onPressed:
-                          (_termsAccepted && _privacyAccepted && _dataAccepted)
-                          ? () {
-                              Navigator.pop(context);
-                              // Proceed with validation
-                              _proceedWithRegistration();
-                            }
-                          : null,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        backgroundColor:
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed:
                             (_termsAccepted &&
                                 _privacyAccepted &&
                                 _dataAccepted)
-                            ? AppConstants.primaryGreen.withValues(alpha: 0.15)
-                            : Colors.grey.withValues(alpha: 0.1),
-                      ),
-                      child: Text(
-                        'Continuar',
-                        style: TextStyle(
-                          color:
+                            ? () {
+                                Navigator.pop(context);
+                                _proceedWithRegistration();
+                              }
+                            : null,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          backgroundColor:
                               (_termsAccepted &&
                                   _privacyAccepted &&
                                   _dataAccepted)
-                              ? AppConstants.primaryGreen
-                              : Colors.grey[400],
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                              ? AppConstants.primaryGreen.withValues(
+                                  alpha: 0.15,
+                                )
+                              : Colors.grey.withValues(alpha: 0.1),
+                        ),
+                        child: Text(
+                          'Continuar',
+                          style: TextStyle(
+                            color:
+                                (_termsAccepted &&
+                                    _privacyAccepted &&
+                                    _dataAccepted)
+                                ? AppConstants.primaryGreen
+                                : Colors.grey[400],
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -896,7 +884,7 @@ class _RegisterPageState extends State<RegisterPage> {
         return '''TÉRMINOS Y CONDICIONES
 
 1. Objeto
-El presente documento regula los términos bajo los cuales los usuarios (“Jugadores”) se afilian voluntariamente a la comunidad boombet (www.boombet-ar.com), administrada por WEST DIGITAL ALLIANCE SRL, en adelante “BoomBet”. BoomBet actúa como portal de afiliación e intermediario autorizado para registrar a sus miembros en casinos online y casas de apuestas legales que operen dentro de la República Argentina bajo licencias otorgadas por las autoridades competentes.
+El presente documento regula los términos bajo los cuales los usuarios (“Jugadores”) se afilian voluntariamente a la comunidad BoomBet (www.boombet-ar.com), administrada por WEST DIGITAL ALLIANCE SRL, en adelante “BoomBet”. BoomBet actúa como portal de afiliación e intermediario autorizado para registrar a sus miembros en casinos online y casas de apuestas legales que operen dentro de la República Argentina bajo licencias otorgadas por las autoridades competentes.
 
 2. Afiliación y autorización
 Al completar y enviar el formulario de registro, el Jugador:
@@ -1918,6 +1906,9 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // Evaluar inmediatamente por si el contenido ya cabe en pantalla (maxScrollExtent == 0)
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrolledFlag());
   }
 
   @override
@@ -1928,10 +1919,17 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
   }
 
   void _onScroll() {
-    // Detectar si está en el fondo del scroll
-    final isAtBottom =
-        _scrollController.offset >=
-        _scrollController.position.maxScrollExtent - 50; // 50px de tolerancia
+    _updateScrolledFlag();
+  }
+
+  void _updateScrolledFlag() {
+    if (!_scrollController.hasClients) return;
+
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final offset = _scrollController.offset;
+
+    // Si el contenido ya entra en pantalla, consideramos como leído.
+    final isAtBottom = maxExtent <= 0 || offset >= maxExtent - 50;
 
     if (isAtBottom != _isScrolledToBottom) {
       setState(() {
@@ -1943,114 +1941,118 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       backgroundColor: widget.dialogBg,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header con título
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppConstants.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(AppConstants.borderRadius),
-                topRight: Radius.circular(AppConstants.borderRadius),
-              ),
-              border: Border(
-                bottom: BorderSide(
-                  color: AppConstants.primaryGreen.withValues(alpha: 0.3),
-                  width: 2,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header con título
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppConstants.borderRadius),
+                  topRight: Radius.circular(AppConstants.borderRadius),
                 ),
-              ),
-            ),
-            child: Text(
-              widget.documentType,
-              style: TextStyle(
-                color: AppConstants.primaryGreen,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          // Content con scroll controller
-          Flexible(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  widget.content,
-                  style: TextStyle(
-                    color: widget.textColor,
-                    fontSize: 15,
-                    height: 1.6,
-                    letterSpacing: 0.2,
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                    width: 2,
                   ),
                 ),
-              ),
-            ),
-          ),
-          // Indicador de scroll
-          if (!_isScrolledToBottom)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.arrow_downward,
-                    size: 16,
-                    color: AppConstants.primaryGreen.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Desliza para continuar',
-                    style: TextStyle(
-                      color: AppConstants.primaryGreen.withValues(alpha: 0.6),
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          // Footer
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: TextButton(
-              onPressed: _isScrolledToBottom ? widget.onAcknowledged : null,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
-                'Entendido',
+                widget.documentType,
                 style: TextStyle(
-                  color: _isScrolledToBottom
-                      ? AppConstants.primaryGreen
-                      : Colors.grey[400],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  color: AppConstants.primaryGreen,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            // Content con scroll controller
+            Flexible(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    widget.content,
+                    style: TextStyle(
+                      color: widget.textColor,
+                      fontSize: 15,
+                      height: 1.6,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            // Indicador de scroll
+            if (!_isScrolledToBottom)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.arrow_downward,
+                      size: 16,
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Desliza para continuar',
+                      style: TextStyle(
+                        color: AppConstants.primaryGreen.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // Footer
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: TextButton(
+                onPressed: _isScrolledToBottom ? widget.onAcknowledged : null,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  'Entendido',
+                  style: TextStyle(
+                    color: _isScrolledToBottom
+                        ? AppConstants.primaryGreen
+                        : Colors.grey[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

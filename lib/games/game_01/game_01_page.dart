@@ -1,5 +1,6 @@
 import 'package:boombet_app/games/game_01/game_01.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // Parallax is handled inside Game01; no extra import needed here.
@@ -40,27 +41,56 @@ class _Game01PageState extends State<Game01Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GameWidget(
-        game: game,
-        overlayBuilderMap: {
-          'hud': (_, Game01 g) => _HudOverlay(game: g),
-          'gameOver': (_, Game01 g) =>
-              _GameOverOverlay(game: g, onRestart: restartGame),
-          'pause': (_, Game01 g) => _PauseOverlay(
-            game: g,
-            onResume: g.resumeGame,
-            onRestart: restartGame,
-          ),
-          'menu': (_, Game01 g) => _MenuOverlay(
-            game: g,
-            onPlay: g.startGame,
-            onExit: () => Navigator.of(context).pop(),
-          ),
-        },
-        initialActiveOverlays: const ['menu'],
-      ),
+    final gameView = GameWidget(
+      game: game,
+      overlayBuilderMap: {
+        'hud': (_, Game01 g) => _HudOverlay(game: g),
+        'gameOver': (_, Game01 g) =>
+            _GameOverOverlay(game: g, onRestart: restartGame),
+        'pause': (_, Game01 g) => _PauseOverlay(
+          game: g,
+          onResume: g.resumeGame,
+          onRestart: restartGame,
+        ),
+        'menu': (_, Game01 g) => _MenuOverlay(
+          game: g,
+          onPlay: g.startGame,
+          onExit: () => Navigator.of(context).pop(),
+        ),
+      },
+      initialActiveOverlays: const ['menu'],
     );
+
+    if (kIsWeb) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 430),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: AspectRatio(aspectRatio: 9 / 16, child: gameView),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(body: gameView);
   }
 }
 

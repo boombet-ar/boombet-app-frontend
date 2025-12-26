@@ -5,31 +5,12 @@ import 'dart:developer' as developer;
 import 'dart:convert';
 
 class CuponesService {
-  static Future<Map<String, dynamic>> afiliarAfiliado({
-    String? apiKey,
-    String? micrositioId,
-    String? codigoAfiliado,
-  }) async {
+  static Future<Map<String, dynamic>> afiliarAfiliado() async {
     try {
-      final key = apiKey ?? ApiConfig.apiKey;
-      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
-      final affiliate = codigoAfiliado ?? ApiConfig.codigoAfiliado;
-
-      developer.log(
-        'DEBUG CuponesService - Afiliando a Bonda (key: $key, microId: $microId, affiliate: $affiliate)',
-      );
-
       final url = '${ApiConfig.baseUrl}/cupones/afiliado';
       developer.log('DEBUG CuponesService - URL: $url');
 
-      final response = await HttpClient.post(
-        url,
-        body: {
-          'key': key,
-          'micrositio_id': microId,
-          'codigo_afiliado': affiliate,
-        },
-      );
+      final response = await HttpClient.post(url, body: const {});
 
       developer.log(
         'DEBUG CuponesService - Response status: ${response.statusCode}',
@@ -57,19 +38,12 @@ class CuponesService {
   static Future<Map<String, dynamic>> getCupones({
     required int page,
     required int pageSize,
-    String? apiKey,
-    String? micrositioId,
-    String? codigoAfiliado,
     String? categoryId,
     String? categoryName,
     String? searchQuery,
     String? orderBy,
   }) async {
     try {
-      // Usar valores por defecto si no se proporcionan
-      final key = apiKey ?? ApiConfig.apiKey;
-      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
-      final affiliate = codigoAfiliado ?? ApiConfig.codigoAfiliado;
       final category = categoryId?.toString().trim();
       final categoryLabel = categoryName?.toString().trim();
       final categoryFilter = (category != null && category.isNotEmpty)
@@ -81,15 +55,12 @@ class CuponesService {
           : 'relevant';
 
       developer.log(
-        'DEBUG CuponesService - Fetching cupones (page: $page, key: $key, microId: $microId, affiliate: $affiliate, category: ${categoryFilter ?? '-'}, query: ${normalizedSearch ?? '-'} )',
+        'DEBUG CuponesService - Fetching cupones (page: $page, category: ${categoryFilter ?? '-'}, query: ${normalizedSearch ?? '-'}, order: $normalizedOrderBy )',
       );
 
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
           .replace(
             queryParameters: {
-              'key': key,
-              'micrositio_id': microId,
-              'codigo_afiliado': affiliate,
               'page': page.toString(),
               'page_size': pageSize.toString(),
               'orderBy': normalizedOrderBy,
@@ -192,21 +163,11 @@ class CuponesService {
     }
   }
 
-  static Future<List<Categoria>> getCategorias({
-    String? apiKey,
-    String? micrositioId,
-  }) async {
+  static Future<List<Categoria>> getCategorias() async {
     try {
-      final key = apiKey ?? ApiConfig.apiKey;
-      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
-
-      developer.log(
-        'DEBUG CuponesService - Fetching categorias (key: $key, microId: $microId)',
-      );
-
-      final url = Uri.parse('${ApiConfig.baseUrl}/cupones/categorias')
-          .replace(queryParameters: {'key': key, 'micrositio_id': microId})
-          .toString();
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/cupones/categorias',
+      ).toString();
 
       developer.log('DEBUG CuponesService - Categorias URL: $url');
 
@@ -262,28 +223,17 @@ class CuponesService {
   }
 
   static Future<Map<String, dynamic>> getCuponesRecibidos({
-    String? apiKey,
-    String? micrositioId,
-    String? codigoAfiliado,
     int page = 1,
     int pageSize = 25,
   }) async {
     try {
-      // Usar valores por defecto si no se proporcionan
-      final key = apiKey ?? ApiConfig.apiKey;
-      final microId = micrositioId ?? ApiConfig.micrositioId.toString();
-      final affiliate = codigoAfiliado ?? ApiConfig.codigoAfiliado;
-
       developer.log(
-        'DEBUG CuponesService - Fetching cupones recibidos (key: $key, microId: $microId, affiliate: $affiliate)',
+        'DEBUG CuponesService - Fetching cupones recibidos (page: $page)',
       );
 
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones/recibidos')
           .replace(
             queryParameters: {
-              'key': key,
-              'micrositio_id': microId,
-              'codigo_afiliado': affiliate,
               'page': page.toString(),
               'page_size': pageSize.toString(),
             },

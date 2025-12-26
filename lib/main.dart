@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
@@ -52,12 +53,36 @@ void _initializeDeepLinkHandling() {
 
     try {
       final uri = Uri.parse(uriString);
-      DeepLinkService.instance.emit(
-        DeepLinkPayload(
-          uri: uri,
-          token: (raw['token'] as String?) ?? uri.queryParameters['token'],
-        ),
-      );
+
+      // Aceptar múltiples nombres de query para el token (backend puede variar)
+      String? _extractToken(Uri uri) {
+        const candidates = [
+          'token',
+          'verificacionToken',
+          'verification_token',
+          'verificationToken',
+          'verify_token',
+        ];
+
+        for (final key in candidates) {
+          final value = uri.queryParameters[key];
+          if (value != null && value.isNotEmpty) return value;
+        }
+
+        // Fallback: si el token viene como último segmento en rutas tipo /confirm/<token>
+        final segments = uri.pathSegments;
+        if (segments.length >= 2 &&
+            segments.first.toLowerCase().contains('confirm')) {
+          final last = segments.last.trim();
+          if (last.isNotEmpty) return last;
+        }
+
+        return null;
+      }
+
+      final token = (raw['token'] as String?) ?? _extractToken(uri);
+
+      DeepLinkService.instance.emit(DeepLinkPayload(uri: uri, token: token));
 
       final payload = DeepLinkService.instance.lastPayload;
       if (payload != null) {
@@ -71,6 +96,9 @@ void _initializeDeepLinkHandling() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Cargar variables de entorno
+  await Env.load();
 
   // ============================================
   // 🌐 Environment Configuration Verification

@@ -18,6 +18,30 @@ class ForumService {
     throw Exception('Error al cargar publicaciones: ${response.statusCode}');
   }
 
+  static Future<PageableResponse<ForumPost>> getMyPosts({
+    int page = 0,
+    int size = 20,
+  }) async {
+    final url = '${ApiConfig.baseUrl}/publicaciones/me?page=$page&size=$size';
+    // Evitar cache para no servir resultados viejos de este usuario
+    final response = await HttpClient.get(url, cacheTtl: Duration.zero);
+
+    // Debug detallado para diagnosticar vacío
+    print('🛰️ [ForumService] GET /publicaciones/me page=$page size=$size');
+    print('🛰️ Status: ${response.statusCode}');
+    print('🛰️ Body length: ${response.body.length}');
+    if (response.statusCode == 200) {
+      print(
+        '🛰️ Body preview: ${response.body.substring(0, response.body.length > 400 ? 400 : response.body.length)}',
+      );
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return PageableResponse.fromJson(json, ForumPost.fromJson);
+    }
+    throw Exception(
+      'Error al cargar mis publicaciones: ${response.statusCode}',
+    );
+  }
+
   static Future<ForumPost> getPostById(int id) async {
     final url = '${ApiConfig.baseUrl}/publicaciones/$id';
     final response = await HttpClient.get(url);

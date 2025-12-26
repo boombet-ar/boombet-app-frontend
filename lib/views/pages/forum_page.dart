@@ -20,6 +20,7 @@ class _ForumPageState extends State<ForumPage> {
   int _currentPage = 0;
   bool _hasMore = true;
   int _totalPages = 0;
+  bool _showMine = false;
 
   @override
   void initState() {
@@ -80,27 +81,19 @@ class _ForumPageState extends State<ForumPage> {
     }
 
     try {
-      final response = await ForumService.getPosts(
-        page: _currentPage,
-        size: 10,
-      );
+      final response = _showMine
+          ? await ForumService.getMyPosts(page: _currentPage, size: 10)
+          : await ForumService.getPosts(page: _currentPage, size: 10);
 
       if (!mounted) return;
 
-      // Filtrar solo posts principales (sin parentId)
-      final mainPosts = response.content
-          .where((p) => p.parentId == null)
-          .toList();
-      final replies = response.content
-          .where((p) => p.parentId != null)
-          .toList();
-
-      print('📊 [ForumPage] Total posts received: ${response.content.length}');
-      print('📊 [ForumPage] Main posts: ${mainPosts.length}');
-      print('📊 [ForumPage] Replies (filtered out): ${replies.length}');
+      final parsedContent = _showMine
+          ? response
+                .content // incluir también respuestas propias
+          : response.content.where((p) => p.parentId == null).toList();
 
       setState(() {
-        _posts = mainPosts;
+        _posts = parsedContent;
         _hasMore = !response.last;
         _totalPages = response.totalPages;
         _isLoading = false;
@@ -178,7 +171,13 @@ class _ForumPageState extends State<ForumPage> {
                 ? _buildEmpty(isDark, accent)
                 : Column(
                     children: [
-                      Expanded(child: _buildPostsList(isDark, accent)),
+                      Expanded(
+                        child: _buildPostsList(
+                          isDark,
+                          accent,
+                          showDelete: _showMine,
+                        ),
+                      ),
                       _buildPaginationBar(isDark, accent),
                     ],
                   ),
@@ -233,7 +232,7 @@ class _ForumPageState extends State<ForumPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Foro Boombet',
+                      'Foro BoomBet',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -287,16 +286,30 @@ class _ForumPageState extends State<ForumPage> {
               const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: isDark
+                  color: _showMine
+                      ? accent.withOpacity(0.15)
+                      : isDark
                       ? Colors.white.withOpacity(0.05)
                       : Colors.black.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: accent.withOpacity(_showMine ? 0.6 : 0.15),
+                    width: 1,
+                  ),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  onPressed: () => _loadPosts(refresh: true),
+                  icon: Icon(_showMine ? Icons.person : Icons.person_outline),
+                  onPressed: () {
+                    setState(() {
+                      _showMine = !_showMine;
+                      _currentPage = 0;
+                    });
+                    _loadPosts(refresh: true);
+                  },
                   color: accent,
-                  tooltip: 'Actualizar',
+                  tooltip: _showMine
+                      ? 'Ver todas las publicaciones'
+                      : 'Ver mis publicaciones',
                 ),
               ),
             ],
@@ -385,7 +398,11 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
-  Widget _buildPostsList(bool isDark, Color accent) {
+  Widget _buildPostsList(
+    bool isDark,
+    Color accent, {
+    required bool showDelete,
+  }) {
     return RefreshIndicator(
       onRefresh: () => _loadPosts(refresh: true),
       child: ListView.builder(
@@ -395,6 +412,7 @@ class _ForumPageState extends State<ForumPage> {
           post: _posts[index],
           isDark: isDark,
           accent: accent,
+          showDelete: showDelete,
           onDelete: _deletePost,
         ),
       ),
@@ -492,12 +510,14 @@ class _PostCard extends StatelessWidget {
   final bool isDark;
   final Color accent;
   final Function(int) onDelete;
+  final bool showDelete;
 
   const _PostCard({
     required this.post,
     required this.isDark,
     required this.accent,
     required this.onDelete,
+    required this.showDelete,
   });
 
   String _formatDate(DateTime date) {
@@ -581,6 +601,27 @@ class _PostCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (post.parentId != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: accent.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Respuesta a #${post.parentId}',
+                                style: TextStyle(
+                                  color: accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
                           Text(
                             post.username,
                             style: TextStyle(
@@ -614,28 +655,29 @@ class _PostCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
-                          width: 1,
+                    if (showDelete)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 20,
+                          ),
+                          onPressed: () => onDelete(post.id),
+                          padding: const EdgeInsets.all(6),
+                          color: Colors.red.shade400,
+                          tooltip: 'Eliminar',
+                          constraints: const BoxConstraints(),
                         ),
                       ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          size: 20,
-                        ),
-                        onPressed: () => onDelete(post.id),
-                        padding: const EdgeInsets.all(6),
-                        color: Colors.red.shade400,
-                        tooltip: 'Eliminar',
-                        constraints: const BoxConstraints(),
-                      ),
-                    ),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,

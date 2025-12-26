@@ -62,9 +62,6 @@ class _DiscountsPageState extends State<DiscountsPage> {
       final result = await CuponesService.getCupones(
         page: targetPage,
         pageSize: _pageSize,
-        apiKey: ApiConfig.apiKey,
-        micrositioId: ApiConfig.micrositioId.toString(),
-        codigoAfiliado: ApiConfig.codigoAfiliado,
       );
 
       final newCupones = result['cupones'] as List<Cupon>? ?? [];

@@ -16,7 +16,7 @@ class _FaqPageState extends State<FaqPage> {
   final _messageController = TextEditingController();
   final List<Map<String, String>> _platformFaqs = [
     {
-      'question': '¿Que es Boombet?',
+      'question': '¿Que es BoomBet?',
       'answer':
           'BoomBet es el primer portal de Casinos Online en Argentina. Se trata de un solo lugar donde podes registrarte rápido y acceder a los mejores Casinos legales del país, con todas sus promociones y beneficios al alcance de tu mano.',
     },
@@ -36,9 +36,9 @@ class _FaqPageState extends State<FaqPage> {
           'Podes acceder a promociones exclusivas para nuestros casinos, beneficios aplicables a diferentes negocios y categorias, juegos con rankings, sorteos, etc.',
     },
     {
-      'question': '¿Puedo desafiliarme de Boombet?',
+      'question': '¿Puedo desafiliarme de BoomBet?',
       'answer':
-          'Si! Desde la vista de perfil (icono de perfil) encontras el boton para desafiliarte, nosotros hacemos el proceso por vos. Recorda que desafiliarte de Boombet no te desafilia de nuestros casinos asociados.',
+          'Si! Desde la vista de perfil (icono de perfil) encontras el boton para desafiliarte, nosotros hacemos el proceso por vos. Recorda que desafiliarte de BoomBet no te desafilia de nuestros casinos asociados.',
     },
   ];
   final List<Map<String, String>> _benefitsFaqs = [

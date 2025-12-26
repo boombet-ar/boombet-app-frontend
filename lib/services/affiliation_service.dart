@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -34,20 +33,15 @@ class AffiliationService {
         'Host: ${uri.host}, Port: ${uri.port}, Path: ${uri.path}',
       );
 
-      // Conectar usando WebSocket nativo de dart:io
-      final webSocket =
-          await WebSocket.connect(
-            wsUrl,
-            headers: {if (token.isNotEmpty) 'Authorization': 'Bearer $token'},
-          ).timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw TimeoutException('WebSocket connection timeout');
-            },
-          );
-
-      // Crear el canal desde el WebSocket conectado
-      _channel = IOWebSocketChannel(webSocket);
+      // Conexión cross-platform (Web + Android) usando web_socket_channel
+      if (kIsWeb) {
+        _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      } else {
+        _channel = IOWebSocketChannel.connect(
+          Uri.parse(wsUrl),
+          headers: {if (token.isNotEmpty) 'Authorization': 'Bearer $token'},
+        );
+      }
       log('[AffiliationService] ✅ WebSocket conectado exitosamente');
 
       // Escuchar mensajes del WebSocket

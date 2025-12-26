@@ -5,6 +5,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,8 @@ class _HomeContentState extends State<HomeContent> {
   final Set<int> _videoListenerAttached = {};
   final Map<int, Timer> _videoEndTimers = {};
   static const Duration _videoAdvanceDelay = Duration(seconds: 3);
+  static const double _adAspectRatio =
+      9 / 16; // Portrait ads (images 720x1280, videos 1072x1920)
 
   int _currentCarouselPage = 0;
   Timer? _autoScrollTimer;
@@ -266,10 +269,12 @@ class _HomeContentState extends State<HomeContent> {
 
   String _proxyImageForWeb(String url) {
     if (!kIsWeb) return url;
+    final proxyBase = ApiConfig.imageProxyBase;
+    if (proxyBase.isEmpty) return url;
     try {
       // No doble codificar: la URL ya viene con %20.
       // Weserv acepta la URL completa tal cual en el query param.
-      final proxied = 'https://images.weserv.nl/?url=$url';
+      final proxied = '$proxyBase$url';
       debugPrint('🌀 Web image proxy: $url -> $proxied');
       return proxied;
     } catch (e) {
@@ -281,7 +286,8 @@ class _HomeContentState extends State<HomeContent> {
   String _proxyVideoForWeb(String url) {
     if (!kIsWeb) return url;
     // Proxy simple para sortear CORS en web. Si falla, se usa la URL original.
-    const corsProxy = 'https://cors.isomorphic-git.org/';
+    final corsProxy = ApiConfig.videoProxyBase;
+    if (corsProxy.isEmpty) return url;
     final proxied = '$corsProxy$url';
     debugPrint('🎥 Web video proxy: $url -> $proxied');
     return proxied;
@@ -405,8 +411,7 @@ class _HomeContentState extends State<HomeContent> {
         if (isVideo) {
           // En web usar la URL directa; los proxys suelen romper streaming MP4.
           final videoUrl = resolvedUrl;
-          if (kIsWeb &&
-              !videoUrl.contains(Uri.parse(ApiConfig.baseUrl).host)) {
+          if (kIsWeb && !videoUrl.contains(Uri.parse(ApiConfig.baseUrl).host)) {
             debugPrint(
               '⚠️ Web: video desde dominio externo puede tener problemas de CORS',
             );
@@ -468,7 +473,7 @@ class _HomeContentState extends State<HomeContent> {
         }
         return Center(
           child: FittedBox(
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
             child: SizedBox(
               width: controller.value.size.width,
               height: controller.value.size.height,
@@ -489,12 +494,12 @@ class _HomeContentState extends State<HomeContent> {
     return AnimatedContainer(
       duration: AppConstants.shortDelay,
       curve: Curves.easeInOut,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.4),
-          width: 1.5,
+          color: primaryGreen.withValues(alpha: 0.15),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -590,6 +595,12 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
+        SectionHeaderWidget(
+          title: 'Inicio',
+          subtitle: 'Anuncios y novedades personalizadas',
+          icon: Icons.campaign,
+        ),
+        const SizedBox(height: 12),
         Expanded(
           child: RepaintBoundary(
             child: Container(
@@ -623,123 +634,135 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                     ),
                   Expanded(
-                    child: PageView.builder(
-                      controller: _carouselController,
-                      scrollBehavior: kIsWeb
-                          ? MaterialScrollBehavior().copyWith(
-                              dragDevices: {
-                                PointerDeviceKind.touch,
-                                PointerDeviceKind.mouse,
-                              },
-                            )
-                          : null,
-                      onPageChanged: (index) {
-                        final previousIndex = _currentCarouselPage;
-                        setState(() {
-                          _currentCarouselPage = index;
-                        });
-                        _cancelVideoEndTimer(previousIndex);
-                        unawaited(_pauseAndResetVideo(previousIndex));
-                        unawaited(_prepareVideoForPage(index));
-                      },
-                      itemCount: _ads.isNotEmpty ? _ads.length : 1,
-                      itemBuilder: (context, index) {
-                        if (_adsLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: _adAspectRatio,
+                        child: PageView.builder(
+                          controller: _carouselController,
+                          scrollBehavior: kIsWeb
+                              ? MaterialScrollBehavior().copyWith(
+                                  dragDevices: {
+                                    PointerDeviceKind.touch,
+                                    PointerDeviceKind.mouse,
+                                  },
+                                )
+                              : null,
+                          onPageChanged: (index) {
+                            final previousIndex = _currentCarouselPage;
+                            setState(() {
+                              _currentCarouselPage = index;
+                            });
+                            _cancelVideoEndTimer(previousIndex);
+                            unawaited(_pauseAndResetVideo(previousIndex));
+                            unawaited(_prepareVideoForPage(index));
+                          },
+                          itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                          itemBuilder: (context, index) {
+                            if (_adsLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
 
-                        if (_adsError != null) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Container(
+                            if (_adsError != null) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.warning_amber_rounded,
+                                          size: 36,
+                                          color: Colors.orange,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Text(
+                                            _adsError!,
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontSize: 14,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        ElevatedButton.icon(
+                                          onPressed: _fetchAds,
+                                          icon: const Icon(Icons.refresh),
+                                          label: const Text('Reintentar'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primaryGreen,
+                                            foregroundColor: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (_ads.isNotEmpty) {
+                              final ad = _ads[index];
+                              debugPrint(
+                                '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
+                              );
+                              return _buildAdCard(
+                                ad,
+                                index,
+                                primaryGreen,
+                                textColor,
+                              );
+                            }
+
+                            return AnimatedContainer(
+                              duration: AppConstants.shortDelay,
+                              curve: Curves.easeInOut,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    primaryGreen.withValues(alpha: 0.3),
+                                    primaryGreen.withValues(alpha: 0.1),
+                                  ],
+                                ),
                                 border: Border.all(
-                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  color: primaryGreen.withValues(alpha: 0.5),
                                   width: 2,
                                 ),
                               ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.warning_amber_rounded,
-                                      size: 36,
-                                      color: Colors.orange,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                      child: Text(
-                                        _adsError!,
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 14,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    ElevatedButton.icon(
-                                      onPressed: _fetchAds,
-                                      icon: const Icon(Icons.refresh),
-                                      label: const Text('Reintentar'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryGreen,
-                                        foregroundColor: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              child: _buildPlaceholderCard(
+                                index,
+                                primaryGreen,
+                                textColor,
                               ),
-                            ),
-                          );
-                        }
-
-                        if (_ads.isNotEmpty) {
-                          final ad = _ads[index];
-                          debugPrint(
-                            '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
-                          );
-                          return _buildAdCard(
-                            ad,
-                            index,
-                            primaryGreen,
-                            textColor,
-                          );
-                        }
-
-                        return AnimatedContainer(
-                          duration: AppConstants.shortDelay,
-                          curve: Curves.easeInOut,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                primaryGreen.withValues(alpha: 0.3),
-                                primaryGreen.withValues(alpha: 0.1),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: primaryGreen.withValues(alpha: 0.5),
-                              width: 2,
-                            ),
-                          ),
-                          child: _buildPlaceholderCard(
-                            index,
-                            primaryGreen,
-                            textColor,
-                          ),
-                        );
-                      },
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

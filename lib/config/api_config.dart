@@ -1,47 +1,28 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:boombet_app/config/env.dart';
 
 class ApiConfig {
-  // Compile-time environment variables
-  // Default: Azure Backend (production)
-  // Override with: --dart-define=API_HOST=localhost --dart-define=API_PORT=7070 --dart-define=API_SCHEME=http for local Docker
-  static const String _envHost = String.fromEnvironment(
-    'API_HOST',
-    defaultValue:
-        'boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io',
-  );
-  static const String _envPort = String.fromEnvironment(
-    'API_PORT',
-    defaultValue: '', // Empty for default HTTPS port (443)
-  );
-  static const String _envScheme = String.fromEnvironment(
-    'API_SCHEME',
-    defaultValue: 'https',
-  );
+  static const String _basePath = '/api';
 
-  // Variables de Bonda API
-  static String apiKey =
-      '61099OdstDC6fGUHy6SHblguE9nrqT0VgCxVlTpPcRb0hryCwLQs9SnnZ9nfFGRY';
-  static int micrositioId = 911909;
-  static String codigoAfiliado = '123456';
+  static String get apiHost => Env.getString('API_HOST');
+  static String get apiPort => Env.getString('API_PORT', allowEmpty: true);
+  static String get apiScheme => Env.getString('API_SCHEME', fallback: 'https');
+
+  static String get imageProxyBase =>
+      Env.getString('IMAGE_PROXY_BASE', allowEmpty: true);
+  static String get videoProxyBase =>
+      Env.getString('VIDEO_PROXY_BASE', allowEmpty: true);
 
   static String get baseUrl {
-    // If API_HOST is explicitly set or using default Azure backend
-    if (_envHost.isNotEmpty) {
-      final port = _envPort.isNotEmpty ? ':$_envPort' : '';
-      return '$_envScheme://$_envHost$port/api';
+    final host = apiHost.trim();
+    if (host.isEmpty) {
+      throw StateError('[ApiConfig] API_HOST is required');
     }
 
-    // Fallback to platform-specific defaults (should not reach here with new defaults)
-    if (kIsWeb) {
-      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
-    } else if (Platform.isAndroid) {
-      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
-    } else if (Platform.isIOS) {
-      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
-    } else {
-      return 'https://boombetbackend.calmpebble-5d8daaab.brazilsouth.azurecontainerapps.io/api';
-    }
+    final portSegment = apiPort.isNotEmpty ? ':$apiPort' : '';
+    final normalizedPath = _basePath.startsWith('/')
+        ? _basePath
+        : '/$_basePath';
+    return '$apiScheme://$host$portSegment$normalizedPath';
   }
 
   /// Base para WebSocket -> sin el `/api` en el path
@@ -60,14 +41,6 @@ class ApiConfig {
       port: uri.port,
       path: pathWithoutApi, // normalmente '', o '/'
     ).toString().replaceFirst(RegExp(r'/$'), '');
-
-    return Uri(
-      scheme: scheme,
-      host: uri.host,
-      port: uri.port,
-      path: pathWithoutApi, // normalmente '', o '/'
-    ).toString().replaceFirst(RegExp(r'/$'), '');
-    // 👆 me aseguro de no terminar con doble //
   }
 
   static String get effectiveUrl => baseUrl;

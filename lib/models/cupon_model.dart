@@ -86,6 +86,7 @@ class Cupon {
     // Para cupones disponibles, viene en fecha_vencimiento
     String fecha = '';
     String codigo = '';
+    final String codigoAfiliado = json['codigo_afiliado']?.toString() ?? '';
 
     // Primero intenta obtener de fecha_vencimiento (cupones disponibles)
     if (json['fecha_vencimiento'] != null &&
@@ -104,6 +105,15 @@ class Cupon {
       codigo = json['code'].toString();
     } else if (json['envio'] is Map && json['envio']['codigo'] != null) {
       codigo = json['envio']['codigo'].toString();
+    }
+
+    // Si el código recibido es un link (http/https) y existe un código de afiliado, usar el de afiliado
+    if (codigo.startsWith('http')) {
+      if (codigoAfiliado.isNotEmpty) {
+        codigo = codigoAfiliado;
+      }
+    } else if (codigo.isEmpty && codigoAfiliado.isNotEmpty) {
+      codigo = codigoAfiliado;
     }
 
     final categoriasData =
