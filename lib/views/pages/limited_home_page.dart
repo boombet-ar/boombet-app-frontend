@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
@@ -8,6 +9,7 @@ import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 
@@ -27,6 +29,9 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
   StreamSubscription? _wsSubscription;
   bool _affiliationCompleted = false;
   String _statusMessage = 'Iniciando proceso de afiliación...';
+  bool _isGameOpen = false;
+
+  static const _limitedGameRouteName = '/limited/game01';
 
   @override
   void initState() {
@@ -89,14 +94,46 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     );
   }
 
-  void _navigateToResultsPage(AffiliationResult? result) {
+  Future<void> _closeGameIfOpen() async {
+    if (!_isGameOpen || !mounted) return;
+
+    final navigator = Navigator.of(context);
+    navigator.popUntil((route) => route.settings.name != _limitedGameRouteName);
+    _isGameOpen = false;
+  }
+
+  Future<void> _navigateToResultsPage(AffiliationResult? result) async {
+    if (!mounted) return;
+
+    await _closeGameIfOpen();
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AffiliationResultsPage(result: result),
+      ),
+    );
+  }
+
+  Future<void> _openLimitedGame() async {
+    if (_affiliationCompleted || !mounted) return;
+
+    setState(() {
+      _isGameOpen = true;
+    });
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: _limitedGameRouteName),
+        builder: (_) => const Game01Page(),
+      ),
+    );
+
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AffiliationResultsPage(result: result),
-        ),
-      );
+      setState(() {
+        _isGameOpen = false;
+      });
     }
   }
 
@@ -128,7 +165,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
               const LimitedDiscountsContent(),
               const LimitedRafflesContent(),
               const LimitedForumContent(), // Foro limitado sin publicar
-              const LimitedGamesContent(),
+              LimitedGamesContent(onPlay: _openLimitedGame),
             ],
           ),
           bottomNavigationBar: const NavbarWidget(),
@@ -156,7 +193,12 @@ class LimitedHomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
+          SectionHeaderWidget(
+            title: 'Inicio',
+            subtitle: 'Anuncios y novedades personalizadas',
+            icon: Icons.campaign,
+          ),
+          const SizedBox(height: 8),
 
           // Banner de afiliación en proceso
           Container(
@@ -626,29 +668,14 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.local_offer, color: primaryGreen),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Cupones disponibles (vista previa)',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                    ),
-                  ),
-                ],
+              SectionHeaderWidget(
+                title: 'Descuentos Exclusivos',
+                subtitle: _cupones.isNotEmpty
+                    ? '${_cupones.length} ofertas en vista previa'
+                    : 'Vista previa mientras completamos tu afiliación',
+                icon: Icons.local_offer,
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Vista de solo lectura mientras completamos tu afiliación. Podrás reclamarlos cuando termines.',
-                style: TextStyle(
-                  color: textColor.withValues(alpha: 0.75),
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildCuponPreviewSection(isDark, primaryGreen, textColor),
             ],
           ),
@@ -862,25 +889,195 @@ class LimitedRafflesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildLockedContent(
-      context,
-      Icons.card_giftcard,
-      'Sorteos',
-      'Podrás participar en sorteos una vez completada tu afiliación.',
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeaderWidget(
+            title: 'Sorteos',
+            subtitle: 'Próximamente disponibles',
+            icon: Icons.card_giftcard,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: _buildLockedContent(
+              context,
+              Icons.card_giftcard,
+              'Sorteos',
+              'Podrás participar en sorteos una vez completada tu afiliación.',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class LimitedGamesContent extends StatelessWidget {
-  const LimitedGamesContent({super.key});
+  const LimitedGamesContent({super.key, required this.onPlay});
+
+  final VoidCallback onPlay;
 
   @override
   Widget build(BuildContext context) {
-    return _buildLockedContent(
-      context,
-      Icons.videogame_asset,
-      'Juegos',
-      'Los minijuegos estarán disponibles al completar tu afiliación.',
+    final theme = Theme.of(context);
+    final primaryGreen = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeaderWidget(
+            title: 'Juegos',
+            subtitle: 'Explora los minijuegos de BoomBet',
+            icon: Icons.videogame_asset,
+          ),
+          const SizedBox(height: 12),
+          _GamePreviewCard(
+            primaryGreen: primaryGreen,
+            textColor: textColor,
+            isDark: isDark,
+            onPlay: onPlay,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GamePreviewCard extends StatelessWidget {
+  const _GamePreviewCard({
+    required this.primaryGreen,
+    required this.textColor,
+    required this.isDark,
+    required this.onPlay,
+  });
+
+  final Color primaryGreen;
+  final Color textColor;
+  final bool isDark;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppConstants.darkCardBg : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.videogame_asset, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Space Runner',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.bolt, color: primaryGreen, size: 18),
+              const SizedBox(width: 4),
+              Text(
+                'Arcade',
+                style: TextStyle(
+                  color: textColor.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Corre, esquiva y bate tu récord',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Una demo jugable mientras esperas. Cerraremos el juego automáticamente cuando tu afiliación finalice.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: textColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 72,
+                width: 72,
+                child: Image.asset(
+                  'assets/images/pixel_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onPlay,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Jugar ahora'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1021,68 +1218,48 @@ class LimitedForumContent extends StatelessWidget {
         backgroundColor: bgColor,
         body: Column(
           children: [
-            // Header con mensaje de restricción
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.forum, color: greenColor, size: 28),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Foro de la Comunidad',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Mensaje de restricción
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: greenColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: greenColor.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.hourglass_empty, color: greenColor),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Podrás publicar una vez completada tu afiliación',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: textColor.withValues(alpha: 0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: SectionHeaderWidget(
+                title: 'Foro BoomBet',
+                subtitle: 'Vista previa sin publicar',
+                icon: Icons.forum,
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_empty, color: greenColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Podrás publicar una vez completada tu afiliación',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textColor.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Lista de publicaciones (solo lectura)
             Expanded(

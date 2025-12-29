@@ -43,6 +43,9 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _privacyAccepted = false;
   bool _dataAccepted = false;
 
+  bool get _allLegalsAccepted =>
+      _termsAccepted && _privacyAccepted && _dataAccepted;
+
   Map<String, bool> _passwordRules = {
     "8+ caracteres": false,
     "1 mayúscula": false,
@@ -55,14 +58,14 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    // Inicializar controllers con datos hardcodeados para testing
-    _usernameController = TextEditingController(text: 'test');
-    _emailController = TextEditingController(text: 'santinooliveto1@gmail.com');
-    _dniController = TextEditingController(text: '45614451');
-    _phoneController = TextEditingController(text: '1121895575');
-    _passwordController = TextEditingController(text: 'Test135!');
-    _confirmPasswordController = TextEditingController(text: 'Test135!');
-    _selectedGender = 'Masculino';
+    // Inicializar controllers vacíos
+    _usernameController = TextEditingController();
+    _emailController = TextEditingController();
+    _dniController = TextEditingController();
+    _phoneController = TextEditingController();
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+    _selectedGender = null;
     _passwordController.addListener(_validatePasswordLive);
   }
 
@@ -79,7 +82,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _validateAndRegister() async {
     // Check if all legal documents have been acknowledged
-    if (!_termsAccepted || !_privacyAccepted || !_dataAccepted) {
+    if (!_allLegalsAccepted) {
       _showTermsDialog();
       return;
     }
@@ -660,8 +663,10 @@ class _RegisterPageState extends State<RegisterPage> {
                             title: 'Términos y Condiciones',
                             isAccepted: _termsAccepted,
                             onTap: () {
-                              _openLegalDocument('Términos y Condiciones');
-                              setDialogState(() {});
+                              _openLegalDocument(
+                                'Términos y Condiciones',
+                                setDialogState: setDialogState,
+                              );
                             },
                             setDialogState: setDialogState,
                           ),
@@ -671,8 +676,10 @@ class _RegisterPageState extends State<RegisterPage> {
                             title: 'Políticas de Privacidad',
                             isAccepted: _privacyAccepted,
                             onTap: () {
-                              _openLegalDocument('Políticas de Privacidad');
-                              setDialogState(() {});
+                              _openLegalDocument(
+                                'Políticas de Privacidad',
+                                setDialogState: setDialogState,
+                              );
                             },
                             setDialogState: setDialogState,
                           ),
@@ -682,8 +689,10 @@ class _RegisterPageState extends State<RegisterPage> {
                             title: 'Uso de Datos Personales',
                             isAccepted: _dataAccepted,
                             onTap: () {
-                              _openLegalDocument('Uso de Datos Personales');
-                              setDialogState(() {});
+                              _openLegalDocument(
+                                'Uso de Datos Personales',
+                                setDialogState: setDialogState,
+                              );
                             },
                             setDialogState: setDialogState,
                           ),
@@ -841,7 +850,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  void _openLegalDocument(String documentType) {
+  void _openLegalDocument(String documentType, {StateSetter? setDialogState}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final dialogBg = isDark
@@ -873,6 +882,10 @@ class _RegisterPageState extends State<RegisterPage> {
               _dataAccepted = true;
             }
           });
+          // Refrescar el estado del diálogo de términos para habilitar el botón
+          if (setDialogState != null) {
+            setDialogState(() {});
+          }
         },
       ),
     );
@@ -991,6 +1004,12 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
   }
 
   void _proceedWithRegistration() async {
+    // Safety: block if legal docs are not accepted (defensive double-check)
+    if (!_allLegalsAccepted) {
+      _showTermsDialog();
+      return;
+    }
+
     setState(() {
       _usernameError = _usernameController.text.trim().isEmpty;
       _emailError = _emailController.text.trim().isEmpty;

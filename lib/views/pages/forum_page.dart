@@ -29,7 +29,8 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   void _goToNextPage() {
-    if (!_hasMore || _isLoading) return;
+    final lastIndex = _totalPages > 0 ? _totalPages - 1 : _currentPage;
+    if (!_hasMore || _isLoading || _currentPage >= lastIndex) return;
     setState(() {
       _currentPage++;
     });
@@ -45,7 +46,9 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   void _goToPage(int page) {
+    final lastIndex = _totalPages > 0 ? _totalPages - 1 : null;
     if (_isLoading || page < 0) return;
+    if (lastIndex != null && page > lastIndex) return;
     setState(() {
       _currentPage = page;
     });
@@ -59,7 +62,12 @@ class _ForumPageState extends State<ForumPage> {
 
   void _jumpForwardPages(int pages) {
     if (!_hasMore && pages > 0) return;
-    _goToPage(_currentPage + pages);
+    final lastIndex = _totalPages > 0 ? _totalPages - 1 : null;
+    final target = lastIndex != null
+        ? (_currentPage + pages).clamp(0, lastIndex)
+        : _currentPage + pages;
+    if (target == _currentPage) return;
+    _goToPage(target);
   }
 
   Future<void> _loadPosts({bool refresh = false}) async {
@@ -81,21 +89,62 @@ class _ForumPageState extends State<ForumPage> {
     }
 
     try {
-      final response = _showMine
-          ? await ForumService.getMyPosts(page: _currentPage, size: 10)
-          : await ForumService.getPosts(page: _currentPage, size: 10);
+      int page = _currentPage;
+      PageableResponse<ForumPost> response;
+      List<ForumPost> parsedContent;
+
+      // Avanzar hacia delante hasta encontrar página con contenido
+      while (true) {
+        response = _showMine
+            ? await ForumService.getMyPosts(page: page, size: 10)
+            : await ForumService.getPosts(page: page, size: 10);
+
+        if (!mounted) return;
+
+        parsedContent = _showMine
+            ? response
+                  .content // incluir también respuestas propias
+            : response.content.where((p) => p.parentId == null).toList();
+
+        if (parsedContent.isEmpty && !response.last) {
+          page++;
+          continue;
+        }
+        break;
+      }
+
+      // Si la última página está vacía, intentar retroceder hasta hallar datos
+      while (parsedContent.isEmpty && page > 0) {
+        page--;
+        response = _showMine
+            ? await ForumService.getMyPosts(page: page, size: 10)
+            : await ForumService.getPosts(page: page, size: 10);
+
+        if (!mounted) return;
+
+        parsedContent = _showMine
+            ? response.content
+            : response.content.where((p) => p.parentId == null).toList();
+
+        if (parsedContent.isNotEmpty || response.first) {
+          break;
+        }
+      }
 
       if (!mounted) return;
 
-      final parsedContent = _showMine
-          ? response
-                .content // incluir también respuestas propias
-          : response.content.where((p) => p.parentId == null).toList();
+      // Calcular páginas efectivas evitando saltar a páginas vacías
+      final effectiveTotalPages = parsedContent.isEmpty
+          ? page + 1
+          : (response.last ? page + 1 : response.totalPages);
+      final hasMore =
+          parsedContent.isNotEmpty && page < effectiveTotalPages - 1;
 
       setState(() {
+        _currentPage = page;
         _posts = parsedContent;
-        _hasMore = !response.last;
-        _totalPages = response.totalPages;
+        _hasMore = hasMore;
+        _totalPages = effectiveTotalPages;
         _isLoading = false;
       });
     } catch (e) {
@@ -461,12 +510,13 @@ class _ForumPageState extends State<ForumPage> {
       return const SizedBox.shrink();
     }
 
+    final lastIndex = _totalPages > 0 ? _totalPages - 1 : _currentPage;
     final canGoBack = _currentPage > 0;
-    final canGoForward = _hasMore;
+    final canGoForward = _hasMore && _currentPage < lastIndex;
     final canJumpBack5 = _currentPage >= 5;
     final canJumpBack10 = _currentPage >= 10;
-    final canJumpForward5 = _currentPage + 5 < _totalPages;
-    final canJumpForward10 = _currentPage + 10 < _totalPages;
+    final canJumpForward5 = _totalPages > 0 && _currentPage + 5 <= lastIndex;
+    final canJumpForward10 = _totalPages > 0 && _currentPage + 10 <= lastIndex;
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(
@@ -634,7 +684,7 @@ class _PostCard extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                Icons.access_time_rounded,
+                                Icons.calendar_today_rounded,
                                 size: 12,
                                 color: (isDark ? Colors.white : Colors.black87)
                                     .withOpacity(0.4),
@@ -708,14 +758,33 @@ class _PostCard extends StatelessWidget {
   }
 }
 
-class _CreatePostDialog extends StatelessWidget {
+class _CreatePostDialog extends StatefulWidget {
   final TextEditingController contentController;
-  final VoidCallback onSubmit;
+  final Future<void> Function() onSubmit;
 
   const _CreatePostDialog({
     required this.contentController,
     required this.onSubmit,
   });
+
+  @override
+  State<_CreatePostDialog> createState() => _CreatePostDialogState();
+}
+
+class _CreatePostDialogState extends State<_CreatePostDialog> {
+  bool _isSubmitting = false;
+
+  Future<void> _handleSubmit() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onSubmit();
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -785,7 +854,7 @@ class _CreatePostDialog extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24),
               child: TextField(
-                controller: contentController,
+                controller: widget.contentController,
                 decoration: InputDecoration(
                   labelText: 'Contenido',
                   hintText: '¿Qué quieres compartir con la comunidad?',
@@ -808,6 +877,7 @@ class _CreatePostDialog extends StatelessWidget {
                 maxLines: 6,
                 maxLength: 500,
                 autofocus: true,
+                enabled: !_isSubmitting,
               ),
             ),
             Padding(
@@ -816,7 +886,9 @@ class _CreatePostDialog extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.pop(context),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -830,11 +902,17 @@ class _CreatePostDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   FilledButton.icon(
-                    onPressed: onSubmit,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: const Text(
-                      'Publicar',
-                      style: TextStyle(
+                    onPressed: _isSubmitting ? null : _handleSubmit,
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_rounded, size: 18),
+                    label: Text(
+                      _isSubmitting ? 'Publicando...' : 'Publicar',
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),

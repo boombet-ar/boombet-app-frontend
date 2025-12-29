@@ -18,6 +18,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   ForumPost? _post;
   List<ForumPost> _replies = [];
   bool _isLoading = true;
+  bool _isSubmittingReply = false;
   String? _errorMessage;
   final _replyController = TextEditingController();
   String? _currentUsername;
@@ -128,9 +129,11 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   }
 
   Future<void> _submitReply() async {
+    if (_isSubmittingReply) return;
     final content = _replyController.text.trim();
     if (content.isEmpty) return;
 
+    setState(() => _isSubmittingReply = true);
     try {
       print('📝 [DetailPage] Submitting reply with parentId: ${widget.postId}');
       final newReply = await ForumService.createPost(
@@ -150,6 +153,10 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingReply = false);
       }
     }
   }
@@ -343,7 +350,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                     Row(
                       children: [
                         Icon(
-                          Icons.access_time_rounded,
+                          Icons.calendar_today_rounded,
                           size: 14,
                           color: (isDark ? Colors.white : Colors.black87)
                               .withOpacity(0.5),
@@ -479,7 +486,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                     Row(
                       children: [
                         Icon(
-                          Icons.access_time_rounded,
+                          Icons.calendar_today_rounded,
                           size: 11,
                           color: (isDark ? Colors.white : Colors.black87)
                               .withOpacity(0.4),
@@ -614,8 +621,17 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                 ],
               ),
               child: IconButton(
-                onPressed: _submitReply,
-                icon: const Icon(Icons.send_rounded, size: 22),
+                onPressed: _isSubmittingReply ? null : _submitReply,
+                icon: _isSubmittingReply
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded, size: 22),
                 color: Colors.white,
                 padding: const EdgeInsets.all(14),
               ),

@@ -45,7 +45,7 @@ class _FaqPageState extends State<FaqPage> {
     {
       'question': '¿Como obtengo un beneficio?',
       'answer':
-          'Afiliandote con nosotros, automaticamente te haces parte de BONDA, permitiendo acceder desde la pestaña de beneficios (icono de beneficio) de nuestro perfil para reclamar tus cupones y empezar a usarlos.',
+          'Afiliandote con nosotros podes acceder a la pestaña de beneficios (icono de beneficio) de nuestra aplicacion para reclamar tus cupones y empezar a usarlos.',
     },
     {
       'question': '¿Donde puedo ver mis beneficios disponibles?',

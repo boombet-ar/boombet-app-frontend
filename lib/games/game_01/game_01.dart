@@ -1,3 +1,4 @@
+import 'dart:async' as dart_async;
 import 'dart:async';
 
 import 'package:boombet_app/games/game_01/components/dark_overlay.dart';
@@ -28,6 +29,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   final ValueNotifier<int> bestScore = ValueNotifier<int>(0);
   final ValueNotifier<double> musicVolume = ValueNotifier<double>(0.45);
   final ValueNotifier<double> sfxVolume = ValueNotifier<double>(0.7);
+  final ValueNotifier<int?> countdown = ValueNotifier<int?>(null);
   bool isGameOver = false;
   bool isPaused = true; // start paused until user taps Play
 
@@ -50,6 +52,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   bool _bgmReady = false;
   final String _bgmFile = 'sfx/game_01/music.mp3';
   bool _bgmStarted = false;
+  dart_async.Timer? _countdownTimer;
 
   // Flag para evitar double dispose
   bool _isDisposed = false;
@@ -154,10 +157,39 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     }
   }
 
+  /// Inicia la partida con un conteo regresivo 3-2-1 antes de habilitar input.
+  void startWithCountdown() {
+    if (isGameOver || !isPaused) return;
+
+    _countdownTimer?.cancel();
+    countdown.value = 3;
+
+    overlays.remove('menu');
+    overlays.remove('pause');
+    overlays.remove('gameOver');
+    overlays.add('countdown');
+
+    _countdownTimer = dart_async.Timer.periodic(const Duration(seconds: 1), (
+      timer,
+    ) {
+      final current = countdown.value ?? 0;
+      if (current <= 1) {
+        timer.cancel();
+        countdown.value = null;
+        overlays.remove('countdown');
+        startGame();
+        return;
+      }
+      countdown.value = current - 1;
+    });
+  }
+
   Future<void> restartGame() async {
     isGameOver = false;
     isPaused = true;
     score.value = 0;
+    countdown.value = null;
+    _countdownTimer?.cancel();
 
     // Reinicia overlays como en un arranque nuevo
     overlays.clear();
@@ -175,9 +207,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     await Future<void>.delayed(Duration.zero);
 
     _buildWorld();
-
-    // Arranca usando el mismo flujo que el arranque inicial
-    startGame();
 
     // Reanuda música si no está sonando
     _startBgmLoop();
@@ -327,6 +356,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       debugPrint('🎮 [Game01] Error stopping BGM: $e');
     }
 
+    _countdownTimer?.cancel();
+    countdown.value = null;
+
     // Liberar AudioPools
     try {
       _jumpPool?.dispose();
@@ -361,6 +393,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       bestScore.dispose();
       musicVolume.dispose();
       sfxVolume.dispose();
+      countdown.dispose();
     } catch (e) {
       debugPrint('🎮 [Game01] Error disposing notifiers: $e');
     }

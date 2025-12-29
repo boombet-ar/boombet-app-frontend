@@ -353,7 +353,16 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         String errorMessage = 'Error al crear la cuenta';
         try {
           final errorData = jsonDecode(response.body);
-          errorMessage = errorData['message'] ?? errorMessage;
+          final backendMsg = (errorData['message'] as String?) ?? '';
+
+          // Mapear errores conocidos a mensajes claros
+          if (backendMsg.toLowerCase().contains('duplicate key') ||
+              backendMsg.contains('jugadores_dni_key')) {
+            errorMessage =
+                'El DNI ya está registrado. Usá un DNI diferente o recuperá acceso.';
+          } else {
+            errorMessage = backendMsg.isNotEmpty ? backendMsg : errorMessage;
+          }
         } catch (e) {
           errorMessage = 'Error ${response.statusCode}: ${response.body}';
         }

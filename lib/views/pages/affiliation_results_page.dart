@@ -25,11 +25,17 @@ class AffiliationResultsPage extends StatelessWidget {
       return _buildErrorView(context, theme);
     }
 
-    final statusCount = result!.statusCount;
-    final successCount = statusCount['success'] ?? 0;
-    final alreadyAffiliatedCount = statusCount['alreadyAffiliated'] ?? 0;
-    final errorCount = statusCount['error'] ?? 0;
-    final totalCount = statusCount['total'] ?? 0;
+    final visibleEntries = result!.responses.entries
+        .where((entry) => entry.value.isSuccess || entry.value.isWarning)
+        .toList();
+
+    final successCount = visibleEntries
+        .where((entry) => entry.value.isSuccess)
+        .length;
+    final alreadyAffiliatedCount = visibleEntries
+        .where((entry) => entry.value.isWarning)
+        .length;
+    final totalCount = visibleEntries.length;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -189,16 +195,6 @@ class AffiliationResultsPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
-
-                    // Errores
-                    if (errorCount > 0)
-                      _buildSummaryRow(
-                        icon: Icons.error,
-                        label: 'Errores',
-                        value: errorCount.toString(),
-                        color: Colors.red,
-                        textColor: textColor,
-                      ),
                   ],
                 ),
               ),
@@ -231,7 +227,7 @@ class AffiliationResultsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ...result!.responses.entries.map(
+                    ...visibleEntries.map(
                       (entry) => _buildCasinoDetail(
                         casinoName: _formatCasinoName(entry.key),
                         response: entry.value,
@@ -412,10 +408,8 @@ class AffiliationResultsPage extends StatelessWidget {
     Color statusColor;
     if (response.isSuccess) {
       statusColor = Colors.green;
-    } else if (response.isWarning) {
-      statusColor = Colors.orange;
     } else {
-      statusColor = Colors.red;
+      statusColor = Colors.orange;
     }
 
     return Container(
@@ -451,18 +445,6 @@ class AffiliationResultsPage extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (response.error != null && response.isError) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    response.error!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: textColor.withValues(alpha: 0.6),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ],
             ),
           ),

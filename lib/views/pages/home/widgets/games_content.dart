@@ -31,7 +31,7 @@ class GamesContent extends StatelessWidget {
         children: [
           SectionHeaderWidget(
             title: 'Juegos',
-            subtitle: 'Explora los minijuegos de BoomBet',
+            subtitle: 'Explora los minijuegos de BoomBet y participa por grandes premios!',
             icon: Icons.videogame_asset,
           ),
           Padding(

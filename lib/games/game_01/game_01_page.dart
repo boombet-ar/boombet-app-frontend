@@ -14,18 +14,43 @@ class Game01Page extends StatefulWidget {
 
 class _Game01PageState extends State<Game01Page> {
   late Game01 game;
+  bool _onKeyHandler(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+
+    const step = 0.05;
+    final key = event.physicalKey;
+
+    if (key == PhysicalKeyboardKey.audioVolumeUp) {
+      _applyVolumeDelta(step);
+      return true;
+    }
+    if (key == PhysicalKeyboardKey.audioVolumeDown) {
+      _applyVolumeDelta(-step);
+      return true;
+    }
+    return false;
+  }
+
+  void _applyVolumeDelta(double delta) {
+    final newMusic = (game.musicVolume.value + delta).clamp(0.0, 1.0);
+    final newSfx = (game.sfxVolume.value + delta).clamp(0.0, 1.0);
+    game.setMusicVolume(newMusic);
+    game.setSfxVolume(newSfx);
+  }
 
   @override
   void initState() {
     super.initState();
     game = Game01();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    HardwareKeyboard.instance.addHandler(_onKeyHandler);
   }
 
   @override
   void dispose() {
     // Liberar recursos del juego antes de cerrar
     game.onDispose();
+    HardwareKeyboard.instance.removeHandler(_onKeyHandler);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -36,7 +61,9 @@ class _Game01PageState extends State<Game01Page> {
     });
 
     // En cuanto cargue, arrancamos automáticamente para evitar quedarse en pausa
-    WidgetsBinding.instance.addPostFrameCallback((_) => game.startGame());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => game.startWithCountdown(),
+    );
   }
 
   @override
@@ -54,9 +81,10 @@ class _Game01PageState extends State<Game01Page> {
         ),
         'menu': (_, Game01 g) => _MenuOverlay(
           game: g,
-          onPlay: g.startGame,
+          onPlay: g.startWithCountdown,
           onExit: () => Navigator.of(context).pop(),
         ),
+        'countdown': (_, Game01 g) => _CountdownOverlay(game: g),
       },
       initialActiveOverlays: const ['menu'],
     );
@@ -330,6 +358,61 @@ class _MenuOverlay extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CountdownOverlay extends StatelessWidget {
+  const _CountdownOverlay({required this.game});
+
+  final Game01 game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int?>(
+      valueListenable: game.countdown,
+      builder: (context, value, child) {
+        if (value == null) return const SizedBox.shrink();
+
+        return IgnorePointer(
+          child: Container(
+            color: Colors.black.withOpacity(0.45),
+            alignment: Alignment.center,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutBack,
+                ),
+                child: FadeTransition(opacity: animation, child: child),
+              ),
+              child: Text(
+                '$value',
+                key: ValueKey<int>(value),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 88,
+                  fontFamily: 'ThaleahFat',
+                  letterSpacing: 4,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black87,
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                    Shadow(
+                      color: Colors.greenAccent,
+                      blurRadius: 16,
+                      offset: Offset(0, 0),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

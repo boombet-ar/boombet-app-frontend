@@ -590,7 +590,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    '¿Querés recibir beneficios?',
+                    '¿Querés unirte al club de beneficios?',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: textColor,
@@ -601,7 +601,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Al aceptar te afiliamos a Bonda para habilitar cupones, códigos y beneficios exclusivos en comercios asociados.',
+                    'Al aceptar te habilitaremos cupones con beneficios exclusivos en comercios asociados.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: textColor.withValues(alpha: 0.75),
@@ -695,7 +695,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                               ],
                             )
                           : const Text(
-                              'Sí, recibir beneficios',
+                              'Unirme al club!!',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -773,15 +773,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(
-                    'Al continuar aceptás que gestionemos tu afiliación a Bonda para liberar beneficios.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.5),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
             ),

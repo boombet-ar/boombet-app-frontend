@@ -35,9 +35,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // Pre-rellenar campos para testing
-    _identifierController = TextEditingController(text: 'test');
-    _passwordController = TextEditingController(text: 'Test124!');
+    // Inicializar sin datos pre-cargados
+    _identifierController = TextEditingController();
+    _passwordController = TextEditingController();
   }
 
   @override
