@@ -2,9 +2,10 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
-import 'package:boombet_app/views/pages/home/widgets/games_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
+import 'package:boombet_app/views/pages/my_casinos_page.dart';
 import 'package:boombet_app/views/pages/raffles_page.dart';
+import 'package:boombet_app/views/pages/games_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -36,6 +37,7 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<int>(
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
+        final safeIndex = selectedPage.clamp(0, 5);
         return Scaffold(
           appBar: const MainAppBar(
             showSettings: true,
@@ -47,7 +49,7 @@ class _HomePageState extends State<HomePage> {
           body: ResponsiveWrapper(
             maxWidth: 1200,
             child: IndexedStack(
-              index: selectedPage,
+              index: safeIndex,
               children: [
                 HomeContent(),
                 DiscountsContent(
@@ -60,7 +62,8 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const RafflesPage(),
                 const ForumPage(),
-                const GamesContent(),
+                const GamesPage(),
+                const MyCasinosPage(),
               ],
             ),
           ),

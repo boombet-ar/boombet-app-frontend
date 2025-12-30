@@ -6,6 +6,7 @@ import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
+import 'package:boombet_app/views/pages/my_casinos_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -149,6 +150,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     return ValueListenableBuilder<int>(
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
+        final safeIndex = selectedPage.clamp(0, 5);
         return Scaffold(
           // AppBar sin configuración ni perfil
           appBar: const MainAppBar(
@@ -159,13 +161,14 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             showExitButton: false,
           ),
           body: IndexedStack(
-            index: selectedPage,
+            index: safeIndex,
             children: [
               LimitedHomeContent(statusMessage: _statusMessage),
               const LimitedDiscountsContent(),
               const LimitedRafflesContent(),
               const LimitedForumContent(), // Foro limitado sin publicar
               LimitedGamesContent(onPlay: _openLimitedGame),
+              const MyCasinosPage(),
             ],
           ),
           bottomNavigationBar: const NavbarWidget(),

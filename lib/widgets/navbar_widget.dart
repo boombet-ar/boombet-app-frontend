@@ -1,4 +1,3 @@
-import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:flutter/material.dart';
 
@@ -115,6 +114,21 @@ class NavbarWidget extends StatelessWidget {
                       size: 26,
                     ),
                     label: "Juegos",
+                  ),
+                  NavigationDestination(
+                    icon: Icon(
+                      Icons.casino_outlined,
+                      color: selectedPage == 5
+                          ? selectedColor
+                          : unselectedColor,
+                      size: 26,
+                    ),
+                    selectedIcon: Icon(
+                      Icons.casino,
+                      color: selectedColor,
+                      size: 26,
+                    ),
+                    label: "Casinos",
                   ),
                 ],
                 onDestinationSelected: (int value) {
