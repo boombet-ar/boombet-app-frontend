@@ -6,7 +6,8 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart' hide RefreshIndicator;
+import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart'
+    hide RefreshIndicator;
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -1088,22 +1089,10 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    'Beneficio provisto por',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
                                   const SizedBox(height: 3),
                                   SizedBox(
                                     height: 28,
-                                    width: 80,
-                                    child: Image.asset(
-                                      'assets/images/logo_bonda.png',
-                                      fit: BoxFit.contain,
-                                    ),
+                                    width: 120,
                                   ),
                                 ],
                               ),

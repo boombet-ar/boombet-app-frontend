@@ -2,6 +2,7 @@ import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -308,30 +309,15 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [accent, accent.withOpacity(0.6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: isDark
-                      ? const Color(0xFF1A1A1A)
-                      : Colors.white,
-                  child: Text(
-                    _post!.username[0].toUpperCase(),
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
+              _AvatarBubble(
+                radius: 24,
+                borderGradient: [accent, accent.withOpacity(0.6)],
+                background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                avatarUrl: _post?.avatarUrl ?? '',
+                fallbackLetter: _post?.username.isNotEmpty == true
+                    ? _post!.username[0].toUpperCase()
+                    : '?',
+                textColor: accent,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -448,26 +434,15 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: isDark
-                      ? const Color(0xFF1A1A1A)
-                      : Colors.white,
-                  child: Text(
-                    reply.username[0].toUpperCase(),
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
+              _AvatarBubble(
+                radius: 18,
+                borderGradient: [accent.withOpacity(0.4), accent],
+                background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                avatarUrl: reply.avatarUrl,
+                fallbackLetter: reply.username.isNotEmpty
+                    ? reply.username[0].toUpperCase()
+                    : '?',
+                textColor: accent,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -685,6 +660,92 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
             tooltip: 'Más respuestas',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AvatarBubble extends StatelessWidget {
+  final double radius;
+  final List<Color> borderGradient;
+  final Color background;
+  final String avatarUrl;
+  final String fallbackLetter;
+  final Color textColor;
+
+  const _AvatarBubble({
+    required this.radius,
+    required this.borderGradient,
+    required this.background,
+    required this.avatarUrl,
+    required this.fallbackLetter,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = avatarUrl.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: borderGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: background,
+        child: ClipOval(
+          child: hasAvatar
+              ? CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  key: ValueKey(avatarUrl),
+                  fit: BoxFit.cover,
+                  width: radius * 2,
+                  height: radius * 2,
+                  placeholder: (_, __) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => _FallbackLetter(
+                    letter: fallbackLetter,
+                    color: textColor,
+                    fontSize: radius,
+                  ),
+                )
+              : _FallbackLetter(
+                  letter: fallbackLetter,
+                  color: textColor,
+                  fontSize: radius,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FallbackLetter extends StatelessWidget {
+  final String letter;
+  final Color color;
+  final double fontSize;
+
+  const _FallbackLetter({
+    required this.letter,
+    required this.color,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: fontSize,
+        ),
       ),
     );
   }

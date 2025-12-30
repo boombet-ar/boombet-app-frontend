@@ -5,6 +5,7 @@ import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
@@ -283,7 +284,7 @@ class _ForumPageState extends State<ForumPage> {
                     Text(
                       'Foro BoomBet',
                       style: TextStyle(
-                        fontSize: 26,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : Colors.black87,
                         letterSpacing: -0.5,
@@ -555,6 +556,92 @@ class _ForumPageState extends State<ForumPage> {
   }
 }
 
+class _AvatarBubble extends StatelessWidget {
+  final double radius;
+  final List<Color> borderGradient;
+  final Color background;
+  final String avatarUrl;
+  final String fallbackLetter;
+  final Color textColor;
+
+  const _AvatarBubble({
+    required this.radius,
+    required this.borderGradient,
+    required this.background,
+    required this.avatarUrl,
+    required this.fallbackLetter,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = avatarUrl.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: borderGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: background,
+        child: ClipOval(
+          child: hasAvatar
+              ? CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  key: ValueKey(avatarUrl),
+                  fit: BoxFit.cover,
+                  width: radius * 2,
+                  height: radius * 2,
+                  placeholder: (_, __) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => _FallbackLetter(
+                    letter: fallbackLetter,
+                    color: textColor,
+                    fontSize: radius,
+                  ),
+                )
+              : _FallbackLetter(
+                  letter: fallbackLetter,
+                  color: textColor,
+                  fontSize: radius,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FallbackLetter extends StatelessWidget {
+  final String letter;
+  final Color color;
+  final double fontSize;
+
+  const _FallbackLetter({
+    required this.letter,
+    required this.color,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: fontSize,
+        ),
+      ),
+    );
+  }
+}
+
 class _PostCard extends StatelessWidget {
   final ForumPost post;
   final bool isDark;
@@ -621,30 +708,17 @@ class _PostCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [accent, accent.withOpacity(0.6)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: isDark
-                            ? const Color(0xFF1A1A1A)
-                            : Colors.white,
-                        child: Text(
-                          post.username[0].toUpperCase(),
-                          style: TextStyle(
-                            color: accent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
+                    _AvatarBubble(
+                      radius: 20,
+                      borderGradient: [accent, accent.withOpacity(0.6)],
+                      background: isDark
+                          ? const Color(0xFF1A1A1A)
+                          : Colors.white,
+                      avatarUrl: post.avatarUrl,
+                      fallbackLetter: post.username.isNotEmpty
+                          ? post.username[0].toUpperCase()
+                          : '?',
+                      textColor: accent,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

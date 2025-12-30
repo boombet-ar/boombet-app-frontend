@@ -64,8 +64,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final player = await PlayerService().getPlayerData(idJugador.toString());
 
+      // Traer icono desde /users/me
+      final iconUrl = await PlayerService().getCurrentUserAvatarUrl();
+
+final bustedUrl = iconUrl != null && iconUrl.isNotEmpty
+    ? '$iconUrl?t=${DateTime.now().millisecondsSinceEpoch}'
+    : null;
+
+final mergedPlayer = bustedUrl != null
+    ? player.copyWith(avatarUrl: bustedUrl)
+    : player;
+
+
       setState(() {
-        _playerData = player;
+        _playerData = mergedPlayer;
         _isLoading = false;
       });
     } catch (e) {
@@ -233,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
               color: isDark ? const Color(0xFF202020) : Colors.white,
             ),
-            child: Icon(Icons.person, size: 70, color: primaryGreen),
+            child: ClipOval(child: _buildAvatarImage(primaryGreen, isDark)),
           ),
           const SizedBox(height: 20),
           Text(
@@ -251,6 +263,24 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
+  }
+
+  Widget _buildAvatarImage(Color primaryGreen, bool isDark) {
+    final url = _playerData?.avatarUrl ?? '';
+
+    if (url.isNotEmpty) {
+      return Image.network(
+        url,
+        key: ValueKey(url), // fuerza rebuild cuando cambia la URL
+        width: 130,
+        height: 130,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.person, size: 70, color: primaryGreen),
+      );
+    }
+
+    return Icon(Icons.person, size: 70, color: primaryGreen);
   }
 
   Widget _buildVerifiedBadge(Color primaryGreen, String username) {

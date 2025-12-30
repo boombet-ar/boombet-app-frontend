@@ -664,22 +664,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    'Beneficio provisto por',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
                                   const SizedBox(height: 3),
                                   SizedBox(
-                                    height: 28,
-                                    width: 80,
-                                    child: Image.asset(
-                                      'assets/images/logo_bonda.png',
-                                      fit: BoxFit.contain,
-                                    ),
+                                    height: 0,
+                                    width: 120,
                                   ),
                                 ],
                               ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:flutter/foundation.dart';
 
 class ForumService {
   static Future<PageableResponse<ForumPost>> getPosts({
@@ -13,7 +14,10 @@ class ForumService {
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
-      return PageableResponse.fromJson(json, ForumPost.fromJson);
+      return PageableResponse.fromJson(
+        json,
+        (m) => _resolveAvatar(ForumPost.fromJson(m)),
+      );
     }
     throw Exception('Error al cargar publicaciones: ${response.statusCode}');
   }
@@ -35,7 +39,10 @@ class ForumService {
         '🛰️ Body preview: ${response.body.substring(0, response.body.length > 400 ? 400 : response.body.length)}',
       );
       final json = jsonDecode(response.body) as Map<String, dynamic>;
-      return PageableResponse.fromJson(json, ForumPost.fromJson);
+      return PageableResponse.fromJson(
+        json,
+        (m) => _resolveAvatar(ForumPost.fromJson(m)),
+      );
     }
     throw Exception(
       'Error al cargar mis publicaciones: ${response.statusCode}',
@@ -47,7 +54,7 @@ class ForumService {
     final response = await HttpClient.get(url);
 
     if (response.statusCode == 200) {
-      return ForumPost.fromJson(jsonDecode(response.body));
+      return _resolveAvatar(ForumPost.fromJson(jsonDecode(response.body)));
     }
     throw Exception('Error al cargar publicación: ${response.statusCode}');
   }
@@ -64,7 +71,7 @@ class ForumService {
     if (response.statusCode == 200) {
       final pageableResponse = PageableResponse.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>,
-        ForumPost.fromJson,
+        (m) => _resolveAvatar(ForumPost.fromJson(m)),
       );
       return pageableResponse.content;
     }
@@ -76,7 +83,9 @@ class ForumService {
     final response = await HttpClient.post(url, body: request.toJson());
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final post = ForumPost.fromJson(jsonDecode(response.body));
+      final post = _resolveAvatar(
+        ForumPost.fromJson(jsonDecode(response.body)),
+      );
 
       // Limpiar caché para forzar recarga de publicaciones y respuestas
       HttpClient.clearCache(urlPattern: '/publicaciones');
@@ -146,5 +155,50 @@ class ForumService {
 
     // Limpiar caché para forzar recarga de publicaciones y respuestas
     HttpClient.clearCache(urlPattern: '/publicaciones');
+  }
+
+  static ForumPost _resolveAvatar(ForumPost post) {
+    final resolved = _resolveAvatarUrl(post.avatarUrl);
+    if (resolved == post.avatarUrl) return post;
+    return post.copyWith(avatarUrl: resolved);
+  }
+
+  static String _resolveAvatarUrl(String raw) {
+    if (raw.isEmpty) return '';
+
+    String encode(String url) {
+      try {
+        final uri = Uri.parse(url);
+        return Uri(
+          scheme: uri.scheme,
+          host: uri.host,
+          port: uri.port,
+          pathSegments: uri.pathSegments,
+        ).toString();
+      } catch (_) {
+        return url.replaceAll(' ', '%20');
+      }
+    }
+
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return _proxyImageForWeb(encode(raw));
+    }
+
+    final baseUri = Uri.parse(ApiConfig.baseUrl);
+    final path = baseUri.path.replaceFirst(RegExp(r'/api/?$'), '');
+    final joined = Uri(
+      scheme: baseUri.scheme,
+      host: baseUri.host,
+      port: baseUri.port,
+      path: raw.startsWith('/') ? raw : '$path/$raw',
+    );
+    return _proxyImageForWeb(joined.toString());
+  }
+
+  static String _proxyImageForWeb(String url) {
+    if (!kIsWeb) return url;
+    final proxyBase = ApiConfig.imageProxyBase;
+    if (proxyBase.isEmpty) return url;
+    return '$proxyBase$url';
   }
 }

@@ -6,6 +6,8 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfilePage extends StatefulWidget {
   final PlayerData player;
@@ -18,11 +20,19 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final Map<String, TextEditingController> _c = {};
+  late PlayerData _player;
+  String _avatarUrl = '';
   bool _loading = false;
+  bool _uploadingAvatar = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    _player = widget.player;
+    _avatarUrl = widget.player.avatarUrl;
+    _hydrateAvatar();
+
     final p = widget.player;
 
     _c["nombre"] = TextEditingController(text: p.nombre);
@@ -41,6 +51,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _c["ciudad"] = TextEditingController(text: p.localidad);
     _c["provincia"] = TextEditingController(text: p.provincia);
     _c["cp"] = TextEditingController(text: p.cp?.toString() ?? "");
+  }
+
+  Future<void> _hydrateAvatar() async {
+    try {
+      final fresh = await PlayerService().getCurrentUserAvatarUrl();
+      if (!mounted || fresh == null || fresh.isEmpty) return;
+      setState(() {
+        _avatarUrl = fresh;
+        _player = _player.copyWith(avatarUrl: fresh);
+      });
+    } catch (_) {
+      // Silencio: si falla seguimos mostrando el avatar existente
+    }
   }
 
   @override
@@ -108,6 +131,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     try {
       final updatedPlayer = await PlayerService().updatePlayerData(request);
 
+      _player = updatedPlayer.copyWith(
+        avatarUrl: _avatarUrl.isNotEmpty ? _avatarUrl : updatedPlayer.avatarUrl,
+      );
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,11 +153,70 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       );
 
-      Navigator.pop(context, updatedPlayer);
+      Navigator.pop(context, _player);
     } catch (e) {
       _showError("Error al actualizar: $e");
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    if (_uploadingAvatar) return;
+
+    final pickedFile = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxHeight: 2000,
+      maxWidth: 2000,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() => _uploadingAvatar = true);
+
+    try {
+      final originalBytes = await pickedFile.readAsBytes();
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        originalBytes,
+        quality: 70,
+        minHeight: 800,
+        minWidth: 800,
+      );
+
+      final avatarUrl = await PlayerService().uploadAvatar(
+        bytes: compressedBytes,
+        filename: pickedFile.name,
+        mimeType: pickedFile.mimeType ?? 'image/jpeg',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _avatarUrl = avatarUrl;
+        _player = _player.copyWith(avatarUrl: avatarUrl);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '✅ Avatar actualizado',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppConstants.successGreen,
+          duration: AppConstants.snackbarDuration,
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {},
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showError("No pudimos subir la foto: $e");
+    } finally {
+      if (!mounted) return;
+      setState(() => _uploadingAvatar = false);
     }
   }
 
@@ -174,6 +260,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
 
             const SizedBox(height: 32),
+
+            _avatarSection(theme, onSurface, primaryGreen),
+
+            const SizedBox(height: 12),
 
             // --- SECCIÓN 1 ---
             _section("Datos Personales"),
@@ -254,6 +344,108 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // ------------------------
   // COMPONENTES UI
   // ------------------------
+
+  Widget _avatarSection(ThemeData theme, Color onSurface, Color primaryGreen) {
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : AppConstants.lightCardBg;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.photo_camera_back_outlined, color: primaryGreen),
+              const SizedBox(width: 8),
+              Text(
+                'Foto de perfil',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              CircleAvatar(
+                radius: 64,
+                backgroundColor: primaryGreen.withValues(alpha: 0.12),
+                child: ClipOval(
+                  child: _avatarUrl.isNotEmpty
+                      ? Image.network(
+                          _avatarUrl,
+                          key: ValueKey(_avatarUrl),
+                          width: 116,
+                          height: 116,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.person,
+                            size: 70,
+                            color: onSurface.withValues(alpha: 0.7),
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
+                          size: 70,
+                          color: onSurface.withValues(alpha: 0.7),
+                        ),
+                ),
+              ),
+              if (_uploadingAvatar)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextButton.icon(
+            onPressed: _uploadingAvatar ? null : _pickAndUploadAvatar,
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Cambiar foto'),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'La comprimimos antes de subirla para que cargue rápido.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: onSurface.withValues(alpha: 0.7),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _section(String title) {
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);

@@ -60,5 +60,9 @@
 				</array>
 			</dict>
 		</array>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Necesitamos acceder a tus fotos para que puedas elegir un avatar.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Necesitamos la cámara para que puedas tomar una foto de avatar.</string>
 	</dict>
 </plist>

@@ -19,6 +19,7 @@ class PlayerData {
   final int? edad;
   final String anioNacimiento;
   final String username;
+  final String avatarUrl;
 
   PlayerData({
     required this.nombre,
@@ -37,6 +38,7 @@ class PlayerData {
     required this.fechaNacimiento,
     required this.anioNacimiento,
     required this.username,
+    this.avatarUrl = '',
     this.cp,
     this.edad,
   });
@@ -47,6 +49,7 @@ class PlayerData {
     final calle = (json['calle'] ?? '').toString();
     final numCalleFromUnderscore = json['num_calle'] ?? json['numcalle'];
     final numCalle = numCalleFromUnderscore?.toString() ?? '';
+    final avatarUrl = _extractAvatarUrl(json);
 
     final direccionCompleta = (calle.isNotEmpty || numCalle.isNotEmpty)
         ? ('$calle ${numCalle.isNotEmpty ? numCalle : ''}').trim()
@@ -72,6 +75,7 @@ class PlayerData {
       anioNacimiento: '',
       cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp'] ?? ''}'),
       edad: null,
+      avatarUrl: avatarUrl,
     );
   }
 
@@ -202,6 +206,7 @@ class PlayerData {
       'fecha_nacimiento': fechaNacimiento,
       'añoNacimiento': anioNacimiento,
       'username': username,
+      'avatarUrl': avatarUrl,
       'cp': cp,
       'edad': edad,
     };
@@ -226,6 +231,7 @@ class PlayerData {
       fechaNacimiento: json['fecha_nacimiento'] ?? '',
       anioNacimiento: json['añoNacimiento'] ?? '',
       username: json['username'] ?? '',
+      avatarUrl: json['avatarUrl'] ?? '',
       cp: json['cp'] is int ? json['cp'] : int.tryParse('${json['cp'] ?? ''}'),
       edad: json['edad'] is int
           ? json['edad']
@@ -250,6 +256,7 @@ class PlayerData {
     String? fechaNacimiento,
     String? anioNacimiento,
     String? username,
+    String? avatarUrl,
     int? cp,
     int? edad,
   }) {
@@ -270,8 +277,37 @@ class PlayerData {
       fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
       anioNacimiento: anioNacimiento ?? this.anioNacimiento,
       username: username ?? this.username,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       cp: cp ?? this.cp,
       edad: edad ?? this.edad,
     );
+  }
+
+  static String _extractAvatarUrl(Map<String, dynamic> json) {
+    const keys = [
+      'avatarUrl',
+      'avatar_url',
+      'avatar',
+      'iconUrl',
+      'icon',
+      'icon_url',
+      'photo',
+      'foto',
+    ];
+
+    for (final key in keys) {
+      final value = json[key];
+      if (value is String && value.isNotEmpty) return value;
+    }
+
+    final data = json['data'];
+    if (data is Map<String, dynamic>) {
+      for (final key in keys) {
+        final value = data[key];
+        if (value is String && value.isNotEmpty) return value;
+      }
+    }
+
+    return '';
   }
 }

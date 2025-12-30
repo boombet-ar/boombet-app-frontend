@@ -4,6 +4,7 @@ class ForumPost {
   final int? parentId;
   final String username;
   final DateTime createdAt;
+  final String avatarUrl;
 
   ForumPost({
     required this.id,
@@ -11,6 +12,7 @@ class ForumPost {
     this.parentId,
     required this.username,
     required this.createdAt,
+    this.avatarUrl = '',
   });
 
   factory ForumPost.fromJson(Map<String, dynamic> json) => ForumPost(
@@ -19,9 +21,46 @@ class ForumPost {
     parentId: json['parentId'] as int?,
     username: json['username'] as String,
     createdAt: DateTime.parse(json['createdAt'] as String),
+    avatarUrl: _extractAvatar(json),
   );
 
   bool get isReply => parentId != null;
+
+  ForumPost copyWith({
+    int? id,
+    String? content,
+    int? parentId,
+    String? username,
+    DateTime? createdAt,
+    String? avatarUrl,
+  }) {
+    return ForumPost(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      parentId: parentId ?? this.parentId,
+      username: username ?? this.username,
+      createdAt: createdAt ?? this.createdAt,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
+
+  static String _extractAvatar(Map<String, dynamic> json) {
+    final direct =
+        json['avatarUrl'] ?? json['iconUrl'] ?? json['avatar'] ?? json['icon'];
+    if (direct is String && direct.isNotEmpty) return direct;
+
+    final user =
+        json['user'] ?? json['author'] ?? json['usuario'] ?? json['owner'];
+    if (user is Map<String, dynamic>) {
+      final nested =
+          user['avatarUrl'] ??
+          user['iconUrl'] ??
+          user['avatar'] ??
+          user['icon'];
+      if (nested is String && nested.isNotEmpty) return nested;
+    }
+    return '';
+  }
 }
 
 class PageableResponse<T> {
