@@ -80,6 +80,47 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  int? _calculateAge(PlayerData data) {
+    if (data.edad != null) return data.edad;
+
+    String dateStr = data.fechaNacimiento;
+    if (dateStr.isEmpty && data.anioNacimiento.isNotEmpty) {
+      dateStr = '01-01-${data.anioNacimiento}';
+    }
+    if (dateStr.isEmpty) return null;
+
+    dateStr = dateStr.replaceAll('/', '-');
+    final parts = dateStr.split('-');
+    DateTime? birth;
+
+    if (parts.length == 3) {
+      final p0 = int.tryParse(parts[0]);
+      final p1 = int.tryParse(parts[1]);
+      final p2 = int.tryParse(parts[2]);
+      if (p0 != null && p1 != null && p2 != null) {
+        // Heurística: si el primer valor parece año, usar yyyy-mm-dd; si parece día, usar dd-mm-yyyy
+        if (p0 > 31) {
+          birth = DateTime(p0, p1, p2);
+        } else if (p2 > 31) {
+          birth = DateTime(p2, p1, p0);
+        }
+      }
+    }
+
+    // Intento de parseo ISO como fallback
+    birth ??= DateTime.tryParse(dateStr);
+
+    if (birth == null) return null;
+
+    final now = DateTime.now();
+    int age = now.year - birth.year;
+    if (now.month < birth.month ||
+        (now.month == birth.month && now.day < birth.day)) {
+      age -= 1;
+    }
+    return age;
+  }
+
   void _validateAndRegister() async {
     // Check if all legal documents have been acknowledged
     if (!_allLegalsAccepted) {
@@ -459,6 +500,43 @@ class _RegisterPageState extends State<RegisterPage> {
             correoElectronico: _emailController.text.trim(),
             telefono: _phoneController.text.trim(),
           );
+
+          final age = _calculateAge(updatedPlayerData);
+          if (age != null && age < 18) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+            final dialogBg = isDark
+                ? AppConstants.darkAccent
+                : AppConstants.lightDialogBg;
+            final textColor = isDark
+                ? AppConstants.textDark
+                : AppConstants.lightLabelText;
+
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: dialogBg,
+                title: Text(
+                  'Requisito de edad',
+                  style: TextStyle(color: textColor),
+                ),
+                content: Text(
+                  'Debes ser mayor de 18 años para afiliarte a BoomBet.',
+                  style: TextStyle(color: textColor),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(color: AppConstants.primaryGreen),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            return;
+          }
 
           // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
           Navigator.pushReplacement(
@@ -1382,6 +1460,43 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             correoElectronico: _emailController.text.trim(),
             telefono: _phoneController.text.trim(),
           );
+
+          final age = _calculateAge(updatedPlayerData);
+          if (age != null && age < 18) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+            final dialogBg = isDark
+                ? AppConstants.darkAccent
+                : AppConstants.lightDialogBg;
+            final textColor = isDark
+                ? AppConstants.textDark
+                : AppConstants.lightLabelText;
+
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: dialogBg,
+                title: Text(
+                  'Requisito de edad',
+                  style: TextStyle(color: textColor),
+                ),
+                content: Text(
+                  'Debes ser mayor de 18 años para afiliarte a BoomBet.',
+                  style: TextStyle(color: textColor),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(color: AppConstants.primaryGreen),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            return;
+          }
 
           // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
           Navigator.pushReplacement(

@@ -46,13 +46,18 @@ class ForumPost {
 
   static String _extractAvatar(Map<String, dynamic> json) {
     final direct =
-        json['avatarUrl'] ?? json['iconUrl'] ?? json['avatar'] ?? json['icon'];
+        json['userIconUrl'] ??
+        json['avatarUrl'] ??
+        json['iconUrl'] ??
+        json['avatar'] ??
+        json['icon'];
     if (direct is String && direct.isNotEmpty) return direct;
 
     final user =
         json['user'] ?? json['author'] ?? json['usuario'] ?? json['owner'];
     if (user is Map<String, dynamic>) {
       final nested =
+          user['userIconUrl'] ??
           user['avatarUrl'] ??
           user['iconUrl'] ??
           user['avatar'] ??

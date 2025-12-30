@@ -107,9 +107,8 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
         children: [
           SectionHeaderWidget(
             title: 'Mis casinos',
-            subtitle: _casinos.isEmpty
-                ? 'Sin asociaciones'
-                : '${_casinos.length} casino${_casinos.length == 1 ? '' : 's'}',
+            subtitle:
+                'Estos son los casinos a los que te encontrás afiliado por medio de BoomBet.',
             icon: Icons.casino_rounded,
           ),
           Expanded(

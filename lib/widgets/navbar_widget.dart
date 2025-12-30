@@ -6,6 +6,8 @@ class NavbarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isCompact = media.size.width < 380;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
@@ -14,6 +16,8 @@ class NavbarWidget extends StatelessWidget {
     final unselectedColor = isDark
         ? const Color(0xFF808080)
         : const Color(0xFF6C6C6C);
+    final iconSize = isCompact ? 22.0 : 26.0;
+    final barHeight = isCompact ? 62.0 : 70.0;
 
     return RepaintBoundary(
       child: ValueListenableBuilder<int>(
@@ -36,9 +40,10 @@ class NavbarWidget extends StatelessWidget {
                 ),
               ),
               child: NavigationBar(
+                height: barHeight,
                 backgroundColor: bgColor,
                 indicatorColor: primaryGreen.withValues(alpha: 0.15),
-                height: 70,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                 destinations: [
                   NavigationDestination(
                     icon: Icon(
@@ -46,12 +51,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 0
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.home,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Home",
                   ),
@@ -61,12 +66,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 1
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.local_offer,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Descuentos",
                   ),
@@ -76,12 +81,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 2
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.card_giftcard,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Sorteos",
                   ),
@@ -91,12 +96,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 3
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.forum,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Foro",
                   ),
@@ -106,12 +111,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 4
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.videogame_asset,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Juegos",
                   ),
@@ -121,12 +126,12 @@ class NavbarWidget extends StatelessWidget {
                       color: selectedPage == 5
                           ? selectedColor
                           : unselectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     selectedIcon: Icon(
                       Icons.casino,
                       color: selectedColor,
-                      size: 26,
+                      size: iconSize,
                     ),
                     label: "Casinos",
                   ),
@@ -135,7 +140,6 @@ class NavbarWidget extends StatelessWidget {
                   selectedPageNotifier.value = value;
                 },
                 selectedIndex: selectedPage,
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               ),
             ),
           );

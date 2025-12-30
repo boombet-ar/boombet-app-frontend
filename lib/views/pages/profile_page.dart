@@ -3,12 +3,13 @@ import 'package:boombet_app/views/pages/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:flutter/material.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -67,14 +68,13 @@ class _ProfilePageState extends State<ProfilePage> {
       // Traer icono desde /users/me
       final iconUrl = await PlayerService().getCurrentUserAvatarUrl();
 
-final bustedUrl = iconUrl != null && iconUrl.isNotEmpty
-    ? '$iconUrl?t=${DateTime.now().millisecondsSinceEpoch}'
-    : null;
+      final bustedUrl = iconUrl != null && iconUrl.isNotEmpty
+          ? '$iconUrl?t=${DateTime.now().millisecondsSinceEpoch}'
+          : null;
 
-final mergedPlayer = bustedUrl != null
-    ? player.copyWith(avatarUrl: bustedUrl)
-    : player;
-
+      final mergedPlayer = bustedUrl != null
+          ? player.copyWith(avatarUrl: bustedUrl)
+          : player;
 
       setState(() {
         _playerData = mergedPlayer;
@@ -269,13 +269,17 @@ final mergedPlayer = bustedUrl != null
     final url = _playerData?.avatarUrl ?? '';
 
     if (url.isNotEmpty) {
-      return Image.network(
-        url,
-        key: ValueKey(url), // fuerza rebuild cuando cambia la URL
+      return CachedNetworkImage(
+        imageUrl: url,
+        key: ValueKey(
+          url,
+        ), // fuerza rebuild cuando cambia la URL (cache-buster)
         width: 130,
         height: 130,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
+        fadeInDuration: const Duration(milliseconds: 120),
+        placeholder: (_, __) => const SizedBox.shrink(),
+        errorWidget: (_, __, ___) =>
             Icon(Icons.person, size: 70, color: primaryGreen),
       );
     }

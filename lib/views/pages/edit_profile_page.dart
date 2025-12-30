@@ -5,6 +5,7 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
@@ -390,13 +391,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 backgroundColor: primaryGreen.withValues(alpha: 0.12),
                 child: ClipOval(
                   child: _avatarUrl.isNotEmpty
-                      ? Image.network(
-                          _avatarUrl,
+                      ? CachedNetworkImage(
+                          imageUrl: _avatarUrl,
                           key: ValueKey(_avatarUrl),
                           width: 116,
                           height: 116,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
+                          placeholder: (_, __) => const SizedBox.shrink(),
+                          errorWidget: (_, __, ___) => Icon(
                             Icons.person,
                             size: 70,
                             color: onSurface.withValues(alpha: 0.7),
@@ -433,15 +435,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             icon: const Icon(Icons.cloud_upload_outlined),
             label: const Text('Cambiar foto'),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'La comprimimos antes de subirla para que cargue rápido.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: onSurface.withValues(alpha: 0.7),
-              fontSize: 12,
-            ),
-          ),
+          const SizedBox(height: 0),
         ],
       ),
     );

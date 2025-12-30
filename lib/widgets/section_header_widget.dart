@@ -95,7 +95,9 @@ class SectionHeaderWidget extends StatelessWidget {
                             color: (isDark ? Colors.white : Colors.black87)
                                 .withOpacity(0.6),
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 3,
+                          softWrap: true,
+                          overflow: TextOverflow.fade,
                         ),
                       ),
                     ],
