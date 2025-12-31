@@ -31,11 +31,12 @@ class GamesContent extends StatelessWidget {
         children: [
           SectionHeaderWidget(
             title: 'Juegos',
-            subtitle: 'Explora los minijuegos de BoomBet y participa por grandes premios!',
+            subtitle:
+                'Explora los minijuegos de BoomBet y participa por grandes premios!',
             icon: Icons.videogame_asset,
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             child: Column(
               children: games
                   .map(
@@ -83,30 +84,30 @@ class _GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       onTap: onPlay,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
           gradient: LinearGradient(
-            colors: [
-              primaryGreen.withValues(alpha: 0.14),
-              primaryGreen.withValues(alpha: 0.06),
-            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            colors: [
+              primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
+              primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
+            ],
           ),
-          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: primaryGreen.withValues(alpha: 0.35),
-            width: 1.4,
+            width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -121,8 +122,12 @@ class _GameCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: primaryGreen.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.black.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      width: 0.8,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -131,7 +136,7 @@ class _GameCard extends StatelessWidget {
                       Text(
                         badge,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
                       ),
@@ -139,19 +144,19 @@ class _GameCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Icon(Icons.bolt, color: primaryGreen, size: 18),
+                Icon(Icons.auto_awesome, color: Colors.white, size: 18),
                 const SizedBox(width: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: textColor.withValues(alpha: 0.75),
+                    color: Colors.white.withValues(alpha: 0.92),
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -162,9 +167,9 @@ class _GameCard extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -172,20 +177,70 @@ class _GameCard extends StatelessWidget {
                         description,
                         style: TextStyle(
                           fontSize: 14,
-                          height: 1.35,
-                          color: textColor.withValues(alpha: 0.78),
+                          height: 1.38,
+                          color: Colors.white.withValues(alpha: 0.92),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white.withValues(alpha: 0.1),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            width: 0.9,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.sports_esports,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Jugar ahora',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.north_east,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 64,
-                  width: 64,
-                  child: Image.asset(
-                    'assets/images/pixel_logo.png',
-                    fit: BoxFit.contain,
+                const SizedBox(width: 14),
+                Container(
+                  height: 74,
+                  width: 74,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.white.withValues(alpha: 0.12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 0.9,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.asset(
+                      'assets/images/pixel_logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ],

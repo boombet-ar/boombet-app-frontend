@@ -73,3 +73,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+extension DiscountsContentStateRefresh on DiscountsContentState {
+  void refreshClaimedIds() {}
+}

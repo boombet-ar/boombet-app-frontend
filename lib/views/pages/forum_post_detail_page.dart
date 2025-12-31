@@ -290,18 +290,27 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF121212), const Color(0xFF171717)]
+              : [Colors.white, Colors.white.withOpacity(0.94)],
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.4)
-                : Colors.black.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: accent.withOpacity(0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: accent.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: accent.withOpacity(0.18), width: 1.4),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -333,27 +342,38 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 14,
-                          color: (isDark ? Colors.white : Colors.black87)
-                              .withOpacity(0.5),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          DateFormat(
-                            'dd/MM/yyyy HH:mm',
-                          ).format(_post!.createdAt),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: (isDark ? Colors.white : Colors.black87)
-                                .withOpacity(0.6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 14,
+                            color: accent,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat(
+                              'yyyy-MM-dd HH:mm:ss',
+                            ).format(_post!.createdAt.toLocal()),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.82)
+                                  : Colors.black87.withOpacity(0.76),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -410,21 +430,23 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF141414), const Color(0xFF1B1B1B)]
+              : [Colors.white, Colors.white.withOpacity(0.95)],
+        ),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: accent.withOpacity(0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+          color: accent.withOpacity(isDark ? 0.18 : 0.14),
           width: 1,
         ),
       ),
@@ -458,27 +480,38 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 11,
-                          color: (isDark ? Colors.white : Colors.black87)
-                              .withOpacity(0.4),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat(
-                            'dd/MM/yyyy HH:mm',
-                          ).format(reply.createdAt),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: (isDark ? Colors.white : Colors.black87)
-                                .withOpacity(0.5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 11,
+                            color: accent,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            DateFormat(
+                              'yyyy-MM-dd HH:mm:ss',
+                            ).format(reply.createdAt.toLocal()),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.75)
+                                  : Colors.black87.withOpacity(0.65),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

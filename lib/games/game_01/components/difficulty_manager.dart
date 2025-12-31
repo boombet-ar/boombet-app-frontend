@@ -18,25 +18,27 @@ class DifficultyManager {
   double _elapsed = 0;
 
   // Baseline values (start easy, ramp in ~35s for short runs)
-  final double _baseGap = 170;
-  final double _minGap = 115;
+  final double _baseGap = 180;
+  final double _minGap = 125;
 
-  final double _baseSpawn = 1.8;
-  final double _minSpawn = 0.9;
+  final double _baseSpawn = 1.9;
+  final double _minSpawn = 1.05;
 
-  final double _baseSpeed = 210;
-  final double _maxSpeed = 360;
+  final double _baseSpeed = 200;
+  final double _maxSpeed = 320;
 
   // Fixed wide pipes across all difficulty
   final double _baseTubeWidth = 2.3;
   final double _maxTubeWidth = 2.3;
+
+  final double _rampDuration = 45.0;
 
   void update(double dt) {
     _elapsed += dt;
   }
 
   DifficultySnapshot get snapshot {
-    final progress = min(_elapsed / 35.0, 1.0); // Hardest at ~35s
+    final progress = min(_elapsed / _rampDuration, 1.0); // Hardest at ~45s
 
     final gap = _lerp(_baseGap, _minGap, progress);
     final spawnInterval = _lerp(_baseSpawn, _minSpawn, progress);

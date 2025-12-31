@@ -658,14 +658,9 @@ class _PostCard extends StatelessWidget {
   });
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inMinutes < 1) return 'Ahora';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return DateFormat('dd/MM/yy').format(date);
+    // Mostrar fecha/hora exacta según viene del backend
+    final local = date.toLocal();
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(local);
   }
 
   @override
@@ -673,21 +668,28 @@ class _PostCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF121212), const Color(0xFF161616)]
+              : [Colors.white, Colors.white.withOpacity(0.92)],
+        ),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.06),
-            blurRadius: isDark ? 8 : 12,
-            offset: const Offset(0, 4),
+            color: accent.withOpacity(0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? accent.withOpacity(0.15)
-              : Colors.black.withOpacity(0.05),
+          color: accent.withOpacity(isDark ? 0.2 : 0.15),
           width: 1,
         ),
       ),
@@ -755,26 +757,36 @@ class _PostCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_rounded,
-                                size: 12,
-                                color: (isDark ? Colors.white : Colors.black87)
-                                    .withOpacity(0.4),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatDate(post.createdAt),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      (isDark ? Colors.white : Colors.black87)
-                                          .withOpacity(0.5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accent.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 12,
+                                  color: accent,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  _formatDate(post.createdAt),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.8)
+                                        : Colors.black87.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

@@ -292,6 +292,10 @@ class Player extends SpriteComponent
   ) {
     super.onCollisionStart(intersectionPoints, other);
 
+    if (gameRef.isInvulnerable) {
+      return;
+    }
+
     if (other is Ground) {
       // Efecto especial al chocar contra el suelo
       _createSquashEffect();

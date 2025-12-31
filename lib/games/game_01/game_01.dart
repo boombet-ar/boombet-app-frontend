@@ -33,6 +33,10 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   bool isGameOver = false;
   bool isPaused = true; // start paused until user taps Play
 
+  bool _invulnerable = false;
+  dart_async.Timer? _invulnTimer;
+  bool _queuedFlap = false;
+
   static const double groundHeight = 12.0;
   static const double groundOffset = 6.0;
 
@@ -141,12 +145,15 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   void resumeGame() {
     if (!isPaused || isGameOver) return;
     isPaused = false;
+    _queuedFlap = false;
     overlays.remove('pause');
   }
 
   void startGame() {
     if (isGameOver || !isPaused) return;
     isPaused = false;
+
+    _triggerInvulnerability();
 
     // Transición suave al iniciar
     add(TransitionOverlay(size: size, duration: 0.4, fadeIn: true));
@@ -178,6 +185,10 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
         countdown.value = null;
         overlays.remove('countdown');
         startGame();
+        if (_queuedFlap) {
+          _queuedFlap = false;
+          player?.flap();
+        }
         return;
       }
       countdown.value = current - 1;
@@ -190,6 +201,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     score.value = 0;
     countdown.value = null;
     _countdownTimer?.cancel();
+    _invulnTimer?.cancel();
+    _invulnerable = false;
+    _queuedFlap = false;
 
     // Reinicia overlays como en un arranque nuevo
     overlays.clear();
@@ -308,13 +322,14 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (isPaused || isGameOver) {
+    if (isGameOver) return;
+
+    if (countdown.value != null || isPaused) {
+      _queuedFlap = true;
       return;
     }
 
-    if (!isGameOver) {
-      player?.flap();
-    }
+    player?.flap();
   }
 
   // ========================
@@ -358,6 +373,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     _countdownTimer?.cancel();
     countdown.value = null;
+    _invulnTimer?.cancel();
+    _invulnerable = false;
+    _queuedFlap = false;
 
     // Liberar AudioPools
     try {
@@ -524,6 +542,17 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   Future<void> _saveSfxVolume(double volume) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('game01_sfx_volume', volume);
+  }
+
+  bool get isInvulnerable => _invulnerable;
+
+  void _triggerInvulnerability({double durationSeconds = 0.45}) {
+    _invulnTimer?.cancel();
+    _invulnerable = true;
+    _invulnTimer = dart_async.Timer(
+      Duration(milliseconds: (durationSeconds * 1000).round()),
+      () => _invulnerable = false,
+    );
   }
 }
 

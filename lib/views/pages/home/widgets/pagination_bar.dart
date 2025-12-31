@@ -47,32 +47,32 @@ class PaginationBar extends StatelessWidget {
           enabled: canJumpBack10,
           onPressed: onJumpBack10,
         ),
-        const SizedBox(width: 3),
+        const SizedBox(width: 2),
         _squareButton(
           label: '-5',
           enabled: canJumpBack5,
           onPressed: onJumpBack5,
         ),
-        const SizedBox(width: 3),
+        const SizedBox(width: 2),
         _squareButton(label: '-1', enabled: canGoPrevious, onPressed: onPrev),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Text(
           'P$currentPage',
           style: TextStyle(
             color: textColor.withOpacity(0.65),
             fontWeight: FontWeight.w700,
-            fontSize: 13,
+            fontSize: 12,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _squareButton(label: '+1', enabled: canGoNext, onPressed: onNext),
-        const SizedBox(width: 3),
+        const SizedBox(width: 2),
         _squareButton(
           label: '+5',
           enabled: canJumpForward,
           onPressed: onJumpForward5,
         ),
-        const SizedBox(width: 3),
+        const SizedBox(width: 2),
         _squareButton(
           label: '+10',
           enabled: canJumpForward,
@@ -88,24 +88,24 @@ class PaginationBar extends StatelessWidget {
     required VoidCallback onPressed,
   }) {
     return SizedBox(
-      width: 44,
-      height: 44,
+      width: 36,
+      height: 36,
       child: OutlinedButton(
         onPressed: enabled ? onPressed : null,
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.zero,
           side: BorderSide(
-            color: primaryColor.withOpacity(enabled ? 0.7 : 0.15),
-            width: 0.8,
+            color: primaryColor.withOpacity(enabled ? 0.65 : 0.12),
+            width: 0.75,
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: enabled ? primaryColor : textColor.withOpacity(0.25),
             fontWeight: FontWeight.w700,
-            fontSize: 11,
+            fontSize: 10.5,
             height: 1,
           ),
           textAlign: TextAlign.center,

@@ -27,7 +27,7 @@ class _HomeContentState extends State<HomeContent> {
   final Map<int, Timer> _videoEndTimers = {};
   static const Duration _videoAdvanceDelay = Duration(seconds: 3);
   static const double _adAspectRatio =
-      9 / 16; // Portrait ads (images 720x1280, videos 1072x1920)
+      9 / 17; // Slightly taller viewport for ads
 
   int _currentCarouselPage = 0;
   Timer? _autoScrollTimer;
@@ -497,15 +497,23 @@ class _HomeContentState extends State<HomeContent> {
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryGreen.withValues(alpha: 0.08),
+            primaryGreen.withValues(alpha: 0.02),
+          ],
+        ),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.15),
-          width: 1,
+          color: primaryGreen.withValues(alpha: 0.16),
+          width: 1.1,
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryGreen.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -515,36 +523,7 @@ class _HomeContentState extends State<HomeContent> {
           fit: StackFit.expand,
           children: [
             _buildMedia(ad, index),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: primaryGreen.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  '${index + 1}/${_ads.length}',
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            ),
+            // Simplify: keep media clean without overlays or counters.
           ],
         ),
       ),
@@ -609,28 +588,81 @@ class _HomeContentState extends State<HomeContent> {
                 children: [
                   if (_ads.isNotEmpty && !_adsLoading)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _ads[_currentCarouselPage].description ??
-                                'Publicidad',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                              height: 1.4,
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryGreen.withValues(alpha: 0.14),
+                              primaryGreen.withValues(alpha: 0.04),
+                            ],
+                          ),
+                          border: Border.all(
+                            color: primaryGreen.withValues(alpha: 0.25),
+                            width: 1.1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryGreen.withValues(alpha: 0.08),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
                             ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: 1.5,
-                            color: primaryGreen.withValues(alpha: 0.3),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: primaryGreen.withValues(alpha: 0.16),
+                              ),
+                              child: Icon(
+                                Icons.campaign,
+                                color: textColor,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Publicidad destacada',
+                                    style: TextStyle(
+                                      color: textColor.withValues(alpha: 0.8),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _ads[_currentCarouselPage].description ??
+                                        'Publicidad',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: textColor,
+                                      height: 1.35,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   Expanded(
@@ -783,15 +815,36 @@ class _HomeContentState extends State<HomeContent> {
                         },
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 5),
-                            width: _currentCarouselPage == index ? 32 : 10,
-                            height: 10,
+                          child: AnimatedContainer(
+                            duration: AppConstants.shortDelay,
+                            curve: Curves.easeInOut,
+                            margin: const EdgeInsets.symmetric(horizontal: 6),
+                            width: _currentCarouselPage == index ? 34 : 12,
+                            height: 12,
                             decoration: BoxDecoration(
-                              color: _currentCarouselPage == index
-                                  ? primaryGreen
-                                  : primaryGreen.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(5),
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: _currentCarouselPage == index
+                                    ? [
+                                        primaryGreen,
+                                        primaryGreen.withValues(alpha: 0.7),
+                                      ]
+                                    : [
+                                        primaryGreen.withValues(alpha: 0.25),
+                                        primaryGreen.withValues(alpha: 0.18),
+                                      ],
+                              ),
+                              boxShadow: _currentCarouselPage == index
+                                  ? [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
                             ),
                           ),
                         ),

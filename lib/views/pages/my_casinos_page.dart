@@ -261,27 +261,98 @@ class _CasinoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Container(
-            height: 140,
+            height: 200,
             padding: const EdgeInsets.all(16),
-            alignment: Alignment.center,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                color: isDark
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF3F3F3),
-                child: casino.logoUrl.isNotEmpty
-                    ? Image.network(
-                        casino.logoUrl,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (_, __, ___) =>
-                            Icon(Icons.casino, color: accent, size: 36),
-                      )
-                    : Icon(Icons.casino, color: accent, size: 36),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      color: isDark
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFF3F3F),
+                      child: casino.logoUrl.isNotEmpty
+                          ? Image.network(
+                              casino.logoUrl,
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (_, __, ___) =>
+                                  Icon(Icons.casino, color: accent, size: 42),
+                            )
+                          : Icon(Icons.casino, color: accent, size: 42),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const SizedBox(height: 10),
+                _CasinoButton(accent: accent, onTap: onTap, isDark: isDark),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CasinoButton extends StatelessWidget {
+  final Color accent;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _CasinoButton({
+    required this.accent,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.black : Colors.white;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [accent.withOpacity(0.95), accent.withOpacity(0.75)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withOpacity(0.28),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.casino_outlined, color: textColor, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Acceder al casino',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.north_east, color: textColor, size: 18),
+            ],
           ),
         ),
       ),
