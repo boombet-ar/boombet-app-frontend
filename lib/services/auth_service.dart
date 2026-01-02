@@ -13,11 +13,16 @@ class AuthService {
     bool rememberMe = true,
   }) async {
     final url = '${ApiConfig.baseUrl}/users/auth/login';
+    final fcmToken = await _tryGetFcmToken();
 
     try {
       final response = await HttpClient.post(
         url,
-        body: {'identifier': identifier, 'password': password},
+        body: {
+          'identifier': identifier,
+          'password': password,
+          if (fcmToken != null) 'fcm_token': fcmToken,
+        },
         includeAuth: false, // Login no requiere token previo
         maxRetries: 1, // Login debe fallar rápido si no conecta
         timeout: const Duration(seconds: 60),
@@ -53,7 +58,8 @@ class AuthService {
           };
         }
 
-        return {'success': true, 'data': data};
+        // Adjuntar fcm_token enviado para tenerlo disponible aguas arriba
+        return {'success': true, 'data': data, 'fcm_token': fcmToken};
       } else {
         // Usar ErrorParser para mensajes consistentes (con contexto 'login')
         return {
@@ -83,6 +89,23 @@ class AuthService {
   /// Verifica si hay una sesión activa
   Future<bool> isLoggedIn() async {
     return await TokenService.hasActiveSession();
+  }
+
+  Future<String?> _tryGetFcmToken() async {
+    try {
+      // Preferir el token ya guardado para evitar pedirlo antes de permisos
+      final stored = await TokenService.getFcmToken();
+      if (stored != null && stored.isNotEmpty) return stored;
+
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await TokenService.saveFcmToken(token);
+        return token;
+      }
+    } catch (e) {
+      log('🔔 [AuthService] No se pudo obtener FCM token para login: $e');
+    }
+    return null;
   }
 
   /// Obtiene el token actual

@@ -9,6 +9,7 @@ import 'package:boombet_app/views/pages/games_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,6 +17,10 @@ class HomePage extends StatefulWidget {
 
   @override
   State<HomePage> createState() => _HomePageState();
+}
+
+Future<void> _subscribeToTopics() async {
+  await FirebaseMessaging.instance.subscribeToTopic('all');
 }
 
 class _HomePageState extends State<HomePage> {
@@ -27,6 +32,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
+    _subscribeToTopics();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       selectedPageNotifier.value = 0;
     });
@@ -77,3 +83,4 @@ class _HomePageState extends State<HomePage> {
 extension DiscountsContentStateRefresh on DiscountsContentState {
   void refreshClaimedIds() {}
 }
+
