@@ -3,10 +3,17 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/firebase_options.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/biometric_service.dart';
+import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:boombet_app/services/auth_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +22,13 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
+final _biometricObserver = _BiometricLifecycleObserver();
+bool _biometricValidated = false;
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('🔔 Background message: ${message.messageId}');
+}
 
 void _scheduleNavigationToRoute(String route) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -97,6 +111,13 @@ void _initializeDeepLinkHandling() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Suscribirse a notificaciones en foreground / openedApp
+  await PushNotificationService.initialize();
+
   // Cargar variables de entorno
   await Env.load();
 
@@ -126,9 +147,15 @@ Future<void> main() async {
     debugPrint('ÔØî [FLUTTER ERROR] ${details.exception}');
     debugPrint('ÔØî [FLUTTER ERROR] ${details.stack}');
   };
-
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
+
+  // Si hay sesión activa y la biometría está habilitada, pedir autenticación
+  await _requireBiometricOnAppStart();
+
+  if (!kIsWeb) {
+    WidgetsBinding.instance.addObserver(_biometricObserver);
+  }
 
   // Cargar preferencias de accesibilidad
   await loadFontSizeMultiplier();
@@ -165,6 +192,60 @@ Future<void> main() async {
   };
 
   runApp(const MyApp());
+}
+
+Future<void> _requireBiometricOnAppStart() async {
+  final hasSession = await TokenService.hasActiveSession();
+  debugPrint('[MAIN][BIO] hasSession: $hasSession');
+  if (!hasSession) return;
+
+  final biometricOk = await BiometricService.requireBiometricIfEnabled(
+    reason: 'Confirma para ingresar',
+  );
+  debugPrint('[MAIN][BIO] startup auth ok: $biometricOk');
+
+  if (!biometricOk) {
+    await AuthService().logout();
+    _biometricValidated = false;
+  }
+  _biometricValidated = biometricOk;
+}
+
+class _BiometricLifecycleObserver with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkBiometricOnResume();
+    }
+  }
+
+  Future<void> _checkBiometricOnResume() async {
+    if (_biometricValidated) return;
+
+    final hasSession = await TokenService.hasActiveSession();
+    debugPrint('[MAIN][BIO] resume hasSession: $hasSession');
+    if (!hasSession) return;
+
+    final ok = await BiometricService.requireBiometricIfEnabled(
+      reason: 'Confirma para continuar',
+    );
+    debugPrint('[MAIN][BIO] resume auth ok: $ok');
+
+    if (!ok) {
+      await AuthService().logout();
+      _biometricValidated = false;
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
+      }
+      return;
+    }
+
+    _biometricValidated = true;
+  }
 }
 
 class MyApp extends StatelessWidget {

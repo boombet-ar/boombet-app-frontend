@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "737692136866",
+    "project_id": "boombet-f3dba",
+    "storage_bucket": "boombet-f3dba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:737692136866:android:92d0c8b58612978d8b2efb",
+        "android_client_info": {
+          "package_name": "com.boombet.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDiFxeuZH3dsydoncBEvsSCq30IpYc3zA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,9 +1,10 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -160,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ElevatedButton.icon(
               onPressed: isTokenError
                   ? () async {
-                      await TokenService.deleteToken();
+                      await AuthService().logout();
                       if (mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
                           FadeRoute(page: const LoginPage()),

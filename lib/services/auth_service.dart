@@ -4,6 +4,7 @@ import '../config/api_config.dart';
 import '../utils/error_parser.dart';
 import 'http_client.dart';
 import 'token_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   Future<Map<String, dynamic>> login(
@@ -69,6 +70,14 @@ class AuthService {
   /// Cierra la sesión del usuario eliminando el token
   Future<void> logout() async {
     await TokenService.deleteToken();
+    await TokenService.deleteFcmToken();
+
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+      log('🔔 [AuthService] FCM token deleted');
+    } catch (e) {
+      log('🔔 [AuthService] Error deleting FCM token: $e');
+    }
   }
 
   /// Verifica si hay una sesión activa

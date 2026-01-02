@@ -4,7 +4,8 @@ import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/forget_password_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,45 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  bool _bioEnabled = false;
+  bool _bioAvailable = true;
+  bool _bioLoading = true;
+  bool _bioToggling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final available = await BiometricService.isDeviceEligible();
+    final enabled = available ? await BiometricService.isEnabled() : false;
+    if (!mounted) return;
+    setState(() {
+      _bioAvailable = available;
+      _bioEnabled = enabled;
+      _bioLoading = false;
+    });
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    if (!_bioAvailable) return;
+    setState(() => _bioToggling = true);
+
+    if (value) {
+      final ok = await BiometricService.enableWithPrompt(
+        reason: 'Confirma para activar biometría',
+      );
+      if (mounted) setState(() => _bioEnabled = ok);
+    } else {
+      await BiometricService.disableBiometric();
+      if (mounted) setState(() => _bioEnabled = false);
+    }
+
+    if (mounted) setState(() => _bioToggling = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,6 +113,42 @@ class _SettingsPageState extends State<SettingsPage> {
                   );
                 },
                 surfaceColor: surfaceColor,
+              ),
+              const SizedBox(height: 12),
+
+              // Biometría
+              Card(
+                color: surfaceColor,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.fingerprint,
+                    color: AppConstants.primaryGreen,
+                  ),
+                  title: const Text('Biometría'),
+                  subtitle: Text(
+                    _bioAvailable
+                        ? (_bioEnabled ? 'Activada' : 'Desactivada')
+                        : 'No disponible en este dispositivo',
+                  ),
+                  trailing: _bioLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Switch(
+                          value: _bioEnabled,
+                          activeColor: AppConstants.primaryGreen,
+                          onChanged: _bioToggling || !_bioAvailable
+                              ? null
+                              : (value) {
+                                  _toggleBiometric(value);
+                                },
+                        ),
+                  onTap: _bioToggling || !_bioAvailable
+                      ? null
+                      : () => _toggleBiometric(!_bioEnabled),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -221,7 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onPressed: () async {
                     final confirmed = await _showLogoutConfirmation(context);
                     if (!confirmed || !context.mounted) return;
-                    await TokenService.deleteToken();
+                    await AuthService().logout();
                     if (!context.mounted) return;
                     Navigator.pushAndRemoveUntil(
                       context,

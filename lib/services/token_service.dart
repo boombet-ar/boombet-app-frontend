@@ -9,6 +9,7 @@ class TokenService {
   static const _tokenKey = 'jwt_token';
   static const _refreshTokenKey = 'refresh_token';
   static const _tempTokenKey = 'temp_jwt_token';
+  static const _fcmTokenKey = 'fcm_token';
 
   /// Guarda el token JWT de forma segura (persistente)
   static Future<void> saveToken(String token) async {
@@ -90,6 +91,7 @@ class TokenService {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _tempTokenKey);
+    await _storage.delete(key: _fcmTokenKey);
   }
 
   /// Elimina solo el token temporal
@@ -192,5 +194,20 @@ class TokenService {
     log('[TokenService] Limpiando todos los tokens...');
     await deleteToken();
     log('[TokenService] ✅ Tokens eliminados');
+  }
+
+  /// Guarda el token FCM para enviarlo luego al backend
+  static Future<void> saveFcmToken(String token) async {
+    await _storage.write(key: _fcmTokenKey, value: token);
+  }
+
+  /// Obtiene el token FCM almacenado
+  static Future<String?> getFcmToken() async {
+    return await _storage.read(key: _fcmTokenKey);
+  }
+
+  /// Elimina el token FCM almacenado
+  static Future<void> deleteFcmToken() async {
+    await _storage.delete(key: _fcmTokenKey);
   }
 }
