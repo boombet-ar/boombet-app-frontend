@@ -6,12 +6,10 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/firebase_options.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/foundation.dart';
-import 'package:boombet_app/services/auth_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +20,6 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
-final _biometricObserver = _BiometricLifecycleObserver();
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -149,13 +146,6 @@ Future<void> main() async {
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
 
-  // Si hay sesión activa y la biometría está habilitada, pedir autenticación
-  await _requireBiometricOnAppStart();
-
-  if (!kIsWeb) {
-    WidgetsBinding.instance.addObserver(_biometricObserver);
-  }
-
   // Cargar preferencias de accesibilidad
   await loadFontSizeMultiplier();
 
@@ -191,56 +181,6 @@ Future<void> main() async {
   };
 
   runApp(const MyApp());
-}
-
-Future<void> _requireBiometricOnAppStart() async {
-  final hasSession = await TokenService.hasActiveSession();
-  debugPrint('[MAIN][BIO] hasSession: $hasSession');
-  if (!hasSession) return;
-
-  final biometricOk = await BiometricService.requireBiometricIfEnabled(
-    reason: 'Confirma para ingresar',
-  );
-  debugPrint('[MAIN][BIO] startup auth ok: $biometricOk');
-
-  if (!biometricOk) {
-    await AuthService().logout();
-  }
-}
-
-class _BiometricLifecycleObserver with WidgetsBindingObserver {
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkBiometricOnResume();
-    }
-  }
-
-  Future<void> _checkBiometricOnResume() async {
-    if (BiometricService.runtimeValidated) return;
-
-    final hasSession = await TokenService.hasActiveSession();
-    debugPrint('[MAIN][BIO] resume hasSession: $hasSession');
-    if (!hasSession) return;
-
-    final ok = await BiometricService.requireBiometricIfEnabled(
-      reason: 'Confirma para continuar',
-    );
-    debugPrint('[MAIN][BIO] resume auth ok: $ok');
-
-    if (!ok) {
-      await AuthService().logout();
-      BiometricService.resetRuntimeValidation();
-      final navigator = navigatorKey.currentState;
-      if (navigator != null) {
-        navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-        );
-      }
-      return;
-    }
-  }
 }
 
 class MyApp extends StatelessWidget {

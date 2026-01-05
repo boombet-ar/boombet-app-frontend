@@ -1,4 +1,8 @@
-﻿import 'package:boombet_app/services/token_service.dart';
+﻿import 'dart:convert';
+
+import 'package:boombet_app/models/affiliation_result.dart';
+import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
@@ -13,12 +17,20 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   debugPrint('­ƒöÇ state.uri: ${state.uri}');
   debugPrint('­ƒöÇ state.matchedLocation: ${state.matchedLocation}');
 
+  debugPrint('­ƒöÇ state.extra: ${state.extra}');
+  if (state.extra != null) {
+    try {
+      debugPrint('­ƒöÇ state.extra json: ${jsonEncode(state.extra)}');
+    } catch (_) {}
+  }
+
   // Permitir siempre el acceso a /confirm, /reset, /reset-password, /password-reset sin login
   final isPublicRoute =
       state.uri.path == '/confirm' ||
       state.uri.path == '/reset' ||
       state.uri.path == '/reset-password' ||
-      state.uri.path == '/password-reset';
+      state.uri.path == '/password-reset' ||
+      state.uri.path == '/affiliation-results';
 
   if (isPublicRoute) {
     debugPrint('­ƒöÇ Path coincide con ruta p├║blica, permitir acceso');
@@ -51,6 +63,29 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    GoRoute(
+      path: '/affiliation-results',
+      builder: (context, state) {
+        final result = state.extra is AffiliationResult
+            ? state.extra as AffiliationResult
+            : null;
+        debugPrint(
+          '­ƒöù /affiliation-results builder result is null? ${result == null}',
+        );
+        if (result != null) {
+          try {
+            debugPrint(
+              '­ƒöù /affiliation-results result: ${jsonEncode(result)}',
+            );
+          } catch (_) {
+            debugPrint(
+              '­ƒöù /affiliation-results result could not be jsonEncoded',
+            );
+          }
+        }
+        return AffiliationResultsPage(result: result);
+      },
+    ),
     // Deep link para confirmaci├│n de email
     GoRoute(
       path: '/confirm',

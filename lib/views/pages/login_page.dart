@@ -11,8 +11,6 @@ import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/services/biometric_service.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
@@ -148,7 +146,6 @@ class _LoginPageState extends State<LoginPage> {
         // Login exitoso - El token ya fue guardado por AuthService
         debugPrint('DEBUG Login - Token guardado correctamente');
 
-        await _requestPushPermissions();
         final biometricEnabled = await BiometricService.maybePromptEnable(
           context,
         );
@@ -257,50 +254,6 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
       );
-    }
-  }
-
-  Future<void> _requestPushPermissions() async {
-    try {
-      // Solo pedir permisos en plataformas soportadas por FCM
-      if (kIsWeb) {
-        debugPrint('🔔 Push permissions skipped: web platform');
-        return;
-      }
-
-      const supportedPlatforms = {
-        TargetPlatform.android,
-        TargetPlatform.iOS,
-        TargetPlatform.macOS,
-      };
-
-      if (!supportedPlatforms.contains(defaultTargetPlatform)) {
-        debugPrint('🔔 Push permissions skipped: unsupported platform');
-        return;
-      }
-
-      final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      debugPrint('🔔 Permission status: ${settings.authorizationStatus}');
-
-      // Solo obtener y guardar el token si el usuario autorizó
-      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional) {
-        final token = await messaging.getToken();
-        debugPrint('🔥 FCM Token: $token');
-
-        if (token != null && token.isNotEmpty) {
-          await TokenService.saveFcmToken(token);
-        }
-      }
-    } catch (e, st) {
-      debugPrint('🔔 Error requesting push permissions: $e');
-      debugPrint('$st');
     }
   }
 

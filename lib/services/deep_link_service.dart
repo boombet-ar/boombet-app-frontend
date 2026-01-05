@@ -48,6 +48,27 @@ class DeepLinkPayload {
 
     return false;
   }
+
+  bool get isAffiliationCompleted {
+    if (uri.scheme == 'boombet') {
+      final host = uri.host.toLowerCase();
+      final normalizedPath = uri.path.toLowerCase();
+      if (host.contains('affiliation') || host.contains('afiliacion')) {
+        return normalizedPath.contains('completed') ||
+            normalizedPath.contains('completada') ||
+            normalizedPath.contains('resultado');
+      }
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final path = uri.path.toLowerCase();
+      if (path.contains('affiliation') && path.contains('result')) return true;
+      if (path.contains('afiliacion') && path.contains('resultado'))
+        return true;
+    }
+
+    return false;
+  }
 }
 
 class DeepLinkService {
@@ -66,6 +87,13 @@ class DeepLinkService {
 
   void emit(DeepLinkPayload payload) {
     _lastPayload = payload;
+    // Log de entrada de payload para diagn├│stico de deeplinks/push
+    try {
+      // Evitar logs masivos en producci├│n, pero esto ayuda a tracing
+      // de datos de deeplink.
+      // ignore: avoid_print
+      print('­ƒöù DeepLink emit: uri=${payload.uri} token=${payload.token}');
+    } catch (_) {}
     _controller.add(payload);
   }
 
@@ -76,12 +104,21 @@ class DeepLinkService {
   }
 
   String? navigationPathForPayload(DeepLinkPayload payload) {
+    // Logging detallado de resoluci├│n de ruta
+    // ignore: avoid_print
+    print(
+      '­ƒöù Resolviendo navigationPathForPayload: uri=${payload.uri}, token=${payload.token}',
+    );
+
     final token = payload.token;
-    if (token == null || token.isEmpty) {
-      return null;
+    if (payload.isAffiliationCompleted) {
+      // ignore: avoid_print
+      print('­ƒöù Payload detectado como afiliaci├│n completada');
+      return '/affiliation-results';
     }
 
     if (payload.isPasswordReset) {
+      if (token == null || token.isEmpty) return null;
       return Uri(
         path: '/reset-password',
         queryParameters: {'token': token},
@@ -89,6 +126,7 @@ class DeepLinkService {
     }
 
     if (payload.isEmailConfirmation) {
+      if (token == null || token.isEmpty) return null;
       return Uri(
         path: '/confirm',
         queryParameters: {'token': token},

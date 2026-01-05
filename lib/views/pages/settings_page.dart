@@ -6,7 +6,6 @@ import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/biometric_service.dart';
-import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +22,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _bioAvailable = true;
   bool _bioLoading = true;
   bool _bioToggling = false;
-  bool _sendingTestNotification = false;
 
   @override
   void initState() {
@@ -57,34 +55,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     if (mounted) setState(() => _bioToggling = false);
-  }
-
-  Future<void> _sendTestNotification(BuildContext context) async {
-    setState(() => _sendingTestNotification = true);
-
-    final messenger = ScaffoldMessenger.of(context);
-    final service = NotificationService();
-
-    final result = await service.sendNotification(
-      title: 'BoomBet',
-      body: 'Notificación de prueba desde Settings',
-    );
-
-    if (!mounted) return;
-
-    final ok = result['success'] == true;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          ok
-              ? 'Notificación de prueba enviada ✅'
-              : 'No se pudo enviar la notificación',
-        ),
-        backgroundColor: ok ? AppConstants.primaryGreen : Colors.red,
-      ),
-    );
-
-    setState(() => _sendingTestNotification = false);
   }
 
   @override
@@ -312,12 +282,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 context: context,
                 icon: Icons.notifications_active,
                 title: 'Enviar notificación de prueba',
-                subtitle: 'Usa tu sesión y FCM registrados',
-                onTap: _sendingTestNotification
-                    ? null
-                    : () => _sendTestNotification(context),
+                subtitle: 'Gestiona tus notificaciones desde el backend',
+                onTap: null,
                 surfaceColor: surfaceColor,
-                enabled: !_sendingTestNotification,
+                enabled: false,
               ),
               _buildSettingsTile(
                 context: context,

@@ -3,6 +3,8 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
+import 'package:boombet_app/services/notification_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -270,6 +272,39 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           debugPrint('📦 [REG-2] responseData: $responseData');
         } catch (e) {
           debugPrint('⚠️ [REG-3] No se pudo parsear respuesta: $e');
+        }
+
+        // Intentar guardar el JWT que devuelva el backend (si existe)
+        String? tokenFromResponse;
+        try {
+          final maybeToken = responseData['token'] ?? responseData['jwt'];
+          if (maybeToken is String && maybeToken.isNotEmpty) {
+            tokenFromResponse = maybeToken;
+            await TokenService.saveToken(maybeToken);
+            debugPrint('🔐 [REG-TOKEN] JWT guardado tras registro');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [REG-TOKEN] No se pudo guardar token: $e');
+        }
+
+        // Enviar el FCM token al backend para habilitar push desde el inicio
+        try {
+          final existingToken = await TokenService.getToken();
+          final hasAuth =
+              (tokenFromResponse != null && tokenFromResponse.isNotEmpty) ||
+              (existingToken != null && existingToken.isNotEmpty);
+
+          if (hasAuth) {
+            final sent = await const NotificationService()
+                .saveFcmTokenToBackend();
+            debugPrint('🔔 [REG-FCM] FCM token enviado al backend: $sent');
+          } else {
+            debugPrint(
+              '⚠️ [REG-FCM] No hay JWT disponible para enviar FCM token',
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ [REG-FCM] Error enviando FCM token: $e');
         }
 
         // Guardar datos en notifiers para acceso posterior en EmailConfirmationPage

@@ -5,7 +5,6 @@ import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -30,7 +29,6 @@ class LimitedHomePage extends StatefulWidget {
 class _LimitedHomePageState extends State<LimitedHomePage> {
   StreamSubscription? _wsSubscription;
   bool _affiliationCompleted = false;
-  bool _affiliationNotified = false;
   String _statusMessage = 'Iniciando proceso de afiliación...';
   bool _isGameOpen = false;
 
@@ -111,30 +109,12 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     await _closeGameIfOpen();
     if (!mounted) return;
 
-    if (!_affiliationNotified) {
-      _affiliationNotified = true;
-      unawaited(_sendAffiliationNotification());
-    }
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => AffiliationResultsPage(result: result),
       ),
     );
-  }
-
-  Future<void> _sendAffiliationNotification() async {
-    try {
-      final service = NotificationService();
-      await service.sendNotification(
-        title: 'Afiliación completada',
-        body: 'Tu proceso de afiliación finalizó correctamente.',
-        data: {'type': 'affiliation_completed', 'source': 'limited_home_page'},
-      );
-    } catch (e) {
-      debugPrint('[LimitedHomePage] Error enviando notificación: $e');
-    }
   }
 
   Future<void> _openLimitedGame() async {
