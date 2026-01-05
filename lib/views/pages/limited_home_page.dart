@@ -7,13 +7,13 @@ import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
-import 'package:boombet_app/views/pages/my_casinos_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:intl/intl.dart';
 
 /// Página de inicio limitada que se muestra durante el proceso de afiliación
 /// Escucha el WebSocket para detectar cuando la afiliación se completa
@@ -170,7 +170,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     return ValueListenableBuilder<int>(
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
-        final safeIndex = selectedPage.clamp(0, 5);
+        final safeIndex = selectedPage.clamp(0, 4);
         return Scaffold(
           // AppBar sin configuración ni perfil
           appBar: const MainAppBar(
@@ -180,18 +180,20 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             showLogoutButton: true,
             showExitButton: false,
           ),
-          body: IndexedStack(
-            index: safeIndex,
-            children: [
-              LimitedHomeContent(statusMessage: _statusMessage),
-              const LimitedDiscountsContent(),
-              const LimitedRafflesContent(),
-              const LimitedForumContent(), // Foro limitado sin publicar
-              LimitedGamesContent(onPlay: _openLimitedGame),
-              const MyCasinosPage(),
-            ],
+          body: ResponsiveWrapper(
+            maxWidth: 1200,
+            child: IndexedStack(
+              index: safeIndex,
+              children: [
+                LimitedHomeContent(statusMessage: _statusMessage),
+                const LimitedDiscountsContent(),
+                const LimitedRafflesContent(),
+                const LimitedForumContent(), // Foro limitado sin publicar
+                LimitedGamesContent(onPlay: _openLimitedGame),
+              ],
+            ),
           ),
-          bottomNavigationBar: const NavbarWidget(),
+          bottomNavigationBar: const NavbarWidget(showCasinos: false),
         );
       },
     );
@@ -212,7 +214,6 @@ class LimitedHomeContent extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -683,25 +684,22 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
 
-    return ResponsiveWrapper(
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeaderWidget(
-                title: 'Descuentos Exclusivos',
-                subtitle: _cupones.isNotEmpty
-                    ? '${_cupones.length} ofertas en vista previa'
-                    : 'Vista previa mientras completamos tu afiliación',
-                icon: Icons.local_offer,
-              ),
-              const SizedBox(height: 12),
-              _buildCuponPreviewSection(isDark, primaryGreen, textColor),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionHeaderWidget(
+              title: 'Descuentos Exclusivos',
+              subtitle: _cupones.isNotEmpty
+                  ? '${_cupones.length} ofertas en vista previa'
+                  : 'Vista previa mientras completamos tu afiliación',
+              icon: Icons.local_offer,
+            ),
+            const SizedBox(height: 12),
+            _buildCuponPreviewSection(isDark, primaryGreen, textColor),
+          ],
         ),
       ),
     );
@@ -945,25 +943,47 @@ class LimitedGamesContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
-    final textColor = theme.colorScheme.onSurface;
     final isDark = theme.brightness == Brightness.dark;
+    final games = [
+      (
+        title: 'Space Runner',
+        subtitle: 'Arcade de reflejos',
+        description:
+            'Esquiva columnas, suma puntos y pausa cuando necesites un respiro.',
+        badge: 'Nuevo',
+        playable: true,
+        onTap: onPlay,
+      ),
+    ];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SectionHeaderWidget(
             title: 'Juegos',
-            subtitle: 'Explora los minijuegos de BoomBet',
+            subtitle:
+                'Explora los minijuegos de BoomBet y probalos mientras te afiliamos!',
             icon: Icons.videogame_asset,
           ),
-          const SizedBox(height: 12),
-          _GamePreviewCard(
-            primaryGreen: primaryGreen,
-            textColor: textColor,
-            isDark: isDark,
-            onPlay: onPlay,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              children: games
+                  .map(
+                    (g) => _GameCardLimited(
+                      title: g.title,
+                      subtitle: g.subtitle,
+                      description: g.description,
+                      badge: g.badge,
+                      primaryGreen: primaryGreen,
+                      isDark: isDark,
+                      playable: g.playable,
+                      onTap: g.playable ? g.onTap : null,
+                    ),
+                  )
+                  .toList(),
+            ),
           ),
         ],
       ),
@@ -971,135 +991,207 @@ class LimitedGamesContent extends StatelessWidget {
   }
 }
 
-class _GamePreviewCard extends StatelessWidget {
-  const _GamePreviewCard({
+class _GameCardLimited extends StatelessWidget {
+  const _GameCardLimited({
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.badge,
     required this.primaryGreen,
-    required this.textColor,
     required this.isDark,
-    required this.onPlay,
+    required this.playable,
+    required this.onTap,
   });
 
+  final String title;
+  final String subtitle;
+  final String description;
+  final String badge;
   final Color primaryGreen;
-  final Color textColor;
   final bool isDark;
-  final VoidCallback onPlay;
+  final bool playable;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppConstants.darkCardBg : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Opacity(
+          opacity: playable ? 1.0 : 0.7,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
+                  primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
+                ],
+              ),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.35),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
                 ),
-                decoration: BoxDecoration(
-                  color: primaryGreen.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    const Icon(Icons.videogame_asset, size: 18),
-                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.videogame_asset, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            badge,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      playable ? Icons.auto_awesome : Icons.lock_outline,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      'Space Runner',
+                      subtitle,
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withValues(alpha: 0.92),
                         fontSize: 13,
-                        color: textColor,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const Spacer(),
-              Icon(Icons.bolt, color: primaryGreen, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                'Arcade',
-                style: TextStyle(
-                  color: textColor.withValues(alpha: 0.7),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+                const SizedBox(height: 12),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Corre, esquiva y bate tu récord',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            description,
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.38,
+                              color: Colors.white.withValues(alpha: 0.92),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white.withValues(alpha: 0.1),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 0.9,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  playable
+                                      ? Icons.sports_esports
+                                      : Icons.lock_outline,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  playable
+                                      ? 'Jugar ahora'
+                                      : 'Disponible al completar tu afiliación',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  playable ? Icons.north_east : Icons.schedule,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Una demo jugable mientras esperas. Cerraremos el juego automáticamente cuando tu afiliación finalice.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: textColor.withValues(alpha: 0.7),
+                    const SizedBox(width: 14),
+                    Container(
+                      height: 74,
+                      width: 74,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.white.withValues(alpha: 0.12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 0.9,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Image.asset(
+                          'assets/images/pixel_logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                height: 72,
-                width: 72,
-                child: Image.asset(
-                  'assets/images/pixel_logo.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onPlay,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Jugar ahora'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1205,263 +1297,457 @@ class LimitedForumContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
-    final cardColor = isDark ? AppConstants.darkCardBg : Colors.white;
-    final textColor = isDark ? AppConstants.textDark : Colors.black87;
-    final greenColor = theme.colorScheme.primary;
+    final accent = theme.colorScheme.primary;
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F5);
 
-    // Posts de ejemplo (solo lectura)
+    // Posts de ejemplo (solo lectura) replicando la vista real del foro
     final posts = [
       _ForumPost(
+        id: 101,
         username: 'JugadorPro',
         content:
             '¡Acabo de ganar en el casino! 🎰 ¿Alguien tiene tips para blackjack?',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        likes: 15,
-        replies: 3,
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       ),
       _ForumPost(
+        id: 102,
         username: 'ApostadorExperto',
         content: '¿Cuál es su estrategia favorita para apuestas deportivas?',
-        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-        likes: 8,
-        replies: 12,
+        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       ),
       _ForumPost(
+        id: 103,
         username: 'CasinoFan',
         content: 'Las slots están on fire hoy 🔥 ¡Buena suerte a todos!',
-        timestamp: DateTime.now().subtract(const Duration(days: 1)),
-        likes: 23,
-        replies: 7,
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
       ),
     ];
 
-    return ResponsiveWrapper(
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: SectionHeaderWidget(
-                title: 'Foro BoomBet',
-                subtitle: 'Vista previa sin publicar',
-                icon: Icons.forum,
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: Column(
+        children: [
+          _ForumHeaderLimited(
+            accent: accent,
+            isDark: isDark,
+            postCount: posts.length,
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              itemCount: posts.length,
+              itemBuilder: (context, index) => _LimitedPostCard(
+                post: posts[index],
+                isDark: isDark,
+                accent: accent,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ForumHeaderLimited extends StatelessWidget {
+  const _ForumHeaderLimited({
+    required this.accent,
+    required this.isDark,
+    required this.postCount,
+  });
+
+  final Color accent;
+  final bool isDark;
+  final int postCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            accent.withOpacity(0.15),
+            accent.withOpacity(0.05),
+            Colors.transparent,
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: cardColor,
+                  color: accent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      color: accent.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: Icon(Icons.forum_rounded, color: accent, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.hourglass_empty, color: greenColor),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Podrás publicar una vez completada tu afiliación',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textColor.withValues(alpha: 0.8),
-                          fontWeight: FontWeight.w500,
-                        ),
+                    Text(
+                      'Foro BoomBet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        letterSpacing: -0.5,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '$postCount ${postCount == 1 ? 'publicación' : 'publicaciones'} • Vista previa (solo lectura)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: textColor.withOpacity(0.6),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-
-            // Lista de publicaciones (solo lectura)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  final post = posts[index];
-                  return _buildForumPostCard(
-                    post,
-                    cardColor,
-                    textColor,
-                    greenColor,
-                    isDark,
-                  );
-                },
+              Opacity(
+                opacity: 0.4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const IconButton(
+                    icon: Icon(Icons.add_rounded),
+                    onPressed: null,
+                    tooltip: 'Publicar (disponible tras afiliación)',
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Opacity(
+                opacity: 0.35,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: accent.withOpacity(0.15),
+                      width: 1,
+                    ),
+                  ),
+                  child: const IconButton(
+                    icon: Icon(Icons.person_outline),
+                    onPressed: null,
+                    tooltip: 'Ver mis publicaciones (tras afiliación)',
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildForumPostCard(
-    _ForumPost post,
-    Color cardColor,
-    Color textColor,
-    Color greenColor,
-    bool isDark,
-  ) {
+class _LimitedPostCard extends StatelessWidget {
+  const _LimitedPostCard({
+    required this.post,
+    required this.isDark,
+    required this.accent,
+  });
+
+  final _ForumPost post;
+  final bool isDark;
+  final Color accent;
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(local);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF121212), const Color(0xFF161616)]
+              : [Colors.white, Colors.white.withOpacity(0.92)],
+        ),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
+            color: accent.withOpacity(0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
+        border: Border.all(
+          color: accent.withOpacity(isDark ? 0.2 : 0.15),
+          width: 1,
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header con avatar y username
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: greenColor.withValues(alpha: 0.2),
-                  child: Text(
-                    post.username[0].toUpperCase(),
-                    style: TextStyle(
-                      color: greenColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                _LimitedAvatarBubble(
+                  radius: 20,
+                  borderGradient: [accent, accent.withOpacity(0.6)],
+                  background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                  avatarUrl: post.avatarUrl,
+                  fallbackLetter: post.username.isNotEmpty
+                      ? post.username[0].toUpperCase()
+                      : '?',
+                  textColor: accent,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (post.parentId != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Respuesta a #${post.parentId}',
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                      ],
                       Text(
                         post.username,
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
-                      Text(
-                        _formatTimestamp(post.timestamp),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: textColor.withValues(alpha: 0.6),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 12,
+                              color: accent,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _formatDate(post.createdAt),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.8)
+                                    : Colors.black87.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: accent.withOpacity(0.35),
+                ),
               ],
-            ),
-            const SizedBox(height: 12),
-
-            // Contenido del post
-            Text(
-              post.content,
-              style: TextStyle(fontSize: 15, color: textColor, height: 1.4),
             ),
             const SizedBox(height: 16),
-
-            // Botones de interacción (deshabilitados)
-            Row(
-              children: [
-                _buildDisabledActionButton(
-                  Icons.thumb_up_outlined,
-                  '${post.likes}',
-                  textColor,
-                ),
-                const SizedBox(width: 16),
-                _buildDisabledActionButton(
-                  Icons.comment_outlined,
-                  '${post.replies}',
-                  textColor,
-                ),
-                const SizedBox(width: 16),
-                _buildDisabledActionButton(
-                  Icons.share_outlined,
-                  'Compartir',
-                  textColor,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDisabledActionButton(
-    IconData icon,
-    String label,
-    Color textColor,
-  ) {
-    return Opacity(
-      opacity: 0.5,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: textColor.withValues(alpha: 0.5)),
-            const SizedBox(width: 6),
             Text(
-              label,
+              post.content,
               style: TextStyle(
-                fontSize: 14,
-                color: textColor.withValues(alpha: 0.5),
+                fontSize: 15,
+                height: 1.5,
+                color: (isDark ? Colors.white : Colors.black87).withOpacity(
+                  0.85,
+                ),
+                letterSpacing: 0.2,
               ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
+class _LimitedAvatarBubble extends StatelessWidget {
+  const _LimitedAvatarBubble({
+    required this.radius,
+    required this.borderGradient,
+    required this.background,
+    required this.avatarUrl,
+    required this.fallbackLetter,
+    required this.textColor,
+  });
 
-    if (difference.inMinutes < 60) {
-      return 'Hace ${difference.inMinutes} min';
-    } else if (difference.inHours < 24) {
-      return 'Hace ${difference.inHours} h';
-    } else if (difference.inDays < 7) {
-      return 'Hace ${difference.inDays} d';
-    } else {
-      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
-    }
+  final double radius;
+  final List<Color> borderGradient;
+  final Color background;
+  final String avatarUrl;
+  final String fallbackLetter;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = avatarUrl.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: borderGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: background,
+        child: ClipOval(
+          child: hasAvatar
+              ? Image.network(
+                  avatarUrl,
+                  fit: BoxFit.cover,
+                  width: radius * 2,
+                  height: radius * 2,
+                  errorBuilder: (_, __, ___) => _LimitedFallbackLetter(
+                    letter: fallbackLetter,
+                    color: textColor,
+                    fontSize: radius,
+                  ),
+                )
+              : _LimitedFallbackLetter(
+                  letter: fallbackLetter,
+                  color: textColor,
+                  fontSize: radius,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LimitedFallbackLetter extends StatelessWidget {
+  const _LimitedFallbackLetter({
+    required this.letter,
+    required this.color,
+    required this.fontSize,
+  });
+
+  final String letter;
+  final Color color;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        letter,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: fontSize,
+        ),
+      ),
+    );
   }
 }
 
 /// Modelo simple para posts del foro limitado
 class _ForumPost {
+  final int id;
   final String username;
   final String content;
-  final DateTime timestamp;
-  final int likes;
-  final int replies;
+  final DateTime createdAt;
+  final int? parentId;
+  final String avatarUrl;
 
   _ForumPost({
+    required this.id,
     required this.username,
     required this.content,
-    required this.timestamp,
-    required this.likes,
-    required this.replies,
+    required this.createdAt,
+    this.parentId,
+    this.avatarUrl = '',
   });
 }

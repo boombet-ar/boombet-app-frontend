@@ -10,6 +10,15 @@ class BiometricService {
   static const _enabledKey = 'biometric_enabled';
   static const _promptedKey = 'biometric_prompted';
   static final LocalAuthentication _auth = LocalAuthentication();
+  static bool _runtimeValidated = false;
+
+  /// Indica si ya se autenticó biometría (o se decidió omitirla) en esta sesión de app.
+  static bool get runtimeValidated => _runtimeValidated;
+
+  /// Limpia el flag en memoria para forzar un nuevo prompt biométrico.
+  static void resetRuntimeValidation() {
+    _runtimeValidated = false;
+  }
 
   /// Devuelve true si el usuario ya activó la biometría.
   static Future<bool> isEnabled() async {
@@ -54,6 +63,7 @@ class BiometricService {
 
     if (wantsEnable != true) {
       await _markPrompted(enabled: false);
+      resetRuntimeValidation();
       return false;
     }
 
@@ -62,6 +72,7 @@ class BiometricService {
       persistEnableOnSuccess: true,
     );
     await _markPrompted(enabled: success);
+    _runtimeValidated = success;
     return success;
   }
 
@@ -69,12 +80,26 @@ class BiometricService {
   /// Retorna true si se autenticó (o si no está activada), false si falla/cancela.
   static Future<bool> requireBiometricIfEnabled({
     String reason = 'Confirma tu identidad',
+    bool skipIfAlreadyValidated = true,
   }) async {
+    if (skipIfAlreadyValidated && _runtimeValidated) {
+      debugPrint('🔒 [BIO] skipping prompt (already validated this session)');
+      return true;
+    }
+
     final enabled = await isEnabled();
     debugPrint('🔒 [BIO] enabled flag: $enabled');
-    if (!enabled) return true;
+    if (!enabled) {
+      _runtimeValidated = true;
+      return true;
+    }
 
-    return await _authenticate(reason: reason, persistEnableOnSuccess: false);
+    final ok = await _authenticate(
+      reason: reason,
+      persistEnableOnSuccess: false,
+    );
+    _runtimeValidated = ok;
+    return ok;
   }
 
   /// Activa biometría bajo demanda con prompt inmediato.
@@ -92,12 +117,14 @@ class BiometricService {
       persistEnableOnSuccess: true,
     );
     await _markPrompted(enabled: ok);
+    _runtimeValidated = ok;
     return ok;
   }
 
   /// Desactiva biometría y marca como ya preguntado.
   static Future<void> disableBiometric() async {
     await _markPrompted(enabled: false);
+    resetRuntimeValidation();
   }
 
   /// Expone elegibilidad de dispositivo para la UI.
@@ -133,9 +160,11 @@ class BiometricService {
         debugPrint('🔒 Biometría activada');
       }
 
+      _runtimeValidated = didAuthenticate;
       return didAuthenticate;
     } catch (e) {
       debugPrint('🔒 Error autenticando biometría: $e');
+      _runtimeValidated = false;
       return false;
     }
   }

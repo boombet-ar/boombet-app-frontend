@@ -149,7 +149,28 @@ class _LoginPageState extends State<LoginPage> {
         debugPrint('DEBUG Login - Token guardado correctamente');
 
         await _requestPushPermissions();
-        await BiometricService.maybePromptEnable(context);
+        final biometricEnabled = await BiometricService.maybePromptEnable(
+          context,
+        );
+
+        if (biometricEnabled) {
+          final biometricOk = await BiometricService.requireBiometricIfEnabled(
+            reason: 'Confirma para ingresar',
+          );
+
+          if (!biometricOk) {
+            await _authService.logout();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Autenticación biométrica cancelada o fallida. Vuelve a intentarlo.',
+                ),
+              ),
+            );
+            return;
+          }
+        }
 
         // Navegar directamente a HomePage
         // Los usuarios que hacen login ya pasaron por el proceso de confirmación de datos

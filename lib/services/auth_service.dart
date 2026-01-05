@@ -5,6 +5,7 @@ import '../utils/error_parser.dart';
 import 'http_client.dart';
 import 'token_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'biometric_service.dart';
 
 class AuthService {
   Future<Map<String, dynamic>> login(
@@ -75,6 +76,7 @@ class AuthService {
 
   /// Cierra la sesión del usuario eliminando el token
   Future<void> logout() async {
+    BiometricService.resetRuntimeValidation();
     await TokenService.deleteToken();
     await TokenService.deleteFcmToken();
 

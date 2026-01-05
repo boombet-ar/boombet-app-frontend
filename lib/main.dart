@@ -23,7 +23,6 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
 final _biometricObserver = _BiometricLifecycleObserver();
-bool _biometricValidated = false;
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -206,9 +205,7 @@ Future<void> _requireBiometricOnAppStart() async {
 
   if (!biometricOk) {
     await AuthService().logout();
-    _biometricValidated = false;
   }
-  _biometricValidated = biometricOk;
 }
 
 class _BiometricLifecycleObserver with WidgetsBindingObserver {
@@ -220,7 +217,7 @@ class _BiometricLifecycleObserver with WidgetsBindingObserver {
   }
 
   Future<void> _checkBiometricOnResume() async {
-    if (_biometricValidated) return;
+    if (BiometricService.runtimeValidated) return;
 
     final hasSession = await TokenService.hasActiveSession();
     debugPrint('[MAIN][BIO] resume hasSession: $hasSession');
@@ -233,7 +230,7 @@ class _BiometricLifecycleObserver with WidgetsBindingObserver {
 
     if (!ok) {
       await AuthService().logout();
-      _biometricValidated = false;
+      BiometricService.resetRuntimeValidation();
       final navigator = navigatorKey.currentState;
       if (navigator != null) {
         navigator.pushAndRemoveUntil(
@@ -243,8 +240,6 @@ class _BiometricLifecycleObserver with WidgetsBindingObserver {
       }
       return;
     }
-
-    _biometricValidated = true;
   }
 }
 
