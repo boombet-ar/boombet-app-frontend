@@ -280,15 +280,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               _buildSettingsTile(
                 context: context,
-                icon: Icons.notifications_active,
-                title: 'Enviar notificación de prueba',
-                subtitle: 'Gestiona tus notificaciones desde el backend',
-                onTap: null,
-                surfaceColor: surfaceColor,
-                enabled: false,
-              ),
-              _buildSettingsTile(
-                context: context,
                 icon: Icons.info,
                 title: 'Acerca de BoomBet',
                 subtitle: 'Versión 1.0.0',

@@ -765,31 +765,37 @@ class _HomeContentState extends State<HomeContent> {
                               );
                             }
 
-                            return AnimatedContainer(
-                              duration: AppConstants.shortDelay,
-                              curve: Curves.easeInOut,
+                            return Container(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16,
                               ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 18,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    primaryGreen.withValues(alpha: 0.3),
-                                    primaryGreen.withValues(alpha: 0.1),
-                                  ],
-                                ),
+                                color: primaryGreen.withValues(alpha: 0.08),
                                 border: Border.all(
-                                  color: primaryGreen.withValues(alpha: 0.5),
-                                  width: 2,
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  width: 1.2,
                                 ),
                               ),
-                              child: _buildPlaceholderCard(
-                                index,
-                                primaryGreen,
-                                textColor,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: primaryGreen),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'No hay ninguna publicidad para mostrar actualmente',
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           },

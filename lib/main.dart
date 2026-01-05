@@ -4,6 +4,7 @@ import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/firebase_options.dart';
+import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
@@ -145,6 +146,19 @@ Future<void> main() async {
   };
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
+
+  // Si hay sesión activa, exigir biometría una sola vez al abrir la app
+  final hasSession = await TokenService.hasActiveSession();
+  if (hasSession) {
+    final ok = await BiometricService.requireBiometricIfEnabled(
+      reason: 'Confirma para ingresar',
+      skipIfAlreadyValidated: false,
+    );
+
+    if (!ok) {
+      await TokenService.clearTokens();
+    }
+  }
 
   // Cargar preferencias de accesibilidad
   await loadFontSizeMultiplier();
