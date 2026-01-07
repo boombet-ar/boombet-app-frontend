@@ -1,4 +1,5 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
+import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -22,6 +23,16 @@ class GamesContent extends StatelessWidget {
         onPlay: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game01Page())),
+      ),
+      (
+        title: 'Tower Stack',
+        subtitle: 'Equilibrio y ritmo',
+        description:
+            'Apila bloques en movimiento para construir la torre más alta posible.',
+        badge: 'Arcade',
+        onPlay: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Game02Page())),
       ),
     ];
 

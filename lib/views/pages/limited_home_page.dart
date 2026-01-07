@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/games/game_01/game_01_page.dart';
+import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
@@ -32,7 +33,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
   String _statusMessage = 'Iniciando proceso de afiliación...';
   bool _isGameOpen = false;
 
-  static const _limitedGameRouteName = '/limited/game01';
+  static const _limitedGameRouteName = '/limited/game';
 
   @override
   void initState() {
@@ -117,7 +118,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     );
   }
 
-  Future<void> _openLimitedGame() async {
+  Future<void> _openLimitedGame(WidgetBuilder builder) async {
     if (_affiliationCompleted || !mounted) return;
 
     setState(() {
@@ -127,7 +128,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: _limitedGameRouteName),
-        builder: (_) => const Game01Page(),
+        builder: builder,
       ),
     );
 
@@ -917,7 +918,7 @@ class LimitedRafflesContent extends StatelessWidget {
 class LimitedGamesContent extends StatelessWidget {
   const LimitedGamesContent({super.key, required this.onPlay});
 
-  final VoidCallback onPlay;
+  final Future<void> Function(WidgetBuilder builder) onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -932,7 +933,16 @@ class LimitedGamesContent extends StatelessWidget {
             'Esquiva columnas, suma puntos y pausa cuando necesites un respiro.',
         badge: 'Nuevo',
         playable: true,
-        onTap: onPlay,
+        onTap: () => onPlay((_) => const Game01Page()),
+      ),
+      (
+        title: 'Tower Stack',
+        subtitle: 'Equilibrio y ritmo',
+        description:
+            'Apila bloques en movimiento para construir la torre más alta posible.',
+        badge: 'Arcade',
+        playable: true,
+        onTap: () => onPlay((_) => const Game02Page()),
       ),
     ];
 

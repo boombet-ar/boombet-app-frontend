@@ -6,9 +6,11 @@ import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/onboarding_page.dart';
 import 'package:boombet_app/views/pages/reset_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
@@ -24,8 +26,19 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     } catch (_) {}
   }
 
+  // Verificar si es la primera vez que abre la app
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
+  // Si no ha visto el onboarding y no está en /onboarding, redirigir allí
+  if (!hasSeenOnboarding && state.uri.path != '/onboarding') {
+    debugPrint('­ƒöÇ Primera vez - redirigiendo a onboarding');
+    return '/onboarding';
+  }
+
   // Permitir siempre el acceso a /confirm, /reset, /reset-password, /password-reset sin login
   final isPublicRoute =
+      state.uri.path == '/onboarding' ||
       state.uri.path == '/confirm' ||
       state.uri.path == '/reset' ||
       state.uri.path == '/reset-password' ||
@@ -61,6 +74,18 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: _redirect,
   routes: [
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => OnboardingPage(
+        onComplete: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('hasSeenOnboarding', true);
+          if (context.mounted) {
+            context.go('/');
+          }
+        },
+      ),
+    ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
     GoRoute(

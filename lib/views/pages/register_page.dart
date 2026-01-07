@@ -1977,7 +1977,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
                       // Selector de Género
                       GenderSelector(
-                        selectedGender: _selectedGender ?? 'M',
+                        selectedGender: _selectedGender ?? '',
                         onGenderChanged: (gender) {
                           setState(() {
                             _selectedGender = gender;

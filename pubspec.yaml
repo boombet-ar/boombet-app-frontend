@@ -61,6 +61,7 @@ flutter:
     - assets/images/games/game_01/backgrounds/
     - assets/images/games/game_01/obstacles/
     - assets/audio/sfx/game_01/
+    - assets/images/games/game_02/
     - assets/fonts/
 
   fonts:
