@@ -23,6 +23,7 @@ class GamesContent extends StatelessWidget {
         onPlay: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game01Page())),
+        asset: 'assets/images/pixel_logo.png',
       ),
       (
         title: 'Tower Stack',
@@ -33,6 +34,7 @@ class GamesContent extends StatelessWidget {
         onPlay: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game02Page())),
+        asset: 'assets/images/games/game_02/boombet_tower.png',
       ),
     ];
 
@@ -60,6 +62,7 @@ class GamesContent extends StatelessWidget {
                       textColor: textColor,
                       onPlay: g.onPlay,
                       isDark: isDark,
+                      asset: g.asset,
                     ),
                   )
                   .toList(),
@@ -81,6 +84,7 @@ class _GameCard extends StatelessWidget {
     required this.textColor,
     required this.onPlay,
     required this.isDark,
+    required this.asset,
   });
 
   final String title;
@@ -91,6 +95,7 @@ class _GameCard extends StatelessWidget {
   final Color textColor;
   final VoidCallback onPlay;
   final bool isDark;
+  final String asset;
 
   @override
   Widget build(BuildContext context) {
@@ -248,10 +253,7 @@ class _GameCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(10),
-                    child: Image.asset(
-                      'assets/images/pixel_logo.png',
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.asset(asset, fit: BoxFit.contain),
                   ),
                 ),
               ],

@@ -14,53 +14,82 @@ class GameOverOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Material(
-      color: Colors.black.withOpacity(0.55),
+      color: Colors.black.withOpacity(0.65),
       child: Center(
         child: Container(
-          width: 320,
-          padding: const EdgeInsets.all(18),
+          width: 340,
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFF0F0F0F),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: primary.withOpacity(0.28),
+                blurRadius: 26,
+                offset: const Offset(0, 14),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'GAME OVER',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontFamily: 'ThaleahFat',
+                  fontSize: 28,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Score: $score',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.12),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [_stat('SCORE', '$score'), _stat('BEST', '$best')],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Best: $best',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: onRestart,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: primary,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 6,
                   ),
                   child: const Text(
-                    'TRY AGAIN',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    'REINTENTAR',
+                    style: TextStyle(
+                      fontFamily: 'ThaleahFat',
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),
@@ -68,6 +97,33 @@ class GameOverOverlay extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _stat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'ThaleahFat',
+            fontSize: 12,
+            color: Colors.white70,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'ThaleahFat',
+            fontSize: 20,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     );
   }
 }

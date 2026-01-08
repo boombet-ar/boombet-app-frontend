@@ -1,8 +1,7 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:boombet_app/games/game_02/game_02.dart';
-import 'package:flame/components.dart';
+import 'package:flame/components.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 
 class BlockComponent extends PositionComponent with HasGameRef<Game02> {
@@ -13,8 +12,7 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
     required this.isMoving,
     required this.speed,
     required this.towerImage,
-    required this.sliceTop,
-    required this.sliceHeight,
+    required this.imageScale,
   }) : super(anchor: Anchor.topLeft);
 
   final int colorSeed;
@@ -26,13 +24,19 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
   double gravity = 0;
 
   final ui.Image? towerImage;
-  final double sliceTop;
-  final double sliceHeight;
+  final double imageScale;
 
   final Paint _paint = Paint()..style = PaintingStyle.fill;
   final Paint _stroke = Paint()
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 2;
+    ..strokeWidth = 0.0;
+
+  double opacity = 1.0;
+
+  // final Paint _glowPaint = Paint()
+  //   ..style = PaintingStyle.fill
+  //   ..color = const Color(0xCC000000)
+  //   ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 8);
 
   @override
   void onLoad() {
@@ -42,12 +46,21 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
     final hue = (colorSeed * 35) % 360;
     _paint.color = HSVColor.fromAHSV(1, hue.toDouble(), 0.75, 0.95).toColor();
 
-    _stroke.color = Colors.black.withOpacity(0.15);
+    _stroke.color = Colors.transparent;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Congelar gameplay mientras hay menú/pausa/countdown, pero seguir renderizando.
+    if (gameRef.isPaused || gameRef.countdown.value != null) {
+      return;
+    }
+
+    if (gameRef.state != StackState.playing) {
+      return;
+    }
 
     if (isDropping) {
       position.y += vy * dt;
@@ -79,33 +92,52 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
     gravity = g;
   }
 
-@override
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
 
     final dst = Rect.fromLTWH(0, 0, size.x, size.y);
+    final rrect = RRect.fromRectAndRadius(dst, const Radius.circular(6));
+    final glowRect = dst.inflate(2);
+    final glowRRect = RRect.fromRectAndRadius(
+      glowRect,
+      const Radius.circular(8),
+    );
+
+    // Glow/sombra negra para separar del fondo
+    // canvas.drawRRect(glowRRect, _glowPaint);
+
     final img = towerImage;
 
-    if (img != null && img.width > 0 && img.height > 0) {
-      final double srcWidth = math.min(img.width.toDouble(), size.x);
-
-      final src = Rect.fromLTWH(0, sliceTop, srcWidth, sliceHeight);
-
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(
-          _paint.color.withOpacity(0.85),
-          BlendMode.modulate,
-        );
-
-      canvas.drawImageRect(img, src, dst, paint);
-    } else {
-      // fallback sólido
-      final rrect = RRect.fromRectAndRadius(dst, const Radius.circular(8));
-      canvas.drawRRect(rrect, _paint);
+    // Fallback visual si no hay imagen
+    if (img == null) {
+      final p = Paint()..color = _paint.color.withOpacity(opacity.clamp(0, 1));
+      canvas.drawRRect(rrect, p);
+      return;
     }
 
-    final rrect = RRect.fromRectAndRadius(dst, const Radius.circular(6));
-    canvas.drawRRect(rrect, _stroke);
-  }
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      img.width.toDouble(),
+      img.height.toDouble(),
+    );
 
+    final paint = Paint()
+      ..colorFilter = ColorFilter.mode(
+        Colors.white.withOpacity(opacity.clamp(0, 1)),
+        BlendMode.modulate,
+      );
+
+    canvas.save();
+    // Ajustamos al tamaño del bloque usando drawImageRect (no slicing)
+    canvas.drawImageRect(
+      img,
+      src,
+      Rect.fromLTWH(0, 0, dst.width, dst.height),
+      paint,
+    );
+
+    canvas.restore();
+  }
 }
