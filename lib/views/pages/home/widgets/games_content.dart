@@ -23,7 +23,7 @@ class GamesContent extends StatelessWidget {
         onPlay: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game01Page())),
-        asset: 'assets/images/pixel_logo.png',
+        asset: 'assets/icons/game_01_icon.png',
       ),
       (
         title: 'Tower Stack',
@@ -34,7 +34,7 @@ class GamesContent extends StatelessWidget {
         onPlay: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game02Page())),
-        asset: 'assets/images/games/game_02/boombet_tower.png',
+        asset: 'assets/icons/game_02_icon.png',
       ),
     ];
 

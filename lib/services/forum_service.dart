@@ -49,24 +49,18 @@ class ForumService {
     );
   }
 
-  static Future<ForumPost> getPostById(int id) async {
-    final url = '${ApiConfig.baseUrl}/publicaciones/$id';
-    final response = await HttpClient.get(url);
-
-    if (response.statusCode == 200) {
-      return _resolveAvatar(ForumPost.fromJson(jsonDecode(response.body)));
-    }
-    throw Exception('Error al cargar publicación: ${response.statusCode}');
-  }
-
   static Future<List<ForumPost>> getReplies(
     int parentId, {
     int page = 0,
     int size = 20,
+    bool bypassCache = false,
   }) async {
     final url =
         '${ApiConfig.baseUrl}/publicaciones/$parentId/respuestas?page=$page&size=$size';
-    final response = await HttpClient.get(url);
+    final response = await HttpClient.get(
+      url,
+      cacheTtl: bypassCache ? Duration.zero : null,
+    );
 
     if (response.statusCode == 200) {
       final pageableResponse = PageableResponse.fromJson(
@@ -76,6 +70,22 @@ class ForumService {
       return pageableResponse.content;
     }
     throw Exception('Error al cargar respuestas: ${response.statusCode}');
+  }
+
+  static Future<ForumPost> getPostById(
+    int id, {
+    bool bypassCache = false,
+  }) async {
+    final url = '${ApiConfig.baseUrl}/publicaciones/$id';
+    final response = await HttpClient.get(
+      url,
+      cacheTtl: bypassCache ? Duration.zero : null,
+    );
+
+    if (response.statusCode == 200) {
+      return _resolveAvatar(ForumPost.fromJson(jsonDecode(response.body)));
+    }
+    throw Exception('Error al cargar publicación: ${response.statusCode}');
   }
 
   static Future<ForumPost> createPost(CreatePostRequest request) async {

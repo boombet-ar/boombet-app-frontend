@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:boombet_app/config/router_config.dart';
@@ -6,6 +7,7 @@ import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Centraliza los listeners de FCM para mensajes en foreground y arranques desde notificaciones.
@@ -13,6 +15,12 @@ class PushNotificationService {
   PushNotificationService._();
 
   static bool _initialized = false;
+  static bool _listening = false;
+  static bool _enabledCache = true;
+
+  static StreamSubscription<RemoteMessage>? _onMessageSub;
+  static StreamSubscription<RemoteMessage>? _onMessageOpenedSub;
+
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   static const String _channelId = 'boombet_default';
@@ -28,30 +36,120 @@ class PushNotificationService {
       );
 
   static Future<void> initialize() async {
-    if (_initialized) return;
+    if (!_initialized) {
+      await _setupLocalNotifications();
+      _initialized = true;
+    }
 
-    await _setupLocalNotifications();
+    // Cachear preferencia y aplicar estado.
+    _enabledCache = await TokenService.getNotificationsEnabled();
+    if (!_enabledCache) {
+      await _disableNotificationsFlow(deleteRemoteToken: false);
+      debugPrint('🔕 PushNotificationService: notifications disabled (init)');
+      return;
+    }
 
-    // Pedir permisos de notificación al abrir la app
-    await _requestPushPermissions();
+    await _enableNotificationsFlow();
+  }
 
-    // Mensaje que abrió la app desde terminada (cold start)
-    await _handleInitialMessage();
+  static Future<bool> isNotificationsEnabled() async {
+    _enabledCache = await TokenService.getNotificationsEnabled();
+    return _enabledCache;
+  }
+
+  static Future<void> setNotificationsEnabled(bool enabled) async {
+    _enabledCache = enabled;
+    await TokenService.setNotificationsEnabled(enabled);
+
+    if (enabled) {
+      await _enableNotificationsFlow();
+    } else {
+      await _disableNotificationsFlow(deleteRemoteToken: true);
+    }
+  }
+
+  static Future<void> _enableNotificationsFlow() async {
+    try {
+      if (kIsWeb) {
+        debugPrint('🔔 Push enable skipped: web platform');
+        return;
+      }
+
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+
+      // Pedir permisos de notificación al abrir la app
+      await _requestPushPermissions();
+
+      // Mensaje que abrió la app desde terminada (cold start)
+      await _handleInitialMessage();
+
+      await _startListening();
+
+      debugPrint('🔔 PushNotificationService enabled');
+    } catch (e, st) {
+      debugPrint('🔔 Error enabling notifications: $e');
+      debugPrint('$st');
+    }
+  }
+
+  static Future<void> _disableNotificationsFlow({
+    required bool deleteRemoteToken,
+  }) async {
+    try {
+      await _stopListening();
+      await _localNotificationsPlugin.cancelAll();
+
+      if (!kIsWeb) {
+        await FirebaseMessaging.instance.setAutoInitEnabled(false);
+
+        if (deleteRemoteToken) {
+          try {
+            await FirebaseMessaging.instance.deleteToken();
+          } catch (e) {
+            debugPrint('🔕 Error deleting FCM token: $e');
+          }
+        }
+      }
+
+      await TokenService.deleteFcmToken();
+
+      debugPrint('🔕 PushNotificationService disabled');
+    } catch (e, st) {
+      debugPrint('🔕 Error disabling notifications: $e');
+      debugPrint('$st');
+    }
+  }
+
+  static Future<void> _startListening() async {
+    if (_listening) return;
 
     // Mensajes recibidos con la app en foreground
-    FirebaseMessaging.onMessage.listen((message) {
+    _onMessageSub = FirebaseMessaging.onMessage.listen((message) {
+      if (!_enabledCache) return;
       _logMessage(message, origin: 'FOREGROUND');
       _showLocalNotification(message);
     });
 
     // Usuario toca una notificación con la app en background
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    _onMessageOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen((
+      message,
+    ) {
+      if (!_enabledCache) return;
       _logMessage(message, origin: 'OPENED_APP');
       _handleNavigationFromMessage(message);
     });
 
-    _initialized = true;
-    debugPrint('🔔 PushNotificationService initialized');
+    _listening = true;
+  }
+
+  static Future<void> _stopListening() async {
+    if (!_listening) return;
+
+    await _onMessageSub?.cancel();
+    await _onMessageOpenedSub?.cancel();
+    _onMessageSub = null;
+    _onMessageOpenedSub = null;
+    _listening = false;
   }
 
   static Future<void> _handleInitialMessage() async {
@@ -80,7 +178,29 @@ class PushNotificationService {
     );
     const initSettings = InitializationSettings(android: androidSettings);
 
-    await _localNotificationsPlugin.initialize(initSettings);
+    await _localNotificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (!_enabledCache) return;
+        final payload = response.payload;
+        if (payload == null || payload.trim().isEmpty) return;
+
+        try {
+          final decoded = jsonDecode(payload);
+          if (decoded is Map) {
+            final data = Map<String, dynamic>.from(decoded as Map);
+            debugPrint('📩 [LOCAL_TAP] payload decoded: ${data.keys.toList()}');
+            _handleNavigationFromData(data);
+          } else {
+            debugPrint('⚠️ [LOCAL_TAP] payload no es Map');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [LOCAL_TAP] No se pudo parsear payload: $e');
+        }
+      },
+      onDidReceiveBackgroundNotificationResponse:
+          _localNotificationTapBackgroundHandler,
+    );
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
@@ -134,6 +254,8 @@ class PushNotificationService {
   }
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {
+    if (!_enabledCache) return;
+
     final notification = message.notification;
     final title = notification?.title ?? message.data['title']?.toString();
     final body = notification?.body ?? message.data['body']?.toString();
@@ -153,17 +275,72 @@ class PushNotificationService {
 
     const notificationDetails = NotificationDetails(android: androidDetails);
 
+    String? payload;
+    try {
+      payload = message.data.isNotEmpty ? jsonEncode(message.data) : null;
+    } catch (e) {
+      debugPrint('⚠️ [LOCAL] No se pudo serializar payload: $e');
+      payload = null;
+    }
+
     await _localNotificationsPlugin.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title,
       body,
       notificationDetails,
-      payload: message.data.isNotEmpty ? message.data.toString() : null,
+      payload: payload,
     );
   }
 
-  static void _handleNavigationFromMessage(RemoteMessage message) {
-    final data = message.data;
+  @pragma('vm:entry-point')
+  static void _localNotificationTapBackgroundHandler(
+    NotificationResponse response,
+  ) {
+    // Este callback puede correr en un isolate de background.
+    // No intentamos navegar aquí; la navegación real se resuelve con
+    // getInitialMessage/onMessageOpenedApp cuando la app está lista.
+    debugPrint('📩 [LOCAL_TAP_BG] actionId=${response.actionId}');
+  }
+
+  static void _navigateToRoute(String route, {Object? extra}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        var targetRoute = route;
+        if (route.startsWith('/forum/post/')) {
+          final separator = route.contains('?') ? '&' : '?';
+          targetRoute =
+              '$route${separator}refresh=1&ts=${DateTime.now().millisecondsSinceEpoch}';
+        }
+
+        final navigator = appRouter.routerDelegate.navigatorKey.currentState;
+
+        // Si no hay stack para volver, crear una base razonable.
+        // Esto evita errores al “volver” luego de abrir por notificación.
+        final canPop = navigator?.canPop() ?? false;
+        if (!canPop) {
+          appRouter.go('/home');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (extra != null) {
+              appRouter.push(targetRoute, extra: extra);
+            } else {
+              appRouter.push(targetRoute);
+            }
+          });
+          return;
+        }
+
+        if (extra != null) {
+          appRouter.push(targetRoute, extra: extra);
+        } else {
+          appRouter.push(targetRoute);
+        }
+      } catch (e) {
+        debugPrint('⚠️ [PushNotificationService] Error navegando a $route: $e');
+      }
+    });
+  }
+
+  static void _handleNavigationFromData(Map<String, dynamic> data) {
     if (data.isEmpty) return;
 
     // data['data'] puede venir como string JSON o map. Parsear con cuidado.
@@ -176,11 +353,12 @@ class PushNotificationService {
         } else if (rawDataField is Map) {
           parsedData = Map<String, dynamic>.from(rawDataField as Map);
         }
-        debugPrint('­ƒöù [PushNotificationService] parsedData: $parsedData');
+        debugPrint('📩 [PushNotificationService] parsedData: $parsedData');
       } catch (e) {
         debugPrint('⚠️ [PushNotificationService] No se pudo parsear data: $e');
       }
     }
+
     // payload_json puede traer playerData/responses
     final payloadJsonRaw = data['payload_json'];
     if (payloadJsonRaw != null) {
@@ -214,12 +392,7 @@ class PushNotificationService {
         data['url'];
     final deeplink = deeplinkRaw?.toString().trim();
 
-    debugPrint('­ƒöù [PushNotificationService] deeplink detectado: $deeplink');
-    debugPrint('­ƒöù [PushNotificationService] message.data: $data');
-    debugPrint('­ƒöù [PushNotificationService] rawDataField: $rawDataField');
-    debugPrint(
-      '­ƒöù [PushNotificationService] full message: ${message.toMap()}',
-    );
+    debugPrint('📩 [PushNotificationService] deeplink detectado: $deeplink');
 
     AffiliationResult? affiliationResult;
     try {
@@ -230,33 +403,12 @@ class PushNotificationService {
           'playerData': playerData,
           'responses': responses,
         });
-        try {
-          debugPrint(
-            '­ƒöù [PushNotificationService] AffiliationResult json: ${jsonEncode(affiliationResult)}',
-          );
-        } catch (_) {
-          debugPrint(
-            '­ƒöù [PushNotificationService] AffiliationResult no serializable con jsonEncode',
-          );
-        }
-      } else {
-        debugPrint(
-          '⚠️ [PushNotificationService] playerData/responses faltan o no son Map',
-        );
       }
-    } catch (e) {
-      debugPrint(
-        '⚠️ [PushNotificationService] No se pudo construir AffiliationResult: $e',
-      );
-    }
+    } catch (_) {}
 
     final hasAffiliationPayload = affiliationResult != null;
-
-    // Si no hay deeplink pero sí payload de afiliación, navegar igual.
     if ((deeplink == null || deeplink.isEmpty) && hasAffiliationPayload) {
-      debugPrint(
-        '­ƒöù [PushNotificationService] Sin deeplink pero con payload de afiliación, navegando directo.',
-      );
+      // Mantener comportamiento existente para afiliación.
       appRouter.routerDelegate.navigatorKey.currentState?.popUntil(
         (r) => r.isFirst,
       );
@@ -267,57 +419,48 @@ class PushNotificationService {
     if (deeplink == null || deeplink.isEmpty) return;
 
     try {
-      final uri = Uri.parse(deeplink.toString());
+      final uri = Uri.parse(deeplink);
       final token =
           data['token'] ??
           data['verificacionToken'] ??
           data['verification_token'];
 
       final payload = DeepLinkPayload(uri: uri, token: token?.toString());
-
-      debugPrint(
-        '­ƒöù [PushNotificationService] DeepLinkPayload uri=$uri token=$token',
-      );
-
       DeepLinkService.instance.emit(payload);
 
       String? route = DeepLinkService.instance.navigationPathForPayload(
         payload,
       );
-      debugPrint('­ƒöù [PushNotificationService] navigationPath: $route');
 
-      // Fallback: si el deeplink es afiliación completada pero no obtuvimos ruta
       if ((route == null || route.isEmpty) && payload.isAffiliationCompleted) {
         route = '/affiliation-results';
-        debugPrint(
-          '­ƒöù [PushNotificationService] Fallback a /affiliation-results',
-        );
       }
 
       if (route != null && route.isNotEmpty) {
         if (route == '/affiliation-results' && affiliationResult != null) {
-          debugPrint(
-            '­ƒöù [PushNotificationService] Navegando a $route con extra AffiliationResult',
-          );
-          // Asegurar que la navegación use el stack raíz
           appRouter.routerDelegate.navigatorKey.currentState?.popUntil(
             (r) => r.isFirst,
           );
-          // go + extra garantiza reemplazo de la ubicación actual
           appRouter.go(route, extra: affiliationResult);
         } else {
-          debugPrint(
-            '­ƒöù [PushNotificationService] Navegando a $route sin extra',
-          );
-          appRouter.routerDelegate.navigatorKey.currentState?.popUntil(
-            (r) => r.isFirst,
-          );
-          appRouter.go(route);
+          // Para deeplinks genéricos (ej foro), usar push para que exista back.
+          _navigateToRoute(route);
         }
         DeepLinkService.instance.markPayloadHandled(payload);
       }
     } catch (e) {
       debugPrint('⚠️ [PushNotificationService] Error manejando deeplink: $e');
     }
+  }
+
+  static void _handleNavigationFromMessage(RemoteMessage message) {
+    final data = message.data;
+    if (data.isEmpty) return;
+
+    // Logs útiles para debugging.
+    debugPrint('📩 [PushNotificationService] message.data: $data');
+    debugPrint('📩 [PushNotificationService] full message: ${message.toMap()}');
+
+    _handleNavigationFromData(Map<String, dynamic>.from(data));
   }
 }

@@ -52,9 +52,30 @@ class Game02 extends FlameGame with TapCallbacks {
   double _cameraMargin = 180;
   static const double _minOverlapPx = 6;
   static const double _minOverlapRatio = 0.30;
+  // Si el solape es muy chico pero existe, hacemos una caída lateral “sin chance”.
+  static const double _edgeSlipMinOverlapPx = 30.0;
+  static const double _edgeSlipMinOverlapRatio = 0.30;
+  static const double _edgeSlipRotateRad = math.pi * 0.62;
   // Tolerancia en píxeles para considerar “PERFECT” (alineación casi exacta).
   // Más permisivo a propósito + hacemos snap para que quede visualmente perfecto.
   static const double _perfectAlignTolerancePx = 10.0;
+
+  static const int _colorWarmupBlocks = 4;
+  static const Color _baseBlockColor = Color(0xFF00FF7A);
+
+  Color _colorForStackIndex(int index) {
+    // First blocks keep the original green, then we start shifting smoothly.
+    if (index < _colorWarmupBlocks) return _baseBlockColor;
+
+    // Gradual palette shift as blocks stack.
+    // Start near the original-green hue so the transition feels natural.
+    const double startHue = 150.0;
+    final int t = index - _colorWarmupBlocks;
+    final hue = (startHue + t * 11.0) % 360.0;
+    const sat = 0.70;
+    const val = 0.92;
+    return HSVColor.fromAHSV(1, hue, sat, val).toColor();
+  }
 
   // dificultad
   static const double _speedStart = 320;
@@ -582,6 +603,8 @@ class Game02 extends FlameGame with TapCallbacks {
       imageScale: _imageScale,
     );
 
+    base.setColor(_colorForStackIndex(0));
+
     tower.add(base);
     _world.add(base);
 
@@ -613,6 +636,12 @@ class Game02 extends FlameGame with TapCallbacks {
       towerImage: _towerImage,
       imageScale: _imageScale,
     );
+
+    // Smooth procedural color transition per block.
+    final fromColor = prev.color;
+    final toColor = _colorForStackIndex(tower.length);
+    block.setColor(fromColor);
+    block.animateColorTo(toColor, duration: 0.45);
 
     moving = block;
     _world.add(block);
@@ -717,10 +746,24 @@ class Game02 extends FlameGame with TapCallbacks {
     final double overlap =
         math.min(currRight, prevRight) - math.max(currLeft, prevLeft);
 
+    final currCenterX = currLeft + curr.size.x / 2;
+    final prevCenterX = prevLeft + prev.size.x / 2;
+
     // Sólo pierde si no hay solape real; permitir “golpe en la punta” con corte mínimo
     if (overlap <= _minOverlapPx) {
       moving = null;
       _triggerGameOverWithBreak(curr);
+      return;
+    }
+
+    final overlapRatio = overlap / math.max(1.0, prev.size.x);
+    final bool isEdgeSlip =
+        overlap <= _edgeSlipMinOverlapPx ||
+        overlapRatio <= _edgeSlipMinOverlapRatio;
+    if (isEdgeSlip) {
+      moving = null;
+      final fallLeft = currCenterX < prevCenterX;
+      _triggerGameOverWithEdgeSlip(curr, fallLeft: fallLeft);
       return;
     }
 
@@ -730,8 +773,6 @@ class Game02 extends FlameGame with TapCallbacks {
     // PERFECT: solo importa que el bloque caiga alineado con el de abajo,
     // sin importar si la torre está a la izquierda/derecha/centro.
     // Usamos centros para tolerar diferencias mínimas y floats.
-    final currCenterX = currLeft + curr.size.x / 2;
-    final prevCenterX = prevLeft + prev.size.x / 2;
     final double dx = (currCenterX - prevCenterX).abs();
     final bool isPerfect = dx <= _perfectAlignTolerancePx;
 
@@ -826,6 +867,77 @@ class Game02 extends FlameGame with TapCallbacks {
 
     // Mostrar game over luego del “romperse”.
     dart_async.Timer(const Duration(milliseconds: 650), _finalizeGameOver);
+  }
+
+  void _triggerGameOverWithEdgeSlip(
+    BlockComponent slippingBlock, {
+    required bool fallLeft,
+  }) {
+    // Congelar gameplay ya mismo, pero dejar render/update para ver la animación.
+    if (state == StackState.gameOver) return;
+    state = StackState.gameOver;
+    isPaused = false;
+    countdown.value = null;
+    _countdownTimer?.cancel();
+
+    _scoreFeedbackTimer?.cancel();
+    scoreFeedbackText.value = null;
+    _perfectCombo = 0;
+    perfectStreak.value = 0;
+
+    _playEdgeSlipAnimation(slippingBlock, fallLeft: fallLeft);
+
+    dart_async.Timer(const Duration(milliseconds: 750), _finalizeGameOver);
+  }
+
+  void _playEdgeSlipAnimation(BlockComponent block, {required bool fallLeft}) {
+    // Pivot en el borde de contacto: si cae hacia la izquierda, pivota en bottomRight.
+    final topLeft = block.position.clone();
+    final s = block.size.clone();
+
+    if (fallLeft) {
+      block.anchor = Anchor.bottomRight;
+      block.position = topLeft + Vector2(s.x, s.y);
+    } else {
+      block.anchor = Anchor.bottomLeft;
+      block.position = topLeft + Vector2(0, s.y);
+    }
+
+    block.isMoving = false;
+    block.isDropping = false;
+
+    final landingPos = Vector2(topLeft.x + s.x / 2, topLeft.y + s.y);
+    _spawnLandingParticles(worldPos: landingPos, isPerfect: false);
+
+    final dx = fallLeft ? -210.0 : 210.0;
+    final dy = s.y + 620.0;
+    final rot = fallLeft ? -_edgeSlipRotateRad : _edgeSlipRotateRad;
+
+    block.add(
+      RotateEffect.by(
+        rot,
+        EffectController(duration: 0.62, curve: Curves.easeInCubic),
+      ),
+    );
+    block.add(
+      SequenceEffect([
+        MoveByEffect(
+          Vector2(dx * 0.18, -14),
+          EffectController(duration: 0.10, curve: Curves.easeOut),
+        ),
+        MoveByEffect(
+          Vector2(dx, dy),
+          EffectController(duration: 0.70, curve: Curves.easeIn),
+        ),
+      ]),
+    );
+    block.add(
+      TimerComponent(
+        period: 0.9,
+        removeOnFinish: true,
+        onTick: block.removeFromParent,
+      ),
+    );
   }
 
   void _finalizeGameOver() {

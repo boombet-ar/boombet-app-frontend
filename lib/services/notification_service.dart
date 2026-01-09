@@ -37,6 +37,53 @@ class NotificationService {
     return success;
   }
 
+  /// Dispara una notificación de test para el usuario autenticado.
+  /// Endpoint: POST /api/notifications/me
+  /// Nota: ApiConfig.baseUrl ya incluye /api.
+  Future<bool> sendTestNotificationToMe({
+    String title = 'BoomBet',
+    String body = 'Notificación de prueba',
+    Map<String, String>? data,
+    bool ensureFcmRegistered = true,
+  }) async {
+    final url = '${ApiConfig.baseUrl}/notifications/me';
+
+    if (ensureFcmRegistered) {
+      // El backend usa JWT + FCM. Asegurar que haya FCM token disponible y registrado.
+      final fcmToken = await _tryGetFcmToken();
+      if (fcmToken == null || fcmToken.isEmpty) {
+        log('🔔 [NotificationService] No FCM token available for test');
+        return false;
+      }
+
+      // Registrar/actualizar el token en backend antes del test.
+      await saveFcmTokenToBackend(fcmTokenOverride: fcmToken);
+    }
+
+    final requestBody = <String, dynamic>{
+      'title': title,
+      'body': body,
+      if (data != null && data.isNotEmpty) 'data': data,
+    };
+
+    final response = await HttpClient.post(
+      url,
+      body: requestBody,
+      includeAuth: true,
+      maxRetries: 1,
+      timeout: const Duration(seconds: 30),
+    );
+
+    final success = response.statusCode >= 200 && response.statusCode < 300;
+    if (!success) {
+      log(
+        '🔔 [NotificationService] Failed to send test notification. '
+        'status=${response.statusCode} body=${response.body}',
+      );
+    }
+    return success;
+  }
+
   Future<String?> _tryGetFcmToken() async {
     try {
       final stored = await TokenService.getFcmToken();

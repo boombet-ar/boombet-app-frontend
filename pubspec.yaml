@@ -63,6 +63,7 @@ flutter:
     - assets/audio/sfx/game_01/
     - assets/images/games/game_02/
     - assets/fonts/
+    - assets/icons/
 
   fonts:
     - family: ThaleahFat

@@ -4,6 +4,7 @@ import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
+import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/onboarding_page.dart';
@@ -88,6 +89,27 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+
+    // Deeplink: detalle de publicación del foro
+    // Ejemplos soportados desde DeepLinkService:
+    // - boombet://publicaciones/123
+    // - boombet://foro/publicacion?id=123
+    // - boombet://forum/post?postId=123
+    GoRoute(
+      path: '/forum/post/:id',
+      builder: (context, state) {
+        final rawId = state.pathParameters['id'] ?? '';
+        final id = int.tryParse(rawId);
+        if (id == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Foro')),
+            body: const Center(child: Text('Publicación inválida')),
+          );
+        }
+        final refresh = state.uri.queryParameters['refresh'] == '1';
+        return ForumPostDetailPage(postId: id, forceRefresh: refresh);
+      },
+    ),
     GoRoute(
       path: '/affiliation-results',
       builder: (context, state) {

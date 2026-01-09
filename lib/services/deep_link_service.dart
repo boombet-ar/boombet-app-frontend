@@ -6,6 +6,66 @@ class DeepLinkPayload {
   final Uri uri;
   final String? token;
 
+  int? get forumPostId {
+    int? tryParseInt(String? value) {
+      if (value == null) return null;
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return null;
+      return int.tryParse(trimmed);
+    }
+
+    bool looksLikeForumOrPublicaciones(Uri u) {
+      final host = u.host.toLowerCase();
+      if (host.contains('foro') ||
+          host.contains('forum') ||
+          host.contains('publicacion') ||
+          host.contains('publicaciones') ||
+          host.contains('post') ||
+          host.contains('posts')) {
+        return true;
+      }
+
+      final segments = u.pathSegments.map((s) => s.toLowerCase()).toList();
+      return segments.contains('foro') ||
+          segments.contains('forum') ||
+          segments.contains('publicacion') ||
+          segments.contains('publicaciones') ||
+          segments.contains('post') ||
+          segments.contains('posts') ||
+          segments.contains('replies') ||
+          segments.contains('respuestas');
+    }
+
+    // 1) Preferir query params comunes.
+    final fromQuery =
+        tryParseInt(uri.queryParameters['postId']) ??
+        tryParseInt(uri.queryParameters['publicationId']) ??
+        tryParseInt(uri.queryParameters['publicacionId']) ??
+        tryParseInt(uri.queryParameters['id']);
+
+    if (fromQuery != null) {
+      // Si viene un id por query, asumir que es deeplink de publicación.
+      return fromQuery;
+    }
+
+    // 2) Intentar parsear el último segmento si es numérico.
+    if (!looksLikeForumOrPublicaciones(uri)) {
+      return null;
+    }
+
+    if (uri.pathSegments.isEmpty) return null;
+
+    // Buscar el primer segmento numérico de derecha a izquierda.
+    for (final seg in uri.pathSegments.reversed) {
+      final parsed = tryParseInt(seg);
+      if (parsed != null) return parsed;
+    }
+
+    return null;
+  }
+
+  bool get isForumPostDetail => forumPostId != null;
+
   bool get isEmailConfirmation {
     // Detectar esquema boombet
     if (uri.scheme == 'boombet') {
@@ -111,6 +171,13 @@ class DeepLinkService {
     );
 
     final token = payload.token;
+
+    if (payload.isForumPostDetail) {
+      final postId = payload.forumPostId;
+      if (postId == null) return null;
+      return '/forum/post/$postId';
+    }
+
     if (payload.isAffiliationCompleted) {
       // ignore: avoid_print
       print('­ƒöù Payload detectado como afiliaci├│n completada');

@@ -6,6 +6,8 @@ import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/biometric_service.dart';
+import 'package:boombet_app/services/notification_service.dart';
+import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +25,88 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _bioLoading = true;
   bool _bioToggling = false;
 
+  bool _pushEnabled = true;
+  bool _pushLoading = true;
+  bool _pushToggling = false;
+  bool _pushTesting = false;
+
   @override
   void initState() {
     super.initState();
     _loadBiometricState();
+    _loadPushState();
+  }
+
+  Future<void> _loadPushState() async {
+    final enabled = await PushNotificationService.isNotificationsEnabled();
+    if (!mounted) return;
+    setState(() {
+      _pushEnabled = enabled;
+      _pushLoading = false;
+    });
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _togglePushNotifications(bool nextEnabled) async {
+    if (_pushLoading || _pushToggling) return;
+
+    setState(() => _pushToggling = true);
+
+    try {
+      await PushNotificationService.setNotificationsEnabled(nextEnabled);
+
+      // Si se habilita, reenviar token al backend (si hay sesión/JWT).
+      if (nextEnabled) {
+        await const NotificationService().saveFcmTokenToBackend();
+      }
+
+      if (!mounted) return;
+      setState(() => _pushEnabled = nextEnabled);
+
+      _showSnack(
+        nextEnabled
+            ? 'Notificaciones activadas'
+            : 'Notificaciones desactivadas',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error actualizando notificaciones: $e');
+    } finally {
+      if (mounted) setState(() => _pushToggling = false);
+    }
+  }
+
+  Future<void> _testNotification() async {
+    if (_pushLoading || _pushToggling || _pushTesting) return;
+
+    setState(() => _pushTesting = true);
+    try {
+      final ok = await const NotificationService().sendTestNotificationToMe(
+        title: 'BoomBet',
+        body: 'Notificación de prueba',
+        ensureFcmRegistered: _pushEnabled,
+      );
+      if (!mounted) return;
+      _showSnack(
+        ok
+            ? (_pushEnabled
+                  ? 'Solicitud enviada. Debería llegarte una notificación.'
+                  : 'Solicitud enviada. Como están desactivadas, NO debería llegarte nada.')
+            : (_pushEnabled
+                  ? 'Falló el envío del test. Revisar backend/token.'
+                  : 'Falló el envío del test (posible: sin token FCM por estar desactivadas).'),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error enviando test: $e');
+    } finally {
+      if (mounted) setState(() => _pushTesting = false);
+    }
   }
 
   Future<void> _loadBiometricState() async {
@@ -148,6 +228,52 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: _bioToggling || !_bioAvailable
                       ? null
                       : () => _toggleBiometric(!_bioEnabled),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Sección: Notificaciones
+              _buildSectionTitle('Notificaciones', Icons.notifications),
+              const SizedBox(height: 8),
+              Card(
+                color: surfaceColor,
+                child: SwitchListTile(
+                  secondary: Icon(
+                    _pushEnabled
+                        ? Icons.notifications_active
+                        : Icons.notifications_off,
+                    color: AppConstants.primaryGreen,
+                  ),
+                  title: const Text('Notificaciones'),
+                  subtitle: Text(_pushEnabled ? 'Activadas' : 'Desactivadas'),
+                  value: _pushEnabled,
+                  activeThumbColor: AppConstants.primaryGreen,
+                  onChanged: _pushLoading || _pushToggling
+                      ? null
+                      : (value) {
+                          _togglePushNotifications(value);
+                        },
+                ),
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _pushTesting || _pushLoading || _pushToggling
+                      ? null
+                      : _testNotification,
+                  icon: _pushTesting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.notifications),
+                  label: const Text('Probar notificación'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryGreen,
+                    foregroundColor: AppConstants.lightCardBg,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),

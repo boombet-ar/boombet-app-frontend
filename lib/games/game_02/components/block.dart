@@ -27,9 +27,12 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
   final double imageScale;
 
   final Paint _paint = Paint()..style = PaintingStyle.fill;
-  final Paint _stroke = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 0.0;
+  bool _colorInitialized = false;
+
+  Color? _colorFrom;
+  Color? _colorTo;
+  double _colorElapsed = 0;
+  double _colorDuration = 0;
 
   double opacity = 1.0;
 
@@ -42,16 +45,68 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
   void onLoad() {
     super.onLoad();
 
-    // Color “vivo” basado en seed (sin assets)
-    final hue = (colorSeed * 35) % 360;
-    _paint.color = HSVColor.fromAHSV(1, hue.toDouble(), 0.75, 0.95).toColor();
+    // Color default (si no fue seteado desde afuera)
+    if (!_colorInitialized) {
+      final hue = (colorSeed * 35) % 360;
+      _paint.color = HSVColor.fromAHSV(1, hue.toDouble(), 0.75, 0.95).toColor();
+      _colorInitialized = true;
+    }
+  }
 
-    _stroke.color = Colors.transparent;
+  Color get color => _paint.color;
+
+  void setColor(Color color) {
+    _paint.color = color;
+    _colorInitialized = true;
+    _colorFrom = null;
+    _colorTo = null;
+    _colorElapsed = 0;
+    _colorDuration = 0;
+  }
+
+  void animateColorTo(Color target, {double duration = 0.42}) {
+    if (!_colorInitialized) {
+      setColor(target);
+      return;
+    }
+
+    if (_paint.color.value == target.value) {
+      _colorFrom = null;
+      _colorTo = null;
+      _colorElapsed = 0;
+      _colorDuration = 0;
+      return;
+    }
+
+    _colorFrom = _paint.color;
+    _colorTo = target;
+    _colorElapsed = 0;
+    _colorDuration = duration <= 0 ? 0.0001 : duration;
+  }
+
+  void _updateColor(double dt) {
+    final to = _colorTo;
+    final from = _colorFrom;
+    if (to == null || from == null) return;
+
+    _colorElapsed += dt;
+    final t = (_colorElapsed / _colorDuration).clamp(0.0, 1.0);
+    final eased = Curves.easeInOut.transform(t);
+    _paint.color = Color.lerp(from, to, eased) ?? _paint.color;
+
+    if (t >= 1.0) {
+      _paint.color = to;
+      _colorFrom = null;
+      _colorTo = null;
+    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Animación de color es visual: que corra incluso si el gameplay está pausado.
+    _updateColor(dt);
 
     // Congelar gameplay mientras hay menú/pausa/countdown, pero seguir renderizando.
     if (gameRef.isPaused || gameRef.countdown.value != null) {
@@ -109,10 +164,11 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
 
     final img = towerImage;
 
-    // Fallback visual si no hay imagen
+    // Si no hay imagen, usamos un fallback simple coloreado.
     if (img == null) {
-      final p = Paint()..color = _paint.color.withOpacity(opacity.clamp(0, 1));
-      canvas.drawRRect(rrect, p);
+      final baseColorPaint = Paint()
+        ..color = _paint.color.withOpacity(opacity.clamp(0, 1));
+      canvas.drawRRect(rrect, baseColorPaint);
       return;
     }
 
@@ -123,21 +179,21 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
       img.height.toDouble(),
     );
 
-    final paint = Paint()
-      ..colorFilter = ColorFilter.mode(
-        Colors.white.withOpacity(opacity.clamp(0, 1)),
-        BlendMode.modulate,
-      );
-
-    canvas.save();
-    // Ajustamos al tamaño del bloque usando drawImageRect (no slicing)
+    // Pintar la imagen como máscara y tintar sólo el contenido (la parte verde),
+    // sin afectar el fondo transparente.
+    canvas.saveLayer(dst, Paint());
     canvas.drawImageRect(
       img,
       src,
       Rect.fromLTWH(0, 0, dst.width, dst.height),
-      paint,
+      Paint(),
     );
-
+    canvas.drawRect(
+      dst,
+      Paint()
+        ..blendMode = BlendMode.srcIn
+        ..color = _paint.color.withOpacity(opacity.clamp(0, 1)),
+    );
     canvas.restore();
   }
 }

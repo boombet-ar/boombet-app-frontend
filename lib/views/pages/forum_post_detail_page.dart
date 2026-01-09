@@ -9,7 +9,15 @@ import 'package:intl/intl.dart';
 class ForumPostDetailPage extends StatefulWidget {
   final int postId;
 
-  const ForumPostDetailPage({super.key, required this.postId});
+  /// Si es true, fuerza recarga desde backend evitando caché.
+  /// Útil cuando se abre desde una notificación y podría faltar la respuesta más reciente.
+  final bool forceRefresh;
+
+  const ForumPostDetailPage({
+    super.key,
+    required this.postId,
+    this.forceRefresh = false,
+  });
 
   @override
   State<ForumPostDetailPage> createState() => _ForumPostDetailPageState();
@@ -29,7 +37,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(forceRefresh: widget.forceRefresh);
     _loadCurrentUsername();
   }
 
@@ -62,7 +70,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     _loadReplies();
   }
 
-  Future<void> _loadReplies() async {
+  Future<void> _loadReplies({bool forceRefresh = false}) async {
     if (!mounted) return;
 
     setState(() {
@@ -71,6 +79,11 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     });
 
     try {
+      if (forceRefresh) {
+        // Evitar servir respuestas viejas desde cache.
+        // Esto aplica especialmente cuando entramos desde push.
+        // Se fuerza la recarga mediante bypassCache en el service.
+      }
       print(
         '🔄 [DetailPage] Loading replies page $_repliesPage for ${widget.postId}...',
       );
@@ -78,6 +91,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         widget.postId,
         page: _repliesPage,
         size: 10,
+        bypassCache: forceRefresh,
       );
       print('✅ [DetailPage] Replies loaded: ${response.length} replies');
 
@@ -97,7 +111,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     }
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
@@ -105,8 +119,14 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     });
 
     try {
+      if (forceRefresh) {
+        // Se fuerza la recarga mediante bypassCache en el service.
+      }
       print('🔄 [DetailPage] Loading post ${widget.postId}...');
-      final post = await ForumService.getPostById(widget.postId);
+      final post = await ForumService.getPostById(
+        widget.postId,
+        bypassCache: forceRefresh,
+      );
       print('✅ [DetailPage] Post loaded: ${post.id} - ${post.username}');
 
       if (!mounted) return;
@@ -117,7 +137,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
       print('✅ [DetailPage] Post UI updated successfully');
 
       // Load replies with pagination
-      await _loadReplies();
+      await _loadReplies(forceRefresh: forceRefresh);
     } catch (e, stackTrace) {
       print('❌ [DetailPage] Error loading data: $e');
       print('📋 [DetailPage] Stack trace: $stackTrace');
@@ -203,7 +223,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   Future<void> _deleteReply(int replyId) async {
     try {
       await ForumService.deletePost(replyId);
-      _loadData();
+      _loadData(forceRefresh: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -427,6 +447,12 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   }
 
   Widget _buildReplyCard(ForumPost reply, bool isDark, Color accent) {
+    final currentUser = _currentUsername?.trim().toLowerCase();
+    final replyUser = reply.username.trim().toLowerCase();
+    final isOwnReply = currentUser != null && currentUser.isNotEmpty
+        ? replyUser == currentUser
+        : false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -516,23 +542,24 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                   ],
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.red.withOpacity(0.3),
-                    width: 1,
+              if (isOwnReply)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.red.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                    onPressed: () => _deleteReply(reply.id),
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.red.shade400,
+                    tooltip: 'Eliminar respuesta',
                   ),
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                  onPressed: () => _deleteReply(reply.id),
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.red.shade400,
-                  tooltip: 'Eliminar respuesta',
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),

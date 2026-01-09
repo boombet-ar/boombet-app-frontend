@@ -10,6 +10,7 @@ class TokenService {
   static const _refreshTokenKey = 'refresh_token';
   static const _tempTokenKey = 'temp_jwt_token';
   static const _fcmTokenKey = 'fcm_token';
+  static const _notificationsEnabledKey = 'notifications_enabled';
 
   /// Guarda el token JWT de forma segura (persistente)
   static Future<void> saveToken(String token) async {
@@ -209,5 +210,20 @@ class TokenService {
   /// Elimina el token FCM almacenado
   static Future<void> deleteFcmToken() async {
     await _storage.delete(key: _fcmTokenKey);
+  }
+
+  /// Preferencia del usuario: si quiere recibir notificaciones.
+  /// Por defecto es true.
+  static Future<bool> getNotificationsEnabled() async {
+    final value = await _storage.read(key: _notificationsEnabledKey);
+    if (value == null) return true;
+    return value.toLowerCase() == 'true';
+  }
+
+  static Future<void> setNotificationsEnabled(bool enabled) async {
+    await _storage.write(
+      key: _notificationsEnabledKey,
+      value: enabled.toString(),
+    );
   }
 }
