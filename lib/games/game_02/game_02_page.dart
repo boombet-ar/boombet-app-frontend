@@ -107,68 +107,67 @@ class _HudOverlay extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         _PerfectCelebrationOverlay(game: game),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: SizedBox(
-              width: double.infinity,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _PauseButton(onPressed: game.pauseGame),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'SCORE',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.5,
-                                fontFamily: 'ThaleahFat',
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            ValueListenableBuilder<int>(
-                              valueListenable: game.scoreNotifier,
-                              builder: (context, score, _) {
-                                return Text(
-                                  '$score',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 38,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1,
-                                    fontFamily: 'ThaleahFat',
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _PerfectFeedback(game: game),
-                    ],
-                  ),
-                  const SizedBox(width: 48),
-                ],
+        SafeArea(
+          minimum: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: _PauseButton(onPressed: game.pauseGame),
               ),
-            ),
+              Align(
+                alignment: Alignment.topRight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'SCORE',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                              fontFamily: 'ThaleahFat',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          ValueListenableBuilder<int>(
+                            valueListenable: game.scoreNotifier,
+                            builder: (context, score, _) {
+                              return Text(
+                                '$score',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                  fontFamily: 'ThaleahFat',
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _PerfectFeedback(game: game),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],

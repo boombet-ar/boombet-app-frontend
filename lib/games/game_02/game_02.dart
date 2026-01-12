@@ -60,6 +60,13 @@ class Game02 extends FlameGame with TapCallbacks {
   // Más permisivo a propósito + hacemos snap para que quede visualmente perfecto.
   static const double _perfectAlignTolerancePx = 10.0;
 
+  // Sombra/glow (leve) para separar las B del fondo.
+  // Ajustable rápido desde acá.
+  static const double _blockShadowOpacity = 0.18;
+  static const double _blockShadowBlurSigma = 2.6;
+  static const double _blockShadowInflate = 1.2;
+  static const Offset _blockShadowOffset = Offset(0, 1.0);
+
   static const int _colorWarmupBlocks = 4;
   static const Color _baseBlockColor = Color(0xFF00FF7A);
 
@@ -114,6 +121,7 @@ class Game02 extends FlameGame with TapCallbacks {
   double _movingSpeed = _speedStart;
   double _movingWidth = 0;
   ui.Image? _towerImage;
+  ui.Image? _floorImage;
   bool _imageReady = false;
   double _imageScale = 1;
   double _blockWidth = 140;
@@ -134,6 +142,11 @@ class Game02 extends FlameGame with TapCallbacks {
   PositionComponent? _bgSky;
   FilteredParallaxComponent? _bgClouds;
   RectangleComponent? _bgDarkOverlay;
+
+  bool _assetsLoaded = false;
+  bool _bootstrapped = false;
+  bool _backgroundLoaded = false;
+  bool _floorLoaded = false;
 
   double _bgLastCamY = 0;
   double _bgVelocityY = 0;
@@ -261,9 +274,6 @@ class Game02 extends FlameGame with TapCallbacks {
       'games/game_02/boombet_tower.png',
     ]);
 
-    // Fondo: ParallaxComponent + overlay/filtro para empujarlo hacia atrás.
-    await _loadBackground();
-
     await _loadBestScore();
     try {
       final img = images.fromCache('games/game_02/boombet_tower.png');
@@ -274,22 +284,43 @@ class Game02 extends FlameGame with TapCallbacks {
       _imageReady = false;
     }
 
+    // IMPORTANTE:
+    // En el primer arranque, Flame puede llamar onLoad con size todavía en 0.
+    // Si calculamos piso/escala/reset en ese momento, el primer bloque queda flotando.
+    // Hacemos bootstrap diferido cuando exista un size real.
+    _assetsLoaded = true;
+    dart_async.unawaited(_tryBootstrap());
+  }
+
+  Future<void> _tryBootstrap() async {
+    if (_bootstrapped) return;
+    if (!_assetsLoaded) return;
+    if (size.x <= 0 || size.y <= 0) return;
+
+    _bootstrapped = true;
+
+    // Escala de bloques depende del size real.
     if (_towerImage != null && _towerImage!.width > 0) {
-      // Escalamos para que el ancho inicial sea una fracción de la pantalla,
-      // sin hacer la imagen más grande que su tamaño real.
       final double targetWidth = size.x * _widthStartRatio;
       _imageScale = math.min(1.0, targetWidth / _towerImage!.width);
       _blockWidth = _towerImage!.width * _imageScale;
       _blockHeight = _towerImage!.height * _imageScale;
     }
 
-    // Margen de cámara más agresivo: sigue al bloque apenas sube (~30% pantalla)
     _cameraMargin = size.y * 0.30;
-
-    // Paso de cámara: por cada bloque colocado, subimos casi 1 bloque.
     _cameraStepY = _blockHeight * 0.90;
 
-    await _loadFloor();
+    // Fondo: ParallaxComponent + overlay/filtro para empujarlo hacia atrás.
+    if (!_backgroundLoaded) {
+      await _loadBackground();
+      _backgroundLoaded = true;
+    }
+
+    if (!_floorLoaded) {
+      await _loadFloor();
+      _floorLoaded = true;
+    }
+
     _resetGame();
   }
 
@@ -355,6 +386,11 @@ class Game02 extends FlameGame with TapCallbacks {
   }
 
   Future<void> _loadBackground() async {
+    if (_bgSky != null || _bgClouds != null || _bgDarkOverlay != null) {
+      _layoutBackground();
+      _syncBackgroundToCamera(1 / 60);
+      return;
+    }
     try {
       final imgSky = images.fromCache('games/game_02/1.png');
 
@@ -526,6 +562,7 @@ class Game02 extends FlameGame with TapCallbacks {
   Future<void> _loadFloor() async {
     try {
       final floorImg = images.fromCache('games/game_02/floor.png');
+      _floorImage = floorImg;
       final scale = size.x / floorImg.width;
       _floorHeight = floorImg.height * scale;
 
@@ -538,9 +575,10 @@ class Game02 extends FlameGame with TapCallbacks {
       );
 
       // Piso en el mundo (debe moverse con la cámara)
-      _world.add(_floor!);
+      await _world.add(_floor!);
     } catch (e) {
       debugPrint('[Game02] Failed to load floor texture: $e');
+      _floorImage = null;
       _floor = RectangleComponent(
         position: Vector2(0, size.y - _floorHeight),
         size: Vector2(size.x, _floorHeight),
@@ -548,7 +586,7 @@ class Game02 extends FlameGame with TapCallbacks {
         priority: -10,
       );
       // no offset; usaremos solape visual del bloque base
-      _world.add(_floor!);
+      await _world.add(_floor!);
     }
   }
 
@@ -589,7 +627,9 @@ class Game02 extends FlameGame with TapCallbacks {
     final baseWidth = _blockWidth;
     _movingWidth = baseWidth;
 
-    const double baseVisualOverlap = 6; // solape para eliminar gap con el piso
+    // Solape para eliminar gap con el piso.
+    // El sprite del bloque tiene padding/transparencia, así que lo “metemos” un poco más.
+    final double baseVisualOverlap = math.min(22.0, _blockHeight * 0.6);
     final base = BlockComponent(
       position: Vector2(
         (size.x - baseWidth) / 2,
@@ -601,6 +641,10 @@ class Game02 extends FlameGame with TapCallbacks {
       speed: 0,
       towerImage: _imageReady ? _towerImage : null,
       imageScale: _imageScale,
+      shadowOpacity: _blockShadowOpacity,
+      shadowBlurSigma: _blockShadowBlurSigma,
+      shadowInflate: _blockShadowInflate,
+      shadowOffset: _blockShadowOffset,
     );
 
     base.setColor(_colorForStackIndex(0));
@@ -635,6 +679,10 @@ class Game02 extends FlameGame with TapCallbacks {
       speed: _movingSpeed,
       towerImage: _towerImage,
       imageScale: _imageScale,
+      shadowOpacity: _blockShadowOpacity,
+      shadowBlurSigma: _blockShadowBlurSigma,
+      shadowInflate: _blockShadowInflate,
+      shadowOffset: _blockShadowOffset,
     );
 
     // Smooth procedural color transition per block.
@@ -670,6 +718,11 @@ class Game02 extends FlameGame with TapCallbacks {
   void onGameResize(Vector2 canvasSize) {
     super.onGameResize(canvasSize);
 
+    // Si todavía no hicimos bootstrap (primer arranque), intentar ahora.
+    if (!_bootstrapped) {
+      dart_async.unawaited(_tryBootstrap());
+    }
+
     // Recalcular margen de cámara al cambiar el tamaño.
     _cameraMargin = canvasSize.y * 0.30;
     _cameraStepY = _blockHeight * 0.90;
@@ -677,10 +730,25 @@ class Game02 extends FlameGame with TapCallbacks {
     _layoutBackground();
     _syncBackgroundToCamera(1 / 60);
 
+    // Recalcular alto del piso si cambia el ancho (evita desalineaciones en primer arranque).
+    final floorImg = _floorImage;
+    if (floorImg != null && floorImg.width > 0) {
+      final scale = canvasSize.x / floorImg.width;
+      _floorHeight = floorImg.height * scale;
+    }
+
     if (_floor != null) {
       _floor!
         ..size = Vector2(canvasSize.x, _floorHeight)
         ..position = Vector2(0, canvasSize.y - _floorHeight);
+    }
+
+    // Si el primer reset ocurrió antes del tamaño final, el bloque base puede quedar flotando.
+    // Re-anclarlo sólo en el estado inicial (torre recién creada).
+    if (tower.length == 1 && score == 0 && state == StackState.playing) {
+      final base = tower.first;
+      final double baseVisualOverlap = math.min(22.0, base.size.y * 0.6);
+      base.position.y = _groundY - base.size.y + baseVisualOverlap;
     }
   }
 

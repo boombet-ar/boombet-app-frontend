@@ -77,14 +77,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void _showError(String msg) {
     debugPrint('[UNAFFILIATE][UI] showError: $msg');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final snackTextColor = isDark ? Colors.white : AppConstants.textLight;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        content: Text(msg, style: TextStyle(color: snackTextColor)),
         backgroundColor: AppConstants.errorRed,
         duration: AppConstants.longSnackbarDuration,
         action: SnackBarAction(
           label: 'OK',
-          textColor: Colors.white,
+          textColor: snackTextColor,
           onPressed: () {},
         ),
       ),
@@ -140,15 +142,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             '✅ Datos actualizados correctamente',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppConstants.textLight,
+            ),
           ),
           backgroundColor: AppConstants.successGreen,
           duration: AppConstants.snackbarDuration,
           action: SnackBarAction(
             label: 'OK',
-            textColor: Colors.white,
+            textColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : AppConstants.textLight,
             onPressed: () {},
           ),
         ),
@@ -199,15 +207,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             '✅ Avatar actualizado',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppConstants.textLight,
+            ),
           ),
           backgroundColor: AppConstants.successGreen,
           duration: AppConstants.snackbarDuration,
           action: SnackBarAction(
             label: 'OK',
-            textColor: Colors.white,
+            textColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : AppConstants.textLight,
             onPressed: () {},
           ),
         ),

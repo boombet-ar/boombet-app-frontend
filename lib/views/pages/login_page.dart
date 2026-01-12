@@ -349,8 +349,8 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: 'Usuario o Email',
                             hintStyle: TextStyle(
                               color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
+                                  ? Colors.grey[500]
+                                  : AppConstants.lightHintText,
                             ),
                             prefixIcon: Icon(
                               Icons.person_outline,
@@ -417,8 +417,8 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: 'Contraseña',
                             hintStyle: TextStyle(
                               color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
+                                  ? Colors.grey[500]
+                                  : AppConstants.lightHintText,
                             ),
                             prefixIcon: Icon(
                               Icons.lock_outline,

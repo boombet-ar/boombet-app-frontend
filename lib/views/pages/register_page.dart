@@ -784,7 +784,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
-                        color: Colors.grey.withValues(alpha: 0.2),
+                        color: isDark
+                            ? Colors.grey.withValues(alpha: 0.2)
+                            : AppConstants.lightDivider,
                         width: 1,
                       ),
                     ),
@@ -803,7 +805,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: Text(
                           'Cancelar',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: isDark
+                                ? Colors.grey[600]
+                                : AppConstants.textLight,
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -832,7 +836,9 @@ class _RegisterPageState extends State<RegisterPage> {
                               ? AppConstants.primaryGreen.withValues(
                                   alpha: 0.15,
                                 )
-                              : Colors.grey.withValues(alpha: 0.1),
+                              : (isDark
+                                    ? Colors.grey.withValues(alpha: 0.1)
+                                    : AppConstants.lightSurfaceVariant),
                         ),
                         child: Text(
                           'Continuar',
@@ -842,7 +848,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                     _privacyAccepted &&
                                     _dataAccepted)
                                 ? AppConstants.primaryGreen
-                                : Colors.grey[400],
+                                : (isDark
+                                      ? Colors.grey[400]
+                                      : AppConstants.lightHintText),
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -880,7 +888,9 @@ class _RegisterPageState extends State<RegisterPage> {
           border: Border.all(
             color: isAccepted
                 ? AppConstants.primaryGreen
-                : Colors.grey.withValues(alpha: 0.25),
+                : (isDark
+                      ? Colors.grey.withValues(alpha: 0.25)
+                      : AppConstants.borderLight),
             width: 2,
           ),
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
@@ -892,7 +902,9 @@ class _RegisterPageState extends State<RegisterPage> {
           children: [
             Icon(
               isAccepted ? Icons.check_circle : Icons.circle_outlined,
-              color: isAccepted ? AppConstants.primaryGreen : Colors.grey[400],
+              color: isAccepted
+                  ? AppConstants.primaryGreen
+                  : (isDark ? Colors.grey[400] : AppConstants.lightHintText),
               size: 28,
             ),
             const SizedBox(width: 16),
@@ -914,7 +926,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     style: TextStyle(
                       color: isAccepted
                           ? AppConstants.primaryGreen
-                          : Colors.grey[500],
+                          : (isDark
+                                ? Colors.grey[500]
+                                : AppConstants.lightHintText),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -2074,6 +2088,8 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       backgroundColor: widget.dialogBg,
@@ -2163,7 +2179,9 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey.withValues(alpha: 0.2),
+                    color: isDark
+                        ? Colors.grey.withValues(alpha: 0.2)
+                        : AppConstants.lightDivider,
                     width: 1,
                   ),
                 ),
@@ -2178,7 +2196,9 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
                   style: TextStyle(
                     color: _isScrolledToBottom
                         ? AppConstants.primaryGreen
-                        : Colors.grey[400],
+                        : (isDark
+                              ? Colors.grey[400]
+                              : AppConstants.lightHintText),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

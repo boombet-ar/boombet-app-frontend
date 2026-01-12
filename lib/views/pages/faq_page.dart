@@ -1,8 +1,11 @@
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FaqPage extends StatefulWidget {
   const FaqPage({super.key});
@@ -98,6 +101,26 @@ class _FaqPageState extends State<FaqPage> {
     _messageController.clear();
   }
 
+  Future<void> _openBoomBetSite() async {
+    final uri = Uri.parse('https://boombet-ar.bet');
+    final ok = await launchUrl(
+      uri,
+      mode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo abrir el sitio.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+  }
+
   List<InlineSpan> _buildAnswerSpans(String text, Color textColor) {
     final replacements = <String, Widget>{
       '(icono de perfil)': Icon(
@@ -161,9 +184,9 @@ class _FaqPageState extends State<FaqPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? const Color(0xFFE0E0E0) : Colors.black87;
+    final bgColor = theme.scaffoldBackgroundColor;
+    final cardColor = theme.colorScheme.surface;
+    final textColor = theme.colorScheme.onSurface;
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -274,7 +297,7 @@ class _FaqPageState extends State<FaqPage> {
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? Colors.transparent
-                                    : Colors.grey[900],
+                                    : AppConstants.lightSurfaceVariant,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Image.asset(
@@ -293,7 +316,7 @@ class _FaqPageState extends State<FaqPage> {
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? Colors.transparent
-                                    : Colors.grey[900],
+                                    : AppConstants.lightSurfaceVariant,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Image.asset(
@@ -305,6 +328,32 @@ class _FaqPageState extends State<FaqPage> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 30),
+                    Text(
+                      'Accede a nuestra pagina web!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _openBoomBetSite,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(0),
+                          child: Image.asset(
+                            'assets/images/boombetlogo.png',
+                            height: 140,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -363,7 +412,7 @@ class _FaqPageState extends State<FaqPage> {
                   ),
                 ),
                 iconColor: Theme.of(context).colorScheme.primary,
-                collapsedIconColor: textColor.withValues(alpha: 0.6),
+                collapsedIconColor: Theme.of(context).colorScheme.primary,
                 children: items
                     .map(
                       (item) => Padding(
@@ -385,7 +434,7 @@ class _FaqPageState extends State<FaqPage> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   height: 1.45,
-                                  color: textColor.withValues(alpha: 0.8),
+                                  color: textColor,
                                 ),
                                 children: _buildAnswerSpans(
                                   item['answer'] ?? '',
@@ -407,9 +456,7 @@ class _FaqPageState extends State<FaqPage> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: disabled
-                      ? textColor.withValues(alpha: 0.4)
-                      : textColor,
+                  color: textColor,
                 ),
               ),
               trailing: Icon(
@@ -419,10 +466,7 @@ class _FaqPageState extends State<FaqPage> {
               subtitle: disabled
                   ? Text(
                       'Próximamente',
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.5),
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: textColor, fontSize: 13),
                     )
                   : null,
               onTap: disabled

@@ -257,7 +257,7 @@ class LimitedHomeContent extends StatelessWidget {
                     minHeight: 8,
                     backgroundColor: isDark
                         ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFE0E0E0),
+                        : AppConstants.lightAccent,
                     valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
                   ),
                 ),
@@ -335,7 +335,7 @@ class LimitedHomeContent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.grey[100],
+        color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: primaryGreen.withValues(alpha: 0.2),
@@ -741,7 +741,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: isDark ? Colors.grey[900] : Colors.white,
+          color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -861,7 +861,9 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                         disabledBackgroundColor: primaryGreen.withValues(
                           alpha: 0.25,
                         ),
-                        disabledForegroundColor: Colors.black87,
+                        disabledForegroundColor: textColor.withValues(
+                          alpha: 0.85,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1047,10 +1049,14 @@ class _GameCardLimited extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.08)
+                            : AppConstants.lightSurfaceVariant,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.18)
+                              : AppConstants.borderLight.withValues(alpha: 0.7),
                           width: 0.8,
                         ),
                       ),
@@ -1071,14 +1077,16 @@ class _GameCardLimited extends StatelessWidget {
                     const Spacer(),
                     Icon(
                       playable ? Icons.auto_awesome : Icons.lock_outline,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : AppConstants.textLight,
                       size: 18,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.92)
+                            : AppConstants.textLight,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1095,10 +1103,12 @@ class _GameCardLimited extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 21,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppConstants.textLight,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -1107,7 +1117,9 @@ class _GameCardLimited extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               height: 1.38,
-                              color: Colors.white.withValues(alpha: 0.92),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.92)
+                                  : AppConstants.textLight,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -1118,9 +1130,15 @@ class _GameCardLimited extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              color: Colors.white.withValues(alpha: 0.1),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : AppConstants.lightSurfaceVariant,
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : AppConstants.borderLight.withValues(
+                                        alpha: 0.7,
+                                      ),
                                 width: 0.9,
                               ),
                             ),
@@ -1132,15 +1150,19 @@ class _GameCardLimited extends StatelessWidget {
                                       ? Icons.sports_esports
                                       : Icons.lock_outline,
                                   size: 18,
-                                  color: Colors.white,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   playable
                                       ? 'Jugar ahora'
                                       : 'Disponible al completar tu afiliación',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppConstants.textLight,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -1148,7 +1170,9 @@ class _GameCardLimited extends StatelessWidget {
                                 Icon(
                                   playable ? Icons.north_east : Icons.schedule,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
                                 ),
                               ],
                             ),
@@ -1162,9 +1186,13 @@ class _GameCardLimited extends StatelessWidget {
                       width: 74,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        color: Colors.white.withValues(alpha: 0.12),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : AppConstants.lightSurfaceVariant,
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : AppConstants.borderLight.withValues(alpha: 0.7),
                           width: 0.9,
                         ),
                       ),
@@ -1195,9 +1223,11 @@ Widget _buildLockedContent(
   String message,
 ) {
   final theme = Theme.of(context);
-  final textColor = theme.colorScheme.onSurface;
-  final primaryGreen = theme.colorScheme.primary;
   final isDark = theme.brightness == Brightness.dark;
+  final textColor = isDark
+      ? theme.colorScheme.onSurface
+      : AppConstants.textLight;
+  final primaryGreen = theme.colorScheme.primary;
 
   return Center(
     child: Padding(
@@ -1209,7 +1239,9 @@ Widget _buildLockedContent(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDark ? Colors.grey[900] : Colors.grey[100],
+              color: isDark
+                  ? Colors.grey[900]
+                  : AppConstants.lightSurfaceVariant,
               border: Border.all(
                 color: primaryGreen.withValues(alpha: 0.3),
                 width: 2,
@@ -1288,7 +1320,7 @@ class LimitedForumContent extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
-    final bgColor = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F5);
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg;
 
     // Posts de ejemplo (solo lectura) replicando la vista real del foro
     final posts = [
@@ -1352,7 +1384,7 @@ class _ForumHeaderLimited extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColor = isDark ? Colors.white : AppConstants.textLight;
 
     return Container(
       decoration: BoxDecoration(
@@ -1440,7 +1472,7 @@ class _ForumHeaderLimited extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
+                        : AppConstants.lightSurfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const IconButton(
@@ -1457,7 +1489,7 @@ class _ForumHeaderLimited extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
+                        : AppConstants.lightSurfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: accent.withOpacity(0.15),
@@ -1505,7 +1537,7 @@ class _LimitedPostCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF121212), const Color(0xFF161616)]
-              : [Colors.white, Colors.white.withOpacity(0.92)],
+              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
@@ -1535,7 +1567,9 @@ class _LimitedPostCard extends StatelessWidget {
                 _LimitedAvatarBubble(
                   radius: 20,
                   borderGradient: [accent, accent.withOpacity(0.6)],
-                  background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                  background: isDark
+                      ? const Color(0xFF1A1A1A)
+                      : AppConstants.lightSurfaceVariant,
                   avatarUrl: post.avatarUrl,
                   fallbackLetter: post.username.isNotEmpty
                       ? post.username[0].toUpperCase()
@@ -1573,7 +1607,7 @@ class _LimitedPostCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? Colors.white : AppConstants.textLight,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1602,7 +1636,7 @@ class _LimitedPostCard extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                                 color: isDark
                                     ? Colors.white.withOpacity(0.8)
-                                    : Colors.black87.withOpacity(0.7),
+                                    : AppConstants.textLight.withOpacity(0.7),
                               ),
                             ),
                           ],
@@ -1624,9 +1658,9 @@ class _LimitedPostCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 height: 1.5,
-                color: (isDark ? Colors.white : Colors.black87).withOpacity(
-                  0.85,
-                ),
+                color: isDark
+                    ? Colors.white.withOpacity(0.85)
+                    : AppConstants.textLight,
                 letterSpacing: 0.2,
               ),
               maxLines: 4,

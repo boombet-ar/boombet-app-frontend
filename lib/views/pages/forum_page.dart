@@ -1,4 +1,5 @@
 import 'package:boombet_app/models/forum_models.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
@@ -199,14 +200,13 @@ class _ForumPageState extends State<ForumPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A0A0A)
-          : const Color(0xFFF5F5F5),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
-          _buildHeader(accent, isDark),
+          _buildHeader(accent, isDark, textColor),
           Expanded(
             child: _isLoading
                 ? Center(
@@ -218,7 +218,7 @@ class _ForumPageState extends State<ForumPage> {
                 : _errorMessage != null
                 ? _buildError()
                 : _posts.isEmpty
-                ? _buildEmpty(isDark, accent)
+                ? _buildEmpty(isDark, accent, textColor)
                 : Column(
                     children: [
                       Expanded(
@@ -237,7 +237,7 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
-  Widget _buildHeader(Color accent, bool isDark) {
+  Widget _buildHeader(Color accent, bool isDark, Color textColor) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -286,7 +286,7 @@ class _ForumPageState extends State<ForumPage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: textColor,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -308,8 +308,7 @@ class _ForumPageState extends State<ForumPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: (isDark ? Colors.white : Colors.black87)
-                                  .withOpacity(0.6),
+                              color: textColor,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -323,7 +322,7 @@ class _ForumPageState extends State<ForumPage> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      : AppConstants.lightSurfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -340,7 +339,7 @@ class _ForumPageState extends State<ForumPage> {
                       ? accent.withOpacity(0.15)
                       : isDark
                       ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      : AppConstants.lightSurfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: accent.withOpacity(_showMine ? 0.6 : 0.15),
@@ -391,7 +390,7 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
-  Widget _buildEmpty(bool isDark, Color accent) {
+  Widget _buildEmpty(bool isDark, Color accent, Color textColor) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -427,20 +426,14 @@ class _ForumPageState extends State<ForumPage> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'Todavía no hay publicaciones.\nSé el primero en compartir algo con la comunidad.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                color: (isDark ? Colors.white : Colors.black87).withOpacity(
-                  0.6,
-                ),
-              ),
+              style: TextStyle(fontSize: 15, height: 1.5, color: textColor),
             ),
           ],
         ),
@@ -518,18 +511,18 @@ class _ForumPageState extends State<ForumPage> {
     final canJumpBack10 = _currentPage >= 10;
     final canJumpForward5 = _totalPages > 0 && _currentPage + 5 <= lastIndex;
     final canJumpForward10 = _totalPages > 0 && _currentPage + 10 <= lastIndex;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightAccent,
         border: Border(
           top: BorderSide(
             color: isDark
                 ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.1),
+                : AppConstants.borderLight,
             width: 1,
           ),
         ),
@@ -665,6 +658,10 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surface = theme.colorScheme.surface;
+    final textColor = theme.colorScheme.onSurface;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -673,7 +670,7 @@ class _PostCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF121212), const Color(0xFF161616)]
-              : [Colors.white, Colors.white.withOpacity(0.92)],
+              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
@@ -715,7 +712,7 @@ class _PostCard extends StatelessWidget {
                       borderGradient: [accent, accent.withOpacity(0.6)],
                       background: isDark
                           ? const Color(0xFF1A1A1A)
-                          : Colors.white,
+                          : AppConstants.lightSurfaceVariant,
                       avatarUrl: post.avatarUrl,
                       fallbackLetter: post.username.isNotEmpty
                           ? post.username[0].toUpperCase()
@@ -753,7 +750,7 @@ class _PostCard extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
-                              color: isDark ? Colors.white : Colors.black87,
+                              color: textColor,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -780,9 +777,7 @@ class _PostCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.8)
-                                        : Colors.black87.withOpacity(0.7),
+                                    color: textColor,
                                   ),
                                 ),
                               ],
@@ -827,9 +822,7 @@ class _PostCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.5,
-                    color: (isDark ? Colors.white : Colors.black87).withOpacity(
-                      0.85,
-                    ),
+                    color: textColor,
                     letterSpacing: 0.2,
                   ),
                   maxLines: 4,
@@ -876,13 +869,15 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final surface = theme.colorScheme.surface;
+    final textColor = theme.colorScheme.onSurface;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightDialogBg,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -931,7 +926,7 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: textColor,
                     ),
                   ),
                 ],
@@ -958,7 +953,7 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
                   filled: true,
                   fillColor: isDark
                       ? Colors.white.withOpacity(0.03)
-                      : Colors.black.withOpacity(0.02),
+                      : AppConstants.lightInputBg,
                 ),
                 maxLines: 6,
                 maxLength: 500,

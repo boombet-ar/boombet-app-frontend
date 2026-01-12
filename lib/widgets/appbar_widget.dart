@@ -9,6 +9,7 @@ import 'package:boombet_app/views/pages/settings_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -43,6 +44,26 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isDark = theme.brightness == Brightness.dark;
     final greenColor = theme.colorScheme.primary;
     final appBarBg = isDark ? Colors.black38 : AppConstants.lightSurfaceVariant;
+
+    Future<void> openBoomBetSite() async {
+      final uri = Uri.parse('https://boombet-ar.bet');
+      final ok = await launchUrl(
+        uri,
+        mode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
+        webOnlyWindowName: kIsWeb ? '_blank' : null,
+      );
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No se pudo abrir el sitio.'),
+            backgroundColor: AppConstants.warningOrange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
 
     return AppBar(
       systemOverlayStyle: isDark
@@ -189,7 +210,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               padding: EdgeInsets.only(right: 8.0),
               child: Hero(
                 tag: 'boombet_logo',
-                child: Image.asset('assets/images/boombetlogo.png', height: 80),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: openBoomBetSite,
+                    child: Image.asset(
+                      'assets/images/boombetlogo.png',
+                      height: 80,
+                    ),
+                  ),
+                ),
               ),
             ),
         ],

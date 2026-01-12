@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class SectionHeaderWidget extends StatelessWidget {
@@ -23,6 +24,7 @@ class SectionHeaderWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
+    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
 
     return Container(
       decoration: BoxDecoration(
@@ -70,7 +72,7 @@ class SectionHeaderWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: textColor,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -92,8 +94,7 @@ class SectionHeaderWidget extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: (isDark ? Colors.white : Colors.black87)
-                                .withOpacity(0.6),
+                            color: textColor,
                           ),
                           maxLines: 3,
                           softWrap: true,
@@ -109,8 +110,8 @@ class SectionHeaderWidget extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      ? AppConstants.darkCardBg
+                      : AppConstants.lightSurfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -124,8 +125,8 @@ class SectionHeaderWidget extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      ? AppConstants.darkCardBg
+                      : AppConstants.lightSurfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(

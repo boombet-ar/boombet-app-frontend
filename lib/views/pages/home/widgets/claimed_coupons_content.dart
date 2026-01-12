@@ -2,6 +2,7 @@
 import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
@@ -194,7 +195,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                         onPressed: _loadClaimedCupones,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
-                          foregroundColor: Colors.black,
+                          foregroundColor: AppConstants.textLight,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
                             vertical: 12,
@@ -394,7 +395,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
               child: Container(
-                color: isDark ? Colors.grey[900] : Colors.white,
+                color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -465,8 +466,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             ),
                             child: Text(
                               cupon.descuento,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 letterSpacing: 0.5,
@@ -492,18 +495,22 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 ),
                               ],
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Icon(
                                   Icons.check_circle,
-                                  color: Colors.white,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
                                   size: 14,
                                 ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Reclamado',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppConstants.textLight,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
                                   ),
@@ -665,10 +672,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const SizedBox(height: 3),
-                                  SizedBox(
-                                    height: 0,
-                                    width: 120,
-                                  ),
+                                  SizedBox(height: 0, width: 120),
                                 ],
                               ),
                             ],
@@ -696,16 +700,20 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final dialogSurface = isDark
+        ? const Color(0xFF0A1A1A)
+        : AppConstants.lightCardBg;
+
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.8 : 0.5),
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           decoration: BoxDecoration(
-            color: const Color(0xFF0A1A1A),
+            color: dialogSurface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: primaryGreen.withValues(alpha: 0.3),
@@ -772,8 +780,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               ),
                               child: Text(
                                 cupon.descuento,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 36,
                                   height: 1.0,
@@ -784,10 +794,12 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             Text(
                               cupon.nombre,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -849,7 +861,9 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : AppConstants.lightSurfaceVariant,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -860,9 +874,9 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.7,
-                                      ),
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.7)
+                                          : AppConstants.textLight,
                                     ),
                                   ),
                                   SizedBox(
@@ -1040,7 +1054,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 onPressed: () => Navigator.pop(context),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreen,
-                                  foregroundColor: Colors.black,
+                                  foregroundColor: AppConstants.textLight,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
@@ -1075,10 +1089,14 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : AppConstants.textLight,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.3),
+                      backgroundColor: isDark
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : AppConstants.lightSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1128,7 +1146,9 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: isDark ? 0.02 : 0.04),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.02)
+                : AppConstants.lightSurfaceVariant,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: primaryGreen.withValues(alpha: 0.15)),
           ),

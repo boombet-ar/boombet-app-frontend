@@ -309,7 +309,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           : AppConstants.lightAccent;
       final borderColor = isDark
           ? AppConstants.borderDark
-          : const Color(0xFFB0B0B0);
+          : AppConstants.lightInputBorder;
       final borderRadius = AppConstants.borderRadius;
 
       return Scaffold(
@@ -387,8 +387,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             hintText: 'Nueva contraseña',
                             hintStyle: TextStyle(
                               color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
+                                  ? Colors.grey[500]
+                                  : AppConstants.lightHintText,
                             ),
                             prefixIcon: Icon(
                               Icons.lock_outline,
@@ -493,8 +493,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             hintText: 'Confirma tu contraseña',
                             hintStyle: TextStyle(
                               color: isDark
-                                  ? const Color(0xFF808080)
-                                  : const Color(0xFF6C6C6C),
+                                  ? Colors.grey[500]
+                                  : AppConstants.lightHintText,
                             ),
                             prefixIcon: Icon(
                               Icons.lock_outline,

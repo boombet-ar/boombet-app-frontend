@@ -742,7 +742,8 @@ class _HomeContentState extends State<HomeContent> {
                                           label: const Text('Reintentar'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: primaryGreen,
-                                            foregroundColor: Colors.black,
+                                            foregroundColor:
+                                                AppConstants.textLight,
                                           ),
                                         ),
                                       ],

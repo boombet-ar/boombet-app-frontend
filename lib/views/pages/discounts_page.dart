@@ -1,4 +1,5 @@
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -136,9 +137,14 @@ class _DiscountsPageState extends State<DiscountsPage> {
   }
 
   void _showHowToEarnPoints(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark
+            ? theme.dialogBackgroundColor
+            : AppConstants.lightCardBg,
         title: const Text(
           '¿Cómo ganar puntos?',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -194,16 +200,28 @@ class _DiscountsPageState extends State<DiscountsPage> {
 
   void _showCuponDetails(Cupon cupon) {
     final primaryGreen = const Color(0xFF00D084);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogSurface = isDark
+        ? const Color(0xFF0A1A1A)
+        : AppConstants.lightCardBg;
+    final dialogOnSurface = isDark ? Colors.white : AppConstants.textLight;
+    final htmlBodyColor = isDark
+        ? Colors.white70
+        : AppConstants.textLight.withValues(alpha: 0.75);
+    final contentSurface = isDark
+        ? Colors.white.withOpacity(0.05)
+        : AppConstants.lightSurfaceVariant;
 
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.8 : 0.5),
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           decoration: BoxDecoration(
-            color: const Color(0xFF0A1A1A),
+            color: dialogSurface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: primaryGreen.withOpacity(0.3), width: 2),
             boxShadow: [
@@ -248,11 +266,13 @@ class _DiscountsPageState extends State<DiscountsPage> {
                     right: 12,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: isDark
+                            ? Colors.black.withOpacity(0.6)
+                            : AppConstants.lightSurfaceVariant,
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: Icon(Icons.close, color: dialogOnSurface),
                         onPressed: () => Navigator.pop(context),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
@@ -272,10 +292,10 @@ class _DiscountsPageState extends State<DiscountsPage> {
                       // Título
                       Text(
                         cupon.nombre,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: dialogOnSurface,
                           fontFamily: 'ThaleahFat',
                           letterSpacing: 0.5,
                         ),
@@ -337,7 +357,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: contentSurface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: primaryGreen.withOpacity(0.2),
@@ -348,7 +368,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
                             data: cupon.descripcionMicrositio,
                             style: {
                               "body": Style(
-                                color: Colors.white70,
+                                color: htmlBodyColor,
                                 fontSize: FontSize(14),
                                 margin: Margins.zero,
                               ),
@@ -368,7 +388,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: contentSurface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: primaryGreen.withOpacity(0.2),
@@ -379,7 +399,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
                             data: cupon.legales,
                             style: {
                               "body": Style(
-                                color: Colors.white60,
+                                color: htmlBodyColor.withValues(alpha: 0.85),
                                 fontSize: FontSize(12),
                                 margin: Margins.zero,
                               ),
@@ -457,8 +477,10 @@ class _DiscountsPageState extends State<DiscountsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryGreen = const Color(0xFF00D084);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? AppConstants.darkBg : AppConstants.lightBg,
       appBar: const MainAppBar(
         showSettings: true,
         showLogo: true,
@@ -585,6 +607,15 @@ class _DiscountsPageState extends State<DiscountsPage> {
                               selected: isSelected,
                               onSelected: (_) =>
                                   _onCategoryToggle(categoryName),
+                              backgroundColor: isDark
+                                  ? null
+                                  : AppConstants.lightSurfaceVariant,
+                              selectedColor: primaryGreen.withValues(
+                                alpha: 0.15,
+                              ),
+                              labelStyle: TextStyle(
+                                color: isDark ? null : AppConstants.textLight,
+                              ),
                             ),
                           );
                         },
@@ -622,7 +653,9 @@ class _DiscountsPageState extends State<DiscountsPage> {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark
+                                ? Colors.white
+                                : AppConstants.lightSurfaceVariant,
                             borderRadius: BorderRadius.circular(25),
                           ),
                           child: Icon(
@@ -639,17 +672,21 @@ class _DiscountsPageState extends State<DiscountsPage> {
                               'Tus Puntos',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.9)
+                                    : AppConstants.textLight,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               '0 pts',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
                               ),
                             ),
                           ],
@@ -689,6 +726,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
 
   Widget _buildCuponCard(Cupon cupon) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = const Color(0xFF00D084);
 
     return GestureDetector(
@@ -697,6 +735,8 @@ class _DiscountsPageState extends State<DiscountsPage> {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 4,
+        color: isDark ? null : AppConstants.lightCardBg,
+        surfaceTintColor: Colors.transparent,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -755,8 +795,8 @@ class _DiscountsPageState extends State<DiscountsPage> {
                       ),
                       child: Text(
                         cupon.descuento,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : AppConstants.textLight,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -832,6 +872,9 @@ class _DiscountsPageState extends State<DiscountsPage> {
                                 cat.nombre,
                                 style: const TextStyle(fontSize: 10),
                               ),
+                              backgroundColor: isDark
+                                  ? null
+                                  : AppConstants.lightSurfaceVariant,
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                               padding: EdgeInsets.zero,

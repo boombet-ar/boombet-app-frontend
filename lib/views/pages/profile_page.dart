@@ -174,7 +174,7 @@ class _ProfilePageState extends State<ProfilePage> {
               label: Text(isTokenError ? 'Ir a Login' : 'Reintentar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
-                foregroundColor: Colors.black,
+                foregroundColor: AppConstants.textLight,
               ),
             ),
           ],
@@ -244,7 +244,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   spreadRadius: 5,
                 ),
               ],
-              color: isDark ? const Color(0xFF202020) : Colors.white,
+              color: isDark
+                  ? const Color(0xFF202020)
+                  : Theme.of(context).colorScheme.surface,
             ),
             child: ClipOval(child: _buildAvatarImage(primaryGreen, isDark)),
           ),
@@ -338,7 +340,7 @@ class _ProfilePageState extends State<ProfilePage> {
         color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black12,
+          color: isDark ? Colors.white10 : AppConstants.borderLight,
           width: 1,
         ),
         boxShadow: [
@@ -408,7 +410,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
-                  foregroundColor: Colors.black,
+                  foregroundColor: AppConstants.textLight,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -432,7 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     _showUnaffiliateDialog(primaryGreen, textColor, isDark),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
-                  foregroundColor: Colors.white,
+                  foregroundColor: textColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -459,7 +461,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ) {
     const dialogRadius = 20.0;
     final bgColor = isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg;
-    final subtitleColor = isDark ? Colors.white70 : AppConstants.lightHintText;
+    final subtitleColor = textColor;
 
     showDialog(
       context: context,
@@ -650,7 +652,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               : () => _handleUnaffiliateConfirm(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade600,
-                            foregroundColor: Colors.white,
+                            foregroundColor: textColor,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -658,12 +660,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           child: _isUnaffiliating
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 16,
                                   width: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: textColor,
                                   ),
                                 )
                               : const Text(
@@ -690,10 +692,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildUnaffiliatePoint(String text, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 13, color: textColor.withValues(alpha: 0.8)),
-      ),
+      child: Text(text, style: TextStyle(fontSize: 13, color: textColor)),
     );
   }
 
@@ -710,10 +709,10 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: isDark
             ? Colors.grey.shade900.withValues(alpha: 0.3)
-            : Colors.grey.shade50,
+            : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
+          color: isDark ? Colors.grey.shade700 : AppConstants.borderLight,
           width: 1,
         ),
       ),
@@ -769,7 +768,7 @@ class _ProfilePageState extends State<ProfilePage> {
       SnackBar(
         content: const Text(
           'Solicitud procesada. Desafiliación en progreso...',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppConstants.textLight),
         ),
         backgroundColor: Colors.orange.shade700,
         duration: AppConstants.longSnackbarDuration,
@@ -790,7 +789,7 @@ class _ProfilePageState extends State<ProfilePage> {
         SnackBar(
           content: Text(
             'No pudimos procesar la desafiliación: $e',
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: AppConstants.textLight),
           ),
           backgroundColor: Colors.red.shade700,
           duration: AppConstants.longSnackbarDuration,
@@ -818,7 +817,7 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white10 : Colors.black12,
+            color: isDark ? Colors.white10 : AppConstants.borderLight,
             width: 1,
           ),
         ),

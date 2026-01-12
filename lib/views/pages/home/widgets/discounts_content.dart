@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart'
-    hide RefreshIndicator;
+import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -541,8 +541,8 @@ class DiscountsContentState extends State<DiscountsContent> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  isDark ? Colors.grey[850]! : Colors.white,
-                  isDark ? Colors.grey[900]! : Colors.grey[50]!,
+                  isDark ? Colors.grey[850]! : AppConstants.lightCardBg,
+                  isDark ? Colors.grey[900]! : AppConstants.lightBg,
                 ],
               ),
               borderRadius: BorderRadius.circular(28),
@@ -662,7 +662,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                       onPressed: _affiliationLoading ? null : _startAffiliation,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
-                        foregroundColor: Colors.black,
+                        foregroundColor: AppConstants.textLight,
                         disabledBackgroundColor: primaryGreen.withValues(
                           alpha: 0.6,
                         ),
@@ -685,7 +685,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    color: Colors.black,
+                                    color: AppConstants.textLight,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -825,7 +825,7 @@ class DiscountsContentState extends State<DiscountsContent> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
               child: Container(
-                color: isDark ? Colors.grey[900] : Colors.white,
+                color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -894,18 +894,22 @@ class DiscountsContentState extends State<DiscountsContent> {
                                       ),
                                     ],
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
                                       Icon(
                                         Icons.check_circle,
-                                        color: Colors.white,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppConstants.textLight,
                                         size: 14,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
                                         'Reclamado',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: isDark
+                                              ? Colors.white
+                                              : AppConstants.textLight,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 11,
                                         ),
@@ -938,8 +942,10 @@ class DiscountsContentState extends State<DiscountsContent> {
                             ),
                             child: Text(
                               cupon.descuento,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 letterSpacing: 0.5,
@@ -952,7 +958,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                           left: 12,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppConstants.lightCardBg,
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
@@ -975,7 +983,8 @@ class DiscountsContentState extends State<DiscountsContent> {
                                             return Container(
                                               width: 56,
                                               height: 56,
-                                              color: Colors.grey[200],
+                                              color: AppConstants
+                                                  .lightSurfaceVariant,
                                               child: Center(
                                                 child: Text(
                                                   cupon.empresa.nombre
@@ -1002,7 +1011,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                                   : Container(
                                       width: 56,
                                       height: 56,
-                                      color: Colors.grey[200],
+                                      color: isDark
+                                          ? Colors.grey[800]
+                                          : AppConstants.lightSurfaceVariant,
                                       child: Center(
                                         child: Text(
                                           cupon.empresa.nombre
@@ -1296,7 +1307,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     label: const Text('Reclamar'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: primaryGreen,
-                                      foregroundColor: Colors.black,
+                                      foregroundColor: AppConstants.textLight,
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 8,
                                         horizontal: 12,
@@ -1325,68 +1336,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color primaryGreen, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: primaryGreen.withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: primaryGreen,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContentBox(
-    String htmlContent,
-    Color textColor,
-    Color primaryGreen,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey[800]!.withValues(alpha: 0.5)
-            : Colors.grey[100]!.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Html(
-        data: htmlContent,
-        style: {
-          'body': Style(
-            color: textColor,
-            fontSize: FontSize(14),
-            lineHeight: LineHeight.number(1.6),
-            margin: Margins.all(0),
-            padding: HtmlPaddings.all(0),
-          ),
-          'p': Style(margin: Margins.symmetric(vertical: 6), color: textColor),
-          'a': Style(
-            color: primaryGreen,
-            textDecoration: TextDecoration.underline,
-          ),
-          'b': Style(fontWeight: FontWeight.bold, color: primaryGreen),
-          'u': Style(textDecoration: TextDecoration.underline),
-        },
-      ),
-    );
-  }
-
   void _showCuponDetails(
     BuildContext context,
     Cupon cupon,
@@ -1396,16 +1345,20 @@ class DiscountsContentState extends State<DiscountsContent> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final dialogSurface = isDark
+        ? const Color(0xFF0A1A1A)
+        : AppConstants.lightCardBg;
+
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.8 : 0.5),
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           decoration: BoxDecoration(
-            color: const Color(0xFF0A1A1A),
+            color: dialogSurface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: primaryGreen.withValues(alpha: 0.3),
@@ -1474,8 +1427,10 @@ class DiscountsContentState extends State<DiscountsContent> {
                               ),
                               child: Text(
                                 cupon.descuento,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 36,
                                   height: 1.0,
@@ -1490,7 +1445,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -1555,7 +1512,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : AppConstants.lightSurfaceVariant,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -1566,9 +1525,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.7,
-                                      ),
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.7)
+                                          : AppConstants.textLight,
                                     ),
                                   ),
                                   SizedBox(
@@ -1663,7 +1622,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 onPressed: () => Navigator.pop(context),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryGreen,
-                                  foregroundColor: Colors.black,
+                                  foregroundColor: AppConstants.textLight,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
@@ -1699,10 +1658,14 @@ class DiscountsContentState extends State<DiscountsContent> {
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : AppConstants.textLight,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.3),
+                      backgroundColor: isDark
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : AppConstants.lightSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1752,7 +1715,9 @@ class DiscountsContentState extends State<DiscountsContent> {
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.02),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.02)
+                : AppConstants.lightSurfaceVariant,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: primaryGreen.withValues(alpha: 0.15)),
           ),
@@ -1861,12 +1826,10 @@ class DiscountsContentState extends State<DiscountsContent> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    (isDark ? Colors.grey[900]! : Colors.white).withValues(
-                      alpha: 0.94,
-                    ),
-                    (isDark ? Colors.grey[850]! : Colors.grey[50]!).withValues(
-                      alpha: 0.9,
-                    ),
+                    (isDark ? Colors.grey[900]! : AppConstants.lightCardBg)
+                        .withValues(alpha: 0.94),
+                    (isDark ? Colors.grey[850]! : AppConstants.lightBg)
+                        .withValues(alpha: 0.9),
                   ],
                 ),
                 border: Border.all(
@@ -1886,9 +1849,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                 children: [
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.white : Colors.black).withValues(
-                        alpha: 0.03,
-                      ),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.03)
+                          : AppConstants.lightSurfaceVariant,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: primaryGreen.withValues(alpha: 0.2),
@@ -1943,10 +1906,14 @@ class DiscountsContentState extends State<DiscountsContent> {
                                   ? null
                                   : (isDark
                                         ? Colors.white.withValues(alpha: 0.05)
-                                        : Colors.white),
+                                        : AppConstants.lightSurfaceVariant),
                               border: Border.all(
                                 color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.22)
+                                    ? (isDark
+                                          ? Colors.white.withValues(alpha: 0.22)
+                                          : AppConstants.borderLight.withValues(
+                                              alpha: 0.7,
+                                            ))
                                     : primaryGreen.withValues(alpha: 0.22),
                                 width: 1,
                               ),
@@ -2010,7 +1977,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                                             : Icons.local_offer_outlined,
                                         size: 16,
                                         color: isSelected
-                                            ? Colors.white
+                                            ? (isDark
+                                                  ? Colors.white
+                                                  : AppConstants.textLight)
                                             : primaryGreen,
                                       ),
                                       const SizedBox(width: 8),
@@ -2020,7 +1989,9 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w700,
                                           color: isSelected
-                                              ? Colors.white
+                                              ? (isDark
+                                                    ? Colors.white
+                                                    : AppConstants.textLight)
                                               : primaryGreen,
                                           letterSpacing: 0.3,
                                         ),
@@ -2096,7 +2067,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                             label: const Text('Reintentar'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryGreen,
-                              foregroundColor: Colors.black,
+                              foregroundColor: AppConstants.textLight,
                             ),
                           ),
                         ],

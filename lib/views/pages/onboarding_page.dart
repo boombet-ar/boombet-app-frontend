@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:boombet_app/config/app_constants.dart';
+
 class OnboardingPage extends StatefulWidget {
   final VoidCallback onComplete;
 
@@ -71,7 +73,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final primaryGreen = theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.black,
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -135,7 +137,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: Text(
                       'Omitir',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: isDark
+                            ? Colors.white.withOpacity(0.7)
+                            : AppConstants.textLight,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -188,6 +192,9 @@ class _OnboardingSlideWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -233,10 +240,12 @@ class _OnboardingSlideWidget extends StatelessWidget {
           // Descripción
           Text(
             slide.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: Colors.white70,
+              color: isDark
+                  ? Colors.white70
+                  : AppConstants.textLight.withValues(alpha: 0.7),
               height: 1.5,
             ),
             textAlign: TextAlign.center,

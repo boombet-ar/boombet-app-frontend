@@ -1,5 +1,6 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/games/game_02/game_02_page.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -99,6 +100,17 @@ class _GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accentBg = isDark
+        ? Colors.black.withValues(alpha: 0.08)
+        : AppConstants.lightSurfaceVariant;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : AppConstants.borderLight.withValues(alpha: 0.7);
+    final fg = isDark ? Colors.white : AppConstants.textLight;
+    final fgSoft = isDark
+        ? Colors.white.withValues(alpha: 0.92)
+        : AppConstants.textLight;
+
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onPlay,
@@ -138,12 +150,9 @@ class _GameCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: accentBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      width: 0.8,
-                    ),
+                    border: Border.all(color: borderColor, width: 0.8),
                   ),
                   child: Row(
                     children: [
@@ -160,12 +169,12 @@ class _GameCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                Icon(Icons.auto_awesome, color: fg, size: 18),
                 const SizedBox(width: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: fgSoft,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -185,7 +194,7 @@ class _GameCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 21,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: fg,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -194,7 +203,7 @@ class _GameCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.38,
-                          color: Colors.white.withValues(alpha: 0.92),
+                          color: fgSoft,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -205,34 +214,25 @@ class _GameCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.white.withValues(alpha: 0.1),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            width: 0.9,
-                          ),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : AppConstants.lightSurfaceVariant,
+                          border: Border.all(color: borderColor, width: 0.9),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.sports_esports,
-                              size: 18,
-                              color: Colors.white,
-                            ),
+                            Icon(Icons.sports_esports, size: 18, color: fg),
                             const SizedBox(width: 8),
                             Text(
                               'Jugar ahora',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: fg,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Icon(
-                              Icons.north_east,
-                              size: 16,
-                              color: Colors.white,
-                            ),
+                            Icon(Icons.north_east, size: 16, color: fg),
                           ],
                         ),
                       ),
@@ -245,9 +245,13 @@ class _GameCard extends StatelessWidget {
                   width: 74,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: Colors.white.withValues(alpha: 0.12),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppConstants.lightSurfaceVariant,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : AppConstants.borderLight.withValues(alpha: 0.7),
                       width: 0.9,
                     ),
                   ),

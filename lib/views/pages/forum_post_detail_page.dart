@@ -1,4 +1,5 @@
 import 'package:boombet_app/models/forum_models.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -240,15 +241,15 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     final accent = theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A0A0A)
-          : const Color(0xFFF5F5F5),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg,
       appBar: AppBar(
         title: const Text(
           'Publicación',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        backgroundColor: isDark
+            ? const Color(0xFF1A1A1A)
+            : AppConstants.lightAccent,
         elevation: 0,
         actions: const [],
       ),
@@ -315,7 +316,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF121212), const Color(0xFF171717)]
-              : [Colors.white, Colors.white.withOpacity(0.94)],
+              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -341,7 +342,9 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               _AvatarBubble(
                 radius: 24,
                 borderGradient: [accent, accent.withOpacity(0.6)],
-                background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                background: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : AppConstants.lightSurfaceVariant,
                 avatarUrl: _post?.avatarUrl ?? '',
                 fallbackLetter: _post?.username.isNotEmpty == true
                     ? _post!.username[0].toUpperCase()
@@ -358,7 +361,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 17,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: isDark ? Colors.white : AppConstants.textLight,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -389,7 +392,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                               fontWeight: FontWeight.w700,
                               color: isDark
                                   ? Colors.white.withOpacity(0.82)
-                                  : Colors.black87.withOpacity(0.76),
+                                  : AppConstants.textLight.withOpacity(0.76),
                             ),
                           ),
                         ],
@@ -407,7 +410,9 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               fontSize: 16,
               height: 1.6,
               letterSpacing: 0.2,
-              color: (isDark ? Colors.white : Colors.black87).withOpacity(0.9),
+              color: isDark
+                  ? Colors.white.withOpacity(0.9)
+                  : AppConstants.textLight.withOpacity(0.9),
             ),
           ),
         ],
@@ -438,7 +443,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
+              color: isDark ? Colors.white : AppConstants.textLight,
             ),
           ),
         ],
@@ -461,7 +466,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF141414), const Color(0xFF1B1B1B)]
-              : [Colors.white, Colors.white.withOpacity(0.95)],
+              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -485,7 +490,9 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               _AvatarBubble(
                 radius: 18,
                 borderGradient: [accent.withOpacity(0.4), accent],
-                background: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                background: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : AppConstants.lightSurfaceVariant,
                 avatarUrl: reply.avatarUrl,
                 fallbackLetter: reply.username.isNotEmpty
                     ? reply.username[0].toUpperCase()
@@ -502,7 +509,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: isDark ? Colors.white : AppConstants.textLight,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -533,7 +540,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                               fontWeight: FontWeight.w600,
                               color: isDark
                                   ? Colors.white.withOpacity(0.75)
-                                  : Colors.black87.withOpacity(0.65),
+                                  : AppConstants.textLight.withOpacity(0.65),
                             ),
                           ),
                         ],
@@ -569,7 +576,9 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               fontSize: 14,
               height: 1.5,
               letterSpacing: 0.1,
-              color: (isDark ? Colors.white : Colors.black87).withOpacity(0.85),
+              color: isDark
+                  ? Colors.white.withOpacity(0.85)
+                  : AppConstants.textLight.withOpacity(0.85),
             ),
           ),
         ],
@@ -582,7 +591,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.15),
@@ -607,7 +616,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      : AppConstants.lightSurfaceVariant,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: accent.withOpacity(0.2), width: 1),
                 ),
@@ -658,16 +667,16 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
               child: IconButton(
                 onPressed: _isSubmittingReply ? null : _submitReply,
                 icon: _isSubmittingReply
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          color: Colors.white,
+                          color: isDark ? Colors.white : AppConstants.textLight,
                         ),
                       )
                     : const Icon(Icons.send_rounded, size: 22),
-                color: Colors.white,
+                color: isDark ? Colors.white : AppConstants.textLight,
                 padding: const EdgeInsets.all(14),
               ),
             ),
@@ -684,7 +693,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark

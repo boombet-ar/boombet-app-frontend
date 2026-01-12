@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -102,7 +103,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
     final accent = theme.colorScheme.primary;
 
     return ColoredBox(
-      color: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F5),
+      color: theme.scaffoldBackgroundColor,
       child: Column(
         children: [
           SectionHeaderWidget(
@@ -150,6 +151,8 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
   }
 
   Widget _buildEmpty(bool isDark, Color accent) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -181,20 +184,14 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black87,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Aquí aparecerán los casinos a los que te unas.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                color: (isDark ? Colors.white : Colors.black87).withOpacity(
-                  0.65,
-                ),
-              ),
+              style: TextStyle(fontSize: 15, height: 1.5, color: textColor),
             ),
           ],
         ),
@@ -234,10 +231,12 @@ class _CasinoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -249,9 +248,7 @@ class _CasinoCard extends StatelessWidget {
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? accent.withOpacity(0.15)
-              : Colors.black.withOpacity(0.05),
+          color: isDark ? accent.withOpacity(0.15) : AppConstants.borderLight,
           width: 1,
         ),
       ),
@@ -272,7 +269,7 @@ class _CasinoCard extends StatelessWidget {
                     child: Container(
                       color: isDark
                           ? const Color(0xFF2A2A2A)
-                          : const Color(0xFFF3F3F),
+                          : AppConstants.lightSurfaceVariant,
                       child: casino.logoUrl.isNotEmpty
                           ? Image.network(
                               casino.logoUrl,
@@ -311,7 +308,7 @@ class _CasinoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? Colors.black : Colors.white;
+    final textColor = Theme.of(context).colorScheme.onPrimary;
 
     return Material(
       color: Colors.transparent,
@@ -334,7 +331,12 @@ class _CasinoButton extends StatelessWidget {
                 offset: const Offset(0, 6),
               ),
             ],
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.2)
+                  : AppConstants.borderLight.withOpacity(0.6),
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

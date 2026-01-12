@@ -257,7 +257,9 @@ class AffiliationResultsPage extends StatelessWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
-                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    foregroundColor: isDark
+                        ? Colors.black
+                        : AppConstants.textLight,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -273,7 +275,7 @@ class AffiliationResultsPage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.black : Colors.white,
+                          color: isDark ? Colors.black : AppConstants.textLight,
                         ),
                       ),
                     ],

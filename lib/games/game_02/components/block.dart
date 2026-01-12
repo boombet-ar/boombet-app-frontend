@@ -13,6 +13,10 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
     required this.speed,
     required this.towerImage,
     required this.imageScale,
+    this.shadowOpacity = 0.18,
+    this.shadowBlurSigma = 2.6,
+    this.shadowInflate = 1.2,
+    this.shadowOffset = const Offset(0, 1.0),
   }) : super(anchor: Anchor.topLeft);
 
   final int colorSeed;
@@ -26,6 +30,13 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
   final ui.Image? towerImage;
   final double imageScale;
 
+  /// Sombra/glow negro sutil para separar del fondo.
+  /// Mantener valores bajos para que quede "pegada".
+  final double shadowOpacity;
+  final double shadowBlurSigma;
+  final double shadowInflate;
+  final Offset shadowOffset;
+
   final Paint _paint = Paint()..style = PaintingStyle.fill;
   bool _colorInitialized = false;
 
@@ -36,10 +47,15 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
 
   double opacity = 1.0;
 
-  // final Paint _glowPaint = Paint()
-  //   ..style = PaintingStyle.fill
-  //   ..color = const Color(0xCC000000)
-  //   ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 8);
+  Paint _shadowPaint() {
+    return Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withOpacity(shadowOpacity.clamp(0.0, 1.0))
+      ..maskFilter = ui.MaskFilter.blur(
+        ui.BlurStyle.normal,
+        shadowBlurSigma.clamp(0.0, 20.0),
+      );
+  }
 
   @override
   void onLoad() {
@@ -153,14 +169,16 @@ class BlockComponent extends PositionComponent with HasGameRef<Game02> {
 
     final dst = Rect.fromLTWH(0, 0, size.x, size.y);
     final rrect = RRect.fromRectAndRadius(dst, const Radius.circular(6));
-    final glowRect = dst.inflate(2);
-    final glowRRect = RRect.fromRectAndRadius(
-      glowRect,
-      const Radius.circular(8),
-    );
 
-    // Glow/sombra negra para separar del fondo
-    // canvas.drawRRect(glowRRect, _glowPaint);
+    // Glow/sombra negra sutil (pegada) para separar del fondo.
+    if (shadowOpacity > 0 && shadowBlurSigma > 0) {
+      final glowRect = dst.inflate(shadowInflate);
+      final glowRRect = RRect.fromRectAndRadius(
+        glowRect.shift(shadowOffset),
+        const Radius.circular(8),
+      );
+      canvas.drawRRect(glowRRect, _shadowPaint());
+    }
 
     final img = towerImage;
 

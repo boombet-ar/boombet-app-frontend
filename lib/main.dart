@@ -205,22 +205,116 @@ class MyApp extends StatelessWidget {
     brightness: Brightness.light,
     scaffoldBackgroundColor: AppConstants.lightBg,
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppConstants.lightAccent,
+      backgroundColor: AppConstants.lightSurfaceVariant,
       foregroundColor: AppConstants.textLight,
       elevation: 0,
     ),
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: AppConstants.primaryGreen,
-      secondary: AppConstants.textLight,
-      surface: AppConstants.lightAccent,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
+      secondary: AppConstants.primaryGreen,
+      surface: AppConstants.lightSurfaceVariant,
+      background: AppConstants.lightBg,
+      error: AppConstants.errorRed,
+      onPrimary: AppConstants.textLight,
+      onSecondary: AppConstants.textLight,
       onSurface: AppConstants.textLight,
+      onBackground: AppConstants.textLight,
+      onError: AppConstants.textLight,
     ),
-    cardColor: AppConstants.lightAccent,
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: AppConstants.textLight),
-      bodyMedium: TextStyle(color: AppConstants.textLight),
+    cardColor: AppConstants.lightCardBg,
+    cardTheme: const CardThemeData(
+      color: AppConstants.lightCardBg,
+      surfaceTintColor: Colors.transparent,
+      elevation: 2,
+      margin: EdgeInsets.zero,
+    ),
+    dialogBackgroundColor: AppConstants.lightDialogBg,
+    dialogTheme: const DialogThemeData(
+      backgroundColor: AppConstants.lightDialogBg,
+      surfaceTintColor: Colors.transparent,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppConstants.lightDialogBg,
+      surfaceTintColor: Colors.transparent,
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: AppConstants.lightSurfaceVariant,
+      selectedColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
+      disabledColor: AppConstants.borderLight,
+      secondarySelectedColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      labelStyle: const TextStyle(color: AppConstants.textLight),
+      secondaryLabelStyle: const TextStyle(color: AppConstants.textLight),
+      brightness: Brightness.light,
+      shape: StadiumBorder(side: BorderSide(color: AppConstants.borderLight)),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppConstants.lightAccent,
+      indicatorColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
+      labelTextStyle: MaterialStateProperty.resolveWith<TextStyle>((states) {
+        final color = states.contains(MaterialState.selected)
+            ? AppConstants.textLight
+            : AppConstants.lightHintText;
+        return TextStyle(color: color, fontSize: 12);
+      }),
+      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
+        final color = states.contains(MaterialState.selected)
+            ? AppConstants.primaryGreen
+            : AppConstants.lightHintText;
+        return IconThemeData(color: color);
+      }),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      contentTextStyle: TextStyle(color: AppConstants.textLight),
+      actionTextColor: AppConstants.textLight,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      filled: true,
+      fillColor: AppConstants.lightInputBg,
+      hintStyle: TextStyle(color: AppConstants.lightHintText),
+      labelStyle: TextStyle(color: AppConstants.lightLabelText),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppConstants.lightInputBorder),
+        borderRadius: BorderRadius.all(
+          Radius.circular(AppConstants.borderRadius),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppConstants.lightInputBorderFocus),
+        borderRadius: BorderRadius.all(
+          Radius.circular(AppConstants.borderRadius),
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppConstants.errorRed),
+        borderRadius: BorderRadius.all(
+          Radius.circular(AppConstants.borderRadius),
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppConstants.errorRed),
+        borderRadius: BorderRadius.all(
+          Radius.circular(AppConstants.borderRadius),
+        ),
+      ),
+    ),
+    dividerColor: AppConstants.lightDivider,
+    textTheme: ThemeData.light().textTheme.apply(
+      bodyColor: AppConstants.textLight,
+      displayColor: AppConstants.textLight,
+    ),
+    primaryTextTheme: ThemeData.light().primaryTextTheme.apply(
+      bodyColor: AppConstants.textLight,
+      displayColor: AppConstants.textLight,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(foregroundColor: AppConstants.textLight),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: AppConstants.textLight),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(foregroundColor: AppConstants.textLight),
     ),
   );
 

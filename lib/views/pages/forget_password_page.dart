@@ -155,7 +155,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
         : AppConstants.lightAccent;
     final borderColor = isDark
         ? AppConstants.borderDark
-        : const Color(0xFFB0B0B0);
+        : AppConstants.lightInputBorder;
     final borderRadius = AppConstants.borderRadius;
 
     return Scaffold(
@@ -235,8 +235,8 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
                           hintText: 'Tu correo electrónico',
                           hintStyle: TextStyle(
                             color: isDark
-                                ? const Color(0xFF808080)
-                                : const Color(0xFF6C6C6C),
+                                ? Colors.grey[500]
+                                : AppConstants.lightHintText,
                           ),
                           prefixIcon: Icon(
                             Icons.email_outlined,

@@ -1,4 +1,5 @@
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class NavbarWidget extends StatelessWidget {
@@ -14,11 +15,11 @@ class NavbarWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = isDark ? Colors.black87 : const Color(0xFFF8F8F8);
+    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightAccent;
     final selectedColor = primaryGreen;
     final unselectedColor = isDark
         ? const Color(0xFF808080)
-        : const Color(0xFF6C6C6C);
+        : AppConstants.lightHintText;
     final iconSize = isCompact ? 22.0 : 26.0;
     final barHeight = isCompact ? 62.0 : 70.0;
 
@@ -124,8 +125,8 @@ class NavbarWidget extends StatelessWidget {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? const Color(0xFF404040)
-                        : const Color(0xFFE0E0E0),
+                        ? AppConstants.borderDark.withValues(alpha: 0.6)
+                        : AppConstants.borderLight,
                     width: 1,
                   ),
                 ),

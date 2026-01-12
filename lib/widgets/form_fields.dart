@@ -425,13 +425,21 @@ class _GenderButtonState extends State<_GenderButton> {
             Icon(
               widget.icon,
               size: 22,
-              color: widget.isSelected ? Colors.white : Colors.grey[500],
+              color: widget.isSelected
+                  ? (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppConstants.textLight)
+                  : Colors.grey[500],
             ),
             const SizedBox(height: 4),
             Text(
               widget.label,
               style: TextStyle(
-                color: widget.isSelected ? Colors.white : widget.textColor,
+                color: widget.isSelected
+                    ? (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : AppConstants.textLight)
+                    : widget.textColor,
                 fontSize: 12,
                 fontWeight: widget.isSelected
                     ? FontWeight.w600
@@ -482,7 +490,8 @@ class AppButton extends StatelessWidget {
     final primaryColor = theme.colorScheme.primary;
 
     final bgColor = backgroundColor ?? primaryColor;
-    final txtColor = textColor ?? (isDark ? Colors.white : Colors.white);
+    final txtColor =
+        textColor ?? (isDark ? Colors.white : AppConstants.textLight);
     final effectiveBgColor = disabled || isLoading
         ? bgColor.withValues(alpha: 0.5)
         : bgColor;

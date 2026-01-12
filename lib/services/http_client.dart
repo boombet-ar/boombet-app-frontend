@@ -598,7 +598,9 @@ class HttpClient {
       log('[HttpClient] ❌ Client error en $url: $e');
 
       if (retryCount < effectiveMaxRetries - 1) {
-        log('[HttpClient] 🔄 Retry ${retryCount + 2}/$effectiveMaxRetries...');
+        log(
+            '[HttpClient] 🔄 Retry ${retryCount + 2}/$effectiveMaxRetries...',
+          );
         await Future.delayed(_retryDelay * (retryCount + 1));
         return patch(
           url,

@@ -7,36 +7,35 @@ class AppConstants {
   static const Color darkBg = Color(0xFF121212);
   static const Color darkAccent = Color(0xFF1A1A1A);
   static const Color darkCardBg = Color(0xFF2A2A2A);
-  static const Color lightBg = Color(0xFFF5F5F5);
-  static const Color lightAccent = Color(0xFFE8E8E8);
+  // Light mode: evitar blancos puros (escala de grises).
+  // Nota: "lightBg" debe ser más oscuro que antes, pero no oscuro.
+  // Mantener diferencia visible entre fondo / superficies / cards.
+  static const Color lightBg = Color(0xFFE3E3E3);
+  static const Color lightAccent = Color(0xFFD4D4D4);
   static const Color borderDark = Color(0xFF1A1A1A);
-  static const Color borderLight = Color(0xFFD0D0D0);
+  static const Color borderLight = Color(0xFFB8B8B8);
   static const Color textDark = Color(0xFFE0E0E0);
-  static const Color textLight = Color(0xFF2C2C2C);
+  // En modo claro, todos los textos deben ser negros.
+  static const Color textLight = Color(0xFF000000);
   static const Color errorRed = Colors.red;
   static const Color warningOrange = Colors.orange;
   static const Color successGreen = Colors.green;
 
   // ==================== LIGHT MODE SPECIFIC COLORS ====================
-  static const Color lightInputBg = Color(
-    0xFFFAFAFA,
-  ); // Casi blanco, ligeramente gris
+  // En modo claro evitamos blancos puros: usamos una escala de grises.
+  static const Color lightInputBg = Color(0xFFDDDDDD);
   static const Color lightInputBorder = Color(
-    0xFFBBBBBB,
+    0xFFB0B0B0,
   ); // Gris oscuro para contraste
   static const Color lightInputBorderFocus = Color(
-    0xFF808080,
+    0xFF7A7A7A,
   ); // Más oscuro en focus
-  static const Color lightCardBg = Color(0xFFFFFFFF); // Blanco puro para cards
-  static const Color lightLabelText = Color(
-    0xFF1F1F1F,
-  ); // Casi negro para labels
-  static const Color lightHintText = Color(0xFF888888); // Gris medio para hints
-  static const Color lightDivider = Color(0xFFE8E8E8); // Divisores suaves
-  static const Color lightSurfaceVariant = Color(
-    0xFFF5F5F5,
-  ); // Superficie alternativa
-  static const Color lightDialogBg = Color(0xFFFFFAFA); // Blanco muy suave
+  static const Color lightCardBg = Color(0xFFEAEAEA);
+  static const Color lightLabelText = Color(0xFF000000);
+  static const Color lightHintText = Color(0xFF666666); // Gris medio para hints
+  static const Color lightDivider = Color(0xFFC6C6C6); // Divisores suaves
+  static const Color lightSurfaceVariant = Color(0xFFDADADA);
+  static const Color lightDialogBg = Color(0xFFE9E9E9);
 
   // ==================== DURACIONES ====================
   static const Duration apiTimeout = Duration(seconds: 15);

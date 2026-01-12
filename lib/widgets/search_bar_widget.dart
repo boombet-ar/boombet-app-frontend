@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class SearchBarWidget extends StatefulWidget {
@@ -73,13 +74,18 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final greenColor = theme.colorScheme.primary;
+    final surfaceColor = isDark ? Colors.grey[850] : AppConstants.lightInputBg;
+    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
+    final hintColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightHintText;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          color: isDark ? Colors.grey[700]! : AppConstants.lightInputBorder,
           width: 1,
         ),
       ),
@@ -93,12 +99,10 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               enableInteractiveSelection: true,
               onChanged: widget.onChanged,
               onSubmitted: widget.onSearch,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 hintText: widget.placeholder,
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
+                hintStyle: TextStyle(color: hintColor),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -127,7 +131,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                       ),
                       child: Icon(
                         Icons.clear,
-                        color: isDark ? Colors.grey[300] : Colors.grey[600],
+                        color: isDark
+                            ? Colors.grey[300]
+                            : AppConstants.lightHintText,
                         size: 20,
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:boombet_app/config/app_constants.dart';
 
 /// Overlay de carga que bloquea la pantalla completa
 ///
@@ -53,7 +54,9 @@ class _LoadingOverlayWidget extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            color: isDark
+                ? const Color(0xFF1A1A1A)
+                : AppConstants.lightDialogBg,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(

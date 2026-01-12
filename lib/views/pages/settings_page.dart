@@ -339,13 +339,19 @@ class _SettingsPageState extends State<SettingsPage> {
                       ValueListenableBuilder<double>(
                         valueListenable: fontSizeMultiplierNotifier,
                         builder: (context, multiplier, _) {
+                          final sliderLabelColor = isDark
+                              ? Colors.grey.shade600
+                              : AppConstants.lightHintText;
+                          final sliderInactiveColor = isDark
+                              ? Colors.grey.shade300
+                              : AppConstants.lightDivider;
                           return Row(
                             children: [
                               Text(
                                 'A',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: sliderLabelColor,
                                 ),
                               ),
                               Expanded(
@@ -355,7 +361,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   max: 1.5,
                                   divisions: 7,
                                   activeColor: AppConstants.primaryGreen,
-                                  inactiveColor: Colors.grey.shade300,
+                                  inactiveColor: sliderInactiveColor,
                                   onChanged: (value) {
                                     saveFontSizeMultiplier(value);
                                   },
@@ -365,7 +371,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 'A',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  color: Colors.grey.shade600,
+                                  color: sliderLabelColor,
                                 ),
                               ),
                             ],
@@ -503,7 +509,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final textColor = isDark
         ? AppConstants.textDark
         : AppConstants.lightLabelText;
-    final surface = isDark ? AppConstants.darkAccent : Colors.white;
+    final surface = isDark ? AppConstants.darkAccent : AppConstants.lightCardBg;
 
     showDialog(
       context: context,
