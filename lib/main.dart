@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
@@ -21,6 +23,59 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
+
+bool _sessionExpiredDialogOpen = false;
+
+Timer? _globalAuthGuardTimer;
+bool _missingSessionNotified = false;
+
+Future<void> _globalAuthGuardTick() async {
+  if (_sessionExpiredDialogOpen) return;
+
+  // Sin contexto de Navigator todavía: no podemos mostrar dialog.
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  final access = await TokenService.getToken();
+  final refresh = await TokenService.getRefreshToken();
+
+  final hasAccess = access != null && access.isNotEmpty;
+  final hasRefresh = refresh != null && refresh.isNotEmpty;
+
+  // "No hay token detectado": no hay access ni refresh.
+  if (!hasAccess && !hasRefresh) {
+    if (!_missingSessionNotified) {
+      _missingSessionNotified = true;
+      HttpClient.onSessionExpired?.call();
+    }
+    return;
+  }
+
+  // Si vuelve a haber sesión (luego de login), rearmar el latch.
+  if (hasAccess || hasRefresh) {
+    _missingSessionNotified = false;
+  }
+
+  // Tokens expirados sin posibilidad de refresh -> popup.
+  final accessExpired = hasAccess && TokenService.isJwtExpiredSafe(access!);
+  if (!accessExpired) return;
+
+  final refreshExpired =
+      hasRefresh &&
+      TokenService.isLikelyJwt(refresh!) &&
+      TokenService.isJwtExpiredSafe(refresh);
+
+  if (!hasRefresh || refreshExpired) {
+    HttpClient.onSessionExpired?.call();
+  }
+}
+
+void _startGlobalAuthGuard() {
+  _globalAuthGuardTimer?.cancel();
+  _globalAuthGuardTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    _globalAuthGuardTick();
+  });
+}
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -193,6 +248,69 @@ Future<void> main() async {
       debugPrint('[MAIN] ÔØî Navigator is null - Cannot navigate');
     }
   };
+
+  // Si falla el refresh token, mostrar popup con el estilo de la app.
+  HttpClient.onSessionExpired = () {
+    if (_sessionExpiredDialogOpen) return;
+
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      // Fallback si no hay context disponible.
+      HttpClient.onUnauthorized?.call();
+      return;
+    }
+
+    _sessionExpiredDialogOpen = true;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('Sesión expirada', style: TextStyle(color: textColor)),
+        content: Text(
+          'Tu sesión expiró. Por favor, inicia sesión nuevamente.',
+          style: TextStyle(color: textColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+
+              // Evitar loop de popups mientras el usuario está deslogueado.
+              _missingSessionNotified = true;
+
+              final navigator = navigatorKey.currentState;
+              if (navigator != null) {
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text(
+              'Ir al login',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    ).then((_) {
+      _sessionExpiredDialogOpen = false;
+    });
+  };
+
+  // Guard global: si no hay tokens (o no hay forma de refrescar), mostrar popup.
+  _startGlobalAuthGuard();
 
   runApp(const MyApp());
 }

@@ -6,7 +6,9 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/player_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
@@ -65,12 +67,130 @@ class DiscountsContentState extends State<DiscountsContent> {
   static const Duration _cacheTtl = Duration(hours: 6);
   String _searchQuery = '';
 
+  bool _authGuardTriggered = false;
+  bool _authBlocked = false;
+  bool _authCheckInProgress = false;
+  DateTime? _lastAuthCheckAt;
+
+  Future<void> _clearCuponCachePrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cachedCuponesKey);
+    await prefs.remove(_cachedCuponesTsKey);
+    await prefs.remove(_cachedPageKey);
+    await prefs.remove(_cachedHasMoreKey);
+  }
+
+  void _triggerSessionExpiredOnce() {
+    if (_authGuardTriggered) return;
+    _authGuardTriggered = true;
+    HttpClient.onSessionExpired?.call();
+  }
+
+  Future<void> _recheckAuthAndMaybeBlock({bool force = false}) async {
+    if (_authCheckInProgress) return;
+
+    final now = DateTime.now();
+    final last = _lastAuthCheckAt;
+    if (!force &&
+        last != null &&
+        now.difference(last) < const Duration(seconds: 2)) {
+      return;
+    }
+
+    _authCheckInProgress = true;
+    _lastAuthCheckAt = now;
+
+    try {
+      final access = await TokenService.getToken();
+      final refresh = await TokenService.getRefreshToken();
+
+      final hasAccess =
+          access != null &&
+          access.isNotEmpty &&
+          !TokenService.isJwtExpiredSafe(access);
+
+      if (hasAccess) {
+        if (mounted && _authBlocked) {
+          setState(() {
+            _authBlocked = false;
+          });
+        }
+        return;
+      }
+
+      final hasRefresh = refresh != null && refresh.isNotEmpty;
+      final refreshExpired =
+          hasRefresh &&
+          TokenService.isLikelyJwt(refresh!) &&
+          TokenService.isJwtExpiredSafe(refresh);
+
+      // No hay forma de recuperar sesión: bloquear UI y disparar popup.
+      if (!hasRefresh || refreshExpired) {
+        await _clearCuponCachePrefs();
+        if (!mounted) return;
+
+        setState(() {
+          _authBlocked = true;
+          _cupones.clear();
+          _filteredCupones.clear();
+          _pageCache.clear();
+          _cacheApplied = false;
+          _hasError = true;
+          _errorMessage = 'Tu sesión ha expirado. Inicia sesión nuevamente.';
+          _hasMore = false;
+          _isLoading = false;
+        });
+
+        _triggerSessionExpiredOnce();
+        return;
+      }
+
+      // Hay refreshToken: intentar validar/renovar haciendo una llamada auth.
+      // Si el refresh falla, HttpClient dispara onSessionExpired.
+      try {
+        await PlayerService().getCurrentUser();
+      } catch (_) {
+        // ignore
+      }
+
+      final accessAfter = await TokenService.getToken();
+      final nowHasAccess =
+          accessAfter != null &&
+          accessAfter.isNotEmpty &&
+          !TokenService.isJwtExpiredSafe(accessAfter);
+
+      if (!mounted) return;
+
+      setState(() {
+        _authBlocked = !nowHasAccess;
+        if (!nowHasAccess) {
+          _cupones.clear();
+          _filteredCupones.clear();
+          _pageCache.clear();
+          _cacheApplied = false;
+          _hasMore = false;
+          _hasError = true;
+          _errorMessage = 'Tu sesión ha expirado. Inicia sesión nuevamente.';
+        }
+      });
+    } finally {
+      _authCheckInProgress = false;
+    }
+  }
+
+  Future<bool> _guardAuthOrRedirect() async {
+    await _recheckAuthAndMaybeBlock(force: true);
+    return !_authBlocked;
+  }
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _listScrollController = ScrollController();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ok = await _guardAuthOrRedirect();
+      if (!ok) return;
       await _loadCuponCache();
       await _loadAffiliationAcceptance();
     });
@@ -78,6 +198,15 @@ class DiscountsContentState extends State<DiscountsContent> {
 
   Future<void> _loadCuponCache() async {
     try {
+      final token = await TokenService.getToken();
+      if (token == null ||
+          token.isEmpty ||
+          TokenService.isJwtExpiredSafe(token)) {
+        // Sin sesión: no aplicar cache (evita ver cupones “de movida”).
+        await _clearCuponCachePrefs();
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString(_cachedCuponesKey);
       if (cached == null || cached.isEmpty) return;
@@ -1743,6 +1872,10 @@ class DiscountsContentState extends State<DiscountsContent> {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recheckAuthAndMaybeBlock();
+    });
+
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
@@ -2051,17 +2184,22 @@ class DiscountsContentState extends State<DiscountsContent> {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: () {
-                              _currentPage = 1;
-                              _loadCupones(
-                                pageOverride: 1,
-                                reset: true,
-                                categoryId: _selectedCategoryId,
-                                categoryName: _selectedFilter == 'Todos'
-                                    ? null
-                                    : _selectedFilter,
-                                ignoreCategory: true,
-                                forceRefresh: true,
-                              );
+                              () async {
+                                final ok = await _guardAuthOrRedirect();
+                                if (!ok) return;
+
+                                _currentPage = 1;
+                                _loadCupones(
+                                  pageOverride: 1,
+                                  reset: true,
+                                  categoryId: _selectedCategoryId,
+                                  categoryName: _selectedFilter == 'Todos'
+                                      ? null
+                                      : _selectedFilter,
+                                  ignoreCategory: true,
+                                  forceRefresh: true,
+                                );
+                              }();
                             },
                             icon: const Icon(Icons.refresh),
                             label: const Text('Reintentar'),

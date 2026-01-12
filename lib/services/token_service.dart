@@ -9,8 +9,72 @@ class TokenService {
   static const _tokenKey = 'jwt_token';
   static const _refreshTokenKey = 'refresh_token';
   static const _tempTokenKey = 'temp_jwt_token';
+  static const _tempRefreshTokenKey = 'temp_refresh_token';
   static const _fcmTokenKey = 'fcm_token';
   static const _notificationsEnabledKey = 'notifications_enabled';
+
+  static String _previewToken(String? token, {int keep = 12}) {
+    if (token == null) return 'null';
+    if (token.isEmpty) return 'empty';
+    if (token.length <= keep) return token;
+    return '${token.substring(0, keep)}...';
+  }
+
+  static void _logTokenTiming(String label, String? token) {
+    if (token == null || token.isEmpty) {
+      log('[TokenService][Debug] $label: missing');
+      return;
+    }
+
+    if (!_isValidTokenFormat(token)) {
+      log(
+        '[TokenService][Debug] $label: not a JWT (preview=${_previewToken(token)}, len=${token.length})',
+      );
+      return;
+    }
+
+    try {
+      final exp = JwtDecoder.getExpirationDate(token);
+      final expired = JwtDecoder.isExpired(token);
+      final remaining = exp.difference(DateTime.now());
+      final remainingMs = remaining.inMilliseconds;
+      final remainingSec = remaining.inSeconds;
+
+      DateTime? iat;
+      try {
+        final decoded = JwtDecoder.decode(token);
+        final iatSeconds = decoded['iat'];
+        if (iatSeconds is int) {
+          iat = DateTime.fromMillisecondsSinceEpoch(
+            iatSeconds * 1000,
+            isUtc: true,
+          ).toLocal();
+        }
+      } catch (_) {
+        // ignore (iat is optional)
+      }
+
+      log(
+        '[TokenService][Debug] $label: preview=${_previewToken(token)}, expired=$expired, exp=$exp, remainingMs=$remainingMs (remainingSec=$remainingSec)${iat != null ? ", iat=$iat" : ""}',
+      );
+    } catch (e) {
+      log(
+        '[TokenService][Debug] $label: failed to decode exp (preview=${_previewToken(token)}): $e',
+      );
+    }
+  }
+
+  /// Logs detailed expiration information for access/refresh tokens.
+  /// Safe for debug usage: does not print full tokens.
+  static Future<void> debugLogAuthTokens(String context) async {
+    final access = await getToken();
+    final refresh = await getRefreshToken();
+
+    log('[TokenService][Debug] === Auth token snapshot ($context) ===');
+    _logTokenTiming('accessToken', access);
+    _logTokenTiming('refreshToken', refresh);
+    log('[TokenService][Debug] =================================');
+  }
 
   /// Guarda el token JWT de forma segura (persistente)
   static Future<void> saveToken(String token) async {
@@ -28,6 +92,22 @@ class TokenService {
     return parts.length == 3 && parts.every((part) => part.isNotEmpty);
   }
 
+  /// Devuelve true si el string parece un JWT (header.payload.signature).
+  static bool isLikelyJwt(String token) {
+    return _isValidTokenFormat(token);
+  }
+
+  /// Devuelve true si el JWT está expirado o no se puede decodificar.
+  /// Si el token NO parece JWT, devuelve false (no podemos inferir expiración).
+  static bool isJwtExpiredSafe(String token) {
+    if (!isLikelyJwt(token)) return false;
+    try {
+      return JwtDecoder.isExpired(token);
+    } catch (_) {
+      return true;
+    }
+  }
+
   /// Guarda el token temporal (no persistente entre reinicios de app)
   static Future<void> saveTemporaryToken(String token) async {
     // Validar que el token tenga formato correcto
@@ -41,6 +121,11 @@ class TokenService {
   /// Guarda el refresh token de forma segura
   static Future<void> saveRefreshToken(String refreshToken) async {
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
+  }
+
+  /// Guarda el refresh token temporal (no persistente entre reinicios)
+  static Future<void> saveTemporaryRefreshToken(String refreshToken) async {
+    await _storage.write(key: _tempRefreshTokenKey, value: refreshToken);
   }
 
   /// Obtiene el token JWT almacenado (persistente o temporal)
@@ -84,7 +169,15 @@ class TokenService {
 
   /// Obtiene el refresh token almacenado
   static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshTokenKey);
+    // Preferir el refresh token persistente
+    final persistent = await _storage.read(key: _refreshTokenKey);
+    if (persistent != null && persistent.isNotEmpty) return persistent;
+
+    // Fallback: refresh token temporal
+    final temp = await _storage.read(key: _tempRefreshTokenKey);
+    if (temp != null && temp.isNotEmpty) return temp;
+
+    return null;
   }
 
   /// Elimina el token (logout)
@@ -92,12 +185,14 @@ class TokenService {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _tempTokenKey);
+    await _storage.delete(key: _tempRefreshTokenKey);
     await _storage.delete(key: _fcmTokenKey);
   }
 
   /// Elimina solo el token temporal
   static Future<void> deleteTemporaryToken() async {
     await _storage.delete(key: _tempTokenKey);
+    await _storage.delete(key: _tempRefreshTokenKey);
   }
 
   /// Verifica si el token existe y es válido

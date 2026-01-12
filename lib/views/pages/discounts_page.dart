@@ -2,6 +2,8 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
+import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -31,11 +33,26 @@ class _DiscountsPageState extends State<DiscountsPage> {
   final Map<String, Categoria> _categoriaByName = {};
   String? _selectedCategory;
 
+  bool _authGuardTriggered = false;
+  bool _authCheckInProgress = false;
+  DateTime? _lastAuthCheckAt;
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _loadCupones();
+    // Resetear para no mostrar resultados previos si el widget queda vivo.
+    _cupones = [];
+    _filteredCupones = [];
+    _loadCupones(reset: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recheckAuthAndMaybeTriggerPopup();
+    });
   }
 
   @override
@@ -44,8 +61,91 @@ class _DiscountsPageState extends State<DiscountsPage> {
     super.dispose();
   }
 
+  Future<bool> _hasAnyAuthToken() async {
+    final access = await TokenService.getToken();
+    final refresh = await TokenService.getRefreshToken();
+    return (access != null && access.isNotEmpty) ||
+        (refresh != null && refresh.isNotEmpty);
+  }
+
+  void _triggerSessionExpiredOnce() {
+    if (_authGuardTriggered) return;
+    _authGuardTriggered = true;
+    HttpClient.onSessionExpired?.call();
+  }
+
+  Future<void> _recheckAuthAndMaybeTriggerPopup() async {
+    if (_authCheckInProgress) return;
+
+    final now = DateTime.now();
+    final last = _lastAuthCheckAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 2)) {
+      return;
+    }
+
+    _authCheckInProgress = true;
+    _lastAuthCheckAt = now;
+    try {
+      final access = await TokenService.getToken();
+      final refresh = await TokenService.getRefreshToken();
+
+      final accessExpired =
+          access == null ||
+          access.isEmpty ||
+          TokenService.isJwtExpiredSafe(access);
+
+      if (!accessExpired) return;
+
+      final hasRefresh = refresh != null && refresh.isNotEmpty;
+      final refreshExpired =
+          hasRefresh &&
+          TokenService.isLikelyJwt(refresh!) &&
+          TokenService.isJwtExpiredSafe(refresh);
+
+      if (!hasRefresh || refreshExpired) {
+        if (!mounted) return;
+        setState(() {
+          _cupones.clear();
+          _filteredCupones.clear();
+          _hasMore = false;
+          _hasError = false;
+          _errorMessage = '';
+          _isLoading = false;
+          _categoriaByName.clear();
+          _selectedCategory = null;
+          _apiPage = 1;
+          _currentPage = 1;
+        });
+        _triggerSessionExpiredOnce();
+      }
+    } finally {
+      _authCheckInProgress = false;
+    }
+  }
+
   Future<void> _loadCupones({int? pageOverride, bool reset = false}) async {
     if (_isLoading) return;
+
+    // Si no hay ningún token (access/refresh), no permitir ver cupones.
+    final hasAuth = await _hasAnyAuthToken();
+    if (!hasAuth) {
+      if (!mounted) return;
+      setState(() {
+        _cupones.clear();
+        _filteredCupones.clear();
+        _hasMore = false;
+        _hasError = false;
+        _errorMessage = '';
+        _isLoading = false;
+        _categoriaByName.clear();
+        _selectedCategory = null;
+        _apiPage = 1;
+        _currentPage = 1;
+      });
+      _triggerSessionExpiredOnce();
+      return;
+    }
+
     final targetPage = pageOverride ?? _apiPage;
 
     setState(() {

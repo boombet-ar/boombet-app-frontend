@@ -37,20 +37,23 @@ class AuthService {
           // Limpiar cualquier token previo para evitar inconsistencias
           await TokenService.deleteToken();
 
-          final token = data['token'] as String?;
+          // Backend nuevo: accessToken. Compat: token (legacy)
+          final token =
+              (data['accessToken'] as String?) ?? (data['token'] as String?);
           final refreshToken = data['refreshToken'] as String?;
 
           if (token != null && token.isNotEmpty) {
-            if (rememberMe) {
-              await TokenService.saveToken(token);
+            // Guía nueva: guardar ambos tokens de forma persistente (SecureStorage).
+            // (Mantengo `rememberMe` por compatibilidad de firma, pero el storage es persistente.)
+            await TokenService.saveToken(token);
 
-              if (refreshToken != null && refreshToken.isNotEmpty) {
-                await TokenService.saveRefreshToken(refreshToken);
-              }
-            } else {
-              await TokenService.saveTemporaryToken(token);
+            if (refreshToken != null && refreshToken.isNotEmpty) {
+              await TokenService.saveRefreshToken(refreshToken);
             }
           }
+
+          // Debug detallado de expiración/tiempos (no imprime tokens completos).
+          await TokenService.debugLogAuthTokens('login');
         } on FormatException catch (e) {
           await TokenService.deleteToken();
           return {
