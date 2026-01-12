@@ -303,6 +303,14 @@ class HttpClient {
         }
       }
 
+      // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
+      if (includeAuth &&
+          authRetry &&
+          (response.statusCode == 401 || response.statusCode == 403)) {
+        await TokenService.clearTokens();
+        _notifySessionExpired();
+      }
+
       return response;
     } on TimeoutException catch (e) {
       log('[HttpClient] ⏱️ Timeout en $url: $e');
@@ -451,6 +459,14 @@ class HttpClient {
             authRetry: true,
           );
         }
+      }
+
+      // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
+      if (includeAuth &&
+          authRetry &&
+          (response.statusCode == 401 || response.statusCode == 403)) {
+        await TokenService.clearTokens();
+        _notifySessionExpired();
       }
 
       if (ttl > Duration.zero &&
@@ -605,6 +621,14 @@ class HttpClient {
         }
       }
 
+      // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
+      if (includeAuth &&
+          authRetry &&
+          (response.statusCode == 401 || response.statusCode == 403)) {
+        await TokenService.clearTokens();
+        _notifySessionExpired();
+      }
+
       return response;
     } on TimeoutException catch (e) {
       log('[HttpClient] ⏱️ Timeout en $url: $e');
@@ -728,6 +752,14 @@ class HttpClient {
             authRetry: true,
           );
         }
+      }
+
+      // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
+      if (includeAuth &&
+          authRetry &&
+          (response.statusCode == 401 || response.statusCode == 403)) {
+        await TokenService.clearTokens();
+        _notifySessionExpired();
       }
 
       return response;
@@ -859,6 +891,14 @@ class HttpClient {
             authRetry: true,
           );
         }
+      }
+
+      // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
+      if (includeAuth &&
+          authRetry &&
+          (response.statusCode == 401 || response.statusCode == 403)) {
+        await TokenService.clearTokens();
+        _notifySessionExpired();
       }
 
       return response;

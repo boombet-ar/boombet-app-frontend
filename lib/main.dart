@@ -18,63 +18,18 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// GlobalKey para acceder al Navigator desde cualquier lugar
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
 
 bool _sessionExpiredDialogOpen = false;
 
-Timer? _globalAuthGuardTimer;
-bool _missingSessionNotified = false;
-
-Future<void> _globalAuthGuardTick() async {
-  if (_sessionExpiredDialogOpen) return;
-
-  // Sin contexto de Navigator todavía: no podemos mostrar dialog.
-  final context = navigatorKey.currentContext;
-  if (context == null) return;
-
-  final access = await TokenService.getToken();
-  final refresh = await TokenService.getRefreshToken();
-
-  final hasAccess = access != null && access.isNotEmpty;
-  final hasRefresh = refresh != null && refresh.isNotEmpty;
-
-  // "No hay token detectado": no hay access ni refresh.
-  if (!hasAccess && !hasRefresh) {
-    if (!_missingSessionNotified) {
-      _missingSessionNotified = true;
-      HttpClient.onSessionExpired?.call();
-    }
-    return;
-  }
-
-  // Si vuelve a haber sesión (luego de login), rearmar el latch.
-  if (hasAccess || hasRefresh) {
-    _missingSessionNotified = false;
-  }
-
-  // Tokens expirados sin posibilidad de refresh -> popup.
-  final accessExpired = hasAccess && TokenService.isJwtExpiredSafe(access!);
-  if (!accessExpired) return;
-
-  final refreshExpired =
-      hasRefresh &&
-      TokenService.isLikelyJwt(refresh!) &&
-      TokenService.isJwtExpiredSafe(refresh);
-
-  if (!hasRefresh || refreshExpired) {
-    HttpClient.onSessionExpired?.call();
-  }
+NavigatorState? _routerNavigator() {
+  return appRouter.routerDelegate.navigatorKey.currentState;
 }
 
-void _startGlobalAuthGuard() {
-  _globalAuthGuardTimer?.cancel();
-  _globalAuthGuardTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-    _globalAuthGuardTick();
-  });
+BuildContext? _routerContext() {
+  return appRouter.routerDelegate.navigatorKey.currentContext;
 }
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -222,95 +177,100 @@ Future<void> main() async {
   HttpClient.onUnauthorized = () {
     debugPrint('[MAIN] ­ƒö┤ 401 Detected - Navigating to LoginPage');
 
-    // Usar navigatorKey para navegar sin contexto
-    final navigator = navigatorKey.currentState;
-    if (navigator != null) {
-      debugPrint('[MAIN] Ô£à Navigator found - Pushing LoginPage');
-      navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false, // Eliminar todas las rutas previas
-      );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        appRouter.go('/');
+      } catch (e) {
+        debugPrint('[MAIN] ❌ Error navigating to login: $e');
+      }
 
-      // Mostrar SnackBar despu├®s de navegar
-      Future.delayed(const Duration(milliseconds: 500), () {
-        final messenger = scaffoldMessengerKey.currentState;
-        messenger?.showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Tu sesi├│n ha expirado. Por favor, inicia sesi├│n nuevamente.',
-            ),
-            backgroundColor: AppConstants.warningOrange,
-            duration: AppConstants.longSnackbarDuration,
+      // Mostrar SnackBar después de navegar
+      final messenger = scaffoldMessengerKey.currentState;
+      messenger?.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
           ),
-        );
-      });
-    } else {
-      debugPrint('[MAIN] ÔØî Navigator is null - Cannot navigate');
-    }
+          backgroundColor: AppConstants.warningOrange,
+          duration: AppConstants.longSnackbarDuration,
+        ),
+      );
+    });
   };
 
   // Si falla el refresh token, mostrar popup con el estilo de la app.
   HttpClient.onSessionExpired = () {
     if (_sessionExpiredDialogOpen) return;
 
-    final context = navigatorKey.currentContext;
-    if (context == null) {
-      // Fallback si no hay context disponible.
-      HttpClient.onUnauthorized?.call();
-      return;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_sessionExpiredDialogOpen) return;
 
-    _sessionExpiredDialogOpen = true;
+      final context = _routerContext();
+      if (context == null) {
+        HttpClient.onUnauthorized?.call();
+        return;
+      }
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+      _sessionExpiredDialogOpen = true;
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: dialogBg,
-        title: Text('Sesión expirada', style: TextStyle(color: textColor)),
-        content: Text(
-          'Tu sesión expiró. Por favor, inicia sesión nuevamente.',
-          style: TextStyle(color: textColor),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
 
-              // Evitar loop de popups mientras el usuario está deslogueado.
-              _missingSessionNotified = true;
-
-              final navigator = navigatorKey.currentState;
-              if (navigator != null) {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text(
-              'Ir al login',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Sesión expirada', style: TextStyle(color: textColor)),
+          content: Text(
+            'Tu sesión expiró. Por favor, inicia sesión nuevamente.',
+            style: TextStyle(color: textColor),
           ),
-        ],
-      ),
-    ).then((_) {
-      _sessionExpiredDialogOpen = false;
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+
+                // Forzar vuelta al login incluso si la pantalla actual fue abierta
+                // con Navigator.push(...) o si hay rutas apiladas que tapan el router.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final nav =
+                      appRouter.routerDelegate.navigatorKey.currentState;
+                  if (nav == null) {
+                    // Fallback: al menos intentar cambiar la ubicación del router.
+                    appRouter.go('/');
+                    return;
+                  }
+
+                  nav.pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+
+                  // Mantener el router sincronizado en '/'
+                  try {
+                    appRouter.go('/');
+                  } catch (_) {}
+                });
+              },
+              child: const Text(
+                'Volver al login',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      ).then((_) {
+        _sessionExpiredDialogOpen = false;
+      });
     });
   };
-
-  // Guard global: si no hay tokens (o no hay forma de refrescar), mostrar popup.
-  _startGlobalAuthGuard();
 
   runApp(const MyApp());
 }
