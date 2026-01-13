@@ -124,6 +124,29 @@ class ForumService {
     throw Exception('Error al cargar respuestas: ${response.statusCode}');
   }
 
+  static Future<int> getRepliesCount(
+    int parentId, {
+    bool bypassCache = false,
+  }) async {
+    // Pedimos size=1 solo para leer totalElements sin traer toda la página.
+    final url =
+        '${ApiConfig.baseUrl}/publicaciones/$parentId/respuestas?page=0&size=1';
+    final response = await HttpClient.get(
+      url,
+      cacheTtl: bypassCache ? Duration.zero : null,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final total = json['totalElements'];
+      if (total is int) return total;
+      return int.tryParse('$total') ?? 0;
+    }
+    throw Exception(
+      'Error al cargar contador de respuestas: ${response.statusCode}',
+    );
+  }
+
   static Future<ForumPost> getPostById(
     int id, {
     bool bypassCache = false,

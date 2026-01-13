@@ -34,6 +34,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   String? _currentUsername;
   int _repliesPage = 0;
   bool _hasMoreReplies = true;
+  final Map<int, int> _replyCounts = {};
 
   @override
   void initState() {
@@ -46,6 +47,18 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
   void dispose() {
     _replyController.dispose();
     super.dispose();
+  }
+
+  Future<int> _getReplyCount(int parentId) async {
+    final cached = _replyCounts[parentId];
+    if (cached != null) return cached;
+
+    final total = await ForumService.getRepliesCount(parentId);
+    if (!mounted) return total;
+    setState(() {
+      _replyCounts[parentId] = total;
+    });
+    return total;
   }
 
   Future<void> _loadCurrentUsername() async {
@@ -157,12 +170,13 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
 
     setState(() => _isSubmittingReply = true);
     try {
+      final parentIdToSend = widget.postId;
       print('📝 [DetailPage] Submitting reply with parentId: ${widget.postId}');
       final casinoGralId = _post?.casinoGralId;
       final newReply = await ForumService.createPost(
         CreatePostRequest(
           content: content,
-          parentId: widget.postId,
+          parentId: parentIdToSend,
           casinoGralId: casinoGralId,
         ),
       );
@@ -585,6 +599,73 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                   ? Colors.white.withOpacity(0.85)
                   : AppConstants.textLight.withOpacity(0.85),
             ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.forum_outlined, size: 14, color: accent),
+                    const SizedBox(width: 6),
+                    FutureBuilder<int>(
+                      future: _getReplyCount(reply.id),
+                      initialData: _replyCounts[reply.id],
+                      builder: (context, snap) {
+                        final value = snap.data;
+                        return Text(
+                          value == null ? '…' : '$value',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.85)
+                                : AppConstants.textLight.withOpacity(0.85),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'resp.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.70)
+                            : AppConstants.textLight.withOpacity(0.65),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ForumPostDetailPage(postId: reply.id),
+                    ),
+                  );
+                  if (!mounted) return;
+                  _loadReplies(forceRefresh: true);
+                },
+                child: Text(
+                  'Ver',
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
           ),
         ],
       ),
