@@ -7,6 +7,7 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
+import 'package:boombet_app/views/pages/no_casinos_available_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -301,6 +302,161 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     return WebSocketUrlService.generateAffiliationUrl();
   }
 
+  bool _isNoCasinosAvailableResponse({required String body}) {
+    final lowered = body.toLowerCase();
+    if (lowered.contains('no hay casinos disponibles') ||
+        lowered.contains('sin casinos disponibles') ||
+        lowered.contains('no contamos con casinos') ||
+        lowered.contains('no casinos available')) {
+      return true;
+    }
+
+    try {
+      final decoded = jsonDecode(body);
+      return _containsNoCasinosFlag(decoded);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _containsNoCasinosFlag(dynamic value) {
+    if (value == null) return false;
+
+    if (value is String) {
+      final lowered = value.toLowerCase();
+      return lowered.contains('no hay casinos') ||
+          lowered.contains('sin casinos') ||
+          lowered.contains('no contamos con casinos') ||
+          lowered.contains('no casinos');
+    }
+
+    if (value is List) {
+      for (final item in value) {
+        if (_containsNoCasinosFlag(item)) return true;
+      }
+      return false;
+    }
+
+    if (value is Map) {
+      final map = value.cast<dynamic, dynamic>();
+
+      final noCasinos =
+          map['noCasinosAvailable'] ??
+          map['no_casinos_available'] ??
+          map['noCasinos'] ??
+          map['no_casinos'];
+      if (noCasinos == true) return true;
+
+      final casinosAvailable =
+          map['casinosAvailable'] ??
+          map['casinos_available'] ??
+          map['casinoAvailable'] ??
+          map['casino_available'];
+      if (casinosAvailable == false) return true;
+
+      final hasCasinos = map['hasCasinos'] ?? map['has_casinos'];
+      if (hasCasinos == false) return true;
+
+      final casinos =
+          map['casinos'] ??
+          map['availableCasinos'] ??
+          map['casinosDisponibles'] ??
+          map['available_casinos'];
+      if (casinos is List && casinos.isEmpty) return true;
+
+      final availableCount =
+          map['availableCasinosCount'] ??
+          map['available_casinos_count'] ??
+          map['casinosCount'] ??
+          map['casinos_count'];
+      if (availableCount is num && availableCount == 0) return true;
+
+      final message = map['message'] ?? map['error'] ?? map['details'];
+      if (message is String && _containsNoCasinosFlag(message)) return true;
+
+      for (final entry in map.values) {
+        if (_containsNoCasinosFlag(entry)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _isMissingProvinceResponse({required String body}) {
+    final lowered = body.toLowerCase();
+    if (lowered.contains('no hay provincia') ||
+        lowered.contains('sin provincia') ||
+        lowered.contains('falta provincia') ||
+        lowered.contains('missing provincia') ||
+        lowered.contains('missing province') ||
+        lowered.contains('province is required') ||
+        lowered.contains('provincia es requerida') ||
+        lowered.contains('provincia requerida')) {
+      return true;
+    }
+
+    try {
+      final decoded = jsonDecode(body);
+      return _containsMissingProvinceFlag(decoded);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _containsMissingProvinceFlag(dynamic value) {
+    if (value == null) return false;
+
+    if (value is String) {
+      final lowered = value.toLowerCase();
+      return lowered.contains('no hay provincia') ||
+          lowered.contains('sin provincia') ||
+          lowered.contains('falta provincia') ||
+          lowered.contains('missing province') ||
+          lowered.contains('province is required') ||
+          lowered.contains('provincia es requerida') ||
+          lowered.contains('provincia requerida');
+    }
+
+    if (value is List) {
+      for (final item in value) {
+        if (_containsMissingProvinceFlag(item)) return true;
+      }
+      return false;
+    }
+
+    if (value is Map) {
+      final map = value.cast<dynamic, dynamic>();
+
+      final provinceRequired =
+          map['provinceRequired'] ??
+          map['provinciaRequired'] ??
+          map['provincia_required'] ??
+          map['province_required'];
+      if (provinceRequired == true) return true;
+
+      final missingProvince =
+          map['missingProvince'] ??
+          map['missing_province'] ??
+          map['missingProvincia'] ??
+          map['missing_provincia'];
+      if (missingProvince == true) return true;
+
+      final field = map['field'] ?? map['campo'] ?? map['param'] ?? map['name'];
+      if (field is String && field.toLowerCase().contains('provincia')) {
+        final message = map['message'] ?? map['error'] ?? map['details'];
+        if (message is String && _containsMissingProvinceFlag(message)) {
+          return true;
+        }
+      }
+
+      for (final entry in map.values) {
+        if (_containsMissingProvinceFlag(entry)) return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<void> _processAfiliation() async {
     if (_isProcessing) return;
 
@@ -323,6 +479,22 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     LoadingOverlay.show(context, message: 'Completando tu afiliación...');
 
     try {
+      final provincia = playerData.provincia.trim();
+      if (provincia.isEmpty) {
+        LoadingOverlay.hide(context);
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
+        );
+
+        setState(() {
+          _isProcessing = false;
+        });
+        return;
+      }
+
       // Generar WebSocket URL
       final wsUrl = _generateWebSocketUrl();
       debugPrint('WebSocket URL generada: $wsUrl');
@@ -340,7 +512,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
           'cuit': playerData.cuil,
           'calle': playerData.calle,
           'numCalle': playerData.numCalle,
-          'provincia': playerData.provincia,
+          'provincia': provincia,
           'ciudad': playerData.localidad,
           'cp': playerData.cp?.toString() ?? '',
           'user': _resolvedUsername ?? '',
@@ -374,6 +546,34 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
       LoadingOverlay.hide(context);
 
+      if (_isNoCasinosAvailableResponse(body: response.body)) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
+        );
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        return;
+      }
+
+      if (_isMissingProvinceResponse(body: response.body)) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
+        );
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ AFILIACIÓN EXITOSA
         debugPrint('✅ Afiliación exitosa');
@@ -396,7 +596,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('¡Afiliación completada exitosamente!'),
-            backgroundColor: Color.fromARGB(255, 41, 255, 94),
+            backgroundColor: AppConstants.primaryGreen,
             duration: Duration(seconds: 2),
           ),
         );
@@ -421,6 +621,18 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           errorMessage = 'Error ${response.statusCode}: ${response.body}';
+        }
+
+        if (_isMissingProvinceResponse(body: errorMessage)) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
+          );
+
+          setState(() {
+            _isProcessing = false;
+          });
+          return;
         }
 
         if (!mounted) return;
@@ -459,7 +671,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    const primaryGreen = AppConstants.primaryGreen;
     final resolvedEmail = _resolvedEmail;
 
     return Scaffold(

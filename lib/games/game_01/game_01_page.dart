@@ -193,6 +193,49 @@ class _MenuOverlay extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onExit;
 
+  void _showHowToPlayDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryGreen = theme.colorScheme.primary;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black.withOpacity(0.9),
+          title: const Text(
+            'Cómo jugar',
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'ThaleahFat',
+              letterSpacing: 1.2,
+              fontSize: 22,
+            ),
+          ),
+          content: const Text(
+            '• Tocá la pantalla para impulsarte.\n'
+            '• Evitá chocar con las columnas y el suelo.\n'
+            '• Cada obstáculo superado suma puntos.\n',
+            style: TextStyle(color: Colors.white70, height: 1.4, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Entendido',
+                style: TextStyle(
+                  color: primaryGreen,
+                  fontFamily: 'ThaleahFat',
+                  letterSpacing: 1.1,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -234,39 +277,51 @@ class _MenuOverlay extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryGreen.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: primaryGreen.withOpacity(0.35),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.favorite,
-                          color: Colors.greenAccent,
-                          size: 16,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        SizedBox(width: 6),
-                        Text(
-                          'BOOMBET',
-                          style: TextStyle(
-                            fontFamily: 'ThaleahFat',
-                            fontSize: 12,
-                            letterSpacing: 1.2,
-                            color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: primaryGreen.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: primaryGreen.withOpacity(0.35),
+                            width: 1.2,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.favorite,
+                              color: Colors.greenAccent,
+                              size: 16,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'BOOMBET',
+                              style: TextStyle(
+                                fontFamily: 'ThaleahFat',
+                                fontSize: 12,
+                                letterSpacing: 1.2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Cómo jugar',
+                        onPressed: () => _showHowToPlayDialog(context),
+                        icon: const Icon(Icons.help_outline),
+                        color: Colors.white70,
+                      ),
+                    ],
                   ),
                 ],
               ),

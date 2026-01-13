@@ -97,6 +97,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final p0 = int.tryParse(parts[0]);
       final p1 = int.tryParse(parts[1]);
       final p2 = int.tryParse(parts[2]);
+
       if (p0 != null && p1 != null && p2 != null) {
         // Heurística: si el primer valor parece año, usar yyyy-mm-dd; si parece día, usar dd-mm-yyyy
         if (p0 > 31) {
@@ -113,7 +114,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (birth == null) return null;
 
     final now = DateTime.now();
-    int age = now.year - birth.year;
+    var age = now.year - birth.year;
     if (now.month < birth.month ||
         (now.month == birth.month && now.day < birth.day)) {
       age -= 1;
@@ -598,7 +599,10 @@ class _RegisterPageState extends State<RegisterPage> {
             ? AppConstants.textDark
             : AppConstants.lightLabelText;
 
-        final errorData = jsonDecode(response.body);
+        final errorMessage = _extractBackendErrorMessage(
+          response.body,
+          fallback: 'No se pudieron validar los datos',
+        );
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -607,10 +611,7 @@ class _RegisterPageState extends State<RegisterPage> {
               'Error de validación',
               style: TextStyle(color: textColor),
             ),
-            content: Text(
-              errorData['message'] ?? 'No se pudieron validar los datos',
-              style: TextStyle(color: textColor),
-            ),
+            content: Text(errorMessage, style: TextStyle(color: textColor)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -1572,7 +1573,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             ? AppConstants.textDark
             : AppConstants.lightLabelText;
 
-        final errorData = jsonDecode(response.body);
+        final errorMessage = _extractBackendErrorMessage(
+          response.body,
+          fallback: 'No se pudieron validar los datos',
+        );
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -1581,10 +1585,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               'Error de validación',
               style: TextStyle(color: textColor),
             ),
-            content: Text(
-              errorData['message'] ?? 'No se pudieron validar los datos',
-              style: TextStyle(color: textColor),
-            ),
+            content: Text(errorMessage, style: TextStyle(color: textColor)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -1632,6 +1633,80 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         ),
       );
     }
+  }
+
+  String _extractBackendErrorMessage(
+    String rawBody, {
+    required String fallback,
+  }) {
+    var candidate = rawBody.trim();
+
+    // Some layers stringify the response as: `400 Bad Request: "{...}"`
+    // Strip a leading `### Something:` prefix if present.
+    final statusPrefix = RegExp(r'^\s*\d{3}\s+[^:]+:\s*');
+    final statusPrefixMatch = statusPrefix.firstMatch(candidate);
+    if (statusPrefixMatch != null) {
+      candidate = candidate.substring(statusPrefixMatch.end).trim();
+    }
+
+    // Remove wrapping quotes around JSON strings.
+    if (candidate.length >= 2) {
+      final first = candidate[0];
+      final last = candidate[candidate.length - 1];
+      if ((first == '"' && last == '"') || (first == "'" && last == "'")) {
+        candidate = candidate.substring(1, candidate.length - 1).trim();
+      }
+    }
+
+    // Try to decode JSON up to two times (some servers return a JSON-encoded string).
+    for (var i = 0; i < 2; i++) {
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(candidate);
+      } catch (_) {
+        decoded = null;
+      }
+
+      if (decoded is Map) {
+        final dynamic msg =
+            decoded['message'] ??
+            decoded['mensaje'] ??
+            decoded['error'] ??
+            decoded['detail'];
+
+        if (msg is String && msg.trim().isNotEmpty) {
+          return msg.trim();
+        }
+        if (msg is List) {
+          final joined = msg
+              .whereType<String>()
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .join('\n');
+          if (joined.isNotEmpty) return joined;
+        }
+
+        break;
+      }
+
+      if (decoded is String && decoded.trim().isNotEmpty) {
+        candidate = decoded.trim();
+        continue;
+      }
+
+      break;
+    }
+
+    // Fallback heuristic: extract a "message":"..." from a JSON-ish blob.
+    final messageMatch = RegExp(
+      r'"message"\s*:\s*"([^"]+)"',
+    ).firstMatch(candidate);
+    if (messageMatch != null) {
+      final msg = messageMatch.group(1)?.trim();
+      if (msg != null && msg.isNotEmpty) return msg;
+    }
+
+    return fallback;
   }
 
   String? _validatePassword(String password) {
