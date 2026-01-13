@@ -1,12 +1,149 @@
+import 'dart:convert';
+
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
+class _ForumDescriptor {
+  final String id;
+  final String label;
+  final int? casinoId;
+  final String? logoAsset;
+  final String? logoUrl;
+
+  const _ForumDescriptor({
+    required this.id,
+    required this.label,
+    this.casinoId,
+    this.logoAsset,
+    this.logoUrl,
+  });
+}
+
+class _AffiliatedCasino {
+  final int? id;
+  final String url;
+  final String nombreGral;
+  final String logoUrl;
+
+  const _AffiliatedCasino({
+    required this.id,
+    required this.url,
+    required this.nombreGral,
+    required this.logoUrl,
+  });
+
+  factory _AffiliatedCasino.fromJson(Map<String, dynamic> json) {
+    dynamic pick(Map<String, dynamic> m, List<String> keys) {
+      for (final k in keys) {
+        if (m.containsKey(k) && m[k] != null) return m[k];
+      }
+      return null;
+    }
+
+    int? parseInt(dynamic v) {
+      if (v == null) return null;
+      if (v is int) return v > 0 ? v : null;
+      final parsed = int.tryParse('${v ?? ''}');
+      if (parsed == null) return null;
+      return parsed > 0 ? parsed : null;
+    }
+
+    String parseString(dynamic v) => (v ?? '').toString();
+
+    // Algunos backends devuelven el casino anidado (o anidado dentro de `casino`).
+    final nestedCasino = (json['casino'] is Map)
+        ? (json['casino'] as Map).cast<String, dynamic>()
+        : null;
+    final nestedCasinoGral =
+        (nestedCasino != null && nestedCasino['casinoGral'] is Map)
+        ? (nestedCasino['casinoGral'] as Map).cast<String, dynamic>()
+        : (nestedCasino != null && nestedCasino['casino_gral'] is Map)
+        ? (nestedCasino['casino_gral'] as Map).cast<String, dynamic>()
+        : null;
+    final nested = (json['casinoGral'] is Map)
+        ? (json['casinoGral'] as Map).cast<String, dynamic>()
+        : (json['casino_gral'] is Map)
+        ? (json['casino_gral'] as Map).cast<String, dynamic>()
+        : nestedCasinoGral ?? nestedCasino;
+
+    final source = nested ?? json;
+
+    dynamic pickFromEither(List<String> keys) {
+      return pick(source, keys) ?? pick(json, keys);
+    }
+
+    // Algunos backends envían el ID como `casino_gral` / `casinoGral` (valor directo)
+    // en vez de `casino_gral_id`.
+    final directCasinoGral = pickFromEither(const [
+      'casinoGral',
+      'casino_gral',
+    ]);
+    final idValue =
+        pickFromEither(const [
+          'casinoGralId',
+          'casinoGralID',
+          'casino_gral_id',
+          'casino_gralId',
+          'casino_general_id',
+          'casinoGeneralId',
+          'casino_general',
+          'casinoGeneral',
+          'idCasinoGral',
+          'id_casino_gral',
+          'idGral',
+          'id_gral',
+          'casinoId',
+          'casino_id',
+          'id',
+        ]) ??
+        directCasinoGral;
+
+    return _AffiliatedCasino(
+      id: parseInt(idValue),
+      url: parseString(
+        pickFromEither(const ['url', 'casinoUrl', 'casino_url', 'link']),
+      ),
+      nombreGral: parseString(
+        pickFromEither(const [
+          'nombreGral',
+          'nombre_gral',
+          'nombre',
+          'name',
+          'titulo',
+        ]),
+      ),
+      logoUrl: parseString(
+        pickFromEither(const [
+          'logoUrl',
+          'logo_url',
+          'logo',
+          'logoURL',
+          'logoGral',
+          'logo_gral',
+          'imagen',
+          'imagen_url',
+          'imageUrl',
+          'image_url',
+          'img',
+          'iconUrl',
+          'icon_url',
+          'icono',
+          'icono_url',
+        ]),
+      ),
+    );
+  }
+}
 
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
@@ -16,6 +153,15 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
+  static const String _boomBetForumId = 'boombet';
+  static const int _forumTabIndex = 3;
+
+  VoidCallback? _selectedPageListener;
+  int? _lastSelectedPage;
+
+  List<_AffiliatedCasino> _affiliatedCasinos = const [];
+  String _selectedForumId = _boomBetForumId;
+
   List<ForumPost> _posts = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -27,7 +173,269 @@ class _ForumPageState extends State<ForumPage> {
   @override
   void initState() {
     super.initState();
+
+    // En HomePage, el ForumPage vive dentro de un IndexedStack.
+    // Eso significa que initState puede correr antes de que el usuario abra el tab de Foro.
+    // Si en ese momento el token aún no está listo, la llamada a /users/casinos_afiliados puede fallar
+    // y el selector queda "pegado" mostrando solo BoomBet. Reintentamos al entrar al tab.
+    _lastSelectedPage = selectedPageNotifier.value;
+    _selectedPageListener = () {
+      final current = selectedPageNotifier.value;
+      final wasForum = _lastSelectedPage == _forumTabIndex;
+      final isForum = current == _forumTabIndex;
+      _lastSelectedPage = current;
+
+      if (!mounted) return;
+      if (!isForum || wasForum) return;
+
+      // Al entrar al tab, reintentar cargar casinos (y refrescar posts para el foro seleccionado).
+      _loadAffiliatedCasinos();
+      _loadPosts(refresh: true);
+    };
+    selectedPageNotifier.addListener(_selectedPageListener!);
+
+    _loadAffiliatedCasinos();
     _loadPosts();
+  }
+
+  @override
+  void dispose() {
+    if (_selectedPageListener != null) {
+      selectedPageNotifier.removeListener(_selectedPageListener!);
+    }
+    super.dispose();
+  }
+
+  List<_ForumDescriptor> get _forums {
+    // Foro general BoomBet: hardcodeado (casinoId == null)
+    final items = <_ForumDescriptor>[
+      const _ForumDescriptor(
+        id: _boomBetForumId,
+        label: 'BoomBet',
+        casinoId: null,
+        logoAsset: 'assets/images/boombetlogo.png',
+      ),
+    ];
+
+    // Foros de casinos: vienen del backend.
+    // Nota: si algún casino viene sin id, lo seguimos mostrando (pero no se podrá filtrar por casino_gral_id).
+    for (var i = 0; i < _affiliatedCasinos.length; i++) {
+      final casino = _affiliatedCasinos[i];
+      final idPart = casino.id != null
+          ? 'id_${casino.id}'
+          : (casino.url.isNotEmpty ? 'url_${casino.url.hashCode}' : 'idx_$i');
+
+      items.add(
+        _ForumDescriptor(
+          id: 'casino_$idPart',
+          label: casino.nombreGral.isNotEmpty ? casino.nombreGral : 'Casino',
+          casinoId: casino.id,
+          logoUrl: casino.logoUrl,
+        ),
+      );
+    }
+
+    // Dedupe por id (por si el backend repite casinos)
+    final byId = <String, _ForumDescriptor>{};
+    for (final f in items) {
+      byId.putIfAbsent(f.id, () => f);
+    }
+    return byId.values.toList();
+  }
+
+  bool _looksLikeCasinoMap(Map<String, dynamic> m) {
+    // Heurística: basta con que tenga un id (directo o dentro de objetos anidados típicos).
+    final directKeys = <String>{
+      'id',
+      'casinoGralId',
+      'casino_gral_id',
+      'casino_general_id',
+      'casinoGeneralId',
+      'idGral',
+      'id_gral',
+      'casinoId',
+      'casino_id',
+    };
+    if (m.keys.any(directKeys.contains)) return true;
+    final nested = m['casino'] ?? m['casinoGral'] ?? m['casino_gral'];
+    if (nested is Map) {
+      final nestedMap = nested.cast<String, dynamic>();
+      if (nestedMap.keys.any(directKeys.contains)) return true;
+      final nested2 = nestedMap['casinoGral'] ?? nestedMap['casino_gral'];
+      if (nested2 is Map) {
+        final nested2Map = nested2.cast<String, dynamic>();
+        if (nested2Map.keys.any(directKeys.contains)) return true;
+      }
+    }
+    return false;
+  }
+
+  List<Map<String, dynamic>> _extractAffiliatedCasinoItems(
+    dynamic decoded, {
+    int depth = 0,
+  }) {
+    if (decoded is List) {
+      final maps = decoded
+          .whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList();
+      // El endpoint que usa la pestaña "Casinos" devuelve directamente una lista.
+      // No forzamos heurísticas acá: si es lista de mapas, la intentamos parsear.
+      return maps;
+    }
+
+    if (decoded is! Map) return const [];
+    if (depth >= 3) return const [];
+
+    final map = decoded.cast<String, dynamic>();
+
+    // Primero: claves esperables.
+    const candidateKeys = <String>[
+      'content',
+      'data',
+      'casinos',
+      'casinosAfiliados',
+      'casinos_afiliados',
+      'afiliados',
+      'rows',
+      'result',
+      'results',
+      'items',
+      'payload',
+    ];
+
+    for (final key in candidateKeys) {
+      if (!map.containsKey(key)) continue;
+      final extracted = _extractAffiliatedCasinoItems(
+        map[key],
+        depth: depth + 1,
+      );
+      if (extracted.isNotEmpty) return extracted;
+    }
+
+    // Fallback: buscar recursivamente en valores (por si el backend cambió los nombres).
+    for (final v in map.values) {
+      final extracted = _extractAffiliatedCasinoItems(v, depth: depth + 1);
+      if (extracted.isNotEmpty) return extracted;
+    }
+
+    return const [];
+  }
+
+  Future<void> _loadAffiliatedCasinos() async {
+    if (!mounted) return;
+    try {
+      final url = '${ApiConfig.baseUrl}/users/casinos_afiliados';
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        cacheTtl: Duration.zero,
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+
+        final items = _extractAffiliatedCasinoItems(decoded);
+        if (items.isNotEmpty) {
+          final casinos = items.map(_AffiliatedCasino.fromJson).toList();
+
+          if (kDebugMode) {
+            debugPrint(
+              '[Forum] casinos_afiliados parsed=${casinos.length} status=${response.statusCode}',
+            );
+
+            final missingIdCount = casinos.where((c) => c.id == null).length;
+            if (missingIdCount > 0) {
+              debugPrint(
+                '[Forum] casinos_afiliados warning: $missingIdCount items have id==null (cannot filter posts by casino_gral_id). FirstKeys=${items.first.keys.take(25).toList()}',
+              );
+            }
+          }
+
+          setState(() {
+            _affiliatedCasinos = casinos;
+          });
+
+          // Si el seleccionado ya no existe (cambió afiliación), volver al foro general.
+          final forumIds = _forums.map((f) => f.id).toSet();
+          if (!forumIds.contains(_selectedForumId)) {
+            setState(() {
+              _selectedForumId = _boomBetForumId;
+            });
+          }
+          return;
+        }
+
+        if (kDebugMode) {
+          final decodedType = decoded.runtimeType;
+          final keys = decoded is Map
+              ? (decoded as Map).keys.take(20).toList()
+              : null;
+          debugPrint(
+            '[Forum] casinos_afiliados: no list found type=$decodedType keys=$keys status=${response.statusCode}',
+          );
+        }
+      }
+
+      setState(() {
+        _affiliatedCasinos = const [];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _affiliatedCasinos = const [];
+      });
+    }
+  }
+
+  String _safeImageUrl(String url) {
+    if (url.isEmpty) return url;
+    final trimmed = url.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return trimmed;
+    final scheme = uri.scheme.isEmpty
+        ? 'https'
+        : (uri.scheme == 'http' ? 'https' : uri.scheme);
+    return uri.replace(scheme: scheme).toString();
+  }
+
+  String _imageUrlForWeb(String url) {
+    final safe = _safeImageUrl(url);
+    if (!kIsWeb || safe.isEmpty) return safe;
+    final proxyBase = ApiConfig.imageProxyBase;
+    if (proxyBase.isEmpty) return safe;
+    return '$proxyBase${Uri.encodeComponent(safe)}';
+  }
+
+  _ForumDescriptor get _selectedForum {
+    final forums = _forums;
+    if (forums.isEmpty) {
+      return const _ForumDescriptor(id: 'empty', label: '', casinoId: null);
+    }
+    return forums.firstWhere(
+      (f) => f.id == _selectedForumId,
+      orElse: () => forums.first,
+    );
+  }
+
+  int? get _selectedCasinoGralId => _selectedForum.casinoId;
+
+  bool get _isBoomBetForum => _selectedForumId == _boomBetForumId;
+
+  void _selectForum(_ForumDescriptor forum) {
+    if (_selectedForumId == forum.id) return;
+
+    setState(() {
+      _selectedForumId = forum.id;
+      _showMine = false;
+    });
+
+    // Mantener ids y logos siempre actualizados al cambiar de foro.
+    // (El usuario pidió re-fetch al alternar entre casinos.)
+    _loadAffiliatedCasinos();
+    _loadPosts(refresh: true);
   }
 
   void _goToNextPage() {
@@ -97,16 +505,40 @@ class _ForumPageState extends State<ForumPage> {
 
       // Avanzar hacia delante hasta encontrar página con contenido
       while (true) {
+        final casinoGralId = _selectedCasinoGralId;
         response = _showMine
-            ? await ForumService.getMyPosts(page: page, size: 10)
-            : await ForumService.getPosts(page: page, size: 10);
+            ? await ForumService.getMyPosts(
+                page: page,
+                size: 10,
+                casinoId: casinoGralId,
+              )
+            : await ForumService.getPosts(
+                page: page,
+                size: 10,
+                casinoId: casinoGralId,
+              );
 
         if (!mounted) return;
 
-        parsedContent = _showMine
-            ? response
-                  .content // incluir también respuestas propias
+        final baseList = _showMine
+            // incluir también respuestas propias
+            ? response.content
             : response.content.where((p) => p.parentId == null).toList();
+
+        // Importante: cuando estamos en el foro general BoomBet, no queremos
+        // mezclar publicaciones de casinos (casinoGralId != null).
+        // El backend, sin filtro, suele devolver “todo”, así que filtramos acá.
+        if (_isBoomBetForum) {
+          parsedContent = baseList
+              .where((p) => p.casinoGralId == null)
+              .toList();
+        } else if (casinoGralId != null) {
+          parsedContent = baseList
+              .where((p) => p.casinoGralId == casinoGralId)
+              .toList();
+        } else {
+          parsedContent = baseList;
+        }
 
         if (parsedContent.isEmpty && !response.last) {
           page++;
@@ -118,15 +550,36 @@ class _ForumPageState extends State<ForumPage> {
       // Si la última página está vacía, intentar retroceder hasta hallar datos
       while (parsedContent.isEmpty && page > 0) {
         page--;
+        final casinoGralId = _selectedCasinoGralId;
         response = _showMine
-            ? await ForumService.getMyPosts(page: page, size: 10)
-            : await ForumService.getPosts(page: page, size: 10);
+            ? await ForumService.getMyPosts(
+                page: page,
+                size: 10,
+                casinoId: casinoGralId,
+              )
+            : await ForumService.getPosts(
+                page: page,
+                size: 10,
+                casinoId: casinoGralId,
+              );
 
         if (!mounted) return;
 
-        parsedContent = _showMine
+        final baseList = _showMine
             ? response.content
             : response.content.where((p) => p.parentId == null).toList();
+
+        if (_isBoomBetForum) {
+          parsedContent = baseList
+              .where((p) => p.casinoGralId == null)
+              .toList();
+        } else if (casinoGralId != null) {
+          parsedContent = baseList
+              .where((p) => p.casinoGralId == casinoGralId)
+              .toList();
+        } else {
+          parsedContent = baseList;
+        }
 
         if (parsedContent.isNotEmpty || response.first) {
           break;
@@ -178,7 +631,34 @@ class _ForumPageState extends State<ForumPage> {
           }
 
           try {
-            await ForumService.createPost(CreatePostRequest(content: content));
+            // BoomBet (foro general) = casino_gral_id null.
+            // Casino = requiere id válido desde /users/casinos_afiliados.
+            final int? casinoGralIdToSend;
+            if (_isBoomBetForum) {
+              casinoGralIdToSend = null;
+            } else {
+              final id = _selectedCasinoGralId;
+              if (id == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'No se pudo publicar: este casino no tiene id válido.',
+                      ),
+                    ),
+                  );
+                }
+                return;
+              }
+              casinoGralIdToSend = id;
+            }
+
+            await ForumService.createPost(
+              CreatePostRequest(
+                content: content,
+                casinoGralId: casinoGralIdToSend,
+              ),
+            );
             if (mounted) {
               Navigator.pop(context);
               _loadPosts(refresh: true);
@@ -207,6 +687,7 @@ class _ForumPageState extends State<ForumPage> {
       body: Column(
         children: [
           _buildHeader(accent, isDark, textColor),
+          _buildForumSelector(isDark, accent),
           Expanded(
             child: _isLoading
                 ? Center(
@@ -238,6 +719,8 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   Widget _buildHeader(Color accent, bool isDark, Color textColor) {
+    final selectedForum = _selectedForum;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -282,7 +765,9 @@ class _ForumPageState extends State<ForumPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Foro BoomBet',
+                      selectedForum.label.isNotEmpty
+                          ? 'Foro ${selectedForum.label}'
+                          : 'Foro',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -363,6 +848,162 @@ class _ForumPageState extends State<ForumPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForumSelector(bool isDark, Color accent) {
+    return SizedBox(
+      height: 94,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        scrollDirection: Axis.horizontal,
+        itemCount: _forums.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final forum = _forums[index];
+          final selected = forum.id == _selectedForumId;
+
+          final bgColor = selected
+              ? accent.withOpacity(isDark ? 0.18 : 0.14)
+              : (isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : AppConstants.lightSurfaceVariant);
+          final borderColor = selected
+              ? accent.withOpacity(0.7)
+              : accent.withOpacity(0.18);
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _selectForum(forum),
+              child: Ink(
+                width: 92,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderColor, width: 1),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: accent.withOpacity(0.22),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _buildForumLogo(forum, accent),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildForumLogo(_ForumDescriptor forum, Color accent) {
+    final asset = forum.logoAsset;
+    if (asset != null && asset.isNotEmpty) {
+      return Image.asset(
+        asset,
+        width: 68,
+        height: 68,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.forum, color: accent, size: 28),
+      );
+    }
+
+    final url = forum.logoUrl ?? '';
+    final effective = _imageUrlForWeb(url);
+    if (effective.isEmpty) {
+      return Icon(Icons.casino, color: accent, size: 28);
+    }
+
+    return CachedNetworkImage(
+      imageUrl: effective,
+      width: 68,
+      height: 68,
+      fit: BoxFit.contain,
+      placeholder: (_, __) => SizedBox(
+        width: 68,
+        height: 68,
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+          ),
+        ),
+      ),
+      errorWidget: (_, __, ___) => Icon(Icons.casino, color: accent, size: 28),
+    );
+  }
+
+  Widget _buildForumPlaceholder(
+    bool isDark,
+    Color accent,
+    _ForumDescriptor forum,
+  ) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withOpacity(0.2),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Icon(Icons.forum_outlined, size: 64, color: accent),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Foro de ${forum.label}',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Estamos armando este foro. Muy pronto vas a poder participar y ver publicaciones por casino.',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: isDark ? Colors.white70 : AppConstants.lightHintText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

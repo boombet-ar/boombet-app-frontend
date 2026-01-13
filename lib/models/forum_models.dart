@@ -3,6 +3,7 @@ class ForumPost {
   final String content;
   final int? parentId;
   final String username;
+  final int? casinoGralId;
   final DateTime createdAt;
   final String avatarUrl;
 
@@ -11,6 +12,7 @@ class ForumPost {
     required this.content,
     this.parentId,
     required this.username,
+    this.casinoGralId,
     required this.createdAt,
     this.avatarUrl = '',
   });
@@ -20,6 +22,9 @@ class ForumPost {
     content: json['content'] as String,
     parentId: json['parentId'] as int?,
     username: json['username'] as String,
+    casinoGralId: (json['casinoGralId'] is int)
+        ? (json['casinoGralId'] as int)
+        : int.tryParse('${json['casinoGralId'] ?? ''}'),
     createdAt: DateTime.parse(json['createdAt'] as String),
     avatarUrl: _extractAvatar(json),
   );
@@ -31,6 +36,7 @@ class ForumPost {
     String? content,
     int? parentId,
     String? username,
+    int? casinoGralId,
     DateTime? createdAt,
     String? avatarUrl,
   }) {
@@ -39,6 +45,7 @@ class ForumPost {
       content: content ?? this.content,
       parentId: parentId ?? this.parentId,
       username: username ?? this.username,
+      casinoGralId: casinoGralId ?? this.casinoGralId,
       createdAt: createdAt ?? this.createdAt,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
@@ -111,15 +118,19 @@ class PageableResponse<T> {
 class CreatePostRequest {
   final String content;
   final int? parentId;
+  final int? casinoGralId;
 
-  CreatePostRequest({required this.content, this.parentId});
+  CreatePostRequest({required this.content, this.parentId, this.casinoGralId});
 
   Map<String, dynamic> toJson() {
-    // Backend espera parent_id en snake_case
-    // null = publicación nueva, número = respuesta
+    // Contrato backend:
+    // - Publicación nueva: parent_id = null
+    // - Respuesta: parent_id = ID (>= 0)
     return {
       'content': content,
-      'parent_id': parentId, // null para post nuevo, ID para respuesta
+      'parent_id': parentId,
+      // Para foro BoomBet: casino_gral_id = null.
+      'casino_gral_id': casinoGralId,
     };
   }
 }

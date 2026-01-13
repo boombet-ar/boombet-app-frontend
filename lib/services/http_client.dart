@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'token_service.dart';
@@ -114,14 +115,21 @@ class HttpClient {
       final url = '${ApiConfig.baseUrl}/users/auth/refresh';
       log('[HttpClient] 🔄 Refreshing access token: $url');
 
+      final refreshHeaders = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (!kIsWeb) {
+        refreshHeaders['Connection'] = 'keep-alive';
+      }
+      if (kIsWeb) {
+        refreshHeaders['ngrok-skip-browser-warning'] = 'true';
+      }
+
       final response = await _client
           .post(
             Uri.parse(url),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Connection': 'keep-alive',
-            },
+            headers: refreshHeaders,
             body: jsonEncode({'refreshToken': refreshToken}),
           )
           .timeout(_defaultTimeout);
@@ -186,8 +194,19 @@ class HttpClient {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Connection': 'keep-alive',
     };
+
+    // Browser fetch/XHR forbids some headers (e.g. Connection). Keep Android/iOS
+    // behavior intact while avoiding hard failures on Flutter Web.
+    if (!kIsWeb) {
+      headers['Connection'] = 'keep-alive';
+    }
+
+    // Ngrok can return an HTML interstitial on browser requests unless this
+    // header is present. This is a no-op for non-ngrok backends.
+    if (kIsWeb) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
 
     // Agregar token de autorización si está disponible
     if (includeAuth) {
@@ -237,6 +256,11 @@ class HttpClient {
     log(
       '[HttpClient] ${response.request?.method} $url - Status: ${response.statusCode}',
     );
+
+    final contentType = response.headers['content-type'] ?? '';
+    if (contentType.contains('text/html')) {
+      log('[HttpClient] ⚠️ HTML response detected (content-type=$contentType)');
+    }
   }
 
   /// Realiza un POST con retry automático

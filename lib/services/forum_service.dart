@@ -5,11 +5,51 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:flutter/foundation.dart';
 
 class ForumService {
+  static Uri _buildPageableUri(
+    Uri base, {
+    required int page,
+    required int size,
+    int? casinoId,
+    List<String>? sort,
+  }) {
+    final params = <String, String>{
+      'page': '$page',
+      'size': '$size',
+      // Algunos despliegues esperan `casino_id` y otros `casino_gral_id`.
+      // Para evitar desalineación y que el filtro se ignore, enviamos ambos.
+      if (casinoId != null) 'casino_id': '$casinoId',
+      if (casinoId != null) 'casino_gral_id': '$casinoId',
+    };
+
+    final withBaseParams = base.replace(queryParameters: params);
+    final sorts = (sort ?? const <String>[]).where((s) => s.trim().isNotEmpty);
+    if (sorts.isEmpty) return withBaseParams;
+
+    final sortQuery = sorts
+        .map((s) => 'sort=${Uri.encodeQueryComponent(s)}')
+        .join('&');
+
+    final combinedQuery = withBaseParams.query.isEmpty
+        ? sortQuery
+        : '${withBaseParams.query}&$sortQuery';
+    return withBaseParams.replace(query: combinedQuery);
+  }
+
   static Future<PageableResponse<ForumPost>> getPosts({
     int page = 0,
     int size = 20,
+    int? casinoId,
+    List<String>? sort,
   }) async {
-    final url = '${ApiConfig.baseUrl}/publicaciones?page=$page&size=$size';
+    final base = Uri.parse('${ApiConfig.baseUrl}/publicaciones');
+    final uri = _buildPageableUri(
+      base,
+      page: page,
+      size: size,
+      casinoId: casinoId,
+      sort: sort,
+    );
+    final url = uri.toString();
     final response = await HttpClient.get(url);
 
     if (response.statusCode == 200) {
@@ -25,13 +65,25 @@ class ForumService {
   static Future<PageableResponse<ForumPost>> getMyPosts({
     int page = 0,
     int size = 20,
+    int? casinoId,
+    List<String>? sort,
   }) async {
-    final url = '${ApiConfig.baseUrl}/publicaciones/me?page=$page&size=$size';
+    final base = Uri.parse('${ApiConfig.baseUrl}/publicaciones/me');
+    final uri = _buildPageableUri(
+      base,
+      page: page,
+      size: size,
+      casinoId: casinoId,
+      sort: sort,
+    );
+    final url = uri.toString();
     // Evitar cache para no servir resultados viejos de este usuario
     final response = await HttpClient.get(url, cacheTtl: Duration.zero);
 
     // Debug detallado para diagnosticar vacío
-    print('🛰️ [ForumService] GET /publicaciones/me page=$page size=$size');
+    print(
+      '🛰️ [ForumService] GET /publicaciones/me page=$page size=$size casino_id=${casinoId ?? 'null'}',
+    );
     print('🛰️ Status: ${response.statusCode}');
     print('🛰️ Body length: ${response.body.length}');
     if (response.statusCode == 200) {
@@ -90,6 +142,11 @@ class ForumService {
 
   static Future<ForumPost> createPost(CreatePostRequest request) async {
     final url = '${ApiConfig.baseUrl}/publicaciones';
+    if (kDebugMode) {
+      debugPrint(
+        '📝 [ForumService] POST /publicaciones body=${request.toJson()}',
+      );
+    }
     final response = await HttpClient.post(url, body: request.toJson());
 
     if (response.statusCode == 200 || response.statusCode == 201) {

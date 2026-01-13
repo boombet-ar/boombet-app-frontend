@@ -8,6 +8,7 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/parallax.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +39,8 @@ class Game02 extends FlameGame with TapCallbacks {
   static const overlayMenu = 'menu';
   static const overlayCountdown = 'countdown';
   static const _prefsBestKey = 'game02_best_score';
+  static const _prefsMusicVolKey = 'game02_music_volume';
+  static const _prefsSfxVolKey = 'game02_sfx_volume';
   static const double _gravity = 1200;
 
   // Force explicit world/camera setup so the scene always renders behind
@@ -104,6 +107,19 @@ class Game02 extends FlameGame with TapCallbacks {
   // UI parity with Game01 (sliders exist even if Game02 has no audio).
   final ValueNotifier<double> musicVolume = ValueNotifier<double>(0.45);
   final ValueNotifier<double> sfxVolume = ValueNotifier<double>(0.7);
+
+  // ====== Audio (same logic as Game01) ======
+  bool _soundsReady = false;
+  AudioPool? _impactPool;
+
+  bool _bgmReady = false;
+  bool _bgmStarted = false;
+
+  // Nota: FlameAudio usa por defecto el prefijo assets/audio/, por eso quitamos "audio/"
+  static const String _sfxImpactFile = 'sfx/game_02/choque.wav';
+  static const String _bgmFile = 'sfx/game_02/music_02.mp3';
+
+  bool _isDisposed = false;
 
   bool isPaused = true; // start paused until user presses Play
   dart_async.Timer? _countdownTimer;
@@ -259,6 +275,9 @@ class Game02 extends FlameGame with TapCallbacks {
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // Asegura prefijo correcto para audios
+    FlameAudio.audioCache.prefix = 'assets/audio/';
+
     add(_world);
     _camera ??= CameraComponent(world: _world)
       ..viewfinder.anchor = Anchor.topLeft
@@ -273,6 +292,12 @@ class Game02 extends FlameGame with TapCallbacks {
       'games/game_02/floor.png',
       'games/game_02/boombet_tower.png',
     ]);
+
+    // Audio: volumen (prefs) + preload; no bloquea el juego si falla.
+    await _loadVolumeSettings();
+    _soundsReady = await _tryLoadAudio();
+    _bgmReady = await _tryLoadMusic();
+    dart_async.unawaited(_startBgmLoop());
 
     await _loadBestScore();
     try {
@@ -330,10 +355,15 @@ class Game02 extends FlameGame with TapCallbacks {
 
   void setMusicVolume(double value) {
     musicVolume.value = value.clamp(0.0, 1.0);
+    try {
+      FlameAudio.bgm.audioPlayer.setVolume(musicVolume.value);
+    } catch (_) {}
+    dart_async.unawaited(_saveMusicVolume(musicVolume.value));
   }
 
   void setSfxVolume(double value) {
     sfxVolume.value = value.clamp(0.0, 1.0);
+    dart_async.unawaited(_saveSfxVolume(sfxVolume.value));
   }
 
   void pauseGame() {
@@ -356,6 +386,114 @@ class Game02 extends FlameGame with TapCallbacks {
     if (!overlays.isActive(overlayHud)) {
       overlays.add(overlayHud);
     }
+
+    // Ensure BGM keeps playing when entering gameplay.
+    dart_async.unawaited(_startBgmLoop());
+  }
+
+  // ========================
+  // AUDIO (same logic as Game01)
+  // ========================
+
+  Future<void> _loadVolumeSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    musicVolume.value = prefs.getDouble(_prefsMusicVolKey) ?? 0.45;
+    sfxVolume.value = prefs.getDouble(_prefsSfxVolKey) ?? 0.7;
+
+    // Apply immediately (if bgm already exists)
+    try {
+      FlameAudio.bgm.audioPlayer.setVolume(musicVolume.value);
+    } catch (_) {}
+  }
+
+  Future<void> _saveMusicVolume(double volume) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_prefsMusicVolKey, volume);
+  }
+
+  Future<void> _saveSfxVolume(double volume) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_prefsSfxVolKey, volume);
+  }
+
+  Future<bool> _tryLoadAudio() async {
+    if (_soundsReady) return true;
+    try {
+      _impactPool = await FlameAudio.createPool(
+        _sfxImpactFile,
+        minPlayers: 2,
+        maxPlayers: 5,
+      );
+      return _soundsReady = true;
+    } catch (e) {
+      debugPrint('🔇 [Game02] SFX no cargados: $e');
+      return false;
+    }
+  }
+
+  void _playImpactSfx() {
+    if (!_soundsReady || _impactPool == null) return;
+    try {
+      dart_async.unawaited(_impactPool!.start(volume: sfxVolume.value));
+    } catch (e) {
+      debugPrint('🔇 [Game02] error reproduciendo choque: $e');
+    }
+  }
+
+  Future<bool> _tryLoadMusic() async {
+    if (_bgmReady) return true;
+    try {
+      await FlameAudio.bgm.initialize();
+      await FlameAudio.audioCache.load(_bgmFile);
+      return _bgmReady = true;
+    } catch (e) {
+      debugPrint('🔇 [Game02] BGM no cargado: $e');
+      return false;
+    }
+  }
+
+  Future<void> _startBgmLoop() async {
+    if (!_bgmReady) return;
+    if (_bgmStarted && FlameAudio.bgm.isPlaying) return;
+    try {
+      await FlameAudio.bgm.play(_bgmFile, volume: musicVolume.value);
+      _bgmStarted = true;
+    } catch (e) {
+      debugPrint('🔇 [Game02] error reproduciendo BGM: $e');
+    }
+  }
+
+  @override
+  void onRemove() {
+    _cleanupResources();
+    super.onRemove();
+  }
+
+  /// Called by the page when closing the game screen.
+  void onDispose() {
+    _cleanupResources();
+  }
+
+  void _cleanupResources() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
+    try {
+      FlameAudio.bgm.stop();
+      _bgmStarted = false;
+      _bgmReady = false;
+    } catch (_) {}
+
+    try {
+      _impactPool?.dispose();
+      _impactPool = null;
+      _soundsReady = false;
+    } catch (_) {}
+
+    // Limpiar cache de audio
+    try {
+      FlameAudio.audioCache.clearAll();
+    } catch (_) {}
   }
 
   /// Inicia la partida con un conteo regresivo 3-2-1.
@@ -870,6 +1008,9 @@ class Game02 extends FlameGame with TapCallbacks {
     _spawnLandingParticles(worldPos: landingPos, isPerfect: isPerfect);
     _animateLanding(curr, isPerfect: isPerfect);
 
+    // Audio: landing impact
+    _playImpactSfx();
+
     if (isPerfect) {
       _perfectCombo += 1;
       perfectStreak.value = _perfectCombo;
@@ -933,6 +1074,9 @@ class Game02 extends FlameGame with TapCallbacks {
 
     _playBreakAnimation(fallingBlock);
 
+    // Audio: fail impact
+    _playImpactSfx();
+
     // Mostrar game over luego del “romperse”.
     dart_async.Timer(const Duration(milliseconds: 650), _finalizeGameOver);
   }
@@ -954,6 +1098,9 @@ class Game02 extends FlameGame with TapCallbacks {
     perfectStreak.value = 0;
 
     _playEdgeSlipAnimation(slippingBlock, fallLeft: fallLeft);
+
+    // Audio: slip/fail impact
+    _playImpactSfx();
 
     dart_async.Timer(const Duration(milliseconds: 750), _finalizeGameOver);
   }

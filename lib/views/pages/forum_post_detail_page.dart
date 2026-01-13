@@ -158,8 +158,13 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     setState(() => _isSubmittingReply = true);
     try {
       print('📝 [DetailPage] Submitting reply with parentId: ${widget.postId}');
+      final casinoGralId = _post?.casinoGralId;
       final newReply = await ForumService.createPost(
-        CreatePostRequest(content: content, parentId: widget.postId),
+        CreatePostRequest(
+          content: content,
+          parentId: widget.postId,
+          casinoGralId: casinoGralId,
+        ),
       );
       print('✅ [DetailPage] Reply created successfully: ${newReply.id}');
 
