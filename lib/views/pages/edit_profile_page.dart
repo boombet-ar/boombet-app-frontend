@@ -6,8 +6,10 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:image_picker/image_picker.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -240,6 +242,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    final isWeb = kIsWeb;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -248,110 +251,368 @@ class _EditProfilePageState extends State<EditProfilePage> {
         showProfileButton: false,
         showBackButton: true,
       ),
-      body: ResponsiveWrapper(
-        maxWidth: 800,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Text(
-              "Editar Información",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              "Modificá tus datos personales",
-              style: TextStyle(
-                color: onSurface.withValues(alpha: 0.7),
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            _avatarSection(theme, onSurface, primaryGreen),
-
-            const SizedBox(height: 12),
-
-            // --- SECCIÓN 1 ---
-            _section("Datos Personales"),
-            _field("Nombre", _c["nombre"]!),
-            _field("Apellido", _c["apellido"]!),
-            _field("Género", _c["genero"]!),
-            _field("Estado Civil", _c["estadoCivil"]!),
-            _field("Fecha de Nacimiento", _c["fechaNacimiento"]!),
-
-            const SizedBox(height: 24),
-
-            // --- SECCIÓN 2 ---
-            _section("Contacto"),
-            _field("Email", _c["email"]!, keyboard: TextInputType.emailAddress),
-            _field("Teléfono", _c["telefono"]!, keyboard: TextInputType.phone),
-
-            const SizedBox(height: 24),
-
-            // --- SECCIÓN 3 ---
-            _section("Documentación"),
-            _field("DNI", _c["dni"]!, readOnly: true),
-            _field("CUIL", _c["cuit"]!, readOnly: true),
-
-            const SizedBox(height: 24),
-
-            // --- SECCIÓN 4 ---
-            _section("Dirección"),
-            _field("Calle", _c["calle"]!, readOnly: true),
-            _field("Número", _c["numCalle"]!, readOnly: true),
-            _field("Ciudad", _c["ciudad"]!, readOnly: true),
-            _field("Provincia", _c["provincia"]!, readOnly: true),
-            _field("Código Postal", _c["cp"]!, readOnly: true),
-
-            const SizedBox(height: 32),
-
-            // --- BOTÓN ---
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _saveChanges,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      body: isWeb
+          ? _buildWebBody(theme, onSurface, primaryGreen)
+          : ResponsiveWrapper(
+              maxWidth: 800,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Text(
+                    "Editar Información",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                child: _loading
-                    ? const CircularProgressIndicator(
-                        color: Colors.black,
-                        strokeWidth: 2,
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.save, size: 22),
-                          SizedBox(width: 12),
-                          Text(
-                            "Guardar Cambios",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    "Modificá tus datos personales",
+                    style: TextStyle(
+                      color: onSurface.withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  _avatarSection(theme, onSurface, primaryGreen),
+
+                  const SizedBox(height: 12),
+
+                  // --- SECCIÓN 1 ---
+                  _section("Datos Personales"),
+                  _field("Nombre", _c["nombre"]!),
+                  _field("Apellido", _c["apellido"]!),
+                  _field("Género", _c["genero"]!),
+                  _field("Estado Civil", _c["estadoCivil"]!),
+                  _field("Fecha de Nacimiento", _c["fechaNacimiento"]!),
+
+                  const SizedBox(height: 24),
+
+                  // --- SECCIÓN 2 ---
+                  _section("Contacto"),
+                  _field(
+                    "Email",
+                    _c["email"]!,
+                    keyboard: TextInputType.emailAddress,
+                  ),
+                  _field(
+                    "Teléfono",
+                    _c["telefono"]!,
+                    keyboard: TextInputType.phone,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // --- SECCIÓN 3 ---
+                  _section("Documentación"),
+                  _field("DNI", _c["dni"]!, readOnly: true),
+                  _field("CUIL", _c["cuit"]!, readOnly: true),
+
+                  const SizedBox(height: 24),
+
+                  // --- SECCIÓN 4 ---
+                  _section("Dirección"),
+                  _field("Calle", _c["calle"]!, readOnly: true),
+                  _field("Número", _c["numCalle"]!, readOnly: true),
+                  _field("Ciudad", _c["ciudad"]!, readOnly: true),
+                  _field("Provincia", _c["provincia"]!, readOnly: true),
+                  _field("Código Postal", _c["cp"]!, readOnly: true),
+
+                  const SizedBox(height: 32),
+
+                  // --- BOTÓN ---
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _saveChanges,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator(
+                              color: Colors.black,
+                              strokeWidth: 2,
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.save, size: 22),
+                                SizedBox(width: 12),
+                                Text(
+                                  "Guardar Cambios",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildWebBody(ThemeData theme, Color onSurface, Color primaryGreen) {
+    const double outerPadding = 28;
+    const double gap = 18;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final int columns = width >= 1400
+            ? 12
+            : width >= 1100
+            ? 10
+            : width >= 900
+            ? 8
+            : 6;
+
+        final int leftSpan = (columns * 0.58).round().clamp(3, columns - 2);
+        final int rightSpan = (columns - leftSpan).clamp(2, columns);
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(outerPadding),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      "Editar Información",
+                      style: TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Modificá tus datos personales",
+                      style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.7),
+                        fontSize: 15,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 28),
+                    StaggeredGrid.count(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: gap,
+                      crossAxisSpacing: gap,
+                      children: [
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: leftSpan,
+                          child: _avatarSection(theme, onSurface, primaryGreen),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: rightSpan,
+                          child: _webCard(
+                            theme: theme,
+                            primaryGreen: primaryGreen,
+                            title: 'Contacto',
+                            icon: Icons.contact_mail_outlined,
+                            children: [
+                              _field(
+                                "Email",
+                                _c["email"]!,
+                                keyboard: TextInputType.emailAddress,
+                              ),
+                              _field(
+                                "Teléfono",
+                                _c["telefono"]!,
+                                keyboard: TextInputType.phone,
+                              ),
+                            ],
+                          ),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: leftSpan,
+                          child: _webCard(
+                            theme: theme,
+                            primaryGreen: primaryGreen,
+                            title: 'Datos Personales',
+                            icon: Icons.badge_outlined,
+                            children: [
+                              _field("Nombre", _c["nombre"]!),
+                              _field("Apellido", _c["apellido"]!),
+                              _field("Género", _c["genero"]!),
+                              _field("Estado Civil", _c["estadoCivil"]!),
+                              _field(
+                                "Fecha de Nacimiento",
+                                _c["fechaNacimiento"]!,
+                              ),
+                            ],
+                          ),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: rightSpan,
+                          child: _webCard(
+                            theme: theme,
+                            primaryGreen: primaryGreen,
+                            title: 'Documentación',
+                            icon: Icons.assignment_ind_outlined,
+                            children: [
+                              _field("DNI", _c["dni"]!, readOnly: true),
+                              _field("CUIL", _c["cuit"]!, readOnly: true),
+                            ],
+                          ),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: rightSpan,
+                          child: _webCard(
+                            theme: theme,
+                            primaryGreen: primaryGreen,
+                            title: 'Ubicación',
+                            icon: Icons.location_on_outlined,
+                            children: [
+                              _field(
+                                "Provincia",
+                                _c["provincia"]!,
+                                readOnly: true,
+                              ),
+                              _field(
+                                "Código Postal",
+                                _c["cp"]!,
+                                readOnly: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: columns,
+                          child: _webCard(
+                            theme: theme,
+                            primaryGreen: primaryGreen,
+                            title: 'Dirección',
+                            icon: Icons.home_outlined,
+                            children: [
+                              _field("Calle", _c["calle"]!, readOnly: true),
+                              _field("Número", _c["numCalle"]!, readOnly: true),
+                              _field("Ciudad", _c["ciudad"]!, readOnly: true),
+                            ],
+                          ),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: columns,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: SizedBox(
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _loading ? null : _saveChanges,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreen,
+                                    foregroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: _loading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.black,
+                                          strokeWidth: 2,
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.save, size: 22),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              "Guardar Cambios",
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            const SizedBox(height: 20),
-            const SizedBox(height: 20),
-          ],
-        ),
+  Widget _webCard({
+    required ThemeData theme,
+    required Color primaryGreen,
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF1A1A1A)
+        : AppConstants.lightCardBg;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: primaryGreen),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
       ),
     );
   }

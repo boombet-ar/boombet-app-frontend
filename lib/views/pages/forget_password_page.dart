@@ -4,6 +4,7 @@ import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class ForgetPasswordPage extends StatefulWidget {
@@ -148,6 +149,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWeb = kIsWeb;
     final primaryGreen = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
     final accentColor = isDark
@@ -157,6 +159,177 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
         ? AppConstants.borderDark
         : AppConstants.lightInputBorder;
     final borderRadius = AppConstants.borderRadius;
+
+    Widget buildLogo({required double width}) {
+      return Center(
+        child: Hero(
+          tag: 'boombet_logo',
+          child: Image.asset('assets/images/boombetlogo.png', width: width),
+        ),
+      );
+    }
+
+    final header = Column(
+      children: [
+        Text(
+          'Recuperar Contraseña',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ingresa tu correo electrónico',
+          style: TextStyle(
+            fontSize: 15,
+            color: textColor.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+
+    final form = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.done,
+          enableInteractiveSelection: true,
+          style: TextStyle(color: textColor),
+          onChanged: (value) {
+            if (_emailError && value.isNotEmpty) {
+              setState(() => _emailError = false);
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Tu correo electrónico',
+            hintStyle: TextStyle(
+              color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
+            ),
+            prefixIcon: Icon(
+              Icons.email_outlined,
+              color: _emailError ? Colors.red : primaryGreen,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+              borderSide: BorderSide(
+                color: _emailError ? Colors.red : borderColor,
+                width: 1.5,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+              borderSide: BorderSide(
+                color: _emailError ? Colors.red : borderColor,
+                width: 1.5,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+              borderSide: BorderSide(
+                color: _emailError ? Colors.red : primaryGreen,
+                width: 2,
+              ),
+            ),
+            filled: true,
+            fillColor: accentColor,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        AppButton(
+          label: 'Enviar Correo',
+          onPressed: _validateAndSendEmail,
+          isLoading: _isLoading,
+          icon: Icons.mail_outline,
+          borderRadius: borderRadius,
+        ),
+      ],
+    );
+
+    final mobileBody = ResponsiveWrapper(
+      maxWidth: 600,
+      child: Container(
+        color: theme.scaffoldBackgroundColor,
+        height: double.infinity,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: buildLogo(width: 200),
+              ),
+              const SizedBox(height: 24),
+              header,
+              form,
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final webBody = Container(
+      color: theme.scaffoldBackgroundColor,
+      height: double.infinity,
+      width: double.infinity,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double logoWidth = (constraints.maxWidth * 0.8)
+                      .clamp(260.0, 520.0)
+                      .toDouble();
+                  return Center(child: buildLogo(width: logoWidth));
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 28,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [header, form],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -168,127 +341,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
         onTap: () {
           FocusScope.of(context).unfocus();
         },
-        child: ResponsiveWrapper(
-          maxWidth: 600,
-          child: Container(
-            color: theme.scaffoldBackgroundColor,
-            height: double.infinity,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Logo con Hero Animation
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: Center(
-                      child: Hero(
-                        tag: 'boombet_logo',
-                        child: Image.asset(
-                          'assets/images/boombetlogo.png',
-                          width: 200,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Título
-                  Text(
-                    'Recuperar Contraseña',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Subtítulo
-                  Text(
-                    'Ingresa tu correo electrónico',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Campos y botones
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // TextField Email
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.done,
-                        enableInteractiveSelection: true,
-                        style: TextStyle(color: textColor),
-                        onChanged: (value) {
-                          if (_emailError && value.isNotEmpty) {
-                            setState(() => _emailError = false);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Tu correo electrónico',
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? Colors.grey[500]
-                                : AppConstants.lightHintText,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.email_outlined,
-                            color: _emailError ? Colors.red : primaryGreen,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(borderRadius),
-                            borderSide: BorderSide(
-                              color: _emailError ? Colors.red : primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: accentColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Botón Enviar
-                      AppButton(
-                        label: 'Enviar Correo',
-                        onPressed: _validateAndSendEmail,
-                        isLoading: _isLoading,
-                        icon: Icons.mail_outline,
-                        borderRadius: borderRadius,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ),
+        child: isWeb ? webBody : mobileBody,
       ),
     );
   }

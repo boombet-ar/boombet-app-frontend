@@ -1,14 +1,21 @@
 ﻿import 'dart:convert';
 
 import 'package:boombet_app/models/affiliation_result.dart';
+import 'package:boombet_app/models/casino_response.dart';
+import 'package:boombet_app/models/player_model.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
+import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/no_casinos_available_page.dart';
 import 'package:boombet_app/views/pages/onboarding_page.dart';
 import 'package:boombet_app/views/pages/reset_password_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,7 +36,14 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
 
   // Verificar si es la primera vez que abre la app
   final prefs = await SharedPreferences.getInstance();
-  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+  final hasSeenOnboarding = kIsWeb
+      ? true
+      : (prefs.getBool('hasSeenOnboarding') ?? false);
+
+  // En Web no mostramos onboarding nunca (ni siquiera entrando directo a /onboarding)
+  if (kIsWeb && state.uri.path == '/onboarding') {
+    return '/';
+  }
 
   // Si no ha visto el onboarding y no está en /onboarding, redirigir allí
   if (!hasSeenOnboarding && state.uri.path != '/onboarding') {
@@ -38,13 +52,24 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   }
 
   // Permitir siempre el acceso a /confirm, /reset, /reset-password, /password-reset sin login
+  final isWebDebug = kIsWeb && kDebugMode;
+  const webDebugPaths = <String>{
+    '/debug/confirm-player-data',
+    '/debug/email-confirmation',
+    '/debug/no-casinos',
+    '/debug/limited-home',
+    '/debug/affiliation-results',
+  };
+  final isWebDebugRoute = isWebDebug && webDebugPaths.contains(state.uri.path);
+
   final isPublicRoute =
-      state.uri.path == '/onboarding' ||
+      (!kIsWeb && state.uri.path == '/onboarding') ||
       state.uri.path == '/confirm' ||
       state.uri.path == '/reset' ||
       state.uri.path == '/reset-password' ||
       state.uri.path == '/password-reset' ||
-      state.uri.path == '/affiliation-results';
+      state.uri.path == '/affiliation-results' ||
+      isWebDebugRoute;
 
   if (isPublicRoute) {
     debugPrint('­ƒöÇ Path coincide con ruta p├║blica, permitir acceso');
@@ -165,6 +190,111 @@ final GoRouter appRouter = GoRouter(
       path: '/password-reset',
       builder: (context, state) => _buildResetPasswordPage(context, state),
     ),
+
+    if (kIsWeb && kDebugMode) ...[
+      GoRoute(
+        path: '/debug/confirm-player-data',
+        builder: (context, state) {
+          final player = PlayerData(
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            cuil: '20-12345678-9',
+            dni: '12345678',
+            sexo: 'M',
+            estadoCivil: 'Soltero/a',
+            telefono: '1133334444',
+            correoElectronico: 'debug@boombet.test',
+            direccionCompleta: 'Calle Falsa 123',
+            calle: 'Calle Falsa',
+            numCalle: '123',
+            localidad: 'CABA',
+            provincia: 'Buenos Aires',
+            fechaNacimiento: '01-01-1990',
+            anioNacimiento: '1990',
+            username: 'debug_user',
+          );
+
+          return ConfirmPlayerDataPage(
+            playerData: player,
+            email: 'debug@boombet.test',
+            username: 'debug_user',
+            password: 'debug_password',
+            dni: '12345678',
+            telefono: '1133334444',
+            genero: 'M',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/debug/email-confirmation',
+        builder: (context, state) {
+          final player = PlayerData(
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            cuil: '20-12345678-9',
+            dni: '12345678',
+            sexo: 'M',
+            estadoCivil: 'Soltero/a',
+            telefono: '1133334444',
+            correoElectronico: 'debug@boombet.test',
+            direccionCompleta: 'Calle Falsa 123',
+            calle: 'Calle Falsa',
+            numCalle: '123',
+            localidad: 'CABA',
+            provincia: 'Buenos Aires',
+            fechaNacimiento: '01-01-1990',
+            anioNacimiento: '1990',
+            username: 'debug_user',
+          );
+
+          return EmailConfirmationPage(
+            playerData: player,
+            email: 'debug@boombet.test',
+            username: 'debug_user',
+            password: 'debug_password',
+            dni: '12345678',
+            telefono: '1133334444',
+            genero: 'M',
+            verificacionToken: 'debug',
+            isFromDeepLink: false,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/debug/no-casinos',
+        builder: (context, state) => const NoCasinosAvailablePage(),
+      ),
+      GoRoute(
+        path: '/debug/limited-home',
+        builder: (context, state) {
+          return LimitedHomePage(affiliationService: AffiliationService());
+        },
+      ),
+      GoRoute(
+        path: '/debug/affiliation-results',
+        builder: (context, state) {
+          final result = AffiliationResult(
+            playerData: const {
+              'username': 'debug_user',
+              'email': 'debug@boombet.test',
+            },
+            responses: {
+              'Casino A': CasinoResponse(message: 'OK', success: true),
+              'Casino B': CasinoResponse(
+                message: 'Jugador previamente afiliado',
+                success: false,
+              ),
+              'Casino C': CasinoResponse(
+                message: 'Error',
+                success: false,
+                error: 'Sin conexión',
+              ),
+            },
+          );
+          return AffiliationResultsPage(result: result);
+        },
+      ),
+    ],
   ],
 );
 

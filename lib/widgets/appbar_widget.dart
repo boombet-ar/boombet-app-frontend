@@ -150,7 +150,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 }
               },
             ),
-          if (showSettings)
+          if (showSettings && !kIsWeb)
             Tooltip(
               message: 'Configuración',
               child: IconButton(

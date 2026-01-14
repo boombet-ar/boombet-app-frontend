@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../config/api_config.dart';
 import '../utils/error_parser.dart';
 import 'http_client.dart';
@@ -83,6 +86,10 @@ class AuthService {
     await TokenService.deleteToken();
     await TokenService.deleteFcmToken();
 
+    if (kIsWeb) {
+      return;
+    }
+
     try {
       await FirebaseMessaging.instance.deleteToken();
       log('🔔 [AuthService] FCM token deleted');
@@ -101,6 +108,10 @@ class AuthService {
       // Preferir el token ya guardado para evitar pedirlo antes de permisos
       final stored = await TokenService.getFcmToken();
       if (stored != null && stored.isNotEmpty) return stored;
+
+      // En Web, pedir getToken() puede disparar el prompt de permisos del browser.
+      // No lo hacemos nunca.
+      if (kIsWeb) return null;
 
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {

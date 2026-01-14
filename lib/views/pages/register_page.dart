@@ -10,6 +10,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -1788,6 +1789,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWeb = kIsWeb;
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
@@ -1796,6 +1798,332 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         ? AppConstants.borderDark
         : AppConstants.lightAccent;
     final borderRadius = AppConstants.borderRadius;
+
+    Widget buildLogo({required double width}) {
+      return Center(
+        child: Image.asset('assets/images/boombetlogo.png', width: width),
+      );
+    }
+
+    final registerHeader = Column(
+      children: [
+        Text(
+          'Crear cuenta',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Completa los datos para registrarte',
+          style: TextStyle(
+            fontSize: 15,
+            color: textColor.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+
+    Widget buildRegisterFields() {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // TextField Nombre de Usuario
+          AppTextFormField(
+            label: 'Nombre de Usuario',
+            hint: 'Ingresa tu nombre de usuario',
+            controller: _usernameController,
+            hasError: _usernameError,
+            errorText: _usernameError ? 'Nombre de usuario requerido' : null,
+            onChanged: (value) {
+              if (_usernameError && value.isNotEmpty) {
+                setState(() => _usernameError = false);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // TextField Email
+          AppTextFormField(
+            label: 'Correo Electrónico',
+            hint: 'tu@email.com',
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            hasError: _emailError,
+            errorText: _emailError ? 'Email no válido' : null,
+            onChanged: (value) {
+              if (_emailError && value.isNotEmpty) {
+                setState(() => _emailError = false);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // TextField DNI
+          AppTextFormField(
+            label: 'DNI',
+            hint: '12345678',
+            controller: _dniController,
+            keyboardType: TextInputType.number,
+            hasError: _dniError,
+            errorText: _dniError ? 'DNI requerido' : null,
+            onChanged: (value) {
+              if (_dniError && value.isNotEmpty) {
+                setState(() => _dniError = false);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // TextField Teléfono
+          AppTextFormField(
+            label: 'Teléfono',
+            hint: '1234567890',
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            hasError: _phoneError,
+            errorText: _phoneError ? 'Teléfono requerido' : null,
+            onChanged: (value) {
+              if (_phoneError && value.isNotEmpty) {
+                setState(() => _phoneError = false);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // TextField Contraseña
+          AppPasswordField(
+            label: 'Contraseña',
+            hint: 'Crea tu contraseña',
+            controller: _passwordController,
+            hasError: _passwordError,
+            errorText: _passwordError ? 'Contraseña inválida' : null,
+            onChanged: (value) {
+              if (_passwordError && value.isNotEmpty) {
+                setState(() => _passwordError = false);
+              }
+              _validatePasswordLive();
+            },
+          ),
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: _passwordRules.entries.map((e) {
+              final ok = e.value;
+              return Row(
+                children: [
+                  Icon(
+                    ok ? Icons.check_circle : Icons.cancel,
+                    size: 18,
+                    color: ok ? Colors.greenAccent : Colors.redAccent,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    e.key,
+                    style: TextStyle(
+                      color: ok ? Colors.greenAccent : Colors.redAccent,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
+          // Botón para generar contraseña sugerida
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final email = _emailController.text.trim();
+                final dni = _dniController.text.trim();
+
+                if (email.isEmpty || dni.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Completa Email y DNI primero'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                // Usar la parte local del email antes del @ como nombre
+                final emailParts = email.split('@');
+                final localPart = emailParts.isNotEmpty ? emailParts[0] : email;
+                final primerNombre = localPart.length >= 2 ? localPart : email;
+                // Usar el dominio o parte del email como apellido
+                final apellido = emailParts.length > 1
+                    ? emailParts[1].split('.')[0]
+                    : localPart;
+
+                final password = PasswordGeneratorService.generatePassword(
+                  primerNombre,
+                  apellido,
+                  dni,
+                );
+
+                setState(() {
+                  _passwordController.text = password;
+                  _confirmPasswordController.text = password;
+                  _passwordError = false;
+                  _confirmPasswordError = false;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('¡Contraseña generada y aplicada!'),
+                    backgroundColor: primaryGreen,
+                  ),
+                );
+              },
+              icon: Icon(Icons.auto_awesome, size: 18, color: primaryGreen),
+              label: Text(
+                'Generar contraseña sugerida',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: primaryGreen,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: primaryGreen.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(borderRadius),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // TextField Repetir Contraseña
+          AppPasswordField(
+            label: 'Confirmar Contraseña',
+            hint: 'Repite tu contraseña',
+            controller: _confirmPasswordController,
+            hasError: _confirmPasswordError,
+            errorText: _confirmPasswordError
+                ? 'Las contraseñas no coinciden'
+                : null,
+            onChanged: (value) {
+              if (_confirmPasswordError && value.isNotEmpty) {
+                setState(() => _confirmPasswordError = false);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Selector de Género
+          GenderSelector(
+            selectedGender: _selectedGender ?? '',
+            onGenderChanged: (gender) {
+              setState(() {
+                _selectedGender = gender;
+                _genderError = false;
+              });
+            },
+            primaryColor: primaryGreen,
+            backgroundColor: accentColor,
+          ),
+
+          const SizedBox(height: 28),
+
+          // Botón Registrarse
+          AppButton(
+            label: 'Crear cuenta',
+            onPressed: _validateAndRegister,
+            isLoading: _isLoading,
+            icon: Icons.person_add,
+          ),
+          const SizedBox(height: 20),
+        ],
+      );
+    }
+
+    final mobileBody = ResponsiveWrapper(
+      maxWidth: 700,
+      child: Container(
+        color: bgColor,
+        height: double.infinity,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: buildLogo(width: 200),
+              ),
+              const SizedBox(height: 24),
+              registerHeader,
+              buildRegisterFields(),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final webBody = Container(
+      color: bgColor,
+      height: double.infinity,
+      width: double.infinity,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double logoWidth = (constraints.maxWidth * 0.8)
+                      .clamp(260.0, 520.0)
+                      .toDouble();
+                  return Center(child: buildLogo(width: logoWidth));
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 28,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [registerHeader, buildRegisterFields()],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -1807,294 +2135,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         onTap: () {
           FocusScope.of(context).unfocus();
         },
-        child: ResponsiveWrapper(
-          maxWidth: 700,
-          child: Container(
-            color: bgColor,
-            height: double.infinity,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Logo en la parte superior
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/boombetlogo.png',
-                        width: 200,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Título de bienvenida
-                  Text(
-                    'Crear cuenta',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Completa los datos para registrarte',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Campos y botón
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // TextField Nombre de Usuario
-                      AppTextFormField(
-                        label: 'Nombre de Usuario',
-                        hint: 'Ingresa tu nombre de usuario',
-                        controller: _usernameController,
-                        hasError: _usernameError,
-                        errorText: _usernameError
-                            ? 'Nombre de usuario requerido'
-                            : null,
-                        onChanged: (value) {
-                          if (_usernameError && value.isNotEmpty) {
-                            setState(() => _usernameError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField Email
-                      AppTextFormField(
-                        label: 'Correo Electrónico',
-                        hint: 'tu@email.com',
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        hasError: _emailError,
-                        errorText: _emailError ? 'Email no válido' : null,
-                        onChanged: (value) {
-                          if (_emailError && value.isNotEmpty) {
-                            setState(() => _emailError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField DNI
-                      AppTextFormField(
-                        label: 'DNI',
-                        hint: '12345678',
-                        controller: _dniController,
-                        keyboardType: TextInputType.number,
-                        hasError: _dniError,
-                        errorText: _dniError ? 'DNI requerido' : null,
-                        onChanged: (value) {
-                          if (_dniError && value.isNotEmpty) {
-                            setState(() => _dniError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField Teléfono
-                      AppTextFormField(
-                        label: 'Teléfono',
-                        hint: '1234567890',
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        hasError: _phoneError,
-                        errorText: _phoneError ? 'Teléfono requerido' : null,
-                        onChanged: (value) {
-                          if (_phoneError && value.isNotEmpty) {
-                            setState(() => _phoneError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField Contraseña
-                      AppPasswordField(
-                        label: 'Contraseña',
-                        hint: 'Crea tu contraseña',
-                        controller: _passwordController,
-                        hasError: _passwordError,
-                        errorText: _passwordError
-                            ? 'Contraseña inválida'
-                            : null,
-                        onChanged: (value) {
-                          if (_passwordError && value.isNotEmpty) {
-                            setState(() => _passwordError = false);
-                          }
-                          _validatePasswordLive();
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _passwordRules.entries.map((e) {
-                          final ok = e.value;
-                          return Row(
-                            children: [
-                              Icon(
-                                ok ? Icons.check_circle : Icons.cancel,
-                                size: 18,
-                                color: ok
-                                    ? Colors.greenAccent
-                                    : Colors.redAccent,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                e.key,
-                                style: TextStyle(
-                                  color: ok
-                                      ? Colors.greenAccent
-                                      : Colors.redAccent,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Botón para generar contraseña sugerida
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            final email = _emailController.text.trim();
-                            final dni = _dniController.text.trim();
-
-                            if (email.isEmpty || dni.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Completa Email y DNI primero',
-                                  ),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
-                              return;
-                            }
-
-                            // Usar la parte local del email antes del @ como nombre
-                            final emailParts = email.split('@');
-                            final localPart = emailParts.isNotEmpty
-                                ? emailParts[0]
-                                : email;
-                            final primerNombre = localPart.length >= 2
-                                ? localPart
-                                : email;
-                            // Usar el dominio o parte del email como apellido
-                            final apellido = emailParts.length > 1
-                                ? emailParts[1].split('.')[0]
-                                : localPart;
-
-                            final password =
-                                PasswordGeneratorService.generatePassword(
-                                  primerNombre,
-                                  apellido,
-                                  dni,
-                                );
-
-                            setState(() {
-                              _passwordController.text = password;
-                              _confirmPasswordController.text = password;
-                              _passwordError = false;
-                              _confirmPasswordError = false;
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  '¡Contraseña generada y aplicada!',
-                                ),
-                                backgroundColor: primaryGreen,
-                              ),
-                            );
-                          },
-                          icon: Icon(
-                            Icons.auto_awesome,
-                            size: 18,
-                            color: primaryGreen,
-                          ),
-                          label: Text(
-                            'Generar contraseña sugerida',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: primaryGreen,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: primaryGreen.withValues(alpha: 0.5),
-                              width: 1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // TextField Repetir Contraseña
-                      AppPasswordField(
-                        label: 'Confirmar Contraseña',
-                        hint: 'Repite tu contraseña',
-                        controller: _confirmPasswordController,
-                        hasError: _confirmPasswordError,
-                        errorText: _confirmPasswordError
-                            ? 'Las contraseñas no coinciden'
-                            : null,
-                        onChanged: (value) {
-                          if (_confirmPasswordError && value.isNotEmpty) {
-                            setState(() => _confirmPasswordError = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Selector de Género
-                      GenderSelector(
-                        selectedGender: _selectedGender ?? '',
-                        onGenderChanged: (gender) {
-                          setState(() {
-                            _selectedGender = gender;
-                            _genderError = false;
-                          });
-                        },
-                        primaryColor: primaryGreen,
-                        backgroundColor: accentColor,
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Botón Registrarse
-                      AppButton(
-                        label: 'Crear cuenta',
-                        onPressed: _validateAndRegister,
-                        isLoading: _isLoading,
-                        icon: Icons.person_add,
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ),
+        child: isWeb ? webBody : mobileBody,
       ),
     );
   }

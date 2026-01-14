@@ -1,6 +1,5 @@
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -16,7 +15,6 @@ class FaqPage extends StatefulWidget {
 
 class _FaqPageState extends State<FaqPage> {
   bool _isLoggedIn = false;
-  final _messageController = TextEditingController();
   final List<Map<String, String>> _platformFaqs = [
     {
       'question': '¿Que es BoomBet?',
@@ -70,7 +68,6 @@ class _FaqPageState extends State<FaqPage> {
 
   @override
   void dispose() {
-    _messageController.dispose();
     super.dispose();
   }
 
@@ -86,19 +83,6 @@ class _FaqPageState extends State<FaqPage> {
       });
       debugPrint('DEBUG FAQ - _isLoggedIn set to: $_isLoggedIn');
     }
-  }
-
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-
-    // Aquí iría la lógica para enviar el mensaje al backend
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Mensaje enviado correctamente'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-    );
-    _messageController.clear();
   }
 
   Future<void> _openBoomBetSite() async {
@@ -188,6 +172,8 @@ class _FaqPageState extends State<FaqPage> {
     final cardColor = theme.colorScheme.surface;
     final textColor = theme.colorScheme.onSurface;
 
+    final maxWidth = kIsWeb ? 1400.0 : 800.0;
+
     return Scaffold(
       appBar: const MainAppBar(
         showBackButton: true,
@@ -198,21 +184,125 @@ class _FaqPageState extends State<FaqPage> {
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ResponsiveWrapper(
-          maxWidth: 800,
-          child: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              Text(
-                'Ayuda',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 24),
+          maxWidth: maxWidth,
+          child: kIsWeb
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildFaqListWeb(
+                          context,
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildPoweredByPanel(
+                          context,
+                          cardColor: cardColor,
+                          textColor: textColor,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    Text(
+                      'Ayuda',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-              _buildFaqSection(
+                    _buildFaqSection(
+                      context,
+                      icon: Icons.home,
+                      title: 'Plataforma',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      items: _platformFaqs,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFaqSection(
+                      context,
+                      icon: Icons.local_offer,
+                      title: 'Beneficios',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      items: _benefitsFaqs,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFaqSection(
+                      context,
+                      icon: Icons.shield,
+                      title: 'Puntos',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      disabled: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFaqSection(
+                      context,
+                      icon: Icons.article,
+                      title: 'Actividades',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      disabled: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFaqSection(
+                      context,
+                      icon: Icons.thumb_up,
+                      title: 'Sorteos',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      disabled: true,
+                    ),
+                    const SizedBox(height: 32),
+                    _buildPoweredByPanel(
+                      context,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFaqListWeb(
+    BuildContext context, {
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Ayuda',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              _buildFaqCategoryWeb(
                 context,
                 icon: Icons.home,
                 title: 'Plataforma',
@@ -221,7 +311,7 @@ class _FaqPageState extends State<FaqPage> {
                 items: _platformFaqs,
               ),
               const SizedBox(height: 12),
-              _buildFaqSection(
+              _buildFaqCategoryWeb(
                 context,
                 icon: Icons.local_offer,
                 title: 'Beneficios',
@@ -256,111 +346,215 @@ class _FaqPageState extends State<FaqPage> {
                 textColor: textColor,
                 disabled: true,
               ),
-              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildFaqCategoryWeb(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Color cardColor,
+    required Color textColor,
+    required List<Map<String, String>> items,
+  }) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          leading: Icon(icon, color: primary),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
+          ),
+          iconColor: primary,
+          collapsedIconColor: primary,
+          children: [
+            for (final item in items)
               Container(
-                padding: const EdgeInsets.all(20.0),
+                margin: const EdgeInsets.only(top: 10),
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.03)
+                      : AppConstants.lightSurfaceVariant,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: primary.withValues(alpha: isDark ? 0.18 : 0.10),
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
+                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  title: Text(
+                    item['question'] ?? '',
+                    softWrap: true,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                      height: 1.25,
+                    ),
+                  ),
                   children: [
-                    Text(
-                      'POWERED BY',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.transparent
-                                    : AppConstants.lightSurfaceVariant,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Image.asset(
-                                'assets/images/bplay_logo.webp',
-                                height: 60,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text.rich(
+                        TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.55,
+                            color: textColor,
+                          ),
+                          children: _buildAnswerSpans(
+                            item['answer'] ?? '',
+                            textColor,
                           ),
                         ),
-                        Flexible(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.transparent
-                                    : AppConstants.lightSurfaceVariant,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Image.asset(
-                                'assets/images/sportsbet_logo.webp',
-                                height: 60,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    Text(
-                      'Accede a nuestra pagina web!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _openBoomBetSite,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(0),
-                          child: Image.asset(
-                            'assets/images/boombetlogo.png',
-                            height: 140,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                        softWrap: true,
                       ),
                     ),
                   ],
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPoweredByPanel(
+    BuildContext context, {
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'POWERED BY',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.transparent
+                          : AppConstants.lightSurfaceVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.asset(
+                      'assets/images/bplay_logo.webp',
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.transparent
+                          : AppConstants.lightSurfaceVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.asset(
+                      'assets/images/sportsbet_logo.webp',
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 30),
+          Text(
+            'Accede a nuestra pagina web!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openBoomBetSite,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(0),
+                child: Image.asset(
+                  'assets/images/boombetlogo.png',
+                  height: 140,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

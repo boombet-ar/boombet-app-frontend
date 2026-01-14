@@ -11,6 +11,7 @@ import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/services/biometric_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
@@ -261,6 +262,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWeb = kIsWeb;
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
@@ -273,6 +275,347 @@ class _LoginPageState extends State<LoginPage> {
         : AppConstants.borderLight;
     final borderRadius = AppConstants.borderRadius;
 
+    Widget buildLogo({required double width}) {
+      return Center(
+        child: Hero(
+          tag: 'boombet_logo',
+          child: Image.asset('assets/images/boombetlogo.png', width: width),
+        ),
+      );
+    }
+
+    final loginFields = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // TextField Usuario o Email
+        Semantics(
+          label: 'Campo de usuario o email',
+          hint:
+              'Ingresa tu nombre de usuario o dirección de correo electrónico',
+          child: TextField(
+            controller: _identifierController,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            enableInteractiveSelection: true,
+            style: TextStyle(color: textColor),
+            onChanged: (value) {
+              if (_identifierError && value.isNotEmpty) {
+                setState(() => _identifierError = false);
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'Usuario o Email',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
+              ),
+              prefixIcon: Icon(
+                Icons.person_outline,
+                color: _identifierError ? Colors.red : primaryGreen,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _identifierError ? Colors.red : borderColor,
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _identifierError ? Colors.red : borderColor,
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _identifierError ? Colors.red : primaryGreen,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: accentColor,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // TextField Contraseña
+        Semantics(
+          label: 'Campo de contraseña',
+          hint: 'Ingresa tu contraseña',
+          obscured: true,
+          child: TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.done,
+            enableInteractiveSelection: true,
+            style: TextStyle(color: textColor),
+            onChanged: (value) {
+              if (_passwordError && value.isNotEmpty) {
+                setState(() => _passwordError = false);
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'Contraseña',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
+              ),
+              prefixIcon: Icon(
+                Icons.lock_outline,
+                color: _passwordError ? Colors.red : primaryGreen,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: textColor.withValues(alpha: 0.6),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _passwordError ? Colors.red : borderColor,
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _passwordError ? Colors.red : borderColor,
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: BorderSide(
+                  color: _passwordError ? Colors.red : primaryGreen,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: accentColor,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        const SizedBox(height: 12),
+
+        // Botón Iniciar Sesión (principal)
+        AppButton(
+          label: 'Iniciar Sesión',
+          onPressed: _validateAndLogin,
+          isLoading: _isLoading,
+          icon: Icons.login,
+        ),
+        const SizedBox(height: 16),
+
+        // Divider con texto
+        Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: textColor.withValues(alpha: 0.2),
+                thickness: 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'o',
+                style: TextStyle(
+                  color: textColor.withValues(alpha: 0.5),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: textColor.withValues(alpha: 0.2),
+                thickness: 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Botón Registrarse (secundario)
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: primaryGreen.withValues(alpha: 0.7),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                SlideRightRoute(page: const RegisterPage()),
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_add_outlined, size: 20, color: primaryGreen),
+                const SizedBox(width: 8),
+                Text(
+                  'Crear cuenta nueva',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: primaryGreen,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Link para restaurar contraseña
+        TextButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              FadeRoute(page: const ForgetPasswordPage()),
+            );
+          },
+          icon: Icon(Icons.help_outline, size: 18, color: primaryGreen),
+          label: Text(
+            '¿Olvidaste tu contraseña?',
+            style: TextStyle(
+              color: primaryGreen,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final loginHeader = Column(
+      children: [
+        Text(
+          'Bienvenido',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Inicia sesión para continuar',
+          style: TextStyle(
+            fontSize: 15,
+            color: textColor.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+
+    final mobileBody = ResponsiveWrapper(
+      maxWidth: 600,
+      child: Container(
+        color: bgColor,
+        height: double.infinity,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Logo en la parte superior
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: buildLogo(width: 200),
+              ),
+              const SizedBox(height: 24),
+              loginHeader,
+              loginFields,
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final webBody = Container(
+      color: bgColor,
+      height: double.infinity,
+      width: double.infinity,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double logoWidth = (constraints.maxWidth * 0.8)
+                      .clamp(260.0, 520.0)
+                      .toDouble();
+                  return Center(child: buildLogo(width: logoWidth));
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 28,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [loginHeader, loginFields],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
     return Scaffold(
       appBar: const MainAppBar(showSettings: false, showProfileButton: false),
       body: GestureDetector(
@@ -280,316 +623,7 @@ class _LoginPageState extends State<LoginPage> {
           // Quitar el foco de los campos al tocar fuera
           FocusScope.of(context).unfocus();
         },
-        child: ResponsiveWrapper(
-          maxWidth: 600,
-          child: Container(
-            color: bgColor,
-            height: double.infinity,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Logo en la parte superior
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: Center(
-                      child: Hero(
-                        tag: 'boombet_logo',
-                        child: Image.asset(
-                          'assets/images/boombetlogo.png',
-                          width: 200,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Título de bienvenida
-                  Text(
-                    'Bienvenido',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Inicia sesión para continuar',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Campos y botones
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // TextField Usuario o Email
-                      Semantics(
-                        label: 'Campo de usuario o email',
-                        hint:
-                            'Ingresa tu nombre de usuario o dirección de correo electrónico',
-                        child: TextField(
-                          controller: _identifierController,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_identifierError && value.isNotEmpty) {
-                              setState(() => _identifierError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Usuario o Email',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : AppConstants.lightHintText,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.person_outline,
-                              color: _identifierError
-                                  ? Colors.red
-                                  : primaryGreen,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _identifierError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _identifierError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _identifierError
-                                    ? Colors.red
-                                    : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // TextField Contraseña
-                      Semantics(
-                        label: 'Campo de contraseña',
-                        hint: 'Ingresa tu contraseña',
-                        obscured: true,
-                        child: TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.done,
-                          enableInteractiveSelection: true,
-                          style: TextStyle(color: textColor),
-                          onChanged: (value) {
-                            if (_passwordError && value.isNotEmpty) {
-                              setState(() => _passwordError = false);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Contraseña',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : AppConstants.lightHintText,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
-                              color: _passwordError ? Colors.red : primaryGreen,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: textColor.withValues(alpha: 0.6),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : borderColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                              borderSide: BorderSide(
-                                color: _passwordError
-                                    ? Colors.red
-                                    : primaryGreen,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: accentColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      const SizedBox(height: 12),
-
-                      // Botón Iniciar Sesión (principal)
-                      AppButton(
-                        label: 'Iniciar Sesión',
-                        onPressed: _validateAndLogin,
-                        isLoading: _isLoading,
-                        icon: Icons.login,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Divider con texto
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              color: textColor.withValues(alpha: 0.2),
-                              thickness: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'o',
-                              style: TextStyle(
-                                color: textColor.withValues(alpha: 0.5),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: textColor.withValues(alpha: 0.2),
-                              thickness: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Botón Registrarse (secundario)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: primaryGreen.withValues(alpha: 0.7),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(borderRadius),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              SlideRightRoute(page: const RegisterPage()),
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.person_add_outlined,
-                                size: 20,
-                                color: primaryGreen,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Crear cuenta nueva',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: primaryGreen,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Link para restaurar contraseña
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            FadeRoute(page: const ForgetPasswordPage()),
-                          );
-                        },
-                        icon: Icon(
-                          Icons.help_outline,
-                          size: 18,
-                          color: primaryGreen,
-                        ),
-                        label: Text(
-                          '¿Olvidaste tu contraseña?',
-                          style: TextStyle(
-                            color: primaryGreen,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Espacio disponible abajo para futuros elementos
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ),
+        child: isWeb ? webBody : mobileBody,
       ),
     );
   }

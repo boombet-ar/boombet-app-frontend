@@ -10,7 +10,9 @@ import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 
 class ConfirmPlayerDataPage extends StatefulWidget {
@@ -43,7 +45,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   late TextEditingController _correoController;
   late TextEditingController _telefonoController;
   late TextEditingController _estadoCivilController;
-  late TextEditingController _sexoController;
 
   bool _isLoading = false;
   String? _selectedGenero;
@@ -65,8 +66,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _correoController = TextEditingController(text: data.correoElectronico);
     _telefonoController = TextEditingController(text: data.telefono);
     _estadoCivilController = TextEditingController(text: data.estadoCivil);
-    _sexoController = TextEditingController(text: data.sexo);
-
     final generoNormalizado = _normalizarGenero(data.sexo);
     if (_generOptions.contains(generoNormalizado)) {
       _selectedGenero = generoNormalizado;
@@ -80,7 +79,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _correoController.dispose();
     _telefonoController.dispose();
     _estadoCivilController.dispose();
-    _sexoController.dispose();
     super.dispose();
   }
 
@@ -435,6 +433,29 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
+    final header = Column(
+      children: [
+        Text(
+          'Confirmá tus datos',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: primaryGreen,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Verificá que todos tus datos sean correctos',
+          style: TextStyle(
+            fontSize: 14,
+            color: isDark ? Colors.white70 : AppConstants.lightHintText,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: const MainAppBar(
@@ -443,155 +464,383 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         showBackButton: true,
       ),
       body: ResponsiveWrapper(
-        maxWidth: 800,
-        child: ListView(
-          padding: const EdgeInsets.all(24.0),
-          children: [
-            Text(
-              'Confirmá tus datos',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Verificá que todos tus datos sean correctos',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white70 : AppConstants.lightHintText,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
+        maxWidth: kIsWeb ? 1200 : 800,
+        child: kIsWeb
+            ? SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    header,
+                    const SizedBox(height: 24),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 920 ? 2 : 1;
+                        final cardPadding = EdgeInsets.all(
+                          columns == 2 ? 18.0 : 16.0,
+                        );
 
-            // --------- DATOS PERSONALES ---------
-            const Text(
-              'Datos Personales',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildReadOnlyField(context, 'DNI', data.dni),
-            _buildReadOnlyField(context, 'CUIL', data.cuil),
-            _buildReadOnlyField(
-              context,
-              'Fecha de Nacimiento',
-              data.fechaNacimiento,
-            ),
-            _buildReadOnlyField(
-              context,
-              'Año de Nacimiento',
-              data.anioNacimiento,
-            ),
-            if (data.edad != null)
-              _buildReadOnlyField(context, 'Edad', data.edad.toString()),
-            const SizedBox(height: 16),
-
-            _buildEditableField(context, 'Nombre', _nombreController),
-            _buildEditableField(context, 'Apellido', _apellidoController),
-            _buildGeneroDropdown(context),
-            _buildEditableField(
-              context,
-              'Estado Civil',
-              _estadoCivilController,
-            ),
-
-            const SizedBox(height: 24),
-
-            // --------- CONTACTO ---------
-            const Text(
-              'Contacto',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildEditableField(
-              context,
-              'Correo Electrónico',
-              _correoController,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            _buildEditableField(
-              context,
-              'Teléfono',
-              _telefonoController,
-              keyboardType: TextInputType.phone,
-            ),
-
-            const SizedBox(height: 24),
-
-            // --------- DIRECCIÓN ---------
-            Text(
-              'Dirección',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildReadOnlyField(context, 'Calle', data.calle),
-            _buildReadOnlyField(context, 'Número', data.numCalle),
-            _buildReadOnlyField(context, 'Localidad', data.localidad),
-            _buildReadOnlyField(context, 'Provincia', data.provincia),
-            if (data.cp != null)
-              _buildReadOnlyField(context, 'Código Postal', data.cp.toString()),
-
-            const SizedBox(height: 32),
-
-            // --------- BOTÓN CONFIRMAR ---------
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _onConfirmarDatos,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 3,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle, size: 24),
-                          SizedBox(width: 12),
-                          Text(
-                            'Confirmar datos',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                        return MasonryGridView.count(
+                          crossAxisCount: columns,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          itemCount: 4,
+                          itemBuilder: (context, index) {
+                            switch (index) {
+                              case 0:
+                                return _buildWebSectionCard(
+                                  context: context,
+                                  title: 'Datos editables',
+                                  padding: cardPadding,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildEditableField(
+                                        context,
+                                        'Nombre',
+                                        _nombreController,
+                                      ),
+                                      _buildEditableField(
+                                        context,
+                                        'Apellido',
+                                        _apellidoController,
+                                      ),
+                                      _buildGeneroDropdown(context),
+                                      _buildEditableField(
+                                        context,
+                                        'Estado Civil',
+                                        _estadoCivilController,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              case 1:
+                                return _buildWebSectionCard(
+                                  context: context,
+                                  title: 'Contacto',
+                                  padding: cardPadding,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildEditableField(
+                                        context,
+                                        'Correo Electrónico',
+                                        _correoController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                      ),
+                                      _buildEditableField(
+                                        context,
+                                        'Teléfono',
+                                        _telefonoController,
+                                        keyboardType: TextInputType.phone,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              case 2:
+                                return _buildWebSectionCard(
+                                  context: context,
+                                  title: 'Datos personales',
+                                  padding: cardPadding,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildReadOnlyField(
+                                        context,
+                                        'DNI',
+                                        data.dni,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'CUIL',
+                                        data.cuil,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Fecha de Nacimiento',
+                                        data.fechaNacimiento,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Año de Nacimiento',
+                                        data.anioNacimiento,
+                                      ),
+                                      if (data.edad != null)
+                                        _buildReadOnlyField(
+                                          context,
+                                          'Edad',
+                                          data.edad.toString(),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              case 3:
+                              default:
+                                return _buildWebSectionCard(
+                                  context: context,
+                                  title: 'Dirección',
+                                  padding: cardPadding,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Calle',
+                                        data.calle,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Número',
+                                        data.numCalle,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Localidad',
+                                        data.localidad,
+                                      ),
+                                      _buildReadOnlyField(
+                                        context,
+                                        'Provincia',
+                                        data.provincia,
+                                      ),
+                                      if (data.cp != null)
+                                        _buildReadOnlyField(
+                                          context,
+                                          'Código Postal',
+                                          data.cp.toString(),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _onConfirmarDatos,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 3,
                             ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.black,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle, size: 20),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'Confirmar datos',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                           ),
-                        ],
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              )
+            : ListView(
+                padding: const EdgeInsets.all(24.0),
+                children: [
+                  header,
+                  const SizedBox(height: 32),
+
+                  // --------- DATOS PERSONALES ---------
+                  const Text(
+                    'Datos Personales',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildReadOnlyField(context, 'DNI', data.dni),
+                  _buildReadOnlyField(context, 'CUIL', data.cuil),
+                  _buildReadOnlyField(
+                    context,
+                    'Fecha de Nacimiento',
+                    data.fechaNacimiento,
+                  ),
+                  _buildReadOnlyField(
+                    context,
+                    'Año de Nacimiento',
+                    data.anioNacimiento,
+                  ),
+                  if (data.edad != null)
+                    _buildReadOnlyField(context, 'Edad', data.edad.toString()),
+                  const SizedBox(height: 16),
+
+                  _buildEditableField(context, 'Nombre', _nombreController),
+                  _buildEditableField(context, 'Apellido', _apellidoController),
+                  _buildGeneroDropdown(context),
+                  _buildEditableField(
+                    context,
+                    'Estado Civil',
+                    _estadoCivilController,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // --------- CONTACTO ---------
+                  const Text(
+                    'Contacto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildEditableField(
+                    context,
+                    'Correo Electrónico',
+                    _correoController,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  _buildEditableField(
+                    context,
+                    'Teléfono',
+                    _telefonoController,
+                    keyboardType: TextInputType.phone,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // --------- DIRECCIÓN ---------
+                  Text(
+                    'Dirección',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildReadOnlyField(context, 'Calle', data.calle),
+                  _buildReadOnlyField(context, 'Número', data.numCalle),
+                  _buildReadOnlyField(context, 'Localidad', data.localidad),
+                  _buildReadOnlyField(context, 'Provincia', data.provincia),
+                  if (data.cp != null)
+                    _buildReadOnlyField(
+                      context,
+                      'Código Postal',
+                      data.cp.toString(),
+                    ),
+
+                  const SizedBox(height: 32),
+
+                  // --------- BOTÓN CONFIRMAR ---------
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _onConfirmarDatos,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, size: 24),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Confirmar datos',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildWebSectionCard({
+    required BuildContext context,
+    required String title,
+    required EdgeInsets padding,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+
+    final borderColor = primaryGreen.withValues(alpha: 0.35);
+    final cardBg = isDark ? const Color(0xFF111111) : Colors.white;
+    final titleColor = primaryGreen;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: titleColor,
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }

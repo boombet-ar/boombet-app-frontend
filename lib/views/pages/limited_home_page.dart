@@ -11,6 +11,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:intl/intl.dart';
@@ -194,6 +195,84 @@ class LimitedHomeContent extends StatelessWidget {
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
 
+    final progressBanner = _buildAffiliationProgressBanner(
+      context,
+      statusMessage: statusMessage,
+      primaryGreen: primaryGreen,
+      textColor: textColor,
+      isDark: isDark,
+    );
+
+    if (kIsWeb) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionHeaderWidget(
+              title: 'Inicio',
+              subtitle: 'Anuncios y novedades personalizadas',
+              icon: Icons.campaign,
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final targetWidth = constraints.maxWidth < 640
+                              ? constraints.maxWidth
+                              : 640.0;
+                          return Center(
+                            child: SizedBox(
+                              width: targetWidth,
+                              child: _buildWelcomeAndFeatures(
+                                context,
+                                isDark: isDark,
+                                primaryGreen: primaryGreen,
+                                textColor: textColor,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 420,
+                            maxHeight: 420,
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: _buildProgressSquare(
+                              context,
+                              statusMessage: statusMessage,
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              isDark: isDark,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,117 +285,207 @@ class LimitedHomeContent extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Banner de afiliación en proceso
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  primaryGreen.withValues(alpha: 0.2),
-                  primaryGreen.withValues(alpha: 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: primaryGreen.withValues(alpha: 0.3),
-                width: 2,
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.hourglass_empty, color: primaryGreen, size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Afiliación en proceso',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  statusMessage,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: textColor.withValues(alpha: 0.8),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    minHeight: 8,
-                    backgroundColor: isDark
-                        ? const Color(0xFF2A2A2A)
-                        : AppConstants.lightAccent,
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          progressBanner,
 
           const SizedBox(height: 30),
-
-          // Mensaje de bienvenida
-          Text(
-            '¡Bienvenido a BoomBet!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          _buildWelcomeAndFeatures(
+            context,
+            isDark: isDark,
+            primaryGreen: primaryGreen,
+            textColor: textColor,
           ),
-          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeAndFeatures(
+    BuildContext context, {
+    required bool isDark,
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '¡Bienvenido a BoomBet!',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Estamos preparando todo para que disfrutes de la mejor experiencia.',
+          style: TextStyle(
+            fontSize: 16,
+            color: textColor.withValues(alpha: 0.7),
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 30),
+        _buildFeatureCard(
+          context,
+          Icons.stars,
+          'Programa de Puntos',
+          'Acumula puntos en cada apuesta y canjéalos por premios exclusivos.',
+          isDark,
+          primaryGreen,
+          textColor,
+        ),
+        const SizedBox(height: 16),
+        _buildFeatureCard(
+          context,
+          Icons.local_offer,
+          'Descuentos Exclusivos',
+          'Accede a ofertas especiales en comercios afiliados.',
+          isDark,
+          primaryGreen,
+          textColor,
+        ),
+        const SizedBox(height: 16),
+        _buildFeatureCard(
+          context,
+          Icons.card_giftcard,
+          'Sorteos y Premios',
+          'Participa en sorteos mensuales y gana increíbles premios.',
+          isDark,
+          primaryGreen,
+          textColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAffiliationProgressBanner(
+    BuildContext context, {
+    required String statusMessage,
+    required Color primaryGreen,
+    required Color textColor,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            primaryGreen.withValues(alpha: 0.2),
+            primaryGreen.withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.hourglass_empty, color: primaryGreen, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Afiliación en proceso',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
-            'Estamos preparando todo para que disfrutes de la mejor experiencia.',
+            statusMessage,
             style: TextStyle(
-              fontSize: 16,
-              color: textColor.withValues(alpha: 0.7),
+              fontSize: 14,
+              color: textColor.withValues(alpha: 0.8),
               height: 1.4,
             ),
           ),
-
-          const SizedBox(height: 30),
-
-          // Información de funciones próximas
-          _buildFeatureCard(
-            context,
-            Icons.stars,
-            'Programa de Puntos',
-            'Acumula puntos en cada apuesta y canjéalos por premios exclusivos.',
-            isDark,
-            primaryGreen,
-            textColor,
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              backgroundColor: isDark
+                  ? const Color(0xFF2A2A2A)
+                  : AppConstants.lightAccent,
+              valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+            ),
           ),
-          const SizedBox(height: 16),
-          _buildFeatureCard(
-            context,
-            Icons.local_offer,
-            'Descuentos Exclusivos',
-            'Accede a ofertas especiales en comercios afiliados.',
-            isDark,
-            primaryGreen,
-            textColor,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressSquare(
+    BuildContext context, {
+    required String statusMessage,
+    required Color primaryGreen,
+    required Color textColor,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            primaryGreen.withValues(alpha: 0.22),
+            primaryGreen.withValues(alpha: 0.10),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.35),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.hourglass_empty, color: primaryGreen, size: 42),
+          const SizedBox(height: 12),
+          Text(
+            'Afiliación en proceso',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: primaryGreen,
+            ),
           ),
-          const SizedBox(height: 16),
-          _buildFeatureCard(
-            context,
-            Icons.card_giftcard,
-            'Sorteos y Premios',
-            'Participa en sorteos mensuales y gana increíbles premios.',
-            isDark,
-            primaryGreen,
-            textColor,
+          const SizedBox(height: 10),
+          Text(
+            statusMessage,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: textColor.withValues(alpha: 0.8),
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 10,
+              backgroundColor: isDark
+                  ? const Color(0xFF2A2A2A)
+                  : AppConstants.lightAccent,
+              valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+            ),
           ),
         ],
       ),

@@ -120,10 +120,15 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Notificaciones: SOLO en mobile. En Web no pedimos permisos ni inicializamos push.
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Suscribirse a notificaciones en foreground / openedApp
-  await PushNotificationService.initialize();
+    // Suscribirse a notificaciones en foreground / openedApp
+    await PushNotificationService.initialize();
+  } else {
+    debugPrint('🔕 Push notifications disabled on Web');
+  }
 
   // Cargar variables de entorno
   await Env.load();

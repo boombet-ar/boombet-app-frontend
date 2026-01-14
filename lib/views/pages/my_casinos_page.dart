@@ -3,6 +3,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -101,6 +102,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
+    final isWeb = kIsWeb;
 
     return ColoredBox(
       color: theme.scaffoldBackgroundColor,
@@ -124,7 +126,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
                 ? _buildError()
                 : _casinos.isEmpty
                 ? _buildEmpty(isDark, accent)
-                : _buildList(isDark, accent),
+                : _buildList(isDark, accent, isWeb: isWeb),
           ),
         ],
       ),
@@ -199,17 +201,133 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
     );
   }
 
-  Widget _buildList(bool isDark, Color accent) {
+  Widget _buildList(bool isDark, Color accent, {required bool isWeb}) {
     return RefreshIndicator(
       onRefresh: () => _loadCasinos(refresh: true),
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        itemCount: _casinos.length,
-        itemBuilder: (context, index) => _CasinoCard(
-          casino: _casinos[index],
-          isDark: isDark,
-          accent: accent,
-          onTap: () => _openCasinoUrl(_casinos[index].url),
+      child: isWeb
+          ? LayoutBuilder(
+              builder: (context, constraints) {
+                final maxExtent = (constraints.maxWidth * 0.33).clamp(
+                  260.0,
+                  420.0,
+                );
+
+                return GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: maxExtent,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: _casinos.length,
+                  itemBuilder: (context, index) => _CasinoGridCard(
+                    casino: _casinos[index],
+                    isDark: isDark,
+                    accent: accent,
+                    onTap: () => _openCasinoUrl(_casinos[index].url),
+                  ),
+                );
+              },
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              itemCount: _casinos.length,
+              itemBuilder: (context, index) => _CasinoCard(
+                casino: _casinos[index],
+                isDark: isDark,
+                accent: accent,
+                onTap: () => _openCasinoUrl(_casinos[index].url),
+              ),
+            ),
+    );
+  }
+}
+
+class _CasinoGridCard extends StatelessWidget {
+  final CasinoData casino;
+  final bool isDark;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _CasinoGridCard({
+    required this.casino,
+    required this.isDark,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaceVariant = isDark
+        ? const Color(0xFF2A2A2A)
+        : AppConstants.lightSurfaceVariant;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: isDark ? 8 : 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? accent.withValues(alpha: 0.18)
+              : AppConstants.borderLight,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      color: surfaceVariant,
+                      child: casino.logoUrl.isNotEmpty
+                          ? Image.network(
+                              casino.logoUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  Icon(Icons.casino, color: accent, size: 48),
+                            )
+                          : Icon(Icons.casino, color: accent, size: 48),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  casino.nombreGral,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _CasinoButton(accent: accent, onTap: onTap, isDark: isDark),
+              ],
+            ),
+          ),
         ),
       ),
     );

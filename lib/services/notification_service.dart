@@ -4,6 +4,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class NotificationService {
   const NotificationService();
@@ -88,6 +89,10 @@ class NotificationService {
     try {
       final stored = await TokenService.getFcmToken();
       if (stored != null && stored.isNotEmpty) return stored;
+
+      // En Web, pedir getToken() puede disparar el prompt de permisos del browser.
+      // No lo hacemos nunca.
+      if (kIsWeb) return null;
 
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {

@@ -10,6 +10,7 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
@@ -104,6 +105,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
+    final isWeb = kIsWeb;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -115,14 +117,20 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: RefreshIndicator(
         onRefresh: _refreshProfile,
-        child: ResponsiveWrapper(
-          maxWidth: 900,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
-              ? _buildErrorView(textColor, primaryGreen)
-              : _buildProfileContent(textColor, isDark, primaryGreen),
-        ),
+        child: isWeb
+            ? (_isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                  ? _buildErrorView(textColor, primaryGreen)
+                  : _buildWebProfileContent(textColor, isDark, primaryGreen))
+            : ResponsiveWrapper(
+                maxWidth: 900,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
+                    ? _buildErrorView(textColor, primaryGreen)
+                    : _buildProfileContent(textColor, isDark, primaryGreen),
+              ),
       ),
     );
   }
@@ -210,6 +218,142 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildWebProfileContent(
+    Color textColor,
+    bool isDark,
+    Color primaryGreen,
+  ) {
+    final theme = Theme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1600),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  primaryGreen.withValues(alpha: 0.25),
+                                  primaryGreen.withValues(alpha: 0.05),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white10
+                                    : AppConstants.borderLight,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AnimatedContainer(
+                                  duration: AppConstants.mediumDelay,
+                                  curve: Curves.easeOutBack,
+                                  width: 210,
+                                  height: 210,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: primaryGreen,
+                                      width: 4,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 22,
+                                        spreadRadius: 6,
+                                      ),
+                                    ],
+                                    color: isDark
+                                        ? const Color(0xFF202020)
+                                        : theme.colorScheme.surface,
+                                  ),
+                                  child: ClipOval(
+                                    child: _buildAvatarImage(
+                                      primaryGreen,
+                                      isDark,
+                                      size: 210,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                Text(
+                                  "${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}"
+                                      .trim(),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                _buildVerifiedBadge(
+                                  primaryGreen,
+                                  _playerData?.username ?? '',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 28),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 900),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildSectionTitle(primaryGreen, textColor),
+                                    const SizedBox(height: 20),
+                                    _buildInfoCard(
+                                      isDark,
+                                      textColor,
+                                      primaryGreen,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ----------------- HEADER (ANIMATED) -----------------
 
   Widget _buildHeader(Color textColor, bool isDark, Color primaryGreen) {
@@ -268,7 +412,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildAvatarImage(Color primaryGreen, bool isDark) {
+  Widget _buildAvatarImage(
+    Color primaryGreen,
+    bool isDark, {
+    double size = 130,
+  }) {
     final url = _playerData?.avatarUrl ?? '';
 
     if (url.isNotEmpty) {
@@ -277,17 +425,24 @@ class _ProfilePageState extends State<ProfilePage> {
         key: ValueKey(
           url,
         ), // fuerza rebuild cuando cambia la URL (cache-buster)
-        width: 130,
-        height: 130,
+        width: size,
+        height: size,
         fit: BoxFit.cover,
         fadeInDuration: const Duration(milliseconds: 120),
         placeholder: (_, __) => const SizedBox.shrink(),
-        errorWidget: (_, __, ___) =>
-            Icon(Icons.person, size: 70, color: primaryGreen),
+        errorWidget: (_, __, ___) => Icon(
+          Icons.person,
+          size: (size * 0.55).clamp(48.0, 96.0).toDouble(),
+          color: primaryGreen,
+        ),
       );
     }
 
-    return Icon(Icons.person, size: 70, color: primaryGreen);
+    return Icon(
+      Icons.person,
+      size: (size * 0.55).clamp(48.0, 96.0).toDouble(),
+      color: primaryGreen,
+    );
   }
 
   Widget _buildVerifiedBadge(Color primaryGreen, String username) {

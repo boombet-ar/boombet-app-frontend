@@ -682,7 +682,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         showBackButton: true,
       ),
       body: ResponsiveWrapper(
-        maxWidth: 800,
+        // En web, limitar el ancho para que se vea como en móvil (centrado)
+        // y evitar componentes full-width.
+        maxWidth: 560,
+        constrainOnWeb: true,
         child: Stack(
           children: [
             Center(

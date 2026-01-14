@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
+import 'package:boombet_app/views/pages/profile_page.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 
@@ -283,16 +288,6 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-  String _proxyVideoForWeb(String url) {
-    if (!kIsWeb) return url;
-    // Proxy simple para sortear CORS en web. Si falla, se usa la URL original.
-    final corsProxy = ApiConfig.videoProxyBase;
-    if (corsProxy.isEmpty) return url;
-    final proxied = '$corsProxy$url';
-    debugPrint('🎥 Web video proxy: $url -> $proxied');
-    return proxied;
-  }
-
   Future<bool> _fetchRemoteMediaIsVideo(String url) async {
     try {
       final uri = Uri.parse(url);
@@ -530,47 +525,13 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildPlaceholderCard(int index, Color primaryGreen, Color textColor) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        children: [
-          Container(color: primaryGreen.withValues(alpha: 0.05)),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(_getPromoIcon(index), size: 48, color: primaryGreen),
-                const SizedBox(height: 8),
-                Text(
-                  _getPromoTitle(index),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Próximamente',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: textColor.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+    final isWeb = kIsWeb;
 
     return Column(
       children: [
@@ -581,323 +542,725 @@ class _HomeContentState extends State<HomeContent> {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: RepaintBoundary(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Column(
-                children: [
-                  if (_ads.isNotEmpty && !_adsLoading)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+          child: isWeb
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _buildCarouselPanel(
+                          primaryGreen: primaryGreen,
+                          textColor: textColor,
+                          margin: EdgeInsets.zero,
                         ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _QuickActionsPanel(
+                          primaryGreen: primaryGreen,
+                          textColor: textColor,
+                          isDark: isDark,
+                          onGoToDiscounts: () => selectedPageNotifier.value = 1,
+                          onGoToRaffles: () => selectedPageNotifier.value = 2,
+                          onGoToForum: () => selectedPageNotifier.value = 3,
+                          onGoToGames: () => selectedPageNotifier.value = 4,
+                          onGoToCasinos: () => selectedPageNotifier.value = 5,
+                          onGoToProfile: () {
+                            Navigator.push(
+                              context,
+                              ScaleRoute(page: ProfilePage()),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : _buildCarouselPanel(
+                  primaryGreen: primaryGreen,
+                  textColor: textColor,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarouselPanel({
+    required Color primaryGreen,
+    required Color textColor,
+    required EdgeInsetsGeometry margin,
+  }) {
+    return RepaintBoundary(
+      child: Container(
+        margin: margin,
+        child: Column(
+          children: [
+            if (_ads.isNotEmpty && !_adsLoading)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primaryGreen.withValues(alpha: 0.14),
+                        primaryGreen.withValues(alpha: 0.04),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.25),
+                      width: 1.1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryGreen.withValues(alpha: 0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryGreen.withValues(alpha: 0.14),
-                              primaryGreen.withValues(alpha: 0.04),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: primaryGreen.withValues(alpha: 0.25),
-                            width: 1.1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryGreen.withValues(alpha: 0.08),
-                              blurRadius: 14,
-                              offset: const Offset(0, 6),
+                          shape: BoxShape.circle,
+                          color: primaryGreen.withValues(alpha: 0.16),
+                        ),
+                        child: Icon(Icons.campaign, color: textColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Publicidad destacada',
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _ads[_currentCarouselPage].description ??
+                                  'Publicidad',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: textColor,
+                                height: 1.35,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: _adAspectRatio,
+                  child: PageView.builder(
+                    controller: _carouselController,
+                    scrollBehavior: kIsWeb
+                        ? MaterialScrollBehavior().copyWith(
+                            dragDevices: {
+                              PointerDeviceKind.touch,
+                              PointerDeviceKind.mouse,
+                            },
+                          )
+                        : null,
+                    onPageChanged: (index) {
+                      final previousIndex = _currentCarouselPage;
+                      setState(() {
+                        _currentCarouselPage = index;
+                      });
+                      _cancelVideoEndTimer(previousIndex);
+                      unawaited(_pauseAndResetVideo(previousIndex));
+                      unawaited(_prepareVideoForPage(index));
+                    },
+                    itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                    itemBuilder: (context, index) {
+                      if (_adsLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (_adsError != null) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.4),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 36,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Text(
+                                      _adsError!,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ElevatedButton.icon(
+                                    onPressed: _fetchAds,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Reintentar'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryGreen,
+                                      foregroundColor: AppConstants.textLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (_ads.isNotEmpty) {
+                        final ad = _ads[index];
+                        debugPrint(
+                          '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
+                        );
+                        return _buildAdCard(ad, index, primaryGreen, textColor);
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: primaryGreen.withValues(alpha: 0.08),
+                          border: Border.all(
+                            color: primaryGreen.withValues(alpha: 0.4),
+                            width: 1.2,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: primaryGreen.withValues(alpha: 0.16),
-                              ),
-                              child: Icon(
-                                Icons.campaign,
-                                color: textColor,
-                                size: 22,
-                              ),
-                            ),
+                            Icon(Icons.info_outline, color: primaryGreen),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Publicidad destacada',
-                                    style: TextStyle(
-                                      color: textColor.withValues(alpha: 0.8),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _ads[_currentCarouselPage].description ??
-                                        'Publicidad',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: textColor,
-                                      height: 1.35,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                              child: Text(
+                                'No hay ninguna publicidad para mostrar actualmente',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: _adAspectRatio,
-                        child: PageView.builder(
-                          controller: _carouselController,
-                          scrollBehavior: kIsWeb
-                              ? MaterialScrollBehavior().copyWith(
-                                  dragDevices: {
-                                    PointerDeviceKind.touch,
-                                    PointerDeviceKind.mouse,
-                                  },
-                                )
-                              : null,
-                          onPageChanged: (index) {
-                            final previousIndex = _currentCarouselPage;
-                            setState(() {
-                              _currentCarouselPage = index;
-                            });
-                            _cancelVideoEndTimer(previousIndex);
-                            unawaited(_pauseAndResetVideo(previousIndex));
-                            unawaited(_prepareVideoForPage(index));
-                          },
-                          itemCount: _ads.isNotEmpty ? _ads.length : 1,
-                          itemBuilder: (context, index) {
-                            if (_adsLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-
-                            if (_adsError != null) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.warning_amber_rounded,
-                                          size: 36,
-                                          color: Colors.orange,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: Text(
-                                            _adsError!,
-                                            style: TextStyle(
-                                              color: textColor,
-                                              fontSize: 14,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        ElevatedButton.icon(
-                                          onPressed: _fetchAds,
-                                          icon: const Icon(Icons.refresh),
-                                          label: const Text('Reintentar'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: primaryGreen,
-                                            foregroundColor:
-                                                AppConstants.textLight,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            if (_ads.isNotEmpty) {
-                              final ad = _ads[index];
-                              debugPrint(
-                                '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
-                              );
-                              return _buildAdCard(
-                                ad,
-                                index,
-                                primaryGreen,
-                                textColor,
-                              );
-                            }
-
-                            return Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 18,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                color: primaryGreen.withValues(alpha: 0.08),
-                                border: Border.all(
-                                  color: primaryGreen.withValues(alpha: 0.4),
-                                  width: 1.2,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.info_outline, color: primaryGreen),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'No hay ninguna publicidad para mostrar actualmente',
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _ads.isNotEmpty ? _ads.length : 1,
+                (index) => GestureDetector(
+                  onTap: () {
+                    if (_carouselController.hasClients && _ads.isNotEmpty) {
+                      _carouselController.animateToPage(
+                        index,
+                        duration: AppConstants.mediumDelay,
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: AnimatedContainer(
+                      duration: AppConstants.shortDelay,
+                      curve: Curves.easeInOut,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      width: _currentCarouselPage == index ? 34 : 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          colors: _currentCarouselPage == index
+                              ? [
+                                  primaryGreen,
+                                  primaryGreen.withValues(alpha: 0.7),
+                                ]
+                              : [
+                                  primaryGreen.withValues(alpha: 0.25),
+                                  primaryGreen.withValues(alpha: 0.18),
                                 ],
-                              ),
-                            );
-                          },
                         ),
+                        boxShadow: _currentCarouselPage == index
+                            ? [
+                                BoxShadow(
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : null,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _ads.isNotEmpty ? _ads.length : 1,
-                      (index) => GestureDetector(
-                        onTap: () {
-                          if (_carouselController.hasClients &&
-                              _ads.isNotEmpty) {
-                            _carouselController.animateToPage(
-                              index,
-                              duration: AppConstants.mediumDelay,
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        },
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: AnimatedContainer(
-                            duration: AppConstants.shortDelay,
-                            curve: Curves.easeInOut,
-                            margin: const EdgeInsets.symmetric(horizontal: 6),
-                            width: _currentCarouselPage == index ? 34 : 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: LinearGradient(
-                                colors: _currentCarouselPage == index
-                                    ? [
-                                        primaryGreen,
-                                        primaryGreen.withValues(alpha: 0.7),
-                                      ]
-                                    : [
-                                        primaryGreen.withValues(alpha: 0.25),
-                                        primaryGreen.withValues(alpha: 0.18),
-                                      ],
-                              ),
-                              boxShadow: _currentCarouselPage == index
-                                  ? [
-                                      BoxShadow(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionsPanel extends StatelessWidget {
+  const _QuickActionsPanel({
+    required this.primaryGreen,
+    required this.textColor,
+    required this.isDark,
+    required this.onGoToDiscounts,
+    required this.onGoToRaffles,
+    required this.onGoToForum,
+    required this.onGoToGames,
+    required this.onGoToCasinos,
+    required this.onGoToProfile,
+  });
+
+  final Color primaryGreen;
+  final Color textColor;
+  final bool isDark;
+
+  final VoidCallback onGoToDiscounts;
+  final VoidCallback onGoToRaffles;
+  final VoidCallback onGoToForum;
+  final VoidCallback onGoToGames;
+  final VoidCallback onGoToCasinos;
+  final VoidCallback onGoToProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg;
+    final panelBorder = isDark
+        ? primaryGreen.withValues(alpha: 0.18)
+        : AppConstants.borderLight.withValues(alpha: 0.85);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final squareSide = math.min(
+          constraints.maxWidth,
+          constraints.maxHeight,
+        );
+        const gridSpacing = 8.0;
+
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: squareSide,
+            height: squareSide,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    primaryGreen.withValues(alpha: isDark ? 0.14 : 0.10),
+                    bg.withValues(alpha: 0.02),
+                  ],
+                ),
+                border: Border.all(color: panelBorder, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.14),
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: primaryGreen.withValues(alpha: 0.16),
                           ),
+                          child: Icon(
+                            Icons.grid_view,
+                            color: textColor,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Accesos rápidos',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Saltá directo a cualquier sección',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor.withValues(alpha: 0.75),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, gridConstraints) {
+                          // Calcula cuántas “filas” entran, así la grilla rellena el
+                          // cuadrado completo sin dejar huecos abajo y sin scroll.
+                          final cell = gridConstraints.maxWidth / 12;
+                          final rows =
+                              ((gridConstraints.maxHeight + gridSpacing) /
+                                      (cell + gridSpacing))
+                                  .floor()
+                                  .clamp(7, 18);
+
+                          const minBottomRows = 3;
+                          final maxLargeRows = math.max(
+                            4,
+                            rows - minBottomRows,
+                          );
+                          final largeRows = (rows * 0.58).round().clamp(
+                            4,
+                            maxLargeRows,
+                          );
+                          final bottomRows = math.max(
+                            minBottomRows,
+                            rows - largeRows,
+                          );
+
+                          final rightTopRows = (largeRows * 0.55).round().clamp(
+                            2,
+                            largeRows - 2,
+                          );
+                          final rightBottomRows = largeRows - rightTopRows;
+
+                          final forumRows = bottomRows;
+                          final casinosRows = (bottomRows - 1).clamp(
+                            3,
+                            bottomRows,
+                          );
+                          final profileRows = bottomRows;
+
+                          return StaggeredGrid.count(
+                            // Asimétrico, “mosaico caótico” y no scrolleable.
+                            crossAxisCount: 12,
+                            mainAxisSpacing: gridSpacing,
+                            crossAxisSpacing: gridSpacing,
+                            children: [
+                              // Bloque grande: ancla visual.
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 7,
+                                mainAxisCellCount: largeRows,
+                                child: _QuickActionTile(
+                                  title: 'Juegos',
+                                  subtitle: 'Minijuegos',
+                                  icon: Icons.videogame_asset,
+                                  accent:
+                                      Color.lerp(
+                                        primaryGreen,
+                                        Colors.purple,
+                                        0.22,
+                                      ) ??
+                                      primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToGames,
+                                ),
+                              ),
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 5,
+                                mainAxisCellCount: rightTopRows,
+                                child: _QuickActionTile(
+                                  title: 'Descuentos',
+                                  subtitle: 'Cupones y ofertas',
+                                  icon: Icons.local_offer,
+                                  accent: primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToDiscounts,
+                                ),
+                              ),
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 5,
+                                mainAxisCellCount: rightBottomRows,
+                                child: _QuickActionTile(
+                                  title: 'Sorteos',
+                                  subtitle: 'Participá',
+                                  icon: Icons.card_giftcard,
+                                  accent:
+                                      Color.lerp(
+                                        primaryGreen,
+                                        Colors.amber,
+                                        0.25,
+                                      ) ??
+                                      primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToRaffles,
+                                ),
+                              ),
+
+                              // Bloque inferior: tres tiles con alturas distintas.
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 4,
+                                mainAxisCellCount: forumRows,
+                                child: _QuickActionTile(
+                                  title: 'Foro',
+                                  subtitle: 'Comunidad',
+                                  icon: Icons.forum,
+                                  accent:
+                                      Color.lerp(
+                                        primaryGreen,
+                                        Colors.cyan,
+                                        0.22,
+                                      ) ??
+                                      primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToForum,
+                                ),
+                              ),
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 4,
+                                mainAxisCellCount: casinosRows,
+                                child: _QuickActionTile(
+                                  title: 'Casinos',
+                                  subtitle: 'Afiliados',
+                                  icon: Icons.casino,
+                                  accent:
+                                      Color.lerp(
+                                        primaryGreen,
+                                        Colors.teal,
+                                        0.20,
+                                      ) ??
+                                      primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToCasinos,
+                                ),
+                              ),
+                              StaggeredGridTile.count(
+                                crossAxisCellCount: 4,
+                                mainAxisCellCount: profileRows,
+                                child: _QuickActionTile(
+                                  title: 'Perfil',
+                                  subtitle: 'Tu cuenta',
+                                  icon: Icons.person,
+                                  accent:
+                                      Color.lerp(
+                                        primaryGreen,
+                                        Colors.blue,
+                                        0.18,
+                                      ) ??
+                                      primaryGreen,
+                                  isDark: isDark,
+                                  onTap: onGoToProfile,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = isDark ? Colors.white : AppConstants.textLight;
+    final fgSoft = isDark
+        ? Colors.white.withValues(alpha: 0.88)
+        : AppConstants.textLight.withValues(alpha: 0.9);
+    final surfaceVariant = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : AppConstants.lightSurfaceVariant;
+    final borderColor = isDark
+        ? accent.withValues(alpha: 0.22)
+        : AppConstants.borderLight.withValues(alpha: 0.85);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: isDark ? 0.22 : 0.16),
+                accent.withValues(alpha: isDark ? 0.08 : 0.06),
+              ],
+            ),
+            border: Border.all(color: borderColor, width: 1.1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 12,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Center(
+                  child: Icon(
+                    icon,
+                    size: 74,
+                    color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.10),
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: borderColor.withValues(alpha: 0.9),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 17, color: fg),
+                        const SizedBox(width: 8),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: fg,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11.5,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: fgSoft,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
-  }
-
-  IconData _getPromoIcon(int index) {
-    switch (index) {
-      case 0:
-        return Icons.casino;
-      case 1:
-        return Icons.local_offer;
-      case 2:
-        return Icons.card_giftcard;
-      case 3:
-        return Icons.event;
-      case 4:
-        return Icons.stars;
-      default:
-        return Icons.casino;
-    }
-  }
-
-  String _getPromoTitle(int index) {
-    switch (index) {
-      case 0:
-        return 'Casinos Afiliados';
-      case 1:
-        return 'Ofertas Especiales';
-      case 2:
-        return 'Premios Exclusivos';
-      case 3:
-        return 'Eventos';
-      case 4:
-        return 'Beneficios VIP';
-      default:
-        return 'Promoción';
-    }
   }
 }
