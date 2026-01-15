@@ -25,12 +25,12 @@ jobs:
         with:
           channel: stable
 
+      # --- CORRECCIÓN 1: Eliminamos working-directory ---
       - name: Flutter Pub Get
-        working-directory: boombet_app
         run: flutter pub get
 
+      # --- CORRECCIÓN 2: Eliminamos working-directory ---
       - name: Flutter Build Web
-        working-directory: boombet_app
         run: |
           flutter build web --release \
             --dart-define=API_HOST=${{ secrets.API_HOST }} \
@@ -39,8 +39,10 @@ jobs:
             --dart-define=IMAGE_PROXY_BASE=${{ secrets.IMAGE_PROXY_BASE }} \
             --dart-define=VIDEO_PROXY_BASE=${{ secrets.VIDEO_PROXY_BASE }}
 
+      # --- CORRECCIÓN 3: Ajustamos la ruta del archivo de config ---
+      # (Asumiendo que staticwebapp.config.json está en la raíz junto al pubspec.yaml)
       - name: Add SPA rewrite config
-        run: cp staticwebapp.config.json boombet_app/build/web/staticwebapp.config.json
+        run: cp staticwebapp.config.json build/web/staticwebapp.config.json
 
       - name: Build And Deploy
         id: builddeploy
@@ -48,11 +50,10 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_HAPPY_FOREST_0D032C51E }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "boombet_app" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "build/web" # Built app content directory - optional (relative to app_location)
+          ###### Repository/Build Configurations ######
+          app_location: "/"  # <--- CAMBIO IMPORTANTE: Ahora apunta a la raíz
+          api_location: "" 
+          output_location: "build/web" # Flutter genera esto relativo al app_location
           skip_app_build: true
           skip_api_build: true
           ###### End of Repository/Build Configurations ######
