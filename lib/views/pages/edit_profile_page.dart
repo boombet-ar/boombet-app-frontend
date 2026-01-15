@@ -10,7 +10,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 
 class EditProfilePage extends StatefulWidget {
   final PlayerData player;
@@ -93,6 +95,110 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       ),
     );
+  }
+
+  Uint8List _resizeAvatarForWeb(Uint8List bytes) {
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return bytes;
+      final squared = img.copyResizeCropSquare(decoded, size: 512);
+      return Uint8List.fromList(img.encodeJpg(squared, quality: 82));
+    } catch (_) {
+      return bytes;
+    }
+  }
+
+  Future<Uint8List?> _pickCropAndProcessAvatarBytes(XFile pickedFile) async {
+    final canUseNativeCropper =
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+
+    if (!kIsWeb && !canUseNativeCropper) {
+      // Fallback (desktop): sin recorte por ahora.
+      return pickedFile.readAsBytes();
+    }
+
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      compressFormat: ImageCompressFormat.jpg,
+      uiSettings: [
+        if (kIsWeb)
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.dialog,
+            barrierColor: Colors.black.withValues(alpha: 0.65),
+            initialAspectRatio: 1,
+            viewwMode: WebViewMode.mode_1,
+            dragMode: WebDragMode.move,
+            zoomable: true,
+            rotatable: true,
+            scalable: true,
+            guides: true,
+            center: true,
+            highlight: true,
+            modal: true,
+            cropBoxResizable: true,
+            cropBoxMovable: true,
+            themeData: WebThemeData(
+              rotateIconColor: primaryGreen,
+              doneIcon: Icons.check,
+              backIcon: Icons.close,
+              rotateLeftIcon: Icons.rotate_left,
+              rotateRightIcon: Icons.rotate_right,
+            ),
+          ),
+        if (defaultTargetPlatform == TargetPlatform.android)
+          AndroidUiSettings(
+            toolbarTitle: 'Editar foto',
+            toolbarColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
+            toolbarWidgetColor: isDark ? Colors.white : Colors.black,
+            activeControlsWidgetColor: primaryGreen,
+            statusBarColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
+            cropStyle: CropStyle.circle,
+            hideBottomControls: false,
+            lockAspectRatio: true,
+          ),
+        if (defaultTargetPlatform == TargetPlatform.iOS)
+          IOSUiSettings(
+            title: 'Editar foto',
+            cropStyle: CropStyle.circle,
+            aspectRatioLockEnabled: true,
+            rotateButtonsHidden: false,
+            resetButtonHidden: false,
+          ),
+      ],
+    );
+
+    if (cropped == null) return null;
+
+    final croppedBytes = await cropped.readAsBytes();
+
+    if (kIsWeb) {
+      // En Web no usamos flutter_image_compress: reescalamos/normalizamos en Dart.
+      return _resizeAvatarForWeb(croppedBytes);
+    }
+
+    // Ajuste final para avatar (se ve en círculo): tamaño razonable + compresión.
+    try {
+      final processedBytes = await FlutterImageCompress.compressWithList(
+        croppedBytes,
+        quality: 82,
+        minHeight: 512,
+        minWidth: 512,
+        format: CompressFormat.jpeg,
+      );
+
+      return processedBytes;
+    } catch (_) {
+      // Si la compresión falla, subimos el recorte igual.
+      return croppedBytes;
+    }
   }
 
   Future<void> _saveChanges() async {
@@ -186,18 +292,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => _uploadingAvatar = true);
 
     try {
-      final originalBytes = await pickedFile.readAsBytes();
-      final compressedBytes = await FlutterImageCompress.compressWithList(
-        originalBytes,
-        quality: 70,
-        minHeight: 800,
-        minWidth: 800,
-      );
+      final processedBytes = await _pickCropAndProcessAvatarBytes(pickedFile);
+      if (processedBytes == null) {
+        // Usuario canceló el recorte
+        if (!mounted) return;
+        setState(() => _uploadingAvatar = false);
+        return;
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final filename = kIsWeb ? pickedFile.name : 'avatar_$now.jpg';
+      final mimeType = kIsWeb
+          ? (pickedFile.mimeType ?? 'image/jpeg')
+          : 'image/jpeg';
 
       final avatarUrl = await PlayerService().uploadAvatar(
-        bytes: compressedBytes,
-        filename: pickedFile.name,
-        mimeType: pickedFile.mimeType ?? 'image/jpeg',
+        bytes: processedBytes,
+        filename: filename,
+        mimeType: mimeType,
       );
 
       if (!mounted) return;

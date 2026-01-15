@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ui';
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/games/game_01/game_01_page.dart';
@@ -188,6 +190,39 @@ class LimitedHomeContent extends StatelessWidget {
 
   const LimitedHomeContent({super.key, required this.statusMessage});
 
+  static const List<_LimitedHomeBenefit> _benefits = [
+    _LimitedHomeBenefit(
+      Icons.stars,
+      'Programa de Puntos',
+      'Sumá puntos en tus apuestas y canjealos por beneficios exclusivos.',
+    ),
+    _LimitedHomeBenefit(
+      Icons.local_offer,
+      'Descuentos y Cupones',
+      'Accedé a descuentos en comercios afiliados y promos especiales.',
+    ),
+    _LimitedHomeBenefit(
+      Icons.card_giftcard,
+      'Sorteos y Premios',
+      'Participá en sorteos periódicos y ganá premios increíbles.',
+    ),
+    _LimitedHomeBenefit(
+      Icons.sports_esports,
+      'Juegos Rápidos',
+      'Minijuegos y experiencias rápidas mientras avanzás en la app.',
+    ),
+    _LimitedHomeBenefit(
+      Icons.forum,
+      'Foro y Comunidad',
+      'Interactuá, compartí y enterate de novedades con la comunidad.',
+    ),
+    _LimitedHomeBenefit(
+      Icons.verified_user,
+      'Cuenta y Seguridad',
+      'Verificación y controles para mantener tu cuenta protegida.',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -222,23 +257,22 @@ class LimitedHomeContent extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final targetWidth = constraints.maxWidth < 640
-                              ? constraints.maxWidth
-                              : 640.0;
-                          return Center(
-                            child: SizedBox(
-                              width: targetWidth,
-                              child: _buildWelcomeAndFeatures(
-                                context,
-                                isDark: isDark,
-                                primaryGreen: primaryGreen,
-                                textColor: textColor,
-                              ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 720,
+                            maxHeight: 460,
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: 1.35,
+                            child: _buildWelcomeSquare(
+                              context,
+                              isDark: isDark,
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -248,11 +282,11 @@ class LimitedHomeContent extends StatelessWidget {
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(
-                            maxWidth: 420,
-                            maxHeight: 420,
+                            maxWidth: 560,
+                            maxHeight: 380,
                           ),
                           child: AspectRatio(
-                            aspectRatio: 1,
+                            aspectRatio: 1.55,
                             child: _buildProgressSquare(
                               context,
                               statusMessage: statusMessage,
@@ -326,36 +360,139 @@ class LimitedHomeContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 30),
-        _buildFeatureCard(
-          context,
-          Icons.stars,
-          'Programa de Puntos',
-          'Acumula puntos en cada apuesta y canjéalos por premios exclusivos.',
-          isDark,
-          primaryGreen,
-          textColor,
-        ),
-        const SizedBox(height: 16),
-        _buildFeatureCard(
-          context,
-          Icons.local_offer,
-          'Descuentos Exclusivos',
-          'Accede a ofertas especiales en comercios afiliados.',
-          isDark,
-          primaryGreen,
-          textColor,
-        ),
-        const SizedBox(height: 16),
-        _buildFeatureCard(
-          context,
-          Icons.card_giftcard,
-          'Sorteos y Premios',
-          'Participa en sorteos mensuales y gana increíbles premios.',
-          isDark,
-          primaryGreen,
-          textColor,
-        ),
+        for (int i = 0; i < _benefits.length; i++) ...[
+          _buildFeatureCard(
+            context,
+            _benefits[i].icon,
+            _benefits[i].title,
+            _benefits[i].description,
+            isDark,
+            primaryGreen,
+            textColor,
+          ),
+          if (i != _benefits.length - 1) const SizedBox(height: 16),
+        ],
       ],
+    );
+  }
+
+  Widget _buildWelcomeSquare(
+    BuildContext context, {
+    required bool isDark,
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    final muted = textColor.withValues(alpha: 0.70);
+
+    Widget benefitRow({
+      required IconData icon,
+      required String title,
+      required String description,
+    }) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: primaryGreen.withValues(alpha: 0.16),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: primaryGreen, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    style: TextStyle(fontSize: 11, color: muted, height: 1.25),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            primaryGreen.withValues(alpha: 0.22),
+            primaryGreen.withValues(alpha: 0.10),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.35),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '¡Bienvenido a BoomBet!',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Mientras se completa tu afiliación, conocé lo que vas a poder hacer:',
+            style: TextStyle(fontSize: 13, color: muted, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _benefits.length; i++) ...[
+                      benefitRow(
+                        icon: _benefits[i].icon,
+                        title: _benefits[i].title,
+                        description: _benefits[i].description,
+                      ),
+                      if (i != _benefits.length - 1) const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -367,19 +504,20 @@ class LimitedHomeContent extends StatelessWidget {
     required bool isDark,
   }) {
     return Container(
+      margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            primaryGreen.withValues(alpha: 0.2),
-            primaryGreen.withValues(alpha: 0.1),
+            primaryGreen.withValues(alpha: 0.18),
+            primaryGreen.withValues(alpha: 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.3),
+          color: primaryGreen.withValues(alpha: 0.30),
           width: 2,
         ),
       ),
@@ -552,6 +690,14 @@ class LimitedHomeContent extends StatelessWidget {
   }
 }
 
+class _LimitedHomeBenefit {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _LimitedHomeBenefit(this.icon, this.title, this.description);
+}
+
 /// Contenido limitado de Reclamados - Bloqueado
 class LimitedClaimedContent extends StatelessWidget {
   const LimitedClaimedContent({super.key});
@@ -580,11 +726,18 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
   final List<Cupon> _cupones = [];
   bool _loading = true;
   String? _error;
+  final ScrollController _listScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadMockCupones();
+  }
+
+  @override
+  void dispose() {
+    _listScrollController.dispose();
+    super.dispose();
   }
 
   void _loadMockCupones() {
@@ -834,23 +987,22 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeaderWidget(
-              title: 'Descuentos Exclusivos',
-              subtitle: _cupones.isNotEmpty
-                  ? '${_cupones.length} ofertas en vista previa'
-                  : 'Vista previa mientras completamos tu afiliación',
-              icon: Icons.local_offer,
-            ),
-            const SizedBox(height: 12),
-            _buildCuponPreviewSection(isDark, primaryGreen, textColor),
-          ],
-        ),
+    return Container(
+      color: bgColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeaderWidget(
+            title: 'Descuentos Exclusivos',
+            subtitle: _cupones.isNotEmpty
+                ? '${_cupones.length} ofertas en vista previa'
+                : 'Vista previa mientras completamos tu afiliación',
+            icon: Icons.local_offer,
+          ),
+          Expanded(
+            child: _buildCuponPreviewSection(isDark, primaryGreen, textColor),
+          ),
+        ],
       ),
     );
   }
@@ -865,37 +1017,123 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
     }
 
     if (_error != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(_error!, style: TextStyle(color: Colors.red.shade400)),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: _loadMockCupones,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reintentar'),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 44, color: Colors.red.shade400),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.red.shade400),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: _loadMockCupones,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar'),
+              ),
+            ],
           ),
-        ],
+        ),
       );
     }
 
     if (_cupones.isEmpty) {
-      return Text(
-        'Aún no hay cupones para mostrar.',
-        style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+      return Center(
+        child: Text(
+          'Aún no hay cupones para mostrar.',
+          style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+        ),
       );
     }
 
-    return Column(
-      children: _cupones
-          .map(
-            (c) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _buildCuponCardPreview(c, isDark, primaryGreen, textColor),
+    if (kIsWeb) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final double maxExtent;
+          if (width >= 1800) {
+            maxExtent = 420;
+          } else if (width >= 1400) {
+            maxExtent = 460;
+          } else {
+            maxExtent = 520;
+          }
+
+          final double aspectRatio = width >= 1400 ? 0.92 : 0.9;
+
+          return GridView.builder(
+            controller: _listScrollController,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: maxExtent,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: aspectRatio,
             ),
-          )
-          .toList(),
+            itemCount: _cupones.length,
+            itemBuilder: (context, index) {
+              final cupon = _cupones[index];
+              return _buildCuponCardPreviewWeb(
+                context,
+                cupon,
+                primaryGreen,
+                textColor,
+                isDark,
+              );
+            },
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      controller: _listScrollController,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: _cupones.length,
+      itemBuilder: (context, index) {
+        final cupon = _cupones[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: _buildCuponCardPreview(
+                cupon,
+                isDark,
+                primaryGreen,
+                textColor,
+              ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  String _safeImageUrl(String url) {
+    if (url.isEmpty) return url;
+    final trimmed = url.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return trimmed;
+    final scheme = uri.scheme.isEmpty
+        ? 'https'
+        : (uri.scheme == 'http' ? 'https' : uri.scheme);
+    return uri.replace(scheme: scheme).toString();
+  }
+
+  String _imageUrlForPlatform(String url) {
+    final safe = _safeImageUrl(url);
+    if (!kIsWeb || safe.isEmpty) return safe;
+    final proxyBase = ApiConfig.imageProxyBase;
+    if (proxyBase.isEmpty) return safe;
+    final encoded = Uri.encodeComponent(safe);
+    return '$proxyBase$encoded';
   }
 
   Widget _buildCuponCardPreview(
@@ -929,7 +1167,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
               ),
               child: cupon.fotoUrl.isNotEmpty
                   ? Image.network(
-                      cupon.fotoUrl,
+                      _imageUrlForPlatform(cupon.fotoUrl),
                       height: 140,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -1050,9 +1288,306 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
     );
   }
 
+  Widget _buildCuponCardPreviewWeb(
+    BuildContext context,
+    Cupon cupon,
+    Color primaryGreen,
+    Color textColor,
+    bool isDark,
+  ) {
+    final double heroHeight = 140;
+    final String category = cupon.categorias.isNotEmpty
+        ? cupon.categorias.first.nombre
+        : 'Cupón';
+    final String description = _cleanHtml(
+      cupon.descripcionBreve.isNotEmpty
+          ? cupon.descripcionBreve
+          : cupon.descripcionMicrositio,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showCuponDetails(cupon),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+                spreadRadius: 1,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
+              child: Container(
+                color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          height: heroHeight,
+                          width: double.infinity,
+                          color: primaryGreen.withValues(alpha: 0.1),
+                          child: cupon.fotoUrl.isNotEmpty
+                              ? Image.network(
+                                  _imageUrlForPlatform(cupon.fotoUrl),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Icon(
+                                        Icons.local_offer,
+                                        size: 64,
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Icon(
+                                    Icons.local_offer,
+                                    size: 64,
+                                    color: primaryGreen.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                        ),
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.12),
+                                  Colors.black.withValues(alpha: 0.35),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              cupon.descuento,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.lock_outline,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  category,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            cupon.nombre,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  color: primaryGreen.withValues(alpha: 0.12),
+                                  child: cupon.logoUrl.isNotEmpty
+                                      ? Image.network(
+                                          _imageUrlForPlatform(cupon.logoUrl),
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return Icon(
+                                                  Icons.storefront,
+                                                  size: 18,
+                                                  color: primaryGreen
+                                                      .withValues(alpha: 0.7),
+                                                );
+                                              },
+                                        )
+                                      : Icon(
+                                          Icons.storefront,
+                                          size: 18,
+                                          color: primaryGreen.withValues(
+                                            alpha: 0.7,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  cupon.empresa.nombre,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor.withValues(alpha: 0.72),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.3,
+                              color: textColor.withValues(alpha: 0.78),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: 14,
+                                color: textColor.withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Válido hasta: ${cupon.fechaVencimientoFormatted}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textColor.withValues(alpha: 0.55),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: null,
+                              icon: const Icon(Icons.lock_outline),
+                              label: const Text(
+                                'Disponible al completar tu afiliación',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                disabledBackgroundColor: primaryGreen
+                                    .withValues(alpha: 0.25),
+                                disabledForegroundColor: textColor.withValues(
+                                  alpha: 0.85,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   String _cleanHtml(String html) {
-    final regex = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: false);
-    return html.replaceAll(regex, '').trim();
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .trim();
   }
 }
 
@@ -1096,6 +1631,8 @@ class LimitedGamesContent extends StatelessWidget {
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.colorScheme.onSurface;
+    final isWeb = kIsWeb;
     final games = [
       (
         title: 'Space Runner',
@@ -1105,6 +1642,7 @@ class LimitedGamesContent extends StatelessWidget {
         badge: 'Nuevo',
         playable: true,
         onTap: () => onPlay((_) => const Game01Page()),
+        asset: 'assets/icons/game_01_icon.png',
       ),
       (
         title: 'Tower Stack',
@@ -1114,6 +1652,7 @@ class LimitedGamesContent extends StatelessWidget {
         badge: 'Arcade',
         playable: true,
         onTap: () => onPlay((_) => const Game02Page()),
+        asset: 'assets/icons/game_02_icon.png',
       ),
     ];
 
@@ -1129,24 +1668,238 @@ class LimitedGamesContent extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              children: games
-                  .map(
-                    (g) => _GameCardLimited(
-                      title: g.title,
-                      subtitle: g.subtitle,
-                      description: g.description,
-                      badge: g.badge,
-                      primaryGreen: primaryGreen,
-                      isDark: isDark,
-                      playable: g.playable,
-                      onTap: g.playable ? g.onTap : null,
-                    ),
+            child: isWeb
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxExtent = (constraints.maxWidth * 0.33).clamp(
+                        260.0,
+                        420.0,
+                      );
+
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: games.length,
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: maxExtent,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 1,
+                        ),
+                        itemBuilder: (context, index) {
+                          final g = games[index];
+                          return _LimitedGameGridCard(
+                            title: g.title,
+                            subtitle: g.subtitle,
+                            badge: g.badge,
+                            primaryGreen: primaryGreen,
+                            onTap: g.playable ? g.onTap : null,
+                            isDark: isDark,
+                            asset: g.asset,
+                            playable: g.playable,
+                          );
+                        },
+                      );
+                    },
                   )
-                  .toList(),
-            ),
+                : Column(
+                    children: games
+                        .map(
+                          (g) => _GameCardLimited(
+                            title: g.title,
+                            subtitle: g.subtitle,
+                            description: g.description,
+                            badge: g.badge,
+                            primaryGreen: primaryGreen,
+                            isDark: isDark,
+                            playable: g.playable,
+                            onTap: g.playable ? g.onTap : null,
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LimitedGameGridCard extends StatelessWidget {
+  const _LimitedGameGridCard({
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.primaryGreen,
+    required this.onTap,
+    required this.isDark,
+    required this.asset,
+    required this.playable,
+  });
+
+  final String title;
+  final String subtitle;
+  final String badge;
+  final Color primaryGreen;
+  final VoidCallback? onTap;
+  final bool isDark;
+  final String asset;
+  final bool playable;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = isDark ? Colors.white : AppConstants.textLight;
+    final fgSoft = isDark
+        ? Colors.white.withValues(alpha: 0.92)
+        : AppConstants.textLight;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : AppConstants.borderLight.withValues(alpha: 0.7);
+    final surfaceVariant = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : AppConstants.lightSurfaceVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Opacity(
+          opacity: playable ? 1.0 : 0.7,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
+                  primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
+                ],
+              ),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.35),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 12,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: surfaceVariant,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor, width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.videogame_asset, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            badge,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      playable ? Icons.auto_awesome : Icons.lock_outline,
+                      color: fg,
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      color: surfaceVariant,
+                      child: Image.asset(asset, fit: BoxFit.contain),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: fg,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: fgSoft,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : AppConstants.lightSurfaceVariant,
+                    border: Border.all(color: borderColor, width: 0.9),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.sports_esports, size: 18, color: fg),
+                      const SizedBox(width: 8),
+                      Text(
+                        playable ? 'Jugar' : 'Bloqueado',
+                        style: TextStyle(
+                          color: fg,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        playable
+                            ? Icons.arrow_forward_rounded
+                            : Icons.lock_outline,
+                        size: 18,
+                        color: fg,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
