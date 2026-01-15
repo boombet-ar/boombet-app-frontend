@@ -278,36 +278,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 24),
 
-              // Sección: Apariencia
-              _buildSectionTitle('Apariencia', Icons.palette),
-              const SizedBox(height: 8),
-              RepaintBoundary(
-                child: Card(
-                  color: surfaceColor,
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: isLightModeNotifier,
-                    builder: (context, isLightMode, _) {
-                      return SwitchListTile(
-                        secondary: Icon(
-                          isLightMode ? Icons.light_mode : Icons.dark_mode,
-                          color: AppConstants.primaryGreen,
-                        ),
-                        title: const Text('Modo Claro'),
-                        subtitle: Text(
-                          isLightMode ? 'Activado' : 'Desactivado',
-                        ),
-                        value: isLightMode,
-                        activeThumbColor: AppConstants.primaryGreen,
-                        onChanged: (value) {
-                          isLightModeNotifier.value = value;
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
               // Accesibilidad - Tamaño de letra
               Card(
                 color: surfaceColor,

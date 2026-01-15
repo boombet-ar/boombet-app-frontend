@@ -455,7 +455,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_user, size: 16, color: primaryGreen),
+          Icon(Icons.person, size: 16, color: primaryGreen),
           const SizedBox(width: 6),
           Text(
             username,

@@ -1,5 +1,4 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
@@ -183,27 +182,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 },
               ),
             ),
-          if (showThemeToggle)
-            RepaintBoundary(
-              child: Tooltip(
-                message: 'Cambiar tema',
-                child: IconButton(
-                  icon: ValueListenableBuilder<bool>(
-                    valueListenable: isLightModeNotifier,
-                    builder: (context, isLightMode, child) {
-                      return Icon(
-                        isLightMode ? Icons.dark_mode : Icons.light_mode,
-                        color: greenColor,
-                      );
-                    },
-                  ),
-                  tooltip: '',
-                  onPressed: () {
-                    isLightModeNotifier.value = !isLightModeNotifier.value;
-                  },
-                ),
-              ),
-            ),
+          if (showThemeToggle) const SizedBox.shrink(),
           Spacer(),
           if (showLogo)
             Padding(

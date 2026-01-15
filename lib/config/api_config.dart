@@ -27,7 +27,7 @@ class ApiConfig {
 
   /// Base para WebSocket -> sin el `/api` en el path
   static String get wsBaseUrl {
-    final restBase = baseUrl; // ej 'http://localhost:8080/api'
+    final restBase = baseUrl; 
     final uri = Uri.parse(restBase);
 
     final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
