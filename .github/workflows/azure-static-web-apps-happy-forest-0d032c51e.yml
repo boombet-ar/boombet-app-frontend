@@ -48,7 +48,7 @@ jobs:
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_HAPPY_FOREST_0D032C51E }}
+          azure_static_web_apps_api_token: ${{ secrets.DEPLOYMENT_TOKEN }}
           action: "upload"
           ###### Repository/Build Configurations ######
           app_location: "/"  # <--- CAMBIO IMPORTANTE: Ahora apunta a la raíz
@@ -67,4 +67,5 @@ jobs:
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
+
           action: "close"
