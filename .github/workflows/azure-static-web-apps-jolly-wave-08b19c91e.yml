@@ -19,19 +19,43 @@ jobs:
         with:
           submodules: true
           lfs: false
+
+      # 1. Instalar Flutter
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # 2. Descargar dependencias
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # 3. Compilar la Web con tus variables de entorno (Secrets)
+      - name: Flutter Build Web
+        run: |
+          flutter build web --release \
+            --dart-define=API_HOST=${{ secrets.API_HOST }} \
+            --dart-define=API_SCHEME=${{ secrets.API_SCHEME }} \
+            --dart-define=API_PORT=${{ secrets.API_PORT }} \
+            --dart-define=IMAGE_PROXY_BASE=${{ secrets.IMAGE_PROXY_BASE }} \
+            --dart-define=VIDEO_PROXY_BASE=${{ secrets.VIDEO_PROXY_BASE }}
+
+      # 4. Desplegar a Azure (Con la configuración correcta)
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
+          # Usamos el token nuevo que generó Azure automáticamente:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_JOLLY_WAVE_08B19C91E }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "build/web" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+          ###### Configuración crítica para Flutter ######
+          app_location: "/" 
+          api_location: "" 
+          output_location: "build/web" 
+          skip_app_build: true  # <--- ESTO ES VITAL: Evita que Azure busque package.json
+          skip_api_build: true
+          ###### Fin de configuración ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
