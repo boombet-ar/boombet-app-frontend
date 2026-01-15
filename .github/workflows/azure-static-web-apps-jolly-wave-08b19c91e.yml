@@ -20,17 +20,14 @@ jobs:
           submodules: true
           lfs: false
 
-      # 1. Instalar Flutter
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      # 2. Descargar dependencias
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # 3. Compilar la Web con tus variables de entorno (Secrets)
       - name: Flutter Build Web
         run: |
           flutter build web --release \
@@ -40,20 +37,25 @@ jobs:
             --dart-define=IMAGE_PROXY_BASE=${{ secrets.IMAGE_PROXY_BASE }} \
             --dart-define=VIDEO_PROXY_BASE=${{ secrets.VIDEO_PROXY_BASE }}
 
-      # 4. Desplegar a Azure (Con la configuración correcta)
+      # --- IMPORTANTE: Copiar la configuración a la carpeta de salida ---
+      - name: Copy Config
+        run: cp staticwebapp.config.json build/web/staticwebapp.config.json
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          # Usamos el token nuevo que generó Azure automáticamente:
+          # Asegúrate de usar el nombre de secreto correcto (el nuevo que creaste)
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_JOLLY_WAVE_08B19C91E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Configuración crítica para Flutter ######
-          app_location: "/" 
+          
+          ###### CONFIGURACIÓN CORREGIDA ######
+          # Como ya compilamos, le decimos a Azure que la 'app' está directamente en build/web
+          app_location: "build/web" 
           api_location: "" 
-          output_location: "build/web" 
-          skip_app_build: true  # <--- ESTO ES VITAL: Evita que Azure busque package.json
+          output_location: "" # Dejar vacío porque app_location ya es la salida
+          skip_app_build: true
           skip_api_build: true
           ###### Fin de configuración ######
 
