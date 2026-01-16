@@ -440,7 +440,7 @@ class MyApp extends StatelessWidget {
             return MaterialApp.router(
               debugShowCheckedModeBanner: false,
               scaffoldMessengerKey: scaffoldMessengerKey,
-              title: 'BoomBet App',
+              title: 'BoomBet',
               themeAnimationDuration: const Duration(milliseconds: 150),
               themeAnimationCurve: Curves.fastOutSlowIn,
               theme: _lightTheme,
