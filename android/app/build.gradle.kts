@@ -10,6 +10,11 @@ plugins {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
+    // uCrop referencia OkHttp para descargar imágenes remotas.
+    // En release con R8, si no está presente en el classpath, falla con
+    // "Missing class okhttp3.*".
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 

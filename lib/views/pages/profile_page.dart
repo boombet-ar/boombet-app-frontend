@@ -27,6 +27,89 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _errorMessage;
   bool _isUnaffiliating = false;
 
+  Widget _buildActionGradientButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    required List<Color> gradientColors,
+    Color? glowColor,
+  }) {
+    final enabled = onPressed != null;
+    final glow = (glowColor ?? gradientColors.first).withValues(
+      alpha: enabled ? 0.35 : 0.15,
+    );
+
+    return SizedBox(
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: enabled
+                ? gradientColors
+                : gradientColors
+                      .map((c) => c.withValues(alpha: 0.45))
+                      .toList(growable: false),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: glow,
+              blurRadius: 18,
+              spreadRadius: 0.5,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withValues(alpha: enabled ? 0.16 : 0.08),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onPressed,
+              splashColor: Colors.white.withValues(alpha: 0.10),
+              highlightColor: Colors.white.withValues(alpha: 0.06),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: Colors.white.withValues(alpha: 0.95),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                        color: Colors.white.withValues(alpha: 0.98),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -227,6 +310,44 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isNarrowWeb = constraints.maxWidth < 900;
+
+        if (isNarrowWeb) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Column(
+                      children: [
+                        _buildHeader(textColor, isDark, primaryGreen),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              _buildSectionTitle(primaryGreen, textColor),
+                              const SizedBox(height: 16),
+                              _buildInfoCard(isDark, textColor, primaryGreen),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
@@ -546,60 +667,44 @@ class _ProfilePageState extends State<ProfilePage> {
           // 🚀 BOTÓN PARA EDITAR PERFIL
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditProfilePage(player: _playerData!),
-                    ),
-                  ).then((updatedPlayer) {
-                    if (updatedPlayer != null && updatedPlayer is PlayerData) {
-                      setState(() {
-                        _playerData = updatedPlayer;
-                      });
-                    }
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  foregroundColor: AppConstants.textLight,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            child: _buildActionGradientButton(
+              label: 'Editar Información',
+              icon: Icons.edit_note_rounded,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EditProfilePage(player: _playerData!),
                   ),
-                ),
-                child: const Text(
-                  "Editar Información",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+                ).then((updatedPlayer) {
+                  if (updatedPlayer != null && updatedPlayer is PlayerData) {
+                    setState(() {
+                      _playerData = updatedPlayer;
+                    });
+                  }
+                });
+              },
+              gradientColors: [
+                primaryGreen.withValues(alpha: 0.98),
+                primaryGreen.withValues(alpha: 0.78),
+              ],
+              glowColor: primaryGreen,
             ),
           ),
 
           // 🚀 BOTÓN PARA DESAFILIARSE
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () =>
-                    _showUnaffiliateDialog(primaryGreen, textColor, isDark),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade600,
-                  foregroundColor: textColor,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  "Desafiliarse de Boombet",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+            child: _buildActionGradientButton(
+              label: 'Desafiliarse de Boombet',
+              icon: Icons.person_off_rounded,
+              onPressed: () =>
+                  _showUnaffiliateDialog(primaryGreen, textColor, isDark),
+              gradientColors: [
+                const Color(0xFFE53935),
+                const Color(0xFFB71C1C),
+              ],
+              glowColor: Colors.red,
             ),
           ),
         ],

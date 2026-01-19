@@ -1,6 +1,7 @@
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/cupon_model.dart';
+import 'package:boombet_app/utils/category_order.dart';
 import 'dart:developer' as developer;
 import 'dart:convert';
 
@@ -184,7 +185,7 @@ class CuponesService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data is List) {
-          return data
+          final parsed = data
               .map((item) {
                 try {
                   return Categoria.fromJson(item as Map<String, dynamic>);
@@ -197,9 +198,11 @@ class CuponesService {
               })
               .whereType<Categoria>()
               .toList();
+
+          return CategoryOrder.sortCategorias(parsed);
         }
         if (data is Map && data['data'] is List) {
-          return (data['data'] as List)
+          final parsed = (data['data'] as List)
               .map((item) {
                 try {
                   return Categoria.fromJson(item as Map<String, dynamic>);
@@ -209,6 +212,8 @@ class CuponesService {
               })
               .whereType<Categoria>()
               .toList();
+
+          return CategoryOrder.sortCategorias(parsed);
         }
         return [];
       }

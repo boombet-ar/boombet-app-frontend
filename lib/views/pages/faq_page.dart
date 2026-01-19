@@ -174,6 +174,110 @@ class _FaqPageState extends State<FaqPage> {
 
     final maxWidth = kIsWeb ? 1400.0 : 800.0;
 
+    Widget buildSingleColumnBody() {
+      return ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          Text(
+            'Ayuda',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildFaqSection(
+            context,
+            icon: Icons.home,
+            title: 'Plataforma',
+            cardColor: cardColor,
+            textColor: textColor,
+            items: _platformFaqs,
+          ),
+          const SizedBox(height: 12),
+          _buildFaqSection(
+            context,
+            icon: Icons.local_offer,
+            title: 'Beneficios',
+            cardColor: cardColor,
+            textColor: textColor,
+            items: _benefitsFaqs,
+          ),
+          const SizedBox(height: 12),
+          _buildFaqSection(
+            context,
+            icon: Icons.shield,
+            title: 'Puntos',
+            cardColor: cardColor,
+            textColor: textColor,
+            disabled: true,
+          ),
+          const SizedBox(height: 12),
+          _buildFaqSection(
+            context,
+            icon: Icons.article,
+            title: 'Actividades',
+            cardColor: cardColor,
+            textColor: textColor,
+            disabled: true,
+          ),
+          const SizedBox(height: 12),
+          _buildFaqSection(
+            context,
+            icon: Icons.thumb_up,
+            title: 'Sorteos',
+            cardColor: cardColor,
+            textColor: textColor,
+            disabled: true,
+          ),
+          const SizedBox(height: 32),
+          _buildPoweredByPanel(
+            context,
+            cardColor: cardColor,
+            textColor: textColor,
+            isDark: isDark,
+          ),
+        ],
+      );
+    }
+
+    Widget buildWebBody() {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrowWeb = constraints.maxWidth < 900;
+          if (isNarrowWeb) {
+            return buildSingleColumnBody();
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildFaqListWeb(
+                    context,
+                    cardColor: cardColor,
+                    textColor: textColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildPoweredByPanel(
+                    context,
+                    cardColor: cardColor,
+                    textColor: textColor,
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
     return Scaffold(
       appBar: const MainAppBar(
         showBackButton: true,
@@ -185,97 +289,7 @@ class _FaqPageState extends State<FaqPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: ResponsiveWrapper(
           maxWidth: maxWidth,
-          child: kIsWeb
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _buildFaqListWeb(
-                          context,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildPoweredByPanel(
-                          context,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16.0),
-                  children: [
-                    Text(
-                      'Ayuda',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    _buildFaqSection(
-                      context,
-                      icon: Icons.home,
-                      title: 'Plataforma',
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      items: _platformFaqs,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFaqSection(
-                      context,
-                      icon: Icons.local_offer,
-                      title: 'Beneficios',
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      items: _benefitsFaqs,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFaqSection(
-                      context,
-                      icon: Icons.shield,
-                      title: 'Puntos',
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      disabled: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFaqSection(
-                      context,
-                      icon: Icons.article,
-                      title: 'Actividades',
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      disabled: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFaqSection(
-                      context,
-                      icon: Icons.thumb_up,
-                      title: 'Sorteos',
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      disabled: true,
-                    ),
-                    const SizedBox(height: 32),
-                    _buildPoweredByPanel(
-                      context,
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
+          child: kIsWeb ? buildWebBody() : buildSingleColumnBody(),
         ),
       ),
     );

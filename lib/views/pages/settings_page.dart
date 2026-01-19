@@ -28,7 +28,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _pushEnabled = true;
   bool _pushLoading = true;
   bool _pushToggling = false;
-  bool _pushTesting = false;
 
   @override
   void initState() {
@@ -78,34 +77,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _showSnack('Error actualizando notificaciones: $e');
     } finally {
       if (mounted) setState(() => _pushToggling = false);
-    }
-  }
-
-  Future<void> _testNotification() async {
-    if (_pushLoading || _pushToggling || _pushTesting) return;
-
-    setState(() => _pushTesting = true);
-    try {
-      final ok = await const NotificationService().sendTestNotificationToMe(
-        title: 'BoomBet',
-        body: 'Notificación de prueba',
-        ensureFcmRegistered: _pushEnabled,
-      );
-      if (!mounted) return;
-      _showSnack(
-        ok
-            ? (_pushEnabled
-                  ? 'Solicitud enviada. Debería llegarte una notificación.'
-                  : 'Solicitud enviada. Como están desactivadas, NO debería llegarte nada.')
-            : (_pushEnabled
-                  ? 'Falló el envío del test. Revisar backend/token.'
-                  : 'Falló el envío del test (posible: sin token FCM por estar desactivadas).'),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('Error enviando test: $e');
-    } finally {
-      if (mounted) setState(() => _pushTesting = false);
     }
   }
 
@@ -253,27 +224,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       : (value) {
                           _togglePushNotifications(value);
                         },
-                ),
-              ),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _pushTesting || _pushLoading || _pushToggling
-                      ? null
-                      : _testNotification,
-                  icon: _pushTesting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.notifications),
-                  label: const Text('Probar notificación'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppConstants.primaryGreen,
-                    foregroundColor: AppConstants.lightCardBg,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),

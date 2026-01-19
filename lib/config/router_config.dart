@@ -1,14 +1,20 @@
 ﻿import 'dart:convert';
 
+import 'package:boombet_app/config/debug_affiliation_previews.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
+import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home_page.dart';
+import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/no_casinos_available_page.dart';
 import 'package:boombet_app/views/pages/onboarding_page.dart';
 import 'package:boombet_app/views/pages/reset_password_page.dart';
+import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +43,11 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   // En Web no mostramos onboarding nunca (ni siquiera entrando directo a /onboarding)
   if (kIsWeb && state.uri.path == '/onboarding') {
     return '/';
+  }
+
+  // Debug-only preview routes: nunca requieren sesión.
+  if (kDebugMode && state.uri.path.startsWith('/__debug')) {
+    return null;
   }
 
   // Si no ha visto el onboarding y no está en /onboarding, redirigir allí
@@ -206,6 +217,126 @@ final GoRouter appRouter = GoRouter(
       path: '/password-reset/:token',
       builder: (context, state) => _buildResetPasswordPage(context, state),
     ),
+
+    if (kDebugMode) ...[
+      GoRoute(
+        path: '/__debug',
+        builder: (context, state) {
+          final items = <({String title, String path})>[
+            (
+              title: 'Affiliation Results (preview)',
+              path: '/__debug/affiliation-results',
+            ),
+            (
+              title: 'Confirm Player Data (preview)',
+              path: '/__debug/confirm-player-data',
+            ),
+            (
+              title: 'Email Confirmation (preview)',
+              path: '/__debug/email-confirmation',
+            ),
+            (title: 'Limited Home (preview)', path: '/__debug/limited-home'),
+            (
+              title: 'No Casinos Available (preview)',
+              path: '/__debug/no-casinos',
+            ),
+            (
+              title: 'Reset Password (preview)',
+              path: '/__debug/reset-password',
+            ),
+            (
+              title: 'Unaffiliate Result (preview)',
+              path: '/__debug/unaffiliate-result',
+            ),
+          ];
+
+          return Scaffold(
+            appBar: AppBar(title: const Text('Debug Previews')),
+            body: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return ListTile(
+                  title: Text(item.title),
+                  subtitle: Text(item.path),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go(item.path),
+                );
+              },
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/__debug/affiliation-results',
+        builder: (context, state) {
+          final result = DebugAffiliationPreviews.sampleAffiliationResult();
+          return AffiliationResultsPage(result: result, preview: true);
+        },
+      ),
+      GoRoute(
+        path: '/__debug/confirm-player-data',
+        builder: (context, state) {
+          final player = DebugAffiliationPreviews.samplePlayerData();
+          return ConfirmPlayerDataPage(
+            playerData: player,
+            email: 'juan.perez@example.com',
+            username: 'juanperez',
+            password: '********',
+            dni: player.dni,
+            telefono: player.telefono,
+            genero: player.sexo,
+            preview: true,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/__debug/email-confirmation',
+        builder: (context, state) {
+          final player = DebugAffiliationPreviews.samplePlayerData();
+          return EmailConfirmationPage(
+            playerData: player,
+            email: player.correoElectronico,
+            username: player.username,
+            password: '********',
+            dni: player.dni,
+            telefono: player.telefono,
+            genero: player.sexo,
+            verificacionToken: 'debug-token',
+            isFromDeepLink: true,
+            preview: true,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/__debug/limited-home',
+        builder: (context, state) {
+          return LimitedHomePage(
+            affiliationService: AffiliationService(),
+            preview: true,
+            previewStatusMessage:
+                'Afiliación en progreso (preview) — esperando confirmación...',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/__debug/no-casinos',
+        builder: (context, state) =>
+            const NoCasinosAvailablePage(preview: true),
+      ),
+      GoRoute(
+        path: '/__debug/reset-password',
+        builder: (context, state) {
+          return const ResetPasswordPage(token: 'debug-token', preview: true);
+        },
+      ),
+      GoRoute(
+        path: '/__debug/unaffiliate-result',
+        builder: (context, state) => const UnaffiliateResultPage(preview: true),
+      ),
+    ],
   ],
 );
 

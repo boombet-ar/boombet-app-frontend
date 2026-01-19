@@ -10,8 +10,9 @@ import 'package:flutter/material.dart';
 /// Página que muestra los resultados de la afiliación
 class AffiliationResultsPage extends StatelessWidget {
   final AffiliationResult? result;
+  final bool preview;
 
-  const AffiliationResultsPage({super.key, this.result});
+  const AffiliationResultsPage({super.key, this.result, this.preview = false});
 
   @override
   Widget build(BuildContext context) {
@@ -51,15 +52,34 @@ class AffiliationResultsPage extends StatelessWidget {
         maxWidth: isWeb ? 980 : 800,
         constrainOnWeb: isWeb,
         child: isWeb
-            ? _buildWebLayout(
-                context,
-                isDark: isDark,
-                primaryGreen: primaryGreen,
-                textColor: textColor,
-                visibleEntries: visibleEntries,
-                totalCount: totalCount,
-                successCount: successCount,
-                alreadyAffiliatedCount: alreadyAffiliatedCount,
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrowWeb = constraints.maxWidth < 900;
+                  if (isNarrowWeb) {
+                    return _buildWebNarrowLayout(
+                      context,
+                      maxWidth: constraints.maxWidth,
+                      isDark: isDark,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      visibleEntries: visibleEntries,
+                      totalCount: totalCount,
+                      successCount: successCount,
+                      alreadyAffiliatedCount: alreadyAffiliatedCount,
+                    );
+                  }
+
+                  return _buildWebLayout(
+                    context,
+                    isDark: isDark,
+                    primaryGreen: primaryGreen,
+                    textColor: textColor,
+                    visibleEntries: visibleEntries,
+                    totalCount: totalCount,
+                    successCount: successCount,
+                    alreadyAffiliatedCount: alreadyAffiliatedCount,
+                  );
+                },
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -232,15 +252,17 @@ class AffiliationResultsPage extends StatelessWidget {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginPage(),
-                            ),
-                            (route) => false,
-                          );
-                        },
+                        onPressed: preview
+                            ? null
+                            : () {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginPage(),
+                                  ),
+                                  (route) => false,
+                                );
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
                           foregroundColor: isDark
@@ -525,15 +547,17 @@ class AffiliationResultsPage extends StatelessWidget {
                 height: 56,
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: preview
+                      ? null
+                      : () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
                     foregroundColor: isDark
@@ -565,6 +589,239 @@ class AffiliationResultsPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWebNarrowLayout(
+    BuildContext context, {
+    required double maxWidth,
+    required bool isDark,
+    required Color primaryGreen,
+    required Color textColor,
+    required List<MapEntry<String, CasinoResponse>> visibleEntries,
+    required int totalCount,
+    required int successCount,
+    required int alreadyAffiliatedCount,
+  }) {
+    final uiScale = (maxWidth / 420).clamp(0.78, 1.0);
+
+    final cardBg = isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg;
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : AppConstants.lightDivider;
+
+    final padding = EdgeInsets.fromLTRB(
+      14 * uiScale,
+      16 * uiScale,
+      14 * uiScale,
+      24 * uiScale,
+    );
+
+    return SingleChildScrollView(
+      padding: padding,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildEmailNotice(textColor),
+              SizedBox(height: 16 * uiScale),
+              Container(
+                padding: EdgeInsets.all(18 * uiScale),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(18 * uiScale),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryGreen.withValues(alpha: 0.1),
+                        border: Border.all(color: primaryGreen, width: 3),
+                      ),
+                      child: Icon(
+                        Icons.check_circle_outline,
+                        size: 64 * uiScale,
+                        color: primaryGreen,
+                      ),
+                    ),
+                    SizedBox(height: 16 * uiScale),
+                    Text(
+                      '¡Proceso Completado!',
+                      style: TextStyle(
+                        fontSize: 24 * uiScale,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 10 * uiScale),
+                    Text(
+                      'Tu cuenta ha sido creada y el proceso de afiliación ha finalizado',
+                      style: TextStyle(
+                        fontSize: 14.5 * uiScale,
+                        color: textColor.withValues(alpha: 0.75),
+                        height: 1.35,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 14 * uiScale),
+              Container(
+                padding: EdgeInsets.all(16 * uiScale),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Resumen de Afiliaciones',
+                      style: TextStyle(
+                        fontSize: 17 * uiScale,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 14 * uiScale),
+                    _buildSummaryRow(
+                      icon: Icons.casino_outlined,
+                      label: 'Total de casinos',
+                      value: totalCount.toString(),
+                      color: primaryGreen,
+                      textColor: textColor,
+                      iconSize: 22 * uiScale,
+                      labelFontSize: 14.5 * uiScale,
+                      valueFontSize: 18 * uiScale,
+                      iconPadding: EdgeInsets.all(9 * uiScale),
+                      spacing: 12 * uiScale,
+                    ),
+                    SizedBox(height: 12 * uiScale),
+                    if (successCount > 0) ...[
+                      _buildSummaryRow(
+                        icon: Icons.check_circle,
+                        label: 'Afiliaciones exitosas',
+                        value: successCount.toString(),
+                        color: Colors.green,
+                        textColor: textColor,
+                        iconSize: 22 * uiScale,
+                        labelFontSize: 14.5 * uiScale,
+                        valueFontSize: 18 * uiScale,
+                        iconPadding: EdgeInsets.all(9 * uiScale),
+                        spacing: 12 * uiScale,
+                      ),
+                      SizedBox(height: 12 * uiScale),
+                    ],
+                    if (alreadyAffiliatedCount > 0)
+                      _buildSummaryRow(
+                        icon: Icons.info,
+                        label: 'Ya estabas afiliado',
+                        value: alreadyAffiliatedCount.toString(),
+                        color: Colors.orange,
+                        textColor: textColor,
+                        iconSize: 22 * uiScale,
+                        labelFontSize: 14.5 * uiScale,
+                        valueFontSize: 18 * uiScale,
+                        iconPadding: EdgeInsets.all(9 * uiScale),
+                        spacing: 12 * uiScale,
+                      ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 14 * uiScale),
+              Container(
+                padding: EdgeInsets.all(16 * uiScale),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Detalle por Casino',
+                      style: TextStyle(
+                        fontSize: 17 * uiScale,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    SizedBox(height: 14 * uiScale),
+                    ...visibleEntries.map(
+                      (entry) => _buildCasinoDetail(
+                        casinoName: _formatCasinoName(entry.key),
+                        response: entry.value,
+                        isDark: isDark,
+                        textColor: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 18 * uiScale),
+              SizedBox(
+                height: 52 * uiScale,
+                child: ElevatedButton(
+                  onPressed: preview
+                      ? null
+                      : () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: isDark
+                        ? Colors.black
+                        : AppConstants.textLight,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.arrow_forward, size: 20 * uiScale),
+                      SizedBox(width: 10 * uiScale),
+                      Text(
+                        'Ir a la Aplicación',
+                        style: TextStyle(
+                          fontSize: 16 * uiScale,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.black : AppConstants.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -611,15 +868,17 @@ class AffiliationResultsPage extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: preview
+                      ? null
+                      : () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
                     shape: RoundedRectangleBorder(
@@ -645,23 +904,28 @@ class AffiliationResultsPage extends StatelessWidget {
     required String value,
     required Color color,
     required Color textColor,
+    double iconSize = 24,
+    double labelFontSize = 16,
+    double valueFontSize = 20,
+    EdgeInsets iconPadding = const EdgeInsets.all(10),
+    double spacing = 16,
   }) {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: iconPadding,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: color, size: 24),
+          child: Icon(icon, color: color, size: iconSize),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: spacing),
         Expanded(
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: labelFontSize,
               color: textColor,
               fontWeight: FontWeight.w500,
             ),
@@ -670,7 +934,7 @@ class AffiliationResultsPage extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 20,
+            fontSize: valueFontSize,
             fontWeight: FontWeight.bold,
             color: color,
           ),

@@ -543,42 +543,93 @@ class _HomeContentState extends State<HomeContent> {
         const SizedBox(height: 12),
         Expanded(
           child: isWeb
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _buildCarouselPanel(
-                          primaryGreen: primaryGreen,
-                          textColor: textColor,
-                          margin: EdgeInsets.zero,
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrowWeb = constraints.maxWidth < 900;
+
+                    if (isNarrowWeb) {
+                      final carouselHeight = (constraints.maxHeight * 0.64)
+                          .clamp(420.0, 760.0)
+                          .toDouble();
+
+                      return ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
                         ),
+                        children: [
+                          SizedBox(
+                            height: carouselHeight,
+                            child: _buildCarouselPanel(
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              margin: EdgeInsets.zero,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _QuickActionsPanel(
+                            primaryGreen: primaryGreen,
+                            textColor: textColor,
+                            isDark: isDark,
+                            onGoToDiscounts: () =>
+                                selectedPageNotifier.value = 1,
+                            onGoToRaffles: () => selectedPageNotifier.value = 2,
+                            onGoToForum: () => selectedPageNotifier.value = 3,
+                            onGoToGames: () => selectedPageNotifier.value = 4,
+                            onGoToCasinos: () => selectedPageNotifier.value = 5,
+                            onGoToProfile: () {
+                              Navigator.push(
+                                context,
+                                ScaleRoute(page: ProfilePage()),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 12,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _QuickActionsPanel(
-                          primaryGreen: primaryGreen,
-                          textColor: textColor,
-                          isDark: isDark,
-                          onGoToDiscounts: () => selectedPageNotifier.value = 1,
-                          onGoToRaffles: () => selectedPageNotifier.value = 2,
-                          onGoToForum: () => selectedPageNotifier.value = 3,
-                          onGoToGames: () => selectedPageNotifier.value = 4,
-                          onGoToCasinos: () => selectedPageNotifier.value = 5,
-                          onGoToProfile: () {
-                            Navigator.push(
-                              context,
-                              ScaleRoute(page: ProfilePage()),
-                            );
-                          },
-                        ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _buildCarouselPanel(
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              margin: EdgeInsets.zero,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _QuickActionsPanel(
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              isDark: isDark,
+                              onGoToDiscounts: () =>
+                                  selectedPageNotifier.value = 1,
+                              onGoToRaffles: () =>
+                                  selectedPageNotifier.value = 2,
+                              onGoToForum: () => selectedPageNotifier.value = 3,
+                              onGoToGames: () => selectedPageNotifier.value = 4,
+                              onGoToCasinos: () =>
+                                  selectedPageNotifier.value = 5,
+                              onGoToProfile: () {
+                                Navigator.push(
+                                  context,
+                                  ScaleRoute(page: ProfilePage()),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 )
               : _buildCarouselPanel(
                   primaryGreen: primaryGreen,
@@ -893,17 +944,33 @@ class _QuickActionsPanel extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isCompactWeb = kIsWeb && constraints.maxWidth < 520;
+
+        final width = constraints.maxWidth;
+        final t = (((520 - width) / 160).clamp(0.0, 1.0));
+        final tileScale = kIsWeb ? (1.0 + 0.30 * t) : 1.0;
+
         final squareSide = math.min(
           constraints.maxWidth,
           constraints.maxHeight,
         );
+
+        final panelWidth = isCompactWeb ? constraints.maxWidth : squareSide;
+        final compactHeight = (constraints.maxWidth * 0.86)
+            .clamp(320.0, 420.0)
+            .toDouble();
+        final panelHeight = isCompactWeb
+            ? (constraints.maxHeight.isFinite
+                  ? math.min(compactHeight, constraints.maxHeight)
+                  : compactHeight)
+            : squareSide;
         const gridSpacing = 8.0;
 
         return Align(
           alignment: Alignment.topCenter,
           child: SizedBox(
-            width: squareSide,
-            height: squareSide,
+            width: panelWidth,
+            height: panelHeight,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
@@ -1025,6 +1092,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Juegos',
                                   subtitle: 'Minijuegos',
                                   icon: Icons.videogame_asset,
+                                  uiScale: tileScale,
                                   accent:
                                       Color.lerp(
                                         primaryGreen,
@@ -1043,6 +1111,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Descuentos',
                                   subtitle: 'Cupones y ofertas',
                                   icon: Icons.local_offer,
+                                  uiScale: tileScale,
                                   accent: primaryGreen,
                                   isDark: isDark,
                                   onTap: onGoToDiscounts,
@@ -1055,6 +1124,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Sorteos',
                                   subtitle: 'Participá',
                                   icon: Icons.card_giftcard,
+                                  uiScale: tileScale,
                                   accent:
                                       Color.lerp(
                                         primaryGreen,
@@ -1075,6 +1145,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Foro',
                                   subtitle: 'Comunidad',
                                   icon: Icons.forum,
+                                  uiScale: tileScale,
                                   accent:
                                       Color.lerp(
                                         primaryGreen,
@@ -1093,6 +1164,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Casinos',
                                   subtitle: 'Afiliados',
                                   icon: Icons.casino,
+                                  uiScale: tileScale,
                                   accent:
                                       Color.lerp(
                                         primaryGreen,
@@ -1111,6 +1183,7 @@ class _QuickActionsPanel extends StatelessWidget {
                                   title: 'Perfil',
                                   subtitle: 'Tu cuenta',
                                   icon: Icons.person,
+                                  uiScale: tileScale,
                                   accent:
                                       Color.lerp(
                                         primaryGreen,
@@ -1143,6 +1216,7 @@ class _QuickActionTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.uiScale = 1.0,
     required this.accent,
     required this.isDark,
     required this.onTap,
@@ -1151,6 +1225,7 @@ class _QuickActionTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final double uiScale;
   final Color accent;
   final bool isDark;
   final VoidCallback onTap;
@@ -1167,6 +1242,8 @@ class _QuickActionTile extends StatelessWidget {
     final borderColor = isDark
         ? accent.withValues(alpha: 0.22)
         : AppConstants.borderLight.withValues(alpha: 0.85);
+
+    final s = uiScale;
 
     return Material(
       color: Colors.transparent,
@@ -1200,7 +1277,7 @@ class _QuickActionTile extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     icon,
-                    size: 74,
+                    size: 74 * s,
                     color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.10),
                   ),
                 ),
@@ -1224,14 +1301,14 @@ class _QuickActionTile extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(icon, size: 17, color: fg),
+                        Icon(icon, size: 17 * s, color: fg),
                         const SizedBox(width: 8),
                         Text(
                           title,
                           style: TextStyle(
                             color: fg,
                             fontWeight: FontWeight.w900,
-                            fontSize: 11.5,
+                            fontSize: 11.5 * s,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -1248,7 +1325,7 @@ class _QuickActionTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: fgSoft,
-                          fontSize: 11.5,
+                          fontSize: 11.5 * s,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
                         ),

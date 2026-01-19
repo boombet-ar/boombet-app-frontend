@@ -23,8 +23,15 @@ import 'package:intl/intl.dart';
 /// Mantiene un timer de 45 segundos como fallback
 class LimitedHomePage extends StatefulWidget {
   final AffiliationService affiliationService;
+  final bool preview;
+  final String? previewStatusMessage;
 
-  const LimitedHomePage({super.key, required this.affiliationService});
+  const LimitedHomePage({
+    super.key,
+    required this.affiliationService,
+    this.preview = false,
+    this.previewStatusMessage,
+  });
 
   @override
   State<LimitedHomePage> createState() => _LimitedHomePageState();
@@ -53,6 +60,14 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     //     _navigateToResultsPage(null);
     //   }
     // });
+
+    if (widget.preview) {
+      final message = widget.previewStatusMessage;
+      if (message != null && message.trim().isNotEmpty) {
+        _statusMessage = message;
+      }
+      return;
+    }
 
     // Escuchar mensajes del WebSocket
     _wsSubscription = widget.affiliationService.messageStream.listen(
@@ -122,6 +137,16 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
   }
 
   Future<void> _openLimitedGame(WidgetBuilder builder) async {
+    if (widget.preview) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preview: juegos deshabilitados (solo visual).'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (_affiliationCompleted || !mounted) return;
 
     setState(() {
@@ -239,71 +264,111 @@ class LimitedHomeContent extends StatelessWidget {
     );
 
     if (kIsWeb) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SectionHeaderWidget(
-              title: 'Inicio',
-              subtitle: 'Anuncios y novedades personalizadas',
-              icon: Icons.campaign,
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrowWeb = constraints.maxWidth < 900;
+
+          if (isNarrowWeb) {
+            // En web angosto (mobile browsers) usamos el layout vertical (tipo mobile)
+            // para evitar overflows del layout en 2 columnas.
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 720,
-                            maxHeight: 460,
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 1.35,
-                            child: _buildWelcomeSquare(
-                              context,
-                              isDark: isDark,
-                              primaryGreen: primaryGreen,
-                              textColor: textColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  SectionHeaderWidget(
+                    title: 'Inicio',
+                    subtitle: 'Anuncios y novedades personalizadas',
+                    icon: Icons.campaign,
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 560,
-                            maxHeight: 380,
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 1.55,
-                            child: _buildProgressSquare(
-                              context,
-                              statusMessage: statusMessage,
-                              primaryGreen: primaryGreen,
-                              textColor: textColor,
-                              isDark: isDark,
-                            ),
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: progressBanner,
+                  ),
+                  const SizedBox(height: 22),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildWelcomeAndFeatures(
+                      context,
+                      isDark: isDark,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
                     ),
                   ),
                 ],
               ),
+            );
+          }
+
+          // Desktop web: mantener 2 columnas con "squares".
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SectionHeaderWidget(
+                  title: 'Inicio',
+                  subtitle: 'Anuncios y novedades personalizadas',
+                  icon: Icons.campaign,
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: 720,
+                                maxHeight: 460,
+                              ),
+                              child: AspectRatio(
+                                aspectRatio: 1.35,
+                                child: _buildWelcomeSquare(
+                                  context,
+                                  isDark: isDark,
+                                  primaryGreen: primaryGreen,
+                                  textColor: textColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: 560,
+                                maxHeight: 380,
+                              ),
+                              child: AspectRatio(
+                                aspectRatio: 1.55,
+                                child: _buildProgressSquare(
+                                  context,
+                                  statusMessage: statusMessage,
+                                  primaryGreen: primaryGreen,
+                                  textColor: textColor,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
     }
 
@@ -1671,6 +1736,26 @@ class LimitedGamesContent extends StatelessWidget {
             child: isWeb
                 ? LayoutBuilder(
                     builder: (context, constraints) {
+                      final isNarrowWeb = constraints.maxWidth < 900;
+                      if (isNarrowWeb) {
+                        return Column(
+                          children: games
+                              .map(
+                                (g) => _GameCardLimited(
+                                  title: g.title,
+                                  subtitle: g.subtitle,
+                                  description: g.description,
+                                  badge: g.badge,
+                                  primaryGreen: primaryGreen,
+                                  isDark: isDark,
+                                  playable: g.playable,
+                                  onTap: g.playable ? g.onTap : null,
+                                ),
+                              )
+                              .toList(),
+                        );
+                      }
+
                       final maxExtent = (constraints.maxWidth * 0.33).clamp(
                         260.0,
                         420.0,

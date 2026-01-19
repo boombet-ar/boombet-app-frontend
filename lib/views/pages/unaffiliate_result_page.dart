@@ -3,7 +3,9 @@ import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:flutter/material.dart';
 
 class UnaffiliateResultPage extends StatelessWidget {
-  const UnaffiliateResultPage({super.key});
+  final bool preview;
+
+  const UnaffiliateResultPage({super.key, this.preview = false});
 
   @override
   Widget build(BuildContext context) {
@@ -59,13 +61,17 @@ class UnaffiliateResultPage extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
-                      );
-                    },
+                    onPressed: preview
+                        ? null
+                        : () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LoginPage(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
                       foregroundColor: Colors.black,

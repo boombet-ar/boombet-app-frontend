@@ -488,6 +488,147 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+
+        final isNarrowWeb = width < 900;
+        if (isNarrowWeb) {
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        "Editar Información",
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: primaryGreen,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Modificá tus datos personales",
+                        style: TextStyle(
+                          color: onSurface.withValues(alpha: 0.7),
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 18),
+                      _avatarSection(theme, onSurface, primaryGreen),
+                      const SizedBox(height: 16),
+                      _webCard(
+                        theme: theme,
+                        primaryGreen: primaryGreen,
+                        title: 'Contacto',
+                        icon: Icons.contact_mail_outlined,
+                        children: [
+                          _field(
+                            "Email",
+                            _c["email"]!,
+                            keyboard: TextInputType.emailAddress,
+                          ),
+                          _field(
+                            "Teléfono",
+                            _c["telefono"]!,
+                            keyboard: TextInputType.phone,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _webCard(
+                        theme: theme,
+                        primaryGreen: primaryGreen,
+                        title: 'Datos Personales',
+                        icon: Icons.badge_outlined,
+                        children: [
+                          _field("Nombre", _c["nombre"]!),
+                          _field("Apellido", _c["apellido"]!),
+                          _field("Género", _c["genero"]!),
+                          _field("Estado Civil", _c["estadoCivil"]!),
+                          _field("Fecha de Nacimiento", _c["fechaNacimiento"]!),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _webCard(
+                        theme: theme,
+                        primaryGreen: primaryGreen,
+                        title: 'Documentación',
+                        icon: Icons.assignment_ind_outlined,
+                        children: [
+                          _field("DNI", _c["dni"]!, readOnly: true),
+                          _field("CUIL", _c["cuit"]!, readOnly: true),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _webCard(
+                        theme: theme,
+                        primaryGreen: primaryGreen,
+                        title: 'Ubicación',
+                        icon: Icons.location_on_outlined,
+                        children: [
+                          _field("Provincia", _c["provincia"]!, readOnly: true),
+                          _field("Código Postal", _c["cp"]!, readOnly: true),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _webCard(
+                        theme: theme,
+                        primaryGreen: primaryGreen,
+                        title: 'Dirección',
+                        icon: Icons.home_outlined,
+                        children: [
+                          _field("Calle", _c["calle"]!, readOnly: true),
+                          _field("Número", _c["numCalle"]!, readOnly: true),
+                          _field("Ciudad", _c["ciudad"]!, readOnly: true),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _saveChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _loading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save, size: 22),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      "Guardar Cambios",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         final int columns = width >= 1400
             ? 12
             : width >= 1100

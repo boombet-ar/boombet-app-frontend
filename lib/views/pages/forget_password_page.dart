@@ -279,56 +279,92 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
       ),
     );
 
-    final webBody = Container(
-      color: theme.scaffoldBackgroundColor,
-      height: double.infinity,
-      width: double.infinity,
-      child: Row(
-        children: [
-          Expanded(
+    final webBody = LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrowWeb = constraints.maxWidth < 900;
+
+        if (isNarrowWeb) {
+          final double logoWidth = (constraints.maxWidth * 0.55)
+              .clamp(160.0, 220.0)
+              .toDouble();
+
+          return ResponsiveWrapper(
+            maxWidth: 600,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double logoWidth = (constraints.maxWidth * 0.8)
-                      .clamp(260.0, 520.0)
-                      .toDouble();
-                  return Center(child: buildLogo(width: logoWidth));
-                },
+              color: theme.scaffoldBackgroundColor,
+              height: double.infinity,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20.0),
+                      child: buildLogo(width: logoWidth),
+                    ),
+                    const SizedBox(height: 24),
+                    header,
+                    form,
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Center(
+          );
+        }
+
+        return Container(
+          color: theme.scaffoldBackgroundColor,
+          height: double.infinity,
+          width: double.infinity,
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double logoWidth = (constraints.maxWidth * 0.8)
+                          .clamp(260.0, 520.0)
+                          .toDouble();
+                      return Center(child: buildLogo(width: logoWidth));
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 28,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [header, form],
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 28,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [header, form],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
 
     return Scaffold(

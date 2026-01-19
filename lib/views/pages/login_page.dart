@@ -564,57 +564,96 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
 
-    final webBody = Container(
-      color: bgColor,
-      height: double.infinity,
-      width: double.infinity,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double logoWidth = (constraints.maxWidth * 0.8)
-                      .clamp(260.0, 520.0)
-                      .toDouble();
-                  return Center(child: buildLogo(width: logoWidth));
-                },
-              ),
-            ),
-          ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 28,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [loginHeader, loginFields],
-                          ),
+    Widget buildWebBody() {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          // En web sobre pantallas angostas (ej: Chrome en teléfono),
+          // el layout de 2 columnas se rompe. Usamos un layout 1-col.
+          final isNarrowWeb = constraints.maxWidth < 900;
+
+          if (isNarrowWeb) {
+            return SafeArea(
+              child: ResponsiveWrapper(
+                maxWidth: 520,
+                child: Container(
+                  color: bgColor,
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 22.0),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 18.0),
+                          child: buildLogo(width: 190),
                         ),
-                      ),
+                        const SizedBox(height: 22),
+                        loginHeader,
+                        loginFields,
+                        const SizedBox(height: 18),
+                      ],
                     ),
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          }
+
+          return Container(
+            color: bgColor,
+            height: double.infinity,
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: LayoutBuilder(
+                      builder: (context, inner) {
+                        final double logoWidth = (inner.maxWidth * 0.8)
+                            .clamp(260.0, 520.0)
+                            .toDouble();
+                        return Center(child: buildLogo(width: logoWidth));
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, inner) {
+                      return SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: inner.maxHeight,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 28,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [loginHeader, loginFields],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
+        },
+      );
+    }
 
     return Scaffold(
       appBar: const MainAppBar(showSettings: false, showProfileButton: false),
@@ -623,7 +662,7 @@ class _LoginPageState extends State<LoginPage> {
           // Quitar el foco de los campos al tocar fuera
           FocusScope.of(context).unfocus();
         },
-        child: isWeb ? webBody : mobileBody,
+        child: isWeb ? buildWebBody() : mobileBody,
       ),
     );
   }

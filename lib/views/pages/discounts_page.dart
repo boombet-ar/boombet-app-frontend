@@ -4,6 +4,7 @@ import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/utils/category_order.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -689,37 +690,49 @@ class _DiscountsPageState extends State<DiscountsPage> {
                 children: [
                   // Filtros de categorías
                   if (_categoriaByName.isNotEmpty)
-                    SizedBox(
-                      height: 50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: _categoriaByName.length,
-                        itemBuilder: (context, index) {
-                          final categoryName = _categoriaByName.keys.elementAt(
-                            index,
-                          );
-                          final isSelected = _selectedCategory == categoryName;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: FilterChip(
-                              label: Text(categoryName),
-                              selected: isSelected,
-                              onSelected: (_) =>
-                                  _onCategoryToggle(categoryName),
-                              backgroundColor: isDark
-                                  ? null
-                                  : AppConstants.lightSurfaceVariant,
-                              selectedColor: primaryGreen.withValues(
-                                alpha: 0.15,
-                              ),
-                              labelStyle: TextStyle(
-                                color: isDark ? null : AppConstants.textLight,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final sortedCategoryNames =
+                            CategoryOrder.sortCategoryNames(
+                              _categoriaByName.keys,
+                            );
+
+                        return SizedBox(
+                          height: 50,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            itemCount: sortedCategoryNames.length,
+                            itemBuilder: (context, index) {
+                              final categoryName = sortedCategoryNames[index];
+                              final isSelected =
+                                  _selectedCategory == categoryName;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: FilterChip(
+                                  label: Text(categoryName),
+                                  selected: isSelected,
+                                  onSelected: (_) =>
+                                      _onCategoryToggle(categoryName),
+                                  backgroundColor: isDark
+                                      ? null
+                                      : AppConstants.lightSurfaceVariant,
+                                  selectedColor: primaryGreen.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    color: isDark
+                                        ? null
+                                        : AppConstants.textLight,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
 
                   // Widget de Puntos - AQUÍ, después de los filtros

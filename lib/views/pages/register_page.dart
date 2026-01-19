@@ -2073,57 +2073,101 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       ),
     );
 
-    final webBody = Container(
-      color: bgColor,
-      height: double.infinity,
-      width: double.infinity,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double logoWidth = (constraints.maxWidth * 0.8)
-                      .clamp(260.0, 520.0)
-                      .toDouble();
-                  return Center(child: buildLogo(width: logoWidth));
-                },
-              ),
-            ),
-          ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 560),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 28,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [registerHeader, buildRegisterFields()],
-                          ),
-                        ),
+    Widget buildWebBody() {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrowWeb = constraints.maxWidth < 900;
+
+          if (isNarrowWeb) {
+            return Container(
+              color: bgColor,
+              height: double.infinity,
+              width: double.infinity,
+              child: SafeArea(
+                child: Center(
+                  child: ResponsiveWrapper(
+                    maxWidth: 520,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 18,
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 6),
+                          buildLogo(width: 190),
+                          const SizedBox(height: 20),
+                          registerHeader,
+                          buildRegisterFields(),
+                          const SizedBox(height: 16),
+                        ],
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          }
+
+          // Desktop web layout (2-column)
+          return Container(
+            color: bgColor,
+            height: double.infinity,
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double logoWidth = (constraints.maxWidth * 0.8)
+                            .clamp(260.0, 520.0)
+                            .toDouble();
+                        return Center(child: buildLogo(width: logoWidth));
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 28,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    registerHeader,
+                                    buildRegisterFields(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
+        },
+      );
+    }
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -2135,7 +2179,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         onTap: () {
           FocusScope.of(context).unfocus();
         },
-        child: isWeb ? webBody : mobileBody,
+        child: isWeb ? buildWebBody() : mobileBody,
       ),
     );
   }

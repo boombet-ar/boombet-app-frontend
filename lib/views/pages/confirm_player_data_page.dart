@@ -23,6 +23,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
   final String dni;
   final String telefono;
   final String genero;
+  final bool preview;
 
   const ConfirmPlayerDataPage({
     super.key,
@@ -33,6 +34,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
     required this.dni,
     required this.telefono,
     required this.genero,
+    this.preview = false,
   });
 
   @override
@@ -83,6 +85,16 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   Future<void> _onConfirmarDatos() async {
+    if (widget.preview) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preview: acción deshabilitada (solo visual).'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (_isLoading) return; // Prevenir doble tap
 
     // Validar Nombre

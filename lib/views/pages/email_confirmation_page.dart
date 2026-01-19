@@ -24,6 +24,7 @@ class EmailConfirmationPage extends StatefulWidget {
   final String? genero;
   final String? verificacionToken;
   final bool isFromDeepLink;
+  final bool preview;
   const EmailConfirmationPage({
     super.key,
     this.playerData,
@@ -35,6 +36,7 @@ class EmailConfirmationPage extends StatefulWidget {
     this.genero,
     this.verificacionToken,
     this.isFromDeepLink = false,
+    this.preview = false,
   });
 
   @override
@@ -97,7 +99,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     debugPrint('📱 EmailConfirmationPage initState');
 
     // Agregar observer para detectar cuando vuelve a la app
-    WidgetsBinding.instance.addObserver(this);
+    if (!widget.preview) {
+      WidgetsBinding.instance.addObserver(this);
+    }
 
     final initialPlayer = _resolvedPlayerData;
     if (initialPlayer != null) {
@@ -109,17 +113,21 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       _apellidoController = TextEditingController();
     }
 
-    _loadAffiliationData();
+    if (!widget.preview) {
+      _loadAffiliationData();
 
-    // Iniciar verificación de is_verified usando email
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startVerificationPolling();
-    });
+      // Iniciar verificación de is_verified usando email
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startVerificationPolling();
+      });
+    }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    if (!widget.preview) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     _verificationTimer?.cancel();
     _nombreController.dispose();
     _apellidoController.dispose();
@@ -163,6 +171,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
   /// Verifica el estado is_verified del usuario usando su email
   Future<void> _checkIsVerified() async {
+    if (widget.preview) return;
     if (_isCheckingVerification || _isVerified) return;
 
     // Obtener el email del usuario
@@ -458,6 +467,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   }
 
   Future<void> _processAfiliation() async {
+    if (widget.preview) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preview: afiliación deshabilitada (solo visual).'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (_isProcessing) return;
 
     // Validar que tenemos los datos necesarios

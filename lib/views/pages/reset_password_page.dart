@@ -12,8 +12,13 @@ import 'dart:async';
 
 class ResetPasswordPage extends StatefulWidget {
   final String token; // Token del email de recuperación
+  final bool preview;
 
-  const ResetPasswordPage({super.key, required this.token});
+  const ResetPasswordPage({
+    super.key,
+    required this.token,
+    this.preview = false,
+  });
 
   @override
   State<ResetPasswordPage> createState() => _ResetPasswordPageState();
@@ -22,7 +27,7 @@ class ResetPasswordPage extends StatefulWidget {
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
-  late StreamSubscription<DeepLinkPayload> _deepLinkSubscription;
+  StreamSubscription<DeepLinkPayload>? _deepLinkSubscription;
   late String _currentToken;
 
   bool _passwordError = false;
@@ -48,35 +53,39 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       _confirmPasswordController = TextEditingController();
       _passwordController.addListener(_validatePasswordLive);
 
-      // Escuchar deep links por si se actualiza el token
-      _deepLinkSubscription = DeepLinkService.instance.stream.listen((payload) {
-        if (payload.isPasswordReset &&
-            payload.token != null &&
-            payload.token!.isNotEmpty) {
-          debugPrint(
-            '📝 [ResetPasswordPage] Token recibido del deep link: ${payload.token}',
-          );
-          setState(() {
-            _currentToken = payload.token!;
-          });
-        }
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Verificar si hay un pending payload del deep link
-        final pendingPayload = DeepLinkService.instance.lastPayload;
-        if (pendingPayload != null && pendingPayload.isPasswordReset) {
-          debugPrint(
-            '📝 [ResetPasswordPage] Payload pendiente del deep link recibido',
-          );
-          if (pendingPayload.token != null &&
-              pendingPayload.token!.isNotEmpty) {
+      if (!widget.preview) {
+        // Escuchar deep links por si se actualiza el token
+        _deepLinkSubscription = DeepLinkService.instance.stream.listen((
+          payload,
+        ) {
+          if (payload.isPasswordReset &&
+              payload.token != null &&
+              payload.token!.isNotEmpty) {
+            debugPrint(
+              '📝 [ResetPasswordPage] Token recibido del deep link: ${payload.token}',
+            );
             setState(() {
-              _currentToken = pendingPayload.token!;
+              _currentToken = payload.token!;
             });
           }
-        }
-      });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Verificar si hay un pending payload del deep link
+          final pendingPayload = DeepLinkService.instance.lastPayload;
+          if (pendingPayload != null && pendingPayload.isPasswordReset) {
+            debugPrint(
+              '📝 [ResetPasswordPage] Payload pendiente del deep link recibido',
+            );
+            if (pendingPayload.token != null &&
+                pendingPayload.token!.isNotEmpty) {
+              setState(() {
+                _currentToken = pendingPayload.token!;
+              });
+            }
+          }
+        });
+      }
     } catch (e) {
       debugPrint('❌ [ResetPasswordPage] Error en initState: $e');
     }
@@ -87,7 +96,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     try {
       _passwordController.dispose();
       _confirmPasswordController.dispose();
-      _deepLinkSubscription.cancel();
+      _deepLinkSubscription?.cancel();
     } catch (e) {
       debugPrint('❌ [ResetPasswordPage] Error en dispose: $e');
     }
@@ -164,6 +173,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   }
 
   void _validateAndResetPassword() async {
+    if (widget.preview) {
+      _showSnackbar(
+        'Preview: reset deshabilitado (solo visual).',
+        isError: false,
+      );
+      return;
+    }
+
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
@@ -518,56 +535,92 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         ),
       );
 
-      final webBody = Container(
-        color: theme.scaffoldBackgroundColor,
-        height: double.infinity,
-        width: double.infinity,
-        child: Row(
-          children: [
-            Expanded(
+      final webBody = LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrowWeb = constraints.maxWidth < 900;
+
+          if (isNarrowWeb) {
+            // Web angosto (mobile browser): layout vertical tipo mobile
+            // para evitar que la columna del formulario quede demasiado estrecha.
+            return ResponsiveWrapper(
+              maxWidth: 600,
+              constrainOnWeb: true,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double logoWidth = (constraints.maxWidth * 0.8)
-                        .clamp(260.0, 520.0)
-                        .toDouble();
-                    return Center(child: buildLogo(width: logoWidth));
-                  },
+                color: theme.scaffoldBackgroundColor,
+                width: double.infinity,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 18,
+                  ),
+                  child: Column(
+                    children: [
+                      buildLogo(width: 180),
+                      const SizedBox(height: 22),
+                      header,
+                      buildForm(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Center(
+            );
+          }
+
+          // Desktop web: mantener 2 columnas.
+          return Container(
+            color: theme.scaffoldBackgroundColor,
+            height: double.infinity,
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double logoWidth = (constraints.maxWidth * 0.8)
+                            .clamp(260.0, 520.0)
+                            .toDouble();
+                        return Center(child: buildLogo(width: logoWidth));
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 520),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 28,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [header, buildForm()],
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 28,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [header, buildForm()],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
 
       return Scaffold(

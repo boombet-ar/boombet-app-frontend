@@ -207,6 +207,23 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
       child: isWeb
           ? LayoutBuilder(
               builder: (context, constraints) {
+                final isNarrowWeb = constraints.maxWidth < 700;
+
+                if (isNarrowWeb) {
+                  // Mobile web: use the mobile list layout so cards and CTA
+                  // don't get cramped into multiple columns.
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                    itemCount: _casinos.length,
+                    itemBuilder: (context, index) => _CasinoCard(
+                      casino: _casinos[index],
+                      isDark: isDark,
+                      accent: accent,
+                      onTap: () => _openCasinoUrl(_casinos[index].url),
+                    ),
+                  );
+                }
+
                 final maxExtent = (constraints.maxWidth * 0.33).clamp(
                   260.0,
                   420.0,
@@ -461,13 +478,17 @@ class _CasinoButton extends StatelessWidget {
             children: [
               Icon(Icons.casino_outlined, color: textColor, size: 22),
               const SizedBox(width: 10),
-              Text(
-                'Acceder al casino',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
+              Flexible(
+                child: Text(
+                  'Acceder al casino',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),

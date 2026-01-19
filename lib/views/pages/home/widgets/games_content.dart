@@ -56,6 +56,30 @@ class GamesContent extends StatelessWidget {
             child: isWeb
                 ? LayoutBuilder(
                     builder: (context, constraints) {
+                      final isNarrowWeb = constraints.maxWidth < 700;
+
+                      if (isNarrowWeb) {
+                        // On small web widths, use the mobile-style list so
+                        // content stays readable and buttons have space.
+                        return Column(
+                          children: games
+                              .map(
+                                (g) => _GameCard(
+                                  title: g.title,
+                                  subtitle: g.subtitle,
+                                  description: g.description,
+                                  badge: g.badge,
+                                  primaryGreen: primaryGreen,
+                                  textColor: textColor,
+                                  onPlay: g.onPlay,
+                                  isDark: isDark,
+                                  asset: g.asset,
+                                ),
+                              )
+                              .toList(),
+                        );
+                      }
+
                       final maxExtent = (constraints.maxWidth * 0.33).clamp(
                         260.0,
                         420.0,
@@ -142,130 +166,161 @@ class _GameGridCard extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : AppConstants.lightSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onPlay,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Scale the CTA so it stays legible on smaller web cards.
+        final w = constraints.maxWidth;
+        final t = (((340 - w) / 140).clamp(0.0, 1.0));
+        final s = 1.0 + 0.22 * t;
+
+        final buttonHeight = (44 * s).clamp(44.0, 56.0);
+        final chipIconSize = (18 * s).clamp(18.0, 22.0);
+        final chipTextSize = (12 * s).clamp(12.0, 14.0);
+        final titleSize = (18 * s).clamp(18.0, 20.0);
+        final subtitleSize = (13 * s).clamp(13.0, 15.0);
+        final ctaIconSize = (18 * s).clamp(18.0, 22.0);
+        final ctaArrowSize = (16 * s).clamp(16.0, 20.0);
+        final ctaTextSize = (13 * s).clamp(13.0, 16.0);
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
-                primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
-              ],
-            ),
-            border: Border.all(
-              color: primaryGreen.withValues(alpha: 0.35),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 12,
-                offset: const Offset(0, 8),
+            onTap: onPlay,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
+                    primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
+                  ],
+                ),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor, width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.videogame_asset,
+                              size: chipIconSize,
+                              color: fg,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              badge,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: chipTextSize,
+                                color: fg,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        color: surfaceVariant,
+                        child: Image.asset(asset, fit: BoxFit.contain),
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: fg,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: fgSoft,
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: buttonHeight,
                     decoration: BoxDecoration(
-                      color: surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor, width: 0.8),
+                      borderRadius: BorderRadius.circular(14),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : AppConstants.lightSurfaceVariant,
+                      border: Border.all(color: borderColor, width: 0.9),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.videogame_asset, size: 18),
-                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.sports_esports,
+                          size: ctaIconSize,
+                          color: fg,
+                        ),
+                        const SizedBox(width: 10),
                         Text(
-                          badge,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                          'Jugar',
+                          style: TextStyle(
+                            color: fg,
+                            fontWeight: FontWeight.w800,
+                            fontSize: ctaTextSize,
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Icon(Icons.north_east, size: ctaArrowSize, color: fg),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    color: surfaceVariant,
-                    child: Image.asset(asset, fit: BoxFit.contain),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: fg,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: fgSoft,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : AppConstants.lightSurfaceVariant,
-                  border: Border.all(color: borderColor, width: 0.9),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.sports_esports, size: 18, color: fg),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Jugar',
-                      style: TextStyle(color: fg, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.north_east, size: 16, color: fg),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
