@@ -96,7 +96,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   @override
   void initState() {
     super.initState();
-    debugPrint('📱 EmailConfirmationPage initState');
 
     // Agregar observer para detectar cuando vuelve a la app
     if (!widget.preview) {
@@ -137,11 +136,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    debugPrint('🔄 [EmailConfirmation] App state changed: $state');
 
     // Cuando la app vuelve al foreground, reiniciar polling si no está verificado
     if (state == AppLifecycleState.resumed && !_isVerified) {
-      debugPrint('🔄 [EmailConfirmation] App resumed, reiniciando polling');
       _verificationTimer?.cancel();
       _startVerificationPolling();
     }
@@ -177,9 +174,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     // Obtener el email del usuario
     final email = _resolvedEmail;
     if (email == null || email.isEmpty) {
-      debugPrint(
-        '⚠️ [EmailConfirmation] No hay email disponible, deteniendo polling',
-      );
       _verificationTimer?.cancel();
       return;
     }
@@ -193,23 +187,12 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       final url =
           '${ApiConfig.baseUrl}/users/auth/isVerified?email=${Uri.encodeComponent(email)}';
 
-      debugPrint('🔍 [EmailConfirmation] ===== REQUEST =====');
-      debugPrint('🔍 URL: $url');
-      debugPrint('🔍 Method: GET');
-      debugPrint('📧 Email: $email');
-
       final response = await http.get(Uri.parse(url));
-
-      debugPrint('📥 [EmailConfirmation] ===== RESPONSE =====');
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Headers: ${response.headers}');
-      debugPrint('📥 Body: ${response.body}');
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        debugPrint('📦 [EmailConfirmation] Data parsed: $data');
 
         // Intentar múltiples formas de parsear is_verified
         bool isVerified = false;
@@ -234,8 +217,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
           isVerified = data;
         }
 
-        debugPrint('🔑 [EmailConfirmation] is_verified: $isVerified');
-
         if (isVerified && !_isVerified) {
           setState(() {
             _isVerified = true;
@@ -257,41 +238,14 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
           });
         }
       } else if (response.statusCode == 403) {
-        debugPrint('🚫 [EmailConfirmation] Error 403 - Forbidden');
-        debugPrint('🚫 Esto puede indicar:');
-        debugPrint(
-          '   - El endpoint requiere autenticación (aunque dijiste que no)',
-        );
-        debugPrint('   - El formato del email no es el esperado');
-        debugPrint('   - Hay validaciones de seguridad en el backend');
-        debugPrint(
-          '🚫 Request enviado: GET ${ApiConfig.baseUrl}/users/auth/isVerified?email=$email',
-        );
-        debugPrint('🚫 Response: ${response.body}');
-
         // NO detener el polling, seguir intentando
-        debugPrint('⚠️ Continuando polling a pesar del 403...');
       } else if (response.statusCode == 400) {
-        debugPrint('⚠️ [EmailConfirmation] Error 400 - Bad Request');
-        debugPrint('⚠️ El backend rechazó el formato del request');
-        debugPrint('⚠️ Body: ${response.body}');
         // Detener polling si es Bad Request
         _verificationTimer?.cancel();
       } else if (response.statusCode == 404) {
-        debugPrint('⚠️ [EmailConfirmation] Error 404 - Endpoint no encontrado');
-        debugPrint(
-          '⚠️ URL: ${ApiConfig.baseUrl}/users/auth/isVerified?email=$email',
-        );
         _verificationTimer?.cancel();
-      } else {
-        debugPrint(
-          '⚠️ [EmailConfirmation] Status inesperado: ${response.statusCode}',
-        );
-        debugPrint('⚠️ Response body: ${response.body}');
-      }
+      } else {}
     } catch (e, stackTrace) {
-      debugPrint('❌ [EmailConfirmation] Exception verificando: $e');
-      debugPrint('❌ Stack trace: $stackTrace');
     } finally {
       if (mounted) {
         setState(() {
@@ -516,7 +470,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
       // Generar WebSocket URL
       final wsUrl = _generateWebSocketUrl();
-      debugPrint('WebSocket URL generada: $wsUrl');
 
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
@@ -541,9 +494,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         },
       };
 
-      debugPrint('Enviando POST a /api/users/auth/affiliate');
-      debugPrint('Payload: ${jsonEncode(payload)}');
-
       // Enviar POST al endpoint de afiliación
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/affiliate');
 
@@ -557,9 +507,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
             AppConstants.apiTimeout,
             onTimeout: () => http.Response('Request timeout', 408),
           );
-
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
 
       if (!mounted) return;
 
@@ -595,20 +542,12 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ AFILIACIÓN EXITOSA
-        debugPrint('✅ Afiliación exitosa');
 
         // 🔌 CONECTAR WEBSOCKET
-        debugPrint(
-          '🔌 Conectando WebSocket con URL generada por el frontend: $wsUrl',
-        );
         _affiliationService
             .connectToWebSocket(wsUrl: wsUrl, token: '')
-            .then((_) {
-              debugPrint('✅ WebSocket conectado exitosamente');
-            })
-            .catchError((e) {
-              debugPrint('⚠️ Error al conectar WebSocket: $e');
-            });
+            .then((_) {})
+            .catchError((e) {});
 
         if (!mounted) return;
 
@@ -669,8 +608,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         });
       }
     } catch (e) {
-      debugPrint('ERROR CRÍTICO en _processAfiliation: $e');
-
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
@@ -897,13 +834,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
   /// Carga los datos de afiliación desde SharedPreferences
   Future<void> _loadAffiliationData() async {
-    debugPrint('💾 [LOAD] Iniciando carga de datos de SharedPreferences...');
     await loadAffiliationData();
-    debugPrint('💾 [LOAD] Datos cargados:');
-    debugPrint('💾 [LOAD] playerData: ${affiliationPlayerDataNotifier.value}');
-    debugPrint('💾 [LOAD] email: ${affiliationEmailNotifier.value}');
-    debugPrint('💾 [LOAD] username: ${affiliationUsernameNotifier.value}');
-    debugPrint('💾 [LOAD] dni: ${affiliationDniNotifier.value}');
 
     if (!mounted) return;
 

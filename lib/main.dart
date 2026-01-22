@@ -35,24 +35,19 @@ BuildContext? _routerContext() {
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('🔔 Background message: ${message.messageId}');
 }
 
 void _scheduleNavigationToRoute(String route) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     try {
-      debugPrint('[MAIN] 🌐 Navigating to deep link route: $route');
       appRouter.go(route);
-    } catch (e) {
-      debugPrint('[MAIN] ❌ Error navigating to $route: $e');
-    }
+    } catch (e) {}
   });
 }
 
 void _handleDeepLinkNavigation(DeepLinkPayload payload) {
   final route = DeepLinkService.instance.navigationPathForPayload(payload);
   if (route == null) {
-    debugPrint('[MAIN] ⚠️ Deep link recibido sin token válido: ${payload.uri}');
     return;
   }
 
@@ -110,14 +105,14 @@ void _initializeDeepLinkHandling() {
       if (payload != null) {
         _handleDeepLinkNavigation(payload);
       }
-    } catch (error) {
-      debugPrint('ÔØî [DeepLink] Invalid URI: $error');
-    }
+    } catch (error) {}
   });
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  debugPrint = (String? message, {int? wrapWidth}) {};
 
   // Web: usar URLs con path (/confirm?token=...) en lugar de hash (/#/confirm?...)
   // Requiere que el hosting haga rewrite de cualquier ruta a index.html.
@@ -131,9 +126,7 @@ Future<void> main() async {
 
     // Suscribirse a notificaciones en foreground / openedApp
     await PushNotificationService.initialize();
-  } else {
-    debugPrint('🔕 Push notifications disabled on Web');
-  }
+  } else {}
 
   // Cargar variables de entorno
   await Env.load();
@@ -141,14 +134,6 @@ Future<void> main() async {
   // ============================================
   // 🌐 Environment Configuration Verification
   // ============================================
-  debugPrint('');
-  debugPrint('╔════════════════════════════════════════╗');
-  debugPrint('║   🌐 API CONFIGURATION                ║');
-  debugPrint('╠════════════════════════════════════════╣');
-  debugPrint('║  Base URL: ${ApiConfig.baseUrl.padRight(30)}║');
-  debugPrint('║  WebSocket: ${ApiConfig.wsBaseUrl.padRight(28)}║');
-  debugPrint('╚════════════════════════════════════════╝');
-  debugPrint('');
 
   _initializeDeepLinkHandling();
 
@@ -160,10 +145,7 @@ Future<void> main() async {
   });
 
   // Capturar errores de Flutter no manejados
-  FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('ÔØî [FLUTTER ERROR] ${details.exception}');
-    debugPrint('ÔØî [FLUTTER ERROR] ${details.stack}');
-  };
+  FlutterError.onError = (FlutterErrorDetails details) {};
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
 
@@ -185,14 +167,10 @@ Future<void> main() async {
 
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {
-    debugPrint('[MAIN] ­ƒö┤ 401 Detected - Navigating to LoginPage');
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         appRouter.go('/');
-      } catch (e) {
-        debugPrint('[MAIN] ❌ Error navigating to login: $e');
-      }
+      } catch (e) {}
 
       // Mostrar SnackBar después de navegar
       final messenger = scaffoldMessengerKey.currentState;
@@ -469,9 +447,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-//comando para correr siempre en el mismo puerto en chrome
-//flutter run -d chrome --web-hostname localhost --web-port 8080
-//
-//comando para buildear el apk
-//flutter build apk --release

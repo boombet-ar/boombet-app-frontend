@@ -147,13 +147,6 @@ class DeepLinkService {
 
   void emit(DeepLinkPayload payload) {
     _lastPayload = payload;
-    // Log de entrada de payload para diagn├│stico de deeplinks/push
-    try {
-      // Evitar logs masivos en producci├│n, pero esto ayuda a tracing
-      // de datos de deeplink.
-      // ignore: avoid_print
-      print('­ƒöù DeepLink emit: uri=${payload.uri} token=${payload.token}');
-    } catch (_) {}
     _controller.add(payload);
   }
 
@@ -164,12 +157,6 @@ class DeepLinkService {
   }
 
   String? navigationPathForPayload(DeepLinkPayload payload) {
-    // Logging detallado de resoluci├│n de ruta
-    // ignore: avoid_print
-    print(
-      '­ƒöù Resolviendo navigationPathForPayload: uri=${payload.uri}, token=${payload.token}',
-    );
-
     final token = payload.token;
 
     if (payload.isForumPostDetail) {
@@ -179,8 +166,6 @@ class DeepLinkService {
     }
 
     if (payload.isAffiliationCompleted) {
-      // ignore: avoid_print
-      print('­ƒöù Payload detectado como afiliaci├│n completada');
       return '/affiliation-results';
     }
 

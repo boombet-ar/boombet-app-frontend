@@ -422,9 +422,6 @@ class _RegisterPageState extends State<RegisterPage> {
         'email': _emailController.text.trim(),
       };
 
-      debugPrint('📡 POST → $url');
-      debugPrint('📦 Body: $body');
-
       final response = await http
           .post(
             url,
@@ -437,14 +434,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
       LoadingOverlay.hide(context);
 
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
-
-        debugPrint('DEBUG - Response recibida: $fullResponse');
 
         // Extraer el primer elemento de listaExistenciaFisica
         final lista = fullResponse['listaExistenciaFisica'] as List?;
@@ -483,16 +475,11 @@ class _RegisterPageState extends State<RegisterPage> {
         }
 
         final playerDataJson = lista[0] as Map<String, dynamic>;
-        debugPrint('DEBUG - Primer elemento: $playerDataJson');
-
         // Parsear PlayerData desde la respuesta
         PlayerData? playerData;
         try {
           playerData = PlayerData.fromRegisterResponse(playerDataJson);
-          debugPrint('DEBUG - PlayerData parseado: OK');
         } catch (e, stackTrace) {
-          debugPrint('DEBUG - ERROR AL PARSEAR: $e');
-          debugPrint('DEBUG - STACK: $stackTrace');
           playerData = null;
         }
 
@@ -589,8 +576,6 @@ class _RegisterPageState extends State<RegisterPage> {
         }
       } else {
         // Error en la validación
-        debugPrint('DEBUG - Error status: ${response.statusCode}');
-        debugPrint('DEBUG - Error body: ${response.body}');
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         final dialogBg = isDark
@@ -1396,9 +1381,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         'email': _emailController.text.trim(),
       };
 
-      debugPrint('📡 POST → $url');
-      debugPrint('📦 Body: $body');
-
       final response = await http
           .post(
             url,
@@ -1411,14 +1393,9 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
       LoadingOverlay.hide(context);
 
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
-
-        debugPrint('DEBUG - Response recibida: $fullResponse');
 
         // Extraer el primer elemento de listaExistenciaFisica
         final lista = fullResponse['listaExistenciaFisica'] as List?;
@@ -1457,16 +1434,11 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         }
 
         final playerDataJson = lista[0] as Map<String, dynamic>;
-        debugPrint('DEBUG - Primer elemento: $playerDataJson');
-
         // Parsear PlayerData desde la respuesta
         PlayerData? playerData;
         try {
           playerData = PlayerData.fromRegisterResponse(playerDataJson);
-          debugPrint('DEBUG - PlayerData parseado: OK');
         } catch (e, stackTrace) {
-          debugPrint('DEBUG - ERROR AL PARSEAR: $e');
-          debugPrint('DEBUG - STACK: $stackTrace');
           playerData = null;
         }
 
@@ -1563,8 +1535,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         }
       } else {
         // Error en la validación
-        debugPrint('DEBUG - Error status: ${response.statusCode}');
-        debugPrint('DEBUG - Error body: ${response.body}');
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         final dialogBg = isDark

@@ -10,6 +10,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,6 +21,7 @@ class HomePage extends StatefulWidget {
 }
 
 Future<void> _subscribeToTopics() async {
+  if (kIsWeb) return;
   await FirebaseMessaging.instance.subscribeToTopic('all');
 }
 
@@ -83,4 +85,3 @@ class _HomePageState extends State<HomePage> {
 extension DiscountsContentStateRefresh on DiscountsContentState {
   void refreshClaimedIds() {}
 }
-

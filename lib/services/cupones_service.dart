@@ -2,36 +2,24 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/utils/category_order.dart';
-import 'dart:developer' as developer;
 import 'dart:convert';
 
 class CuponesService {
   static Future<Map<String, dynamic>> afiliarAfiliado() async {
     try {
       final url = '${ApiConfig.baseUrl}/cupones/afiliado';
-      developer.log('DEBUG CuponesService - URL: $url');
 
       final response = await HttpClient.post(url, body: const {});
-
-      developer.log(
-        'DEBUG CuponesService - Response status: ${response.statusCode}',
-      );
-      developer.log('DEBUG CuponesService - Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as dynamic;
         return {'success': true, 'data': data};
       }
 
-      developer.log('ERROR CuponesService - Status: ${response.statusCode}');
       throw Exception(
         'Error afiliando a Bonda: ${response.statusCode} - ${response.body}',
       );
     } catch (e) {
-      developer.log('ERROR CuponesService - Exception: $e');
-      developer.log(
-        'ERROR CuponesService - Stack trace: ${StackTrace.current}',
-      );
       rethrow;
     }
   }
@@ -55,10 +43,6 @@ class CuponesService {
           ? orderBy!.trim()
           : 'relevant';
 
-      developer.log(
-        'DEBUG CuponesService - Fetching cupones (page: $page, category: ${categoryFilter ?? '-'}, query: ${normalizedSearch ?? '-'}, order: $normalizedOrderBy )',
-      );
-
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
           .replace(
             queryParameters: {
@@ -79,27 +63,14 @@ class CuponesService {
           )
           .toString();
 
-      developer.log('[CuponesService] URL final: $url');
-
-      developer.log('DEBUG CuponesService - URL: $url');
-
       final response = await HttpClient.get(
         url,
         includeAuth: true,
         timeout: const Duration(seconds: 60),
       );
 
-      developer.log(
-        'DEBUG CuponesService - Response status: ${response.statusCode}',
-      );
-      developer.log('DEBUG CuponesService - Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as dynamic;
-
-        developer.log(
-          'DEBUG CuponesService - Decoded data type: ${data.runtimeType}',
-        );
 
         // El backend devuelve: { count, previous, next, results: [...] }
         List<dynamic> cuponList = [];
@@ -114,16 +85,6 @@ class CuponesService {
           hasMore =
               cuponList.isNotEmpty &&
               ((data['next'] != null) || (total > page * pageSize));
-
-          developer.log(
-            'DEBUG CuponesService - Total: $total, HasMore: $hasMore, List length: ${cuponList.length}',
-          );
-
-          if (cuponList.isNotEmpty) {
-            developer.log(
-              'DEBUG CuponesService - First cupon raw data: ${jsonEncode(cuponList.first)}',
-            );
-          }
         }
 
         final cupones = cuponList
@@ -131,16 +92,12 @@ class CuponesService {
               try {
                 return Cupon.fromJson(json as Map<String, dynamic>);
               } catch (e) {
-                developer.log('ERROR CuponesService - Error parsing cupón: $e');
-                developer.log('ERROR CuponesService - Cupón data: $json');
                 // Retornar null para problematic cupones
                 return null;
               }
             })
             .whereType<Cupon>()
             .toList();
-
-        developer.log('DEBUG CuponesService - Got ${cupones.length} cupones');
 
         return {
           'cupones': cupones,
@@ -150,16 +107,11 @@ class CuponesService {
           'has_more': hasMore,
         };
       } else {
-        developer.log('ERROR CuponesService - Status: ${response.statusCode}');
         throw Exception(
           'Error fetching cupones: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
-      developer.log('ERROR CuponesService - Exception: $e');
-      developer.log(
-        'ERROR CuponesService - Stack trace: ${StackTrace.current}',
-      );
       rethrow;
     }
   }
@@ -170,16 +122,10 @@ class CuponesService {
         '${ApiConfig.baseUrl}/cupones/categorias',
       ).toString();
 
-      developer.log('DEBUG CuponesService - Categorias URL: $url');
-
       final response = await HttpClient.get(
         url,
         includeAuth: true,
         timeout: const Duration(seconds: 40),
-      );
-
-      developer.log(
-        'DEBUG CuponesService - Categorias status: ${response.statusCode}',
       );
 
       if (response.statusCode == 200) {
@@ -190,9 +136,6 @@ class CuponesService {
                 try {
                   return Categoria.fromJson(item as Map<String, dynamic>);
                 } catch (e) {
-                  developer.log(
-                    'WARN CuponesService - Skipping categoria parse error: $e',
-                  );
                   return null;
                 }
               })
@@ -222,7 +165,6 @@ class CuponesService {
         'Error fetching categorias: ${response.statusCode} - ${response.body}',
       );
     } catch (e) {
-      developer.log('ERROR CuponesService - Categorias exception: $e');
       rethrow;
     }
   }
@@ -232,10 +174,6 @@ class CuponesService {
     int pageSize = 25,
   }) async {
     try {
-      developer.log(
-        'DEBUG CuponesService - Fetching cupones recibidos (page: $page)',
-      );
-
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones/recibidos')
           .replace(
             queryParameters: {
@@ -245,25 +183,14 @@ class CuponesService {
           )
           .toString();
 
-      developer.log('DEBUG CuponesService - URL: $url');
-
       final response = await HttpClient.get(
         url,
         includeAuth: true,
         timeout: const Duration(seconds: 60),
       );
 
-      developer.log(
-        'DEBUG CuponesService - Response status: ${response.statusCode}',
-      );
-      developer.log('DEBUG CuponesService - Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as dynamic;
-
-        developer.log(
-          'DEBUG CuponesService - Decoded data type: ${data.runtimeType}',
-        );
 
         // El backend devuelve: { count, results: [...] }
         List<dynamic> cuponList = [];
@@ -277,17 +204,6 @@ class CuponesService {
           hasMore =
               cuponList.isNotEmpty &&
               ((data['next'] != null) || (total > page * pageSize));
-
-          developer.log(
-            'DEBUG CuponesService - Total: $total, List length: ${cuponList.length}',
-          );
-
-          // Log detallado del primer cupón para ver estructura
-          if (cuponList.isNotEmpty) {
-            developer.log(
-              'DEBUG CuponesService - First cupon raw data: ${jsonEncode(cuponList.first)}',
-            );
-          }
         }
 
         final cupones = cuponList
@@ -295,27 +211,12 @@ class CuponesService {
               try {
                 return Cupon.fromJson(json as Map<String, dynamic>);
               } catch (e) {
-                developer.log(
-                  'ERROR CuponesService - Error parsing cupón recibido: $e',
-                );
-                developer.log('ERROR CuponesService - Cupón data: $json');
                 // Retornar null para problematic cupones
                 return null;
               }
             })
             .whereType<Cupon>()
             .toList();
-
-        developer.log(
-          'DEBUG CuponesService - Got ${cupones.length} cupones recibidos',
-        );
-
-        // Log detallado del primer cupón parseado
-        if (cupones.isNotEmpty) {
-          developer.log(
-            'DEBUG CuponesService - First cupon parsed - ID: ${cupones.first.id}, Fecha: ${cupones.first.fechaVencimiento}',
-          );
-        }
 
         return {
           'cupones': cupones,
@@ -325,16 +226,11 @@ class CuponesService {
           'page_size': pageSize,
         };
       } else {
-        developer.log('ERROR CuponesService - Status: ${response.statusCode}');
         throw Exception(
           'Error fetching cupones recibidos: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
-      developer.log('ERROR CuponesService - Exception: $e');
-      developer.log(
-        'ERROR CuponesService - Stack trace: ${StackTrace.current}',
-      );
       rethrow;
     }
   }
@@ -343,11 +239,7 @@ class CuponesService {
     required String cuponId,
   }) async {
     try {
-      developer.log('DEBUG CuponesService - Claiming cupon (id: $cuponId)');
-
       final url = '${ApiConfig.baseUrl}/cupones/$cuponId/codigo';
-
-      developer.log('DEBUG CuponesService - URL: $url');
 
       // Usar HttpClient que automáticamente agrega el token JWT
       final response = await HttpClient.post(
@@ -355,28 +247,16 @@ class CuponesService {
         body: {}, // Body vacío, pero el token JWT va en headers automáticamente
       );
 
-      developer.log(
-        'DEBUG CuponesService - Response status: ${response.statusCode}',
-      );
-      developer.log('DEBUG CuponesService - Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-        developer.log('DEBUG CuponesService - Cupon claimed successfully');
-
         return {'success': true, 'data': data['success'] ?? data};
       } else {
-        developer.log('ERROR CuponesService - Status: ${response.statusCode}');
         throw Exception(
           'Error claiming cupon: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
-      developer.log('ERROR CuponesService - Exception: $e');
-      developer.log(
-        'ERROR CuponesService - Stack trace: ${StackTrace.current}',
-      );
       rethrow;
     }
   }

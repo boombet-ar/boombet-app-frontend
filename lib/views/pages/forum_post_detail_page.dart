@@ -98,16 +98,12 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         // Esto aplica especialmente cuando entramos desde push.
         // Se fuerza la recarga mediante bypassCache en el service.
       }
-      print(
-        '🔄 [DetailPage] Loading replies page $_repliesPage for ${widget.postId}...',
-      );
       final response = await ForumService.getReplies(
         widget.postId,
         page: _repliesPage,
         size: 10,
         bypassCache: forceRefresh,
       );
-      print('✅ [DetailPage] Replies loaded: ${response.length} replies');
 
       if (!mounted) return;
       setState(() {
@@ -116,7 +112,6 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ [DetailPage] Error loading replies: $e');
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Error al cargar respuestas';
@@ -136,25 +131,20 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
       if (forceRefresh) {
         // Se fuerza la recarga mediante bypassCache en el service.
       }
-      print('🔄 [DetailPage] Loading post ${widget.postId}...');
       final post = await ForumService.getPostById(
         widget.postId,
         bypassCache: forceRefresh,
       );
-      print('✅ [DetailPage] Post loaded: ${post.id} - ${post.username}');
 
       if (!mounted) return;
       setState(() {
         _post = post;
         _isLoading = false;
       });
-      print('✅ [DetailPage] Post UI updated successfully');
 
       // Load replies with pagination
       await _loadReplies(forceRefresh: forceRefresh);
     } catch (e, stackTrace) {
-      print('❌ [DetailPage] Error loading data: $e');
-      print('📋 [DetailPage] Stack trace: $stackTrace');
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Error al cargar la publicación: $e';
@@ -171,7 +161,6 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     setState(() => _isSubmittingReply = true);
     try {
       final parentIdToSend = widget.postId;
-      print('📝 [DetailPage] Submitting reply with parentId: ${widget.postId}');
       final casinoGralId = _post?.casinoGralId;
       final newReply = await ForumService.createPost(
         CreatePostRequest(
@@ -180,16 +169,12 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
           casinoGralId: casinoGralId,
         ),
       );
-      print('✅ [DetailPage] Reply created successfully: ${newReply.id}');
 
       _replyController.clear();
       FocusScope.of(context).unfocus();
 
-      print('🔄 [DetailPage] Reloading data...');
       await _loadData();
-      print('✅ [DetailPage] Data reloaded');
     } catch (e) {
-      print('❌ [DetailPage] Error submitting reply: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,

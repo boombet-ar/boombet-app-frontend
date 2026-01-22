@@ -74,15 +74,9 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
       (message) {
         if (!mounted || _affiliationCompleted) return;
 
-        debugPrint('[LimitedHomePage] 📩 Mensaje recibido del WebSocket');
-        debugPrint('[LimitedHomePage] Contenido: $message');
-
         // Verificar si el mensaje contiene playerData y responses
         if (message.containsKey('playerData') &&
             message.containsKey('responses')) {
-          debugPrint(
-            '[LimitedHomePage] ✅ Mensaje completo de afiliación recibido',
-          );
           _affiliationCompleted = true;
 
           // Parsear el resultado
@@ -90,7 +84,6 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             final result = AffiliationResult.fromJson(message);
             _navigateToResultsPage(result);
           } catch (e) {
-            debugPrint('[LimitedHomePage] ❌ Error parseando resultado: $e');
             // Si hay error parseando, navegar igual pero sin resultados
             _navigateToResultsPage(null);
           }
@@ -104,7 +97,6 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
         }
       },
       onError: (error) {
-        debugPrint('[LimitedHomePage] ❌ Error en WebSocket: $error');
         if (mounted) {
           setState(() {
             _statusMessage = 'Error en la conexión. Reintentando...';

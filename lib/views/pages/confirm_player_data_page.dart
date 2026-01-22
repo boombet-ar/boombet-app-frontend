@@ -204,8 +204,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         sexo: _selectedGenero ?? '',
       );
 
-      debugPrint('PASO 1: Preparando payload para /register...');
-
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
         'websocketLink': WebSocketUrlService.generateAffiliationUrl(),
@@ -229,12 +227,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         },
       };
 
-      debugPrint('PASO 2: Enviando POST a /api/users/auth/register');
-      debugPrint('Payload: ${jsonEncode(payload)}');
-
       // Enviar POST al endpoint de registro
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/register');
-      debugPrint('URL: $url');
 
       final response = await http
           .post(
@@ -247,18 +241,12 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             onTimeout: () => http.Response('Request timeout', 408),
           );
 
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ REGISTRO EXITOSO - El token se envía por mail
-        debugPrint('✅ Registro exitoso. Token enviado por email.');
-        debugPrint('Response: ${response.body}');
-
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -278,11 +266,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         Map<String, dynamic> responseData = {};
         try {
           responseData = jsonDecode(response.body);
-          debugPrint('📦 [REG-1] Datos extraídos de la respuesta del backend');
-          debugPrint('📦 [REG-2] responseData: $responseData');
-        } catch (e) {
-          debugPrint('⚠️ [REG-3] No se pudo parsear respuesta: $e');
-        }
+        } catch (e) {}
 
         // Intentar guardar el JWT que devuelva el backend (si existe)
         String? tokenFromResponse;
@@ -291,11 +275,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           if (maybeToken is String && maybeToken.isNotEmpty) {
             tokenFromResponse = maybeToken;
             await TokenService.saveToken(maybeToken);
-            debugPrint('🔐 [REG-TOKEN] JWT guardado tras registro');
           }
-        } catch (e) {
-          debugPrint('⚠️ [REG-TOKEN] No se pudo guardar token: $e');
-        }
+        } catch (e) {}
 
         // Enviar el FCM token al backend para habilitar push desde el inicio
         try {
@@ -307,24 +288,14 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           if (hasAuth) {
             final sent = await const NotificationService()
                 .saveFcmTokenToBackend();
-            debugPrint('🔔 [REG-FCM] FCM token enviado al backend: $sent');
-          } else {
-            debugPrint(
-              '⚠️ [REG-FCM] No hay JWT disponible para enviar FCM token',
-            );
-          }
-        } catch (e) {
-          debugPrint('⚠️ [REG-FCM] Error enviando FCM token: $e');
-        }
+          } else {}
+        } catch (e) {}
 
         // Guardar datos en notifiers para acceso posterior en EmailConfirmationPage
         // Usar los datos devueltos por el backend si están disponibles, si no usar updatedData
         final playerDataFromResponse = responseData['playerData'];
 
         if (playerDataFromResponse != null) {
-          debugPrint(
-            '✅ [REG-4] Guardando datos devueltos por el backend en notifiers',
-          );
           await saveAffiliationData(
             playerData: updatedData,
             email: playerDataFromResponse['email'] ?? email,
@@ -335,9 +306,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             genero: playerDataFromResponse['genero'] ?? widget.genero,
           );
         } else {
-          debugPrint(
-            '⚠️ [REG-5] Backend no devolvió playerData, usando datos del formulario',
-          );
           await saveAffiliationData(
             playerData: updatedData,
             email: email,
@@ -348,19 +316,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
             genero: widget.genero,
           );
         }
-
-        debugPrint(
-          '✅ [REG-6] Datos guardados en notifiers Y SharedPreferences para afiliación',
-        );
-        debugPrint(
-          '📋 [REG-7] affiliationPlayerDataNotifier: ${affiliationPlayerDataNotifier.value}',
-        );
-        debugPrint(
-          '📋 [REG-8] affiliationEmailNotifier: ${affiliationEmailNotifier.value}',
-        );
-        debugPrint(
-          '📋 [REG-9] affiliationUsernameNotifier: ${affiliationUsernameNotifier.value}',
-        );
 
         // Navegar a EmailConfirmationPage sin token (se obtendrá del link del mail)
         Navigator.pushReplacement(
@@ -421,8 +376,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         );
       }
     } catch (e) {
-      debugPrint('ERROR CRÍTICO en _onConfirmarDatos: $e');
-
       if (!mounted) return;
 
       LoadingOverlay.hide(context);

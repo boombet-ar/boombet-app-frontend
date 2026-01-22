@@ -80,16 +80,7 @@ class ForumService {
     // Evitar cache para no servir resultados viejos de este usuario
     final response = await HttpClient.get(url, cacheTtl: Duration.zero);
 
-    // Debug detallado para diagnosticar vacío
-    print(
-      '🛰️ [ForumService] GET /publicaciones/me page=$page size=$size casino_id=${casinoId ?? 'null'}',
-    );
-    print('🛰️ Status: ${response.statusCode}');
-    print('🛰️ Body length: ${response.body.length}');
     if (response.statusCode == 200) {
-      print(
-        '🛰️ Body preview: ${response.body.substring(0, response.body.length > 400 ? 400 : response.body.length)}',
-      );
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       return PageableResponse.fromJson(
         json,
@@ -165,11 +156,6 @@ class ForumService {
 
   static Future<ForumPost> createPost(CreatePostRequest request) async {
     final url = '${ApiConfig.baseUrl}/publicaciones';
-    if (kDebugMode) {
-      debugPrint(
-        '📝 [ForumService] POST /publicaciones body=${request.toJson()}',
-      );
-    }
     final response = await HttpClient.post(url, body: request.toJson());
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -187,18 +173,9 @@ class ForumService {
 
   static Future<void> deletePost(int id) async {
     final url = '${ApiConfig.baseUrl}/publicaciones/$id';
-    print('🗑️ [ForumService] DELETE -> $url');
-
     final response = await HttpClient.delete(url);
 
-    print('🗑️ [ForumService] DELETE Response: ${response.statusCode}');
-    print('🗑️ [ForumService] Response body: ${response.body}');
-
     if (response.statusCode != 200 && response.statusCode != 204) {
-      print(
-        '❌ [ForumService] Delete failed with status ${response.statusCode}',
-      );
-
       // Detectar intento de eliminar publicación de otro usuario (403)
       if (response.statusCode == 403) {
         throw Exception(
@@ -240,8 +217,6 @@ class ForumService {
 
       throw Exception('Error al eliminar publicación: ${response.statusCode}');
     }
-
-    print('✅ [ForumService] Post deleted successfully');
 
     // Limpiar caché para forzar recarga de publicaciones y respuestas
     HttpClient.clearCache(urlPattern: '/publicaciones');

@@ -23,6 +23,7 @@ import 'components/ground.dart';
 class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
   Player? player;
   Ground? ground;
+  Ground? ceiling;
   SpeedLines? speedLines;
 
   final ValueNotifier<int> score = ValueNotifier<int>(0);
@@ -88,6 +89,10 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       height: groundHeight,
     );
     add(ground!);
+
+    // Techo: hitbox superior para evitar pasar por arriba de las tuberías
+    ceiling = Ground(y: 0, width: size.x, height: groundHeight);
+    add(ceiling!);
 
     // Player
     player = Player(onDie: gameOver, sprite: playerSprite)
@@ -212,6 +217,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     // Resetea la escena completa
     player = null;
     ground = null;
+    ceiling = null;
     final toRemove = children.toList();
     for (final c in toRemove) {
       c.removeFromParent();
@@ -238,13 +244,16 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
         ..position.y = canvasSize.y - groundHeight + groundOffset
         ..size = Vector2(canvasSize.x, groundHeight);
     }
+    if (ceiling != null) {
+      ceiling!
+        ..position.y = 0
+        ..size = Vector2(canvasSize.x, groundHeight);
+    }
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    debugPrint('🎮 [Game01] Loading assets...');
 
     // Asegura prefijo correcto para audios
     FlameAudio.audioCache.prefix = 'assets/audio/';
@@ -266,8 +275,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     _soundsReady = await _tryLoadAudio();
     _bgmReady = await _tryLoadMusic();
-
-    debugPrint('🎮 [Game01] Assets loaded');
 
     // 🔹 SPRITES DESDE CACHE
     playerSprite = Sprite(images.fromCache('games/game_01/sprites/player.png'));
@@ -303,8 +310,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
     _buildWorld();
 
-    debugPrint('🎮 [Game01] onLoad completed');
-
     // Load best score and volume settings from cache
     unawaited(_loadBestScore());
     unawaited(_loadVolumeSettings());
@@ -338,7 +343,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   @override
   void onRemove() {
-    debugPrint('🎮 [Game01] onRemove called');
     _cleanupResources();
     super.onRemove();
 
@@ -348,28 +352,22 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
 
   /// Método para liberar todos los recursos cuando se cierra el juego
   void onDispose() {
-    debugPrint('🎮 [Game01] onDispose called from page');
     _cleanupResources();
   }
 
   void _cleanupResources() {
     // Protección contra double dispose
     if (_isDisposed) {
-      debugPrint('🎮 [Game01] Already disposed, skipping...');
       return;
     }
     _isDisposed = true;
-
-    debugPrint('🎮 [Game01] Cleaning up resources...');
 
     // Detener música
     try {
       FlameAudio.bgm.stop();
       _bgmStarted = false;
       _bgmReady = false;
-    } catch (e) {
-      debugPrint('🎮 [Game01] Error stopping BGM: $e');
-    }
+    } catch (e) {}
 
     _countdownTimer?.cancel();
     countdown.value = null;
@@ -386,24 +384,18 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       _hitPool = null;
       _pointPool = null;
       _soundsReady = false;
-    } catch (e) {
-      debugPrint('🎮 [Game01] Error disposing audio pools: $e');
-    }
+    } catch (e) {}
 
     // Limpiar imágenes específicas del juego para liberar memoria
     try {
       images.clearCache();
       images.clearCachedImages();
-    } catch (e) {
-      debugPrint('🎮 [Game01] Error clearing images: $e');
-    }
+    } catch (e) {}
 
     // Limpiar cache de audio
     try {
       FlameAudio.audioCache.clearAll();
-    } catch (e) {
-      debugPrint('🎮 [Game01] Error clearing audio cache: $e');
-    }
+    } catch (e) {}
 
     // Dispose value notifiers
     try {
@@ -412,13 +404,9 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       musicVolume.dispose();
       sfxVolume.dispose();
       countdown.dispose();
-    } catch (e) {
-      debugPrint('🎮 [Game01] Error disposing notifiers: $e');
-    }
+    } catch (e) {}
 
     ground = null;
-
-    debugPrint('🎮 [Game01] Resources cleaned up successfully');
   }
 
   Future<void> _loadBestScore() async {
@@ -450,7 +438,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       );
       return _soundsReady = true;
     } catch (e) {
-      debugPrint('🔇 [Game01] SFX no cargados: $e');
       return false;
     }
   }
@@ -459,9 +446,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     if (!_soundsReady || _jumpPool == null || isGameOver) return;
     try {
       unawaited(_jumpPool!.start(volume: sfxVolume.value));
-    } catch (e) {
-      debugPrint('🔇 [Game01] error reproduciendo jump: $e');
-    }
+    } catch (e) {}
   }
 
   void playHit() {
@@ -471,9 +456,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       // Solo reproducir una vez durante game over
       try {
         unawaited(_hitPool!.start(volume: sfxVolume.value));
-      } catch (e) {
-        debugPrint('🔇 [Game01] error reproduciendo hit: $e');
-      }
+      } catch (e) {}
     }
   }
 
@@ -481,9 +464,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     if (!_soundsReady || _pointPool == null || isGameOver) return;
     try {
       unawaited(_pointPool!.start(volume: sfxVolume.value));
-    } catch (e) {
-      debugPrint('🔇 [Game01] error reproduciendo point: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _saveBestScore(int value) async {
@@ -499,7 +480,6 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
       await FlameAudio.audioCache.load(_bgmFile);
       return _bgmReady = true;
     } catch (e) {
-      debugPrint('🔇 [Game01] BGM no cargado: $e');
       return false;
     }
   }
@@ -510,9 +490,7 @@ class Game01 extends FlameGame with HasCollisionDetection, TapCallbacks {
     try {
       await FlameAudio.bgm.play(_bgmFile, volume: musicVolume.value);
       _bgmStarted = true;
-    } catch (e) {
-      debugPrint('🔇 [Game01] error reproduciendo BGM: $e');
-    }
+    } catch (e) {}
   }
 
   /// Cambiar volumen de la música

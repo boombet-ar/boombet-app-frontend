@@ -48,7 +48,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.initState();
     try {
       _currentToken = widget.token;
-      debugPrint('📝 [ResetPasswordPage] initState - token: $_currentToken');
       _passwordController = TextEditingController();
       _confirmPasswordController = TextEditingController();
       _passwordController.addListener(_validatePasswordLive);
@@ -61,9 +60,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           if (payload.isPasswordReset &&
               payload.token != null &&
               payload.token!.isNotEmpty) {
-            debugPrint(
-              '📝 [ResetPasswordPage] Token recibido del deep link: ${payload.token}',
-            );
             setState(() {
               _currentToken = payload.token!;
             });
@@ -74,9 +70,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           // Verificar si hay un pending payload del deep link
           final pendingPayload = DeepLinkService.instance.lastPayload;
           if (pendingPayload != null && pendingPayload.isPasswordReset) {
-            debugPrint(
-              '📝 [ResetPasswordPage] Payload pendiente del deep link recibido',
-            );
             if (pendingPayload.token != null &&
                 pendingPayload.token!.isNotEmpty) {
               setState(() {
@@ -86,9 +79,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           }
         });
       }
-    } catch (e) {
-      debugPrint('❌ [ResetPasswordPage] Error en initState: $e');
-    }
+    } catch (e) {}
   }
 
   @override
@@ -97,9 +88,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       _passwordController.dispose();
       _confirmPasswordController.dispose();
       _deepLinkSubscription?.cancel();
-    } catch (e) {
-      debugPrint('❌ [ResetPasswordPage] Error en dispose: $e');
-    }
+    } catch (e) {}
     super.dispose();
   }
 
@@ -261,7 +250,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         _isLoading = false;
       });
 
-      debugPrint('❌ Error en _validateAndResetPassword: $e');
       _showSnackbar('❌ Error al resetear contraseña: $e', isError: true);
     }
   }
@@ -281,11 +269,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     try {
-      debugPrint('📝 [ResetPasswordPage] build - token: $_currentToken');
-      debugPrint(
-        '📝 [ResetPasswordPage] token isEmpty: ${_currentToken.isEmpty}',
-      );
-
       // Si el token está vacío, mostrar error
       if (_currentToken.isEmpty) {
         return Scaffold(
@@ -637,9 +620,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         ),
       );
     } catch (e) {
-      debugPrint('❌ [ResetPasswordPage] Error en build: $e');
-      debugPrint('❌ [ResetPasswordPage] Stack trace: ${StackTrace.current}');
-
       return Scaffold(
         body: Center(
           child: Column(
