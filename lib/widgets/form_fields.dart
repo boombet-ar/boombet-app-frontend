@@ -16,6 +16,7 @@ class AppTextFormField extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputAction? textInputAction;
   final FocusNode? focusNode;
+  final Widget? suffix;
 
   const AppTextFormField({
     super.key,
@@ -32,6 +33,7 @@ class AppTextFormField extends StatelessWidget {
     this.validator,
     this.textInputAction,
     this.focusNode,
+    this.suffix,
   });
 
   @override
@@ -87,6 +89,7 @@ class AppTextFormField extends StatelessWidget {
             hintStyle: TextStyle(color: hintColor, fontSize: 13),
             filled: true,
             fillColor: fillColor,
+            suffixIcon: suffix,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(

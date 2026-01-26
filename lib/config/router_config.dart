@@ -5,6 +5,7 @@ import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
+import 'package:boombet_app/views/pages/admin_tools_page.dart';
 import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
@@ -90,6 +91,13 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     return '/home';
   }
 
+  if (state.uri.path == '/admin-tools') {
+    final role = await TokenService.getUserRole();
+    if (role == null || role.toUpperCase() != 'ADMIN') {
+      return '/home';
+    }
+  }
+
   debugPrint('­ƒöÇ No redirigir');
   return null; // No redirigir
 }
@@ -112,6 +120,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    GoRoute(
+      path: '/admin-tools',
+      builder: (context, state) => const AdminToolsPage(),
+    ),
 
     // Deeplink: detalle de publicación del foro
     // Ejemplos soportados desde DeepLinkService:

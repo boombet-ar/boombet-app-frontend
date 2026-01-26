@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -145,7 +146,19 @@ Future<void> main() async {
   });
 
   // Capturar errores de Flutter no manejados
-  FlutterError.onError = (FlutterErrorDetails details) {};
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    log(
+      '[FlutterError] ${details.exceptionAsString()}',
+      stackTrace: details.stack,
+    );
+  };
+
+  // Capturar errores no manejados fuera del árbol de Flutter
+  PlatformDispatcher.instance.onError = (error, stack) {
+    log('[UnhandledError] $error', stackTrace: stack);
+    return true;
+  };
   // Asegurar que los tokens temporales no sobrevivan entre reinicios
   await TokenService.deleteTemporaryToken();
 
@@ -260,7 +273,10 @@ Future<void> main() async {
     });
   };
 
-  runApp(const MyApp());
+  runZonedGuarded(
+    () => runApp(const MyApp()),
+    (error, stack) => log('[ZoneError] $error', stackTrace: stack),
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/player_model.dart';
@@ -28,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   late TextEditingController _phoneController;
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
+  late TextEditingController _affiliateCodeController;
 
   bool _usernameError = false;
   bool _emailError = false;
@@ -38,6 +40,10 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String? _selectedGender;
   bool _genderError = false;
+  bool _hasAffiliateCode = false;
+  bool _affiliateCodeValidated = false;
+  String _affiliateCodeValidatedToken = '';
+  bool _isValidatingAffiliateCode = false;
 
   // Terms and conditions acceptance flags
   bool _termsAccepted = false;
@@ -66,6 +72,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _phoneController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    _affiliateCodeController = TextEditingController();
     _selectedGender = null;
     _passwordController.addListener(_validatePasswordLive);
   }
@@ -78,6 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _affiliateCodeController.dispose();
     super.dispose();
   }
 
@@ -408,6 +416,74 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    if (_hasAffiliateCode) {
+      final token = _affiliateCodeController.text.trim();
+      if (token.isEmpty) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: dialogBg,
+            title: Text('Código requerido', style: TextStyle(color: textColor)),
+            content: Text(
+              'Ingresa el código de afiliador para continuar.',
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppConstants.primaryGreen),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      if (!_affiliateCodeValidated || _affiliateCodeValidatedToken != token) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: dialogBg,
+            title: Text('Validación requerida', style: TextStyle(color: textColor)),
+            content: Text(
+              'Debes validar el código de afiliador antes de continuar.',
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppConstants.primaryGreen),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
     // Mostrar overlay de carga
     LoadingOverlay.show(context, message: 'Validando datos...');
 
@@ -539,6 +615,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 dni: _dniController.text.trim(),
                 telefono: _phoneController.text.trim(),
                 genero: _selectedGender!,
+                affiliateToken: _hasAffiliateCode
+                    ? _affiliateCodeController.text.trim()
+                    : null,
               ),
             ),
           );
@@ -645,6 +724,135 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     }
+  }
+
+  Future<void> _handleAffiliateCodeValidation() async {
+    final token = _affiliateCodeController.text.trim();
+    if (token.isEmpty) {
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg =
+          isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+      final textColor =
+          isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Código requerido', style: TextStyle(color: textColor)),
+          content: Text(
+            'Ingresa el código de afiliador para validar.',
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isValidatingAffiliateCode = true;
+    });
+
+    final isValid = await _verifyAffiliateToken(token);
+    if (!mounted) return;
+
+    setState(() {
+      _isValidatingAffiliateCode = false;
+      _affiliateCodeValidated = isValid;
+      _affiliateCodeValidatedToken = isValid ? token : '';
+    });
+
+    if (!isValid) {
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg =
+          isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+      final textColor =
+          isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Código inválido', style: TextStyle(color: textColor)),
+          content: Text(
+            'El código de afiliador no es válido. Verifícalo e inténtalo de nuevo.',
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Código de afiliador validado.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<bool> _verifyAffiliateToken(String token) async {
+    final safeToken = Uri.encodeComponent(token.trim());
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/users/auth/afiliador/verify/$safeToken',
+    );
+
+    try {
+      final response = await http
+          .get(url)
+          .timeout(
+            AppConstants.apiTimeout,
+            onTimeout: () => http.Response('Request timeout', 408),
+          );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        log('[Register] affiliate verify error ${response.statusCode}: ${response.body}' as num);
+        return false;
+      }
+
+      final raw = response.body.trim();
+      if (raw.isEmpty) return false;
+
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final value = decoded['isTokenValid'];
+          if (value is bool) return value;
+          if (value is String) {
+            final normalized = value.toLowerCase().trim();
+            if (normalized == 'true') return true;
+            if (normalized == 'false') return false;
+          }
+          log('[Register] affiliate verify unexpected payload: $decoded' as num);
+        }
+      } catch (_) {
+        return false;
+      }
+    } catch (_) {
+      return false;
+    }
+
+    return false;
   }
 
   void _showTermsDialog() {
@@ -1367,6 +1575,74 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       return;
     }
 
+    if (_hasAffiliateCode) {
+      final token = _affiliateCodeController.text.trim();
+      if (token.isEmpty) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: dialogBg,
+            title: Text('Código requerido', style: TextStyle(color: textColor)),
+            content: Text(
+              'Ingresa el código de afiliador para continuar.',
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppConstants.primaryGreen),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      if (!_affiliateCodeValidated || _affiliateCodeValidatedToken != token) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final dialogBg = isDark
+            ? AppConstants.darkAccent
+            : AppConstants.lightDialogBg;
+        final textColor = isDark
+            ? AppConstants.textDark
+            : AppConstants.lightLabelText;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: dialogBg,
+            title: Text('Validación requerida', style: TextStyle(color: textColor)),
+            content: Text(
+              'Debes validar el código de afiliador antes de continuar.',
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppConstants.primaryGreen),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
     // Mostrar overlay de carga
     LoadingOverlay.show(context, message: 'Validando datos...');
 
@@ -1498,6 +1774,9 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                 dni: _dniController.text.trim(),
                 telefono: _phoneController.text.trim(),
                 genero: _selectedGender!,
+                affiliateToken: _hasAffiliateCode
+                    ? _affiliateCodeController.text.trim()
+                    : null,
               ),
             ),
           );
@@ -2004,6 +2283,103 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             primaryColor: primaryGreen,
             backgroundColor: accentColor,
           ),
+
+          const SizedBox(height: 16),
+
+          InkWell(
+            borderRadius: BorderRadius.circular(borderRadius),
+            onTap: () {
+              setState(() {
+                _hasAffiliateCode = !_hasAffiliateCode;
+                _affiliateCodeValidated = false;
+                _affiliateCodeValidatedToken = '';
+                _isValidatingAffiliateCode = false;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(borderRadius),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: _hasAffiliateCode,
+                    onChanged: (value) {
+                      setState(() {
+                        _hasAffiliateCode = value ?? false;
+                        _affiliateCodeValidated = false;
+                        _affiliateCodeValidatedToken = '';
+                        _isValidatingAffiliateCode = false;
+                      });
+                    },
+                    activeColor: primaryGreen,
+                    checkColor: AppConstants.textLight,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Tengo un codigo de afiliador',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (_hasAffiliateCode) ...[
+            const SizedBox(height: 12),
+            AppTextFormField(
+              label: 'Codigo de afiliador',
+              hint: 'Ingresa tu codigo',
+              controller: _affiliateCodeController,
+              keyboardType: TextInputType.text,
+              onChanged: (value) {
+                final trimmed = value.trim();
+                if (trimmed != _affiliateCodeValidatedToken && _affiliateCodeValidated) {
+                  setState(() {
+                    _affiliateCodeValidated = false;
+                    _affiliateCodeValidatedToken = '';
+                  });
+                }
+              },
+              suffix: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: TextButton(
+                  onPressed: _isValidatingAffiliateCode
+                      ? null
+                      : _handleAffiliateCodeValidation,
+                  style: TextButton.styleFrom(
+                    foregroundColor: _affiliateCodeValidated
+                        ? AppConstants.primaryGreen
+                        : primaryGreen,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  child: _isValidatingAffiliateCode
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          _affiliateCodeValidated ? 'Validado' : 'Validar',
+                        ),
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 28),
 

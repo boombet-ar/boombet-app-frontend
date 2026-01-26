@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
@@ -8,6 +9,7 @@ import 'package:boombet_app/views/pages/settings_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -20,6 +22,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showFaqButton;
   final bool showExitButton;
   final bool showThemeToggle;
+  final bool showAdminTools;
+  final bool showMenuButton;
+  final VoidCallback? onMenuPressed;
+  final VoidCallback? onBackPressed;
 
   const MainAppBar({
     super.key,
@@ -32,6 +38,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showFaqButton = true,
     this.showExitButton = true,
     this.showThemeToggle = true,
+    this.showAdminTools = true,
+    this.showMenuButton = false,
+    this.onMenuPressed,
+    this.onBackPressed,
   });
 
   @override
@@ -73,6 +83,12 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Row(
         children: [
+          if (showMenuButton)
+            IconButton(
+              icon: Icon(Icons.menu, color: greenColor),
+              tooltip: 'Menú',
+              onPressed: onMenuPressed,
+            ),
           // Solo mostrar botón de volver o salir si no es web o si es botón de volver
           if (showBackButton || (!kIsWeb && showExitButton))
             IconButton(
@@ -83,7 +99,15 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               tooltip: showBackButton ? 'Volver' : 'Salir',
               onPressed: () {
                 if (showBackButton) {
-                  Navigator.of(context).pop();
+                  if (onBackPressed != null) {
+                    onBackPressed!();
+                    return;
+                  }
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
                 } else {
                   SystemNavigator.pop();
                 }
@@ -170,6 +194,35 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Navigator.push(context, ScaleRoute(page: ProfilePage()));
                 },
               ),
+            ),
+          if (showAdminTools)
+            FutureBuilder<List<bool>>(
+              future: Future.wait([
+                TokenService.hasActiveSession(),
+                TokenService.isAdmin(),
+              ]),
+              builder: (context, snapshot) {
+                final results = snapshot.data;
+                final hasSession = results != null && results.isNotEmpty
+                    ? results[0]
+                    : false;
+                final isAdmin = results != null && results.length > 1
+                    ? results[1]
+                    : false;
+                if (!hasSession || !isAdmin) {
+                  return const SizedBox.shrink();
+                }
+                return Tooltip(
+                  message: 'Herramientas admin',
+                  child: IconButton(
+                    icon: Icon(Icons.build, color: greenColor),
+                    tooltip: '',
+                    onPressed: () {
+                      context.go('/admin-tools');
+                    },
+                  ),
+                );
+              },
             ),
           if (showFaqButton)
             Tooltip(

@@ -23,6 +23,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
   final String dni;
   final String telefono;
   final String genero;
+  final String? affiliateToken;
   final bool preview;
 
   const ConfirmPlayerDataPage({
@@ -34,6 +35,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
     required this.dni,
     required this.telefono,
     required this.genero,
+    this.affiliateToken,
     this.preview = false,
   });
 
@@ -207,24 +209,33 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
         'websocketLink': WebSocketUrlService.generateAffiliationUrl(),
-        'playerData': {
-          'nombre': updatedData.nombre,
-          'apellido': updatedData.apellido,
-          'email': email,
-          'telefono': telefono,
-          'genero': _selectedGenero ?? 'Masculino',
-          'dni': widget.dni,
-          'cuit': updatedData.cuil,
-          'calle': updatedData.calle,
-          'numCalle': updatedData.numCalle,
-          'provincia': updatedData.provincia,
-          'ciudad': updatedData.localidad,
-          'cp': updatedData.cp?.toString() ?? '',
-          'user': widget.username,
-          'password': widget.password,
-          'fecha_nacimiento': updatedData.fechaNacimiento,
-          'est_civil': updatedData.estadoCivil,
-        },
+        'playerData': () {
+          final data = <String, dynamic>{
+            'nombre': updatedData.nombre,
+            'apellido': updatedData.apellido,
+            'email': email,
+            'telefono': telefono,
+            'genero': _selectedGenero ?? 'Masculino',
+            'dni': widget.dni,
+            'cuit': updatedData.cuil,
+            'calle': updatedData.calle,
+            'numCalle': updatedData.numCalle,
+            'provincia': updatedData.provincia,
+            'ciudad': updatedData.localidad,
+            'cp': updatedData.cp?.toString() ?? '',
+            'user': widget.username,
+            'password': widget.password,
+            'fecha_nacimiento': updatedData.fechaNacimiento,
+            'est_civil': updatedData.estadoCivil,
+          };
+
+          final token = widget.affiliateToken?.trim();
+          if (token != null && token.isNotEmpty) {
+            data['token_afiliador'] = token;
+          }
+
+          return data;
+        }(),
       };
 
       // Enviar POST al endpoint de registro

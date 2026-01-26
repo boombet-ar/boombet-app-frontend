@@ -180,6 +180,13 @@ class TokenService {
     return null;
   }
 
+  /// Obtiene solo el refresh token persistente (ignora temporal)
+  static Future<String?> getPersistentRefreshToken() async {
+    final refresh = await _storage.read(key: _refreshTokenKey);
+    if (refresh == null || refresh.isEmpty) return null;
+    return refresh;
+  }
+
   /// Elimina el token (logout)
   static Future<void> deleteToken() async {
     await _storage.delete(key: _tokenKey);
@@ -195,7 +202,7 @@ class TokenService {
     await _storage.delete(key: _tempRefreshTokenKey);
   }
 
-  /// Verifica si el token existe y es válido
+  /// Verifica si hay sesión válida (access vigente o refresh vigente)
   static Future<bool> isTokenValid() async {
     final token = await getToken();
     final preview = token != null
@@ -208,56 +215,75 @@ class TokenService {
 
     if (token == null || token.isEmpty) {
       log('DEBUG TokenService - Token is null or empty');
-      return false;
-    }
-
-    // Verificar formato antes de intentar decodificar
-    if (!_isValidTokenFormat(token)) {
-      log('DEBUG TokenService - Token has invalid format. Deleting...');
-      await deleteToken();
-      return false;
-    }
-
-    try {
-      // Verifica si el token ha expirado
-      bool hasExpired = JwtDecoder.isExpired(token);
-      log('DEBUG TokenService - Has expired: $hasExpired');
-
-      if (!hasExpired) {
-        final expirationDate = JwtDecoder.getExpirationDate(token);
-        log('DEBUG TokenService - Expiration date: $expirationDate');
+    } else {
+      // Verificar formato antes de intentar decodificar
+      if (!_isValidTokenFormat(token)) {
+        log('DEBUG TokenService - Token has invalid format. Deleting...');
+        await deleteToken();
+        return false;
       }
 
-      return !hasExpired;
-    } catch (e) {
-      log('DEBUG TokenService - Error validating token: $e');
-      // Si falla la decodificación, limpiar tokens
-      await deleteToken();
+      try {
+        // Verifica si el token ha expirado
+        bool hasExpired = JwtDecoder.isExpired(token);
+        log('DEBUG TokenService - Has expired: $hasExpired');
+
+        if (!hasExpired) {
+          final expirationDate = JwtDecoder.getExpirationDate(token);
+          log('DEBUG TokenService - Expiration date: $expirationDate');
+          return true;
+        }
+      } catch (e) {
+        log('DEBUG TokenService - Error validating token: $e');
+        // Si falla la decodificación, limpiar tokens
+        await deleteToken();
+        return false;
+      }
+    }
+
+    final refresh = await getRefreshToken();
+    if (refresh == null || refresh.isEmpty) {
+      log('DEBUG TokenService - Refresh token is null or empty');
       return false;
     }
+
+    if (isLikelyJwt(refresh) && isJwtExpiredSafe(refresh)) {
+      log('DEBUG TokenService - Refresh token expired');
+      return false;
+    }
+
+    return true;
   }
 
-  /// Verifica si hay una sesión activa (solo token persistente)
+  /// Verifica si hay una sesión activa (solo tokens persistentes)
   /// Los tokens temporales NO cuentan como sesión activa al reiniciar
   static Future<bool> hasActiveSession() async {
     log('DEBUG TokenService - Checking active session...');
 
     // Solo verificar token PERSISTENTE (no temporal)
     final persistentToken = await getPersistentToken();
+    if (persistentToken != null && persistentToken.isNotEmpty) {
+      try {
+        bool hasExpired = JwtDecoder.isExpired(persistentToken);
+        log('DEBUG TokenService - Persistent token expired: $hasExpired');
+        if (!hasExpired) return true;
+      } catch (e) {
+        log('DEBUG TokenService - Error validating persistent token: $e');
+      }
+    }
 
-    if (persistentToken == null || persistentToken.isEmpty) {
-      log('DEBUG TokenService - No persistent token found');
+    final persistentRefresh = await getPersistentRefreshToken();
+    if (persistentRefresh == null || persistentRefresh.isEmpty) {
+      log('DEBUG TokenService - No persistent refresh token found');
       return false;
     }
 
-    try {
-      bool hasExpired = JwtDecoder.isExpired(persistentToken);
-      log('DEBUG TokenService - Persistent token expired: $hasExpired');
-      return !hasExpired;
-    } catch (e) {
-      log('DEBUG TokenService - Error validating persistent token: $e');
+    if (isLikelyJwt(persistentRefresh) && isJwtExpiredSafe(persistentRefresh)) {
+      log('DEBUG TokenService - Persistent refresh token expired');
       return false;
     }
+
+    return true;
   }
 
   /// Obtiene información del token decodificado
@@ -270,6 +296,41 @@ class TokenService {
     } catch (e) {
       return null;
     }
+  }
+
+  static String? _extractRoleFromToken(String token) {
+    if (!isLikelyJwt(token)) return null;
+    try {
+      final data = JwtDecoder.decode(token);
+      final role = data['role'];
+      if (role is String && role.trim().isNotEmpty) return role.trim();
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  /// Devuelve el rol del usuario desde access o refresh token.
+  /// El backend lo expone como `role`.
+  static Future<String?> getUserRole() async {
+    final access = await getToken();
+    if (access != null && access.isNotEmpty) {
+      final role = _extractRoleFromToken(access);
+      if (role != null) return role;
+    }
+
+    final refresh = await getRefreshToken();
+    if (refresh != null && refresh.isNotEmpty) {
+      final role = _extractRoleFromToken(refresh);
+      if (role != null) return role;
+    }
+
+    return null;
+  }
+
+  static Future<bool> isAdmin() async {
+    final role = await getUserRole();
+    return role != null && role.toUpperCase() == 'ADMIN';
   }
 
   /// Obtiene el tiempo de expiración del token
