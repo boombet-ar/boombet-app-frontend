@@ -62,12 +62,14 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       (!kIsWeb && state.uri.path == '/onboarding') ||
       state.uri.path == '/confirm' ||
       state.uri.path.startsWith('/confirm/') ||
+      (kIsWeb && state.uri.path == '/confirm/verify') ||
       state.uri.path == '/reset' ||
       state.uri.path.startsWith('/reset/') ||
       state.uri.path == '/reset-password' ||
       state.uri.path.startsWith('/reset-password/') ||
       state.uri.path == '/password-reset' ||
       state.uri.path.startsWith('/password-reset/') ||
+      (kIsWeb && state.uri.path == '/reset-password/change-password') ||
       state.uri.path == '/affiliation-results';
 
   if (isPublicRoute) {
@@ -186,6 +188,24 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    if (kIsWeb)
+      GoRoute(
+        path: '/confirm/:token/verify',
+        builder: (context, state) {
+          final token =
+              state.pathParameters['token']?.trim() ??
+              state.uri.queryParameters['token'] ??
+              state.uri.queryParameters['verificacionToken'] ??
+              state.uri.queryParameters['verification_token'] ??
+              '';
+          debugPrint('📩 Deep Link recibido - token: $token');
+          debugPrint('📩 Query parameters: ${state.uri.queryParameters}');
+          return EmailConfirmationPage(
+            verificacionToken: token,
+            isFromDeepLink: true,
+          );
+        },
+      ),
     GoRoute(
       path: '/confirm',
       builder: (context, state) {
@@ -203,6 +223,11 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    if (kIsWeb)
+      GoRoute(
+        path: '/confirm/verify',
+        redirect: (context, state) => _redirectWithQuery('/confirm', state),
+      ),
     // Deep link para resetear contrase├▒a - M├ÜLTIPLES RUTAS SOPORTADAS
     // Soporta: /reset, /reset-password, /password-reset, etc.
     GoRoute(
@@ -217,6 +242,12 @@ final GoRouter appRouter = GoRouter(
       path: '/reset-password',
       builder: (context, state) => _buildResetPasswordPage(context, state),
     ),
+    if (kIsWeb)
+      GoRoute(
+        path: '/reset-password/change-password',
+        redirect: (context, state) =>
+            _redirectWithQuery('/reset-password', state),
+      ),
     GoRoute(
       path: '/reset-password/:token',
       builder: (context, state) => _buildResetPasswordPage(context, state),
@@ -351,6 +382,12 @@ final GoRouter appRouter = GoRouter(
     ],
   ],
 );
+
+String _redirectWithQuery(String targetPath, GoRouterState state) {
+  final query = state.uri.query;
+  if (query.isEmpty) return targetPath;
+  return '$targetPath?$query';
+}
 
 Widget _buildResetPasswordPage(BuildContext context, GoRouterState state) {
   try {

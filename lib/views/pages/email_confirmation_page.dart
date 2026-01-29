@@ -5,6 +5,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
@@ -653,31 +654,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   Future<String?> _afiliarBonda() async {
     try {
       final accessToken = await TokenService.getToken();
-      final refreshToken = await TokenService.getRefreshToken();
-
-      final body = <String, dynamic>{};
-      String? authToken;
-      if (accessToken != null && accessToken.isNotEmpty) {
-        body['accessToken'] = accessToken;
-        authToken = accessToken;
-      } else if (refreshToken != null && refreshToken.isNotEmpty) {
-        body['refreshToken'] = refreshToken;
-        authToken = refreshToken;
-      } else {
+      if (accessToken == null || accessToken.isEmpty) {
         return 'No se encontró token para completar la afiliación.';
       }
 
-      final url = Uri.parse('${ApiConfig.baseUrl}/cupones/afiliado');
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (authToken != null && authToken.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $authToken';
-      }
-      final response = await http
-          .post(url, headers: headers, body: jsonEncode(body))
-          .timeout(
-            AppConstants.apiTimeout,
-            onTimeout: () => http.Response('Request timeout', 408),
-          );
+      final url = '${ApiConfig.baseUrl}/cupones/afiliado';
+      final response = await HttpClient.post(
+        url,
+        body: const {},
+        includeAuth: true,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return null;
