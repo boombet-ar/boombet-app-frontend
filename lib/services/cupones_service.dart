@@ -144,8 +144,17 @@ class CuponesService {
 
           return CategoryOrder.sortCategorias(parsed);
         }
-        if (data is Map && data['data'] is List) {
-          final parsed = (data['data'] as List)
+        if (data is Map &&
+            (data['data'] is List ||
+                data['results'] is List ||
+                data['categories'] is List ||
+                data['categorias'] is List)) {
+          final list =
+              (data['data'] as List?) ??
+              (data['results'] as List?) ??
+              (data['categories'] as List?) ??
+              (data['categorias'] as List);
+          final parsed = list
               .map((item) {
                 try {
                   return Categoria.fromJson(item as Map<String, dynamic>);

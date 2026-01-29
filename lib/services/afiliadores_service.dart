@@ -76,4 +76,16 @@ class AfiliadoresService {
 
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
+
+  Future<void> deleteAfiliador({required int id}) async {
+    final url = '${ApiConfig.baseUrl}/afiliadores/$id';
+
+    final response = await HttpClient.delete(url, includeAuth: true);
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
 }

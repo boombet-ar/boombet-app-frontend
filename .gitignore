@@ -6,8 +6,11 @@
 *.swp
 .buildlog/
 .history
-
-
+.env
+.metadata
+.boombet_app.iml
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 
 # Flutter repo-specific
 /bin/cache/

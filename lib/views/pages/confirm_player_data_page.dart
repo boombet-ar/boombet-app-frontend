@@ -13,7 +13,9 @@ import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConfirmPlayerDataPage extends StatefulWidget {
   final PlayerData playerData;
@@ -58,6 +60,22 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     if (genero == 'M') return 'Masculino';
     if (genero == 'F') return 'Femenino';
     return genero;
+  }
+
+  Future<String?> _resolveFcmToken() async {
+    try {
+      final stored = await TokenService.getFcmToken();
+      if (stored != null && stored.isNotEmpty) return stored;
+
+      if (kIsWeb) return null;
+
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await TokenService.saveFcmToken(token);
+        return token;
+      }
+    } catch (_) {}
+    return null;
   }
 
   @override
@@ -196,6 +214,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     LoadingOverlay.show(context, message: 'Creando cuenta...');
 
     try {
+      final fcmToken = await _resolveFcmToken();
+
       // Crear PlayerData actualizado (solo campos editables)
       final updatedData = widget.playerData.copyWith(
         nombre: _nombreController.text.trim(),
@@ -236,6 +256,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
           return data;
         }(),
+        if (fcmToken != null && fcmToken.isNotEmpty) 'fcmToken': fcmToken,
       };
 
       // Enviar POST al endpoint de registro
@@ -260,6 +281,18 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         // ✅ REGISTRO EXITOSO - El token se envía por mail
         if (!mounted) return;
 
+        final affiliateToken = widget.affiliateToken?.trim();
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final eligible = affiliateToken == null || affiliateToken.isEmpty;
+          await prefs.setBool('roulette_eligible', eligible);
+          if (eligible) {
+            await prefs.setBool('roulette_shown', false);
+          } else {
+            await prefs.setBool('roulette_shown', true);
+          }
+        } catch (_) {}
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Cuenta creada. Verifica tu email para continuar...'),
@@ -279,13 +312,28 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           responseData = jsonDecode(response.body);
         } catch (e) {}
 
-        // Intentar guardar el JWT que devuelva el backend (si existe)
+        // Guardar tokens que devuelve el backend
         String? tokenFromResponse;
         try {
-          final maybeToken = responseData['token'] ?? responseData['jwt'];
-          if (maybeToken is String && maybeToken.isNotEmpty) {
-            tokenFromResponse = maybeToken;
-            await TokenService.saveToken(maybeToken);
+          final accessToken =
+              responseData['accessToken'] ??
+              responseData['token'] ??
+              responseData['jwt'];
+          if (accessToken is String && accessToken.isNotEmpty) {
+            tokenFromResponse = accessToken;
+            await TokenService.saveToken(accessToken);
+          }
+
+          final refreshToken = responseData['refreshToken'];
+          if (refreshToken is String && refreshToken.isNotEmpty) {
+            await TokenService.saveRefreshToken(refreshToken);
+          }
+
+          final fcmTokenFromResponse =
+              responseData['fcm_token'] ?? responseData['fcmToken'];
+          if (fcmTokenFromResponse is String &&
+              fcmTokenFromResponse.isNotEmpty) {
+            await TokenService.saveFcmToken(fcmTokenFromResponse);
           }
         } catch (e) {}
 

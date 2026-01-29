@@ -192,6 +192,7 @@ class DiscountsContentState extends State<DiscountsContent> {
       final ok = await _guardAuthOrRedirect();
       if (!ok) return;
       await _loadCuponCache();
+      await _loadCategorias();
       await _loadAffiliationAcceptance();
     });
   }
@@ -354,7 +355,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     bool forceRefresh = false,
   }) async {
     if (_isLoading) return;
-    if (!_affiliationCompleted) return;
 
     final normalizedSearch = (searchQuery ?? _searchQuery).trim();
     final normalizedCategoryId = ignoreCategory
@@ -524,7 +524,6 @@ class DiscountsContentState extends State<DiscountsContent> {
   }
 
   Future<void> _loadClaimedCuponIds() async {
-    if (!_affiliationCompleted) return;
     try {
       final result = await CuponesService.getCuponesRecibidos().timeout(
         const Duration(seconds: 20),
@@ -2297,21 +2296,7 @@ class DiscountsContentState extends State<DiscountsContent> {
 
     final categories = <String>{'Todos'};
     categories.addAll(_remoteCategories.map((c) => c.nombre));
-
-    if (!_affiliationCompleted) {
-      return RefreshIndicator(
-        onRefresh: () async {
-          _apiPage = 1;
-          _currentPage = 1;
-          await _startAffiliation();
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-          children: [_buildAffiliationCard(primaryGreen, textColor, isDark)],
-        ),
-      );
-    }
+    categories.addAll(_categoriaByName.keys);
 
     return RefreshIndicator(
       onRefresh: () async {

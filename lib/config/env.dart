@@ -18,6 +18,10 @@ class Env {
     'API_SCHEME',
     defaultValue: '',
   );
+  static const _defineApiBasePath = String.fromEnvironment(
+    'API_BASE_PATH',
+    defaultValue: '',
+  );
   static const _defineImageProxyBase = String.fromEnvironment(
     'IMAGE_PROXY_BASE',
     defaultValue: '',
@@ -48,6 +52,8 @@ class Env {
         return _defineApiPort;
       case 'API_SCHEME':
         return _defineApiScheme;
+      case 'API_BASE_PATH':
+        return _defineApiBasePath;
       case 'IMAGE_PROXY_BASE':
         return _defineImageProxyBase;
       case 'VIDEO_PROXY_BASE':

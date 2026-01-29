@@ -5,6 +5,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/views/pages/no_casinos_available_page.dart';
@@ -51,7 +52,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   bool _isProcessing = false;
   bool _isVerified = false;
   bool _isCheckingVerification = false;
-  Timer? _verificationTimer;
 
   PlayerData? get _resolvedPlayerData =>
       widget.playerData ?? affiliationPlayerDataNotifier.value;
@@ -97,11 +97,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   void initState() {
     super.initState();
 
-    // Agregar observer para detectar cuando vuelve a la app
-    if (!widget.preview) {
-      WidgetsBinding.instance.addObserver(this);
-    }
-
     final initialPlayer = _resolvedPlayerData;
     if (initialPlayer != null) {
       final data = initialPlayer;
@@ -114,34 +109,14 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
     if (!widget.preview) {
       _loadAffiliationData();
-
-      // Iniciar verificación de is_verified usando email
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _startVerificationPolling();
-      });
     }
   }
 
   @override
   void dispose() {
-    if (!widget.preview) {
-      WidgetsBinding.instance.removeObserver(this);
-    }
-    _verificationTimer?.cancel();
     _nombreController.dispose();
     _apellidoController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    // Cuando la app vuelve al foreground, reiniciar polling si no está verificado
-    if (state == AppLifecycleState.resumed && !_isVerified) {
-      _verificationTimer?.cancel();
-      _startVerificationPolling();
-    }
   }
 
   String? get _resolvedEmail {
@@ -154,27 +129,23 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     return persisted.isEmpty ? null : persisted;
   }
 
-  /// Inicia polling para verificar is_verified cada 3 segundos
-  void _startVerificationPolling() {
-    // Verificar inmediatamente
-    _checkIsVerified();
-
-    // Luego verificar cada 3 segundos
-    _verificationTimer = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) => _checkIsVerified(),
-    );
-  }
-
   /// Verifica el estado is_verified del usuario usando su email
-  Future<void> _checkIsVerified() async {
+  Future<void> _checkIsVerified({bool showFeedback = false}) async {
     if (widget.preview) return;
     if (_isCheckingVerification || _isVerified) return;
 
     // Obtener el email del usuario
     final email = _resolvedEmail;
     if (email == null || email.isEmpty) {
-      _verificationTimer?.cancel();
+      if (showFeedback && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo verificar el email. Reintenta.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
       return;
     }
 
@@ -222,9 +193,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
             _isVerified = true;
           });
 
-          // Detener el polling
-          _verificationTimer?.cancel();
-
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('¡Email verificado! Ya podés continuar.'),
@@ -236,16 +204,57 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
           setState(() {
             _isVerified = false;
           });
+          if (showFeedback && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Todavía no verificaste tu email.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
       } else if (response.statusCode == 403) {
-        // NO detener el polling, seguir intentando
+        if (showFeedback && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Todavía no verificaste tu email.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } else if (response.statusCode == 400) {
-        // Detener polling si es Bad Request
-        _verificationTimer?.cancel();
+        if (showFeedback && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo validar el email. Reintenta.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } else if (response.statusCode == 404) {
-        _verificationTimer?.cancel();
+        if (showFeedback && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email no encontrado. Reintenta.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } else {}
     } catch (e, stackTrace) {
+      if (showFeedback && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verificando email: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -452,6 +461,25 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     LoadingOverlay.show(context, message: 'Completando tu afiliación...');
 
     try {
+      final bondaError = await _afiliarBonda();
+      if (bondaError != null) {
+        LoadingOverlay.hide(context);
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(bondaError),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        setState(() {
+          _isProcessing = false;
+        });
+        return;
+      }
+
       final provincia = playerData.provincia.trim();
       if (provincia.isEmpty) {
         LoadingOverlay.hide(context);
@@ -622,6 +650,53 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     }
   }
 
+  Future<String?> _afiliarBonda() async {
+    try {
+      final accessToken = await TokenService.getToken();
+      final refreshToken = await TokenService.getRefreshToken();
+
+      final body = <String, dynamic>{};
+      String? authToken;
+      if (accessToken != null && accessToken.isNotEmpty) {
+        body['accessToken'] = accessToken;
+        authToken = accessToken;
+      } else if (refreshToken != null && refreshToken.isNotEmpty) {
+        body['refreshToken'] = refreshToken;
+        authToken = refreshToken;
+      } else {
+        return 'No se encontró token para completar la afiliación.';
+      }
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/cupones/afiliado');
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
+      final response = await http
+          .post(url, headers: headers, body: jsonEncode(body))
+          .timeout(
+            AppConstants.apiTimeout,
+            onTimeout: () => http.Response('Request timeout', 408),
+          );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null;
+      }
+
+      try {
+        final errorData = jsonDecode(response.body);
+        final message = errorData['message']?.toString();
+        return message?.isNotEmpty == true
+            ? message
+            : 'Error ${response.statusCode}: ${response.body}';
+      } catch (_) {
+        return 'Error ${response.statusCode}: ${response.body}';
+      }
+    } catch (e) {
+      return 'Error afiliando a Bonda: $e';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -758,9 +833,17 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                             height: 56,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isVerified
-                                  ? _processAfiliation
-                                  : null,
+                              onPressed:
+                                  _isProcessing || _isCheckingVerification
+                                  ? null
+                                  : () async {
+                                      await _checkIsVerified(
+                                        showFeedback: true,
+                                      );
+                                      if (_isVerified && mounted) {
+                                        await _processAfiliation();
+                                      }
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryGreen,
                                 foregroundColor: Colors.black,
@@ -798,7 +881,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                                   Text(
                                     _isCheckingVerification
                                         ? 'Verificando...'
-                                        : 'Completar afiliación',
+                                        : 'Reintentar',
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,

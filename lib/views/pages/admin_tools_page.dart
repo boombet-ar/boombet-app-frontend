@@ -32,6 +32,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
   bool _affiliatorsLast = true;
   bool _affiliatorsLoaded = false;
   final Set<int> _affiliatorsUpdating = {};
+  final Set<int> _affiliatorsDeleting = {};
 
   void _setSection(_AdminSection section) {
     setState(() {
@@ -126,6 +127,86 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No se pudo actualizar el estado del afiliador.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteAffiliator(AfiliadorModel affiliator) async {
+    if (_affiliatorsDeleting.contains(affiliator.id)) return;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('Eliminar afiliador', style: TextStyle(color: textColor)),
+        content: Text(
+          '¿Querés eliminar a ${affiliator.nombre}? Esta acción no se puede deshacer.',
+          style: TextStyle(color: textColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppConstants.errorRed),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _affiliatorsDeleting.add(affiliator.id);
+    });
+
+    try {
+      await _afiliadoresService.deleteAfiliador(id: affiliator.id);
+      if (!mounted) return;
+
+      final willBeEmpty = _affiliators.length <= 1;
+      final shouldLoadPrev = willBeEmpty && _affiliatorsPage > 0;
+
+      setState(() {
+        _affiliators = _affiliators
+            .where((item) => item.id != affiliator.id)
+            .toList();
+        if (_affiliatorsTotalElements > 0) {
+          _affiliatorsTotalElements -= 1;
+        }
+        _affiliatorsDeleting.remove(affiliator.id);
+      });
+
+      if (shouldLoadPrev) {
+        _loadAffiliators(page: _affiliatorsPage - 1, force: true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _affiliatorsDeleting.remove(affiliator.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar el afiliador.'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -504,9 +585,11 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               affiliatorsFirst: _affiliatorsFirst,
               affiliatorsLast: _affiliatorsLast,
               affiliatorsUpdatingIds: _affiliatorsUpdating,
+              affiliatorsDeletingIds: _affiliatorsDeleting,
               onReloadAffiliators: () => _loadAffiliators(force: true),
               onGoToAffiliatorsPage: handleGoToAffiliatorsPage,
               onToggleAffiliatorActive: _toggleAffiliatorActive,
+              onDeleteAffiliator: _deleteAffiliator,
             ),
           ),
         );
@@ -701,9 +784,11 @@ class _AdminSectionBody extends StatelessWidget {
   final bool affiliatorsFirst;
   final bool affiliatorsLast;
   final Set<int> affiliatorsUpdatingIds;
+  final Set<int> affiliatorsDeletingIds;
   final VoidCallback onReloadAffiliators;
   final ValueChanged<int> onGoToAffiliatorsPage;
   final void Function(AfiliadorModel, bool) onToggleAffiliatorActive;
+  final void Function(AfiliadorModel) onDeleteAffiliator;
 
   const _AdminSectionBody({
     super.key,
@@ -723,9 +808,11 @@ class _AdminSectionBody extends StatelessWidget {
     required this.affiliatorsFirst,
     required this.affiliatorsLast,
     required this.affiliatorsUpdatingIds,
+    required this.affiliatorsDeletingIds,
     required this.onReloadAffiliators,
     required this.onGoToAffiliatorsPage,
     required this.onToggleAffiliatorActive,
+    required this.onDeleteAffiliator,
   });
 
   @override
@@ -806,9 +893,11 @@ class _AdminSectionBody extends StatelessWidget {
             isFirstPage: affiliatorsFirst,
             isLastPage: affiliatorsLast,
             updatingIds: affiliatorsUpdatingIds,
+            deletingIds: affiliatorsDeletingIds,
             onRetry: onReloadAffiliators,
             onGoToPage: onGoToAffiliatorsPage,
             onToggleActive: onToggleAffiliatorActive,
+            onDelete: onDeleteAffiliator,
           ),
         if (section == _AdminSection.events)
           _AdminEventsSection(onBack: onBack, onCreate: onCreateEvent),
@@ -925,9 +1014,11 @@ class _AdminAffiliatorsSection extends StatelessWidget {
   final bool isFirstPage;
   final bool isLastPage;
   final Set<int> updatingIds;
+  final Set<int> deletingIds;
   final VoidCallback onRetry;
   final ValueChanged<int> onGoToPage;
   final void Function(AfiliadorModel, bool) onToggleActive;
+  final void Function(AfiliadorModel) onDelete;
 
   const _AdminAffiliatorsSection({
     required this.onBack,
@@ -942,9 +1033,11 @@ class _AdminAffiliatorsSection extends StatelessWidget {
     required this.isFirstPage,
     required this.isLastPage,
     required this.updatingIds,
+    required this.deletingIds,
     required this.onRetry,
     required this.onGoToPage,
     required this.onToggleActive,
+    required this.onDelete,
   });
 
   @override
@@ -1008,6 +1101,7 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                   final afiliador = entry.value;
                   final item = listItems[index];
                   final isUpdating = updatingIds.contains(afiliador.id);
+                  final isDeleting = deletingIds.contains(afiliador.id);
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -1040,10 +1134,30 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                           const SizedBox(width: 8),
                           Switch.adaptive(
                             value: afiliador.activo,
-                            onChanged: isUpdating
+                            onChanged: isUpdating || isDeleting
                                 ? null
                                 : (value) => onToggleActive(afiliador, value),
                             activeColor: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: 'Eliminar afiliador',
+                            onPressed: isDeleting || isUpdating
+                                ? null
+                                : () => onDelete(afiliador),
+                            icon: isDeleting
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppConstants.errorRed,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.delete_outline,
+                                    color: AppConstants.errorRed,
+                                  ),
                           ),
                         ],
                       ),

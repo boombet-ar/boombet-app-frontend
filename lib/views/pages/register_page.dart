@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
@@ -464,7 +465,10 @@ class _RegisterPageState extends State<RegisterPage> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: dialogBg,
-            title: Text('Validación requerida', style: TextStyle(color: textColor)),
+            title: Text(
+              'Validación requerida',
+              style: TextStyle(color: textColor),
+            ),
             content: Text(
               'Debes validar el código de afiliador antes de continuar.',
               style: TextStyle(color: textColor),
@@ -492,16 +496,17 @@ class _RegisterPageState extends State<RegisterPage> {
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/userData');
 
       final body = {
-        'dni': _dniController.text.trim(),
         'genero': _selectedGender!,
-        'telefono': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
+        'dni': _dniController.text.trim(),
       };
 
       final response = await http
           .post(
             url,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'key': Env.getString('USERDATA_KEY'),
+            },
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 60));
@@ -731,10 +736,12 @@ class _RegisterPageState extends State<RegisterPage> {
     if (token.isEmpty) {
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
-      final dialogBg =
-          isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-      final textColor =
-          isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
 
       showDialog(
         context: context,
@@ -775,10 +782,12 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!isValid) {
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
-      final dialogBg =
-          isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-      final textColor =
-          isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+      final dialogBg = isDark
+          ? AppConstants.darkAccent
+          : AppConstants.lightDialogBg;
+      final textColor = isDark
+          ? AppConstants.textDark
+          : AppConstants.lightLabelText;
 
       showDialog(
         context: context,
@@ -826,7 +835,10 @@ class _RegisterPageState extends State<RegisterPage> {
           );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        log('[Register] affiliate verify error ${response.statusCode}: ${response.body}' as num);
+        log(
+          '[Register] affiliate verify error ${response.statusCode}: ${response.body}'
+              as num,
+        );
         return false;
       }
 
@@ -843,7 +855,9 @@ class _RegisterPageState extends State<RegisterPage> {
             if (normalized == 'true') return true;
             if (normalized == 'false') return false;
           }
-          log('[Register] affiliate verify unexpected payload: $decoded' as num);
+          log(
+            '[Register] affiliate verify unexpected payload: $decoded' as num,
+          );
         }
       } catch (_) {
         return false;
@@ -1623,7 +1637,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: dialogBg,
-            title: Text('Validación requerida', style: TextStyle(color: textColor)),
+            title: Text(
+              'Validación requerida',
+              style: TextStyle(color: textColor),
+            ),
             content: Text(
               'Debes validar el código de afiliador antes de continuar.',
               style: TextStyle(color: textColor),
@@ -1651,16 +1668,17 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/userData');
 
       final body = {
-        'dni': _dniController.text.trim(),
         'genero': _selectedGender!,
-        'telefono': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
+        'dni': _dniController.text.trim(),
       };
 
       final response = await http
           .post(
             url,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'key': Env.getString('USERDATA_KEY'),
+            },
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 60));
@@ -2345,7 +2363,8 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               keyboardType: TextInputType.text,
               onChanged: (value) {
                 final trimmed = value.trim();
-                if (trimmed != _affiliateCodeValidatedToken && _affiliateCodeValidated) {
+                if (trimmed != _affiliateCodeValidatedToken &&
+                    _affiliateCodeValidated) {
                   setState(() {
                     _affiliateCodeValidated = false;
                     _affiliateCodeValidatedToken = '';
@@ -2373,9 +2392,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          _affiliateCodeValidated ? 'Validado' : 'Validar',
-                        ),
+                      : Text(_affiliateCodeValidated ? 'Validado' : 'Validar'),
                 ),
               ),
             ),

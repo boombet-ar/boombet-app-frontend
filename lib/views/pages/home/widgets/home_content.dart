@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 class HomeContent extends StatefulWidget {
@@ -23,6 +24,9 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
+  static const String _rouletteEligibleKey = 'roulette_eligible';
+  static const String _rouletteShownKey = 'roulette_shown';
+
   final PageController _carouselController = PageController();
   final PublicidadService _publicidadService = PublicidadService();
   final Map<int, VideoPlayerController> _videoControllers = {};
@@ -39,11 +43,42 @@ class _HomeContentState extends State<HomeContent> {
   List<Publicidad> _ads = [];
   bool _adsLoading = true;
   String? _adsError;
+  bool _rouletteChecked = false;
+  bool _rouletteDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
     _fetchAds();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowRouletteOnce();
+    });
+  }
+
+  Future<void> _checkAndShowRouletteOnce() async {
+    if (_rouletteChecked) return;
+    _rouletteChecked = true;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final eligible = prefs.getBool(_rouletteEligibleKey) ?? false;
+      final shown = prefs.getBool(_rouletteShownKey) ?? false;
+      if (!eligible || shown || _rouletteDialogOpen) return;
+      if (!mounted) return;
+
+      _rouletteDialogOpen = true;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.75),
+        builder: (dialogContext) => const _RouletteDialog(),
+      );
+
+      if (!mounted) return;
+      await prefs.setBool(_rouletteShownKey, true);
+    } finally {
+      _rouletteDialogOpen = false;
+    }
   }
 
   void _startAutoScroll() {
@@ -566,24 +601,6 @@ class _HomeContentState extends State<HomeContent> {
                               margin: EdgeInsets.zero,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          _QuickActionsPanel(
-                            primaryGreen: primaryGreen,
-                            textColor: textColor,
-                            isDark: isDark,
-                            onGoToDiscounts: () =>
-                                selectedPageNotifier.value = 1,
-                            onGoToRaffles: () => selectedPageNotifier.value = 2,
-                            onGoToForum: () => selectedPageNotifier.value = 3,
-                            onGoToGames: () => selectedPageNotifier.value = 4,
-                            onGoToCasinos: () => selectedPageNotifier.value = 5,
-                            onGoToProfile: () {
-                              Navigator.push(
-                                context,
-                                ScaleRoute(page: ProfilePage()),
-                              );
-                            },
-                          ),
                           const SizedBox(height: 8),
                         ],
                       );
@@ -594,39 +611,15 @@ class _HomeContentState extends State<HomeContent> {
                         horizontal: 8,
                         vertical: 12,
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _buildCarouselPanel(
-                              primaryGreen: primaryGreen,
-                              textColor: textColor,
-                              margin: EdgeInsets.zero,
-                            ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: _buildCarouselPanel(
+                            primaryGreen: primaryGreen,
+                            textColor: textColor,
+                            margin: EdgeInsets.zero,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _QuickActionsPanel(
-                              primaryGreen: primaryGreen,
-                              textColor: textColor,
-                              isDark: isDark,
-                              onGoToDiscounts: () =>
-                                  selectedPageNotifier.value = 1,
-                              onGoToRaffles: () =>
-                                  selectedPageNotifier.value = 2,
-                              onGoToForum: () => selectedPageNotifier.value = 3,
-                              onGoToGames: () => selectedPageNotifier.value = 4,
-                              onGoToCasinos: () =>
-                                  selectedPageNotifier.value = 5,
-                              onGoToProfile: () {
-                                Navigator.push(
-                                  context,
-                                  ScaleRoute(page: ProfilePage()),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   },
@@ -657,75 +650,86 @@ class _HomeContentState extends State<HomeContent> {
             if (_ads.isNotEmpty && !_adsLoading)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        primaryGreen.withValues(alpha: 0.14),
-                        primaryGreen.withValues(alpha: 0.04),
-                      ],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: kIsWeb ? 520 : double.infinity,
                     ),
-                    border: Border.all(
-                      color: primaryGreen.withValues(alpha: 0.25),
-                      width: 1.1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryGreen.withValues(alpha: 0.08),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: primaryGreen.withValues(alpha: 0.16),
-                        ),
-                        child: Icon(Icons.campaign, color: textColor, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Publicidad destacada',
-                              style: TextStyle(
-                                color: textColor.withValues(alpha: 0.8),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _ads[_currentCarouselPage].description ??
-                                  'Publicidad',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: textColor,
-                                height: 1.35,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            primaryGreen.withValues(alpha: 0.14),
+                            primaryGreen.withValues(alpha: 0.04),
                           ],
                         ),
+                        border: Border.all(
+                          color: primaryGreen.withValues(alpha: 0.25),
+                          width: 1.1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.08),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: primaryGreen.withValues(alpha: 0.16),
+                            ),
+                            child: Icon(
+                              Icons.campaign,
+                              color: textColor,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Publicidad destacada',
+                                  style: TextStyle(
+                                    color: textColor.withValues(alpha: 0.8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _ads[_currentCarouselPage].description ??
+                                      'Publicidad',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: textColor,
+                                    height: 1.35,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1340,4 +1344,537 @@ class _QuickActionTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RouletteDialog extends StatefulWidget {
+  const _RouletteDialog();
+
+  @override
+  State<_RouletteDialog> createState() => _RouletteDialogState();
+}
+
+class _RouletteDialogState extends State<_RouletteDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late Animation<double> _rotation;
+  bool _spinning = false;
+  bool _spinCompleted = false;
+  bool _showResult = false;
+  // TOGGLE: set to true to auto-close after spin, false to keep it open.
+  static const bool _autoCloseAfterSpin = false;
+  static const List<String> _baseLabels = [
+    'Afiliacion\nsin cargo',
+    'Bono de\nbienvenida',
+    'Carga inicial\nde 35.000',
+    'Acceso a\nbeneficios\npor un mes',
+  ];
+  static const String _targetLabel = 'Acceso a\nbeneficios\npor un mes';
+  List<String> _segments = const [];
+  int _targetIndex = 0;
+  late final List<_RouletteConfetti> _confetti;
+
+  @override
+  void initState() {
+    super.initState();
+    _confetti = _buildConfetti();
+    _segments = _buildSegments();
+    _targetIndex = _pickTargetIndex(_segments);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    );
+    _rotation = Tween<double>(begin: 0, end: 0).animate(_controller);
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _spinning = false;
+          _spinCompleted = true;
+          _showResult = true;
+        });
+        if (_autoCloseAfterSpin) {
+          Future.delayed(const Duration(milliseconds: 2200), () {
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _spin() {
+    if (_spinning || _spinCompleted) return;
+    const extraTurns = 6;
+    final sweep = (2 * math.pi) / _segments.length;
+    // Forzar resultado al segmento target debajo del indicador superior.
+    final end = (2 * math.pi * extraTurns) - (sweep * (_targetIndex + 0.5));
+
+    setState(() {
+      _spinning = true;
+      _rotation = Tween<double>(begin: 0, end: end).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      );
+    });
+
+    _controller
+      ..reset()
+      ..forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final wheelSize = (screenWidth - 48).clamp(260.0, 360.0);
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF141414)
+                  : AppConstants.lightCardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: primary.withValues(alpha: 0.25)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '¡TE GANASTE UN PREMIO!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
+                ),
+                // const SizedBox(height: 6),
+                // Text(
+                //   'Y ganate un buen premio inicial!',
+                //   textAlign: TextAlign.center,
+                //   style: TextStyle(
+                //     color: textColor.withValues(alpha: 0.7),
+                //     fontSize: 13,
+                //   ),
+                // ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: wheelSize,
+                  height: wheelSize,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: wheelSize,
+                        height: wheelSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primary.withValues(alpha: 0.35),
+                              blurRadius: 22,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AnimatedBuilder(
+                        animation: _rotation,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: _rotation.value,
+                            child: child,
+                          );
+                        },
+                        child: CustomPaint(
+                          size: Size(wheelSize, wheelSize),
+                          painter: _RoulettePainter(
+                            primaryColor: primary,
+                            labels: _segments,
+                            textColor: textColor,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 6,
+                        child: Icon(
+                          Icons.arrow_drop_down,
+                          size: 32,
+                          color: primary,
+                        ),
+                      ),
+                      Container(
+                        width: wheelSize * 0.2,
+                        height: wheelSize * 0.2,
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [
+                              primary.withValues(alpha: 0.95),
+                              primary.withValues(alpha: 0.6),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _spinning ? null : _spin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: AppConstants.textLight,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(_spinning ? 'Girando...' : 'Girar'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_showResult)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Center(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: _buildConfettiLayer()),
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppConstants.primaryGreen.withValues(
+                                  alpha: 0.25,
+                                ),
+                                AppConstants.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: AppConstants.primaryGreen.withValues(
+                                alpha: 0.5,
+                              ),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 18,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.emoji_events_rounded,
+                                color: AppConstants.primaryGreen,
+                                size: 42,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'GANASTE',
+                                style: TextStyle(
+                                  color: AppConstants.primaryGreen,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Acceso gratuito a beneficios\n durante un mes',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppConstants.primaryGreen,
+                                    foregroundColor: AppConstants.textLight,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: const Text('OK!'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<_RouletteConfetti> _buildConfetti() {
+    final rng = math.Random();
+    return List.generate(18, (index) {
+      return _RouletteConfetti(
+        dx: rng.nextDouble(),
+        dy: rng.nextDouble(),
+        size: 6 + rng.nextDouble() * 8,
+        delay: rng.nextDouble() * 0.4,
+        opacity: 0.5 + rng.nextDouble() * 0.5,
+      );
+    });
+  }
+
+  Widget _buildConfettiLayer() {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 250),
+        opacity: _showResult ? 1 : 0,
+        child: Stack(
+          children: _confetti.map((c) {
+            return Positioned.fill(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 1400),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  final y = (c.dy - 0.6) + value * 1.0;
+                  return Transform.translate(
+                    offset: Offset((c.dx - 0.5) * 260, y * 260),
+                    child: Opacity(
+                      opacity: (1 - value) * c.opacity,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.rotate(
+                    angle: c.dx * math.pi,
+                    child: Container(
+                      width: c.size,
+                      height: c.size * 0.6,
+                      decoration: BoxDecoration(
+                        color: AppConstants.primaryGreen.withValues(
+                          alpha: c.opacity,
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  List<String> _buildSegments() {
+    return [..._baseLabels, ..._baseLabels];
+  }
+
+  int _pickTargetIndex(List<String> items) {
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] == _targetLabel) return i;
+    }
+    return 0;
+  }
+}
+
+class _RouletteConfetti {
+  const _RouletteConfetti({
+    required this.dx,
+    required this.dy,
+    required this.size,
+    required this.delay,
+    required this.opacity,
+  });
+
+  final double dx;
+  final double dy;
+  final double size;
+  final double delay;
+  final double opacity;
+}
+
+class _RoulettePainter extends CustomPainter {
+  _RoulettePainter({
+    required this.primaryColor,
+    required this.labels,
+    required this.textColor,
+  });
+
+  final Color primaryColor;
+  final List<String> labels;
+  final Color textColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final segments = labels.length;
+    final sweep = (2 * math.pi) / segments;
+    final innerRadius = radius * 0.13;
+
+    final gradient = RadialGradient(
+      colors: [
+        primaryColor.withValues(alpha: 0.22),
+        primaryColor.withValues(alpha: 0.6),
+      ],
+    );
+
+    for (int i = 0; i < segments; i++) {
+      final paint = Paint()
+        ..style = PaintingStyle.fill
+        ..shader = gradient.createShader(
+          Rect.fromCircle(center: center, radius: radius),
+        )
+        ..color = i.isEven
+            ? primaryColor.withValues(alpha: 0.25)
+            : primaryColor.withValues(alpha: 0.5);
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        (sweep * i) - (math.pi / 2),
+        sweep,
+        true,
+        paint,
+      );
+
+      final label = labels[i];
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.98),
+            fontSize: 11.2,
+            fontWeight: FontWeight.w900,
+            height: 1.12,
+            letterSpacing: 0.2,
+            shadows: [
+              Shadow(
+                color: Colors.black.withValues(alpha: 0.7),
+                blurRadius: 8,
+                offset: const Offset(0, 1.5),
+              ),
+            ],
+          ),
+        ),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+        maxLines: 3,
+        ellipsis: '…',
+      )..layout(maxWidth: radius * 0.7);
+
+      final angle = (sweep * i) + (sweep / 2) - (math.pi / 2);
+      final textRadius = radius * 0.54;
+      final offset = Offset(
+        center.dx + textRadius * math.cos(angle),
+        center.dy + textRadius * math.sin(angle),
+      );
+
+      canvas.save();
+      canvas.translate(offset.dx, offset.dy);
+      canvas.rotate(angle + math.pi / 2);
+      textPainter.paint(
+        canvas,
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
+      );
+      canvas.restore();
+    }
+
+    final divider = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.white.withValues(alpha: 0.18);
+    for (int i = 0; i < segments; i++) {
+      final angle = (sweep * i) - (math.pi / 2);
+      final start = Offset(
+        center.dx + innerRadius * math.cos(angle),
+        center.dy + innerRadius * math.sin(angle),
+      );
+      final end = Offset(
+        center.dx + radius * math.cos(angle),
+        center.dy + radius * math.sin(angle),
+      );
+      canvas.drawLine(start, end, divider);
+    }
+
+    final inner = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withValues(alpha: 0.25);
+    canvas.drawCircle(center, innerRadius, inner);
+
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = primaryColor.withValues(alpha: 0.7);
+    canvas.drawCircle(center, radius, border);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
