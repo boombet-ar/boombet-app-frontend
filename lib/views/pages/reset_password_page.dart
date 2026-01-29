@@ -2,6 +2,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/reset_password_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -230,6 +231,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           '✅ ${result['message'] ?? 'Contraseña actualizada exitosamente'}',
           isError: false,
         );
+
+        await TokenService.clearTokens();
 
         // Navegar a login después de 2 segundos
         await Future.delayed(const Duration(seconds: 2));
