@@ -61,9 +61,9 @@ class _HomeContentState extends State<HomeContent> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final eligible = prefs.getBool(_rouletteEligibleKey) ?? false;
-      final shown = prefs.getBool(_rouletteShownKey) ?? false;
-      if (!eligible || shown || _rouletteDialogOpen) return;
+      final alreadyShown = prefs.getBool(_rouletteShownKey) ?? false;
+      if (alreadyShown) return;
+      if (_rouletteDialogOpen) return;
       if (!mounted) return;
 
       _rouletteDialogOpen = true;
@@ -1434,242 +1434,247 @@ class _RouletteDialogState extends State<_RouletteDialog>
     final primary = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
     final screenWidth = MediaQuery.of(context).size.width;
-    final wheelSize = (screenWidth - 48).clamp(260.0, 360.0);
+    final wheelSize = kIsWeb
+        ? (screenWidth * 0.36).clamp(300.0, 420.0)
+        : (screenWidth - 48).clamp(260.0, 360.0);
 
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-      backgroundColor: Colors.transparent,
-      child: Stack(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF141414)
-                  : AppConstants.lightCardBg,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: primary.withValues(alpha: 0.25)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
+    final dialogChild = Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141414) : AppConstants.lightCardBg,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: primary.withValues(alpha: 0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '¡TE GANASTE UN PREMIO!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '¡TE GANASTE UN PREMIO!',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
+              ),
+              // const SizedBox(height: 6),
+              // Text(
+              //   'Y ganate un buen premio inicial!',
+              //   textAlign: TextAlign.center,
+              //   style: TextStyle(
+              //     color: textColor.withValues(alpha: 0.7),
+              //     fontSize: 13,
+              //   ),
+              // ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: wheelSize,
+                height: wheelSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: wheelSize,
+                      height: wheelSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: primary.withValues(alpha: 0.35),
+                            blurRadius: 22,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _rotation,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _rotation.value,
+                          child: child,
+                        );
+                      },
+                      child: CustomPaint(
+                        size: Size(wheelSize, wheelSize),
+                        painter: _RoulettePainter(
+                          primaryColor: primary,
+                          labels: _segments,
+                          textColor: textColor,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 6,
+                      child: Icon(
+                        Icons.arrow_drop_down,
+                        size: 32,
+                        color: primary,
+                      ),
+                    ),
+                    Container(
+                      width: wheelSize * 0.2,
+                      height: wheelSize * 0.2,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [
+                            primary.withValues(alpha: 0.95),
+                            primary.withValues(alpha: 0.6),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _spinning ? null : _spin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: AppConstants.textLight,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
+                  child: Text(_spinning ? 'Girando...' : 'Girar'),
                 ),
-                // const SizedBox(height: 6),
-                // Text(
-                //   'Y ganate un buen premio inicial!',
-                //   textAlign: TextAlign.center,
-                //   style: TextStyle(
-                //     color: textColor.withValues(alpha: 0.7),
-                //     fontSize: 13,
-                //   ),
-                // ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: wheelSize,
-                  height: wheelSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: wheelSize,
-                        height: wheelSize,
+              ),
+            ],
+          ),
+        ),
+        if (_showResult)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Center(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _buildConfettiLayer()),
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              AppConstants.primaryGreen.withValues(alpha: 0.25),
+                              AppConstants.primaryGreen.withValues(alpha: 0.1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppConstants.primaryGreen.withValues(
+                              alpha: 0.5,
+                            ),
+                            width: 1.2,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: primary.withValues(alpha: 0.35),
-                              blurRadius: 22,
+                              color: AppConstants.primaryGreen.withValues(
+                                alpha: 0.35,
+                              ),
+                              blurRadius: 18,
                               offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                      ),
-                      AnimatedBuilder(
-                        animation: _rotation,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _rotation.value,
-                            child: child,
-                          );
-                        },
-                        child: CustomPaint(
-                          size: Size(wheelSize, wheelSize),
-                          painter: _RoulettePainter(
-                            primaryColor: primary,
-                            labels: _segments,
-                            textColor: textColor,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.emoji_events_rounded,
+                              color: AppConstants.primaryGreen,
+                              size: 42,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'GANASTE',
+                              style: TextStyle(
+                                color: AppConstants.primaryGreen,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Acceso gratuito a beneficios\n durante un mes',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                height: 1.25,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppConstants.primaryGreen,
+                                  foregroundColor: AppConstants.textLight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: const Text('OK!'),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        child: Icon(
-                          Icons.arrow_drop_down,
-                          size: 32,
-                          color: primary,
-                        ),
-                      ),
-                      Container(
-                        width: wheelSize * 0.2,
-                        height: wheelSize * 0.2,
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              primary.withValues(alpha: 0.95),
-                              primary.withValues(alpha: 0.6),
-                            ],
-                          ),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _spinning ? null : _spin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primary,
-                      foregroundColor: AppConstants.textLight,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Text(_spinning ? 'Girando...' : 'Girar'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_showResult)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Center(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(child: _buildConfettiLayer()),
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 24),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppConstants.primaryGreen.withValues(
-                                  alpha: 0.25,
-                                ),
-                                AppConstants.primaryGreen.withValues(
-                                  alpha: 0.1,
-                                ),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: AppConstants.primaryGreen.withValues(
-                                alpha: 0.5,
-                              ),
-                              width: 1.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppConstants.primaryGreen.withValues(
-                                  alpha: 0.35,
-                                ),
-                                blurRadius: 18,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.emoji_events_rounded,
-                                color: AppConstants.primaryGreen,
-                                size: 42,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'GANASTE',
-                                style: TextStyle(
-                                  color: AppConstants.primaryGreen,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Acceso gratuito a beneficios\n durante un mes',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.25,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppConstants.primaryGreen,
-                                    foregroundColor: AppConstants.textLight,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  child: const Text('OK!'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
+    );
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: kIsWeb
+          ? Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 860),
+                child: dialogChild,
+              ),
+            )
+          : dialogChild,
     );
   }
 
