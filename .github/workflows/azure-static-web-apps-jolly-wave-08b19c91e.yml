@@ -36,7 +36,7 @@ jobs:
             --dart-define=API_PORT=${{ secrets.API_PORT }} \
             --dart-define=IMAGE_PROXY_BASE=${{ secrets.IMAGE_PROXY_BASE }} \
             --dart-define=VIDEO_PROXY_BASE=${{ secrets.VIDEO_PROXY_BASE }} \
-            --dart-define=USERDATA_KEY=${{ secrets.USERDATA_KEY }} \
+            --dart-define=USERDATA_KEY=${{ secrets.USERDATA_KEY }} 
 
       # --- IMPORTANTE: Copiar la configuración a la carpeta de salida ---
       - name: Copy Config
@@ -71,5 +71,6 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_JOLLY_WAVE_08B19C91E }}
           action: "close"
+
 
 
