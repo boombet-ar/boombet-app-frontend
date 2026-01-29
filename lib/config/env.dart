@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Centralizado para cargar y leer variables de entorno (.env o --dart-define)
+/// Centralizado para leer variables de entorno via --dart-define
 class Env {
   Env._();
 
@@ -30,17 +29,16 @@ class Env {
     'VIDEO_PROXY_BASE',
     defaultValue: '',
   );
+  static const _defineUserDataKey = String.fromEnvironment(
+    'USERDATA_KEY',
+    defaultValue: '',
+  );
 
   static bool _loaded = false;
 
   static Future<void> load({String fileName = '.env'}) async {
     if (_loaded) return;
-    try {
-      await dotenv.load(fileName: fileName);
-      debugPrint('[Env] Loaded $fileName');
-    } catch (e) {
-      debugPrint('[Env] Warning: could not load $fileName ($e)');
-    }
+    debugPrint('[Env] Skipping $fileName; using --dart-define only');
     _loaded = true;
   }
 
@@ -58,6 +56,8 @@ class Env {
         return _defineImageProxyBase;
       case 'VIDEO_PROXY_BASE':
         return _defineVideoProxyBase;
+      case 'USERDATA_KEY':
+        return _defineUserDataKey;
       default:
         return '';
     }
@@ -66,8 +66,7 @@ class Env {
   static String _rawValue(String key) {
     final defineValue = _fromDefines(key);
     if (defineValue.isNotEmpty) return defineValue;
-    final envValue = dotenv.maybeGet(key) ?? '';
-    return envValue;
+    return '';
   }
 
   static String getString(
