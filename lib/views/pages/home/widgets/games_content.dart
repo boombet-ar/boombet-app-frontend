@@ -1,5 +1,6 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/games/game_02/game_02_page.dart';
+import 'package:boombet_app/games/game_03/game_03_page.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart';
@@ -38,6 +39,17 @@ class GamesContent extends StatelessWidget {
           context,
         ).push(MaterialPageRoute(builder: (_) => const Game02Page())),
         asset: 'assets/icons/game_02_icon.png',
+      ),
+      (
+        title: 'Jump Tower',
+        subtitle: 'Saltos infinitos',
+        description:
+            'Subí sin parar rebotando entre plataformas y superá tu récord.',
+        badge: 'Nuevo',
+        onPlay: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Game03Page())),
+        asset: 'assets/icons/game_03_icon.png',
       ),
     ];
 

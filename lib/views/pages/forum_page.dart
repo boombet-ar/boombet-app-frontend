@@ -429,7 +429,6 @@ class _ForumPageState extends State<ForumPage> {
 
     setState(() {
       _selectedForumId = forum.id;
-      _showMine = false;
     });
 
     // Mantener ids y logos siempre actualizados al cambiar de foro.
