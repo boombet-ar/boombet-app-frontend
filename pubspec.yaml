@@ -67,6 +67,7 @@ flutter:
     - assets/audio/sfx/game_01/
     - assets/audio/sfx/game_02/
     - assets/images/games/game_02/
+    - assets/images/games/game_03/
     - assets/fonts/
     - assets/icons/
 
