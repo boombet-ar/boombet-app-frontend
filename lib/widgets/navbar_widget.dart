@@ -138,7 +138,7 @@ class NavbarWidget extends StatelessWidget {
                 labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                 destinations: destinations,
                 onDestinationSelected: (int value) {
-                  selectedPageNotifier.value = value;
+                  saveSelectedPage(value);
                 },
                 selectedIndex: safeIndex,
               ),

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
@@ -45,6 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _affiliateCodeValidated = false;
   String _affiliateCodeValidatedToken = '';
   bool _isValidatingAffiliateCode = false;
+  String? _affiliateType;
 
   // Terms and conditions acceptance flags
   bool _termsAccepted = false;
@@ -780,6 +782,8 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     if (!isValid) {
+      clearAffiliateType();
+      clearAffiliateCodeUsage();
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final dialogBg = isDark
@@ -812,6 +816,8 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    saveAffiliateCodeUsage(validated: true, token: token);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Código de afiliador validado.'),
@@ -825,7 +831,6 @@ class _RegisterPageState extends State<RegisterPage> {
     final url = Uri.parse(
       '${ApiConfig.baseUrl}/users/auth/afiliador/verify/$safeToken',
     );
-
     try {
       final response = await http
           .get(url)
@@ -835,9 +840,8 @@ class _RegisterPageState extends State<RegisterPage> {
           );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        log(
-          '[Register] affiliate verify error ${response.statusCode}: ${response.body}'
-              as num,
+        debugPrint(
+          '[Register] affiliate verify error ${response.statusCode}: ${response.body}',
         );
         return false;
       }
@@ -845,19 +849,47 @@ class _RegisterPageState extends State<RegisterPage> {
       final raw = response.body.trim();
       if (raw.isEmpty) return false;
 
+      if (raw == 'true' || raw == 'false') {
+        return raw == 'true';
+      }
+
       try {
         final decoded = jsonDecode(raw);
         if (decoded is Map<String, dynamic>) {
           final value = decoded['isTokenValid'];
+          final tipo = decoded['tipo_afiliador'] ??
+              decoded['tipoAfiliador'] ??
+              decoded['tipo'] ??
+              (decoded['data'] is Map<String, dynamic>
+                  ? (decoded['data']['tipo_afiliador'] ??
+                        decoded['data']['tipoAfiliador'] ??
+                        decoded['data']['tipo'])
+                  : null);
+
+          if (tipo is String && tipo.trim().isNotEmpty) {
+            _affiliateType = tipo.trim();
+            await saveAffiliateType(_affiliateType);
+          }
+
           if (value is bool) return value;
           if (value is String) {
             final normalized = value.toLowerCase().trim();
             if (normalized == 'true') return true;
             if (normalized == 'false') return false;
           }
-          log(
-            '[Register] affiliate verify unexpected payload: $decoded' as num,
-          );
+
+          if (tipo is String && tipo.trim().isNotEmpty) {
+            return true;
+          }
+        }
+
+        if (decoded is String && decoded.trim().isNotEmpty) {
+          final normalized = decoded.trim().toLowerCase();
+          if (normalized == 'true') return true;
+          if (normalized == 'false') return false;
+          _affiliateType = decoded.trim();
+          await saveAffiliateType(_affiliateType);
+          return true;
         }
       } catch (_) {
         return false;
@@ -2312,7 +2344,12 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                 _affiliateCodeValidated = false;
                 _affiliateCodeValidatedToken = '';
                 _isValidatingAffiliateCode = false;
+                _affiliateType = null;
               });
+              if (!_hasAffiliateCode) {
+                clearAffiliateType();
+                clearAffiliateCodeUsage();
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -2334,7 +2371,12 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                         _affiliateCodeValidated = false;
                         _affiliateCodeValidatedToken = '';
                         _isValidatingAffiliateCode = false;
+                        _affiliateType = null;
                       });
+                      if (_hasAffiliateCode == false) {
+                        clearAffiliateType();
+                        clearAffiliateCodeUsage();
+                      }
                     },
                     activeColor: primaryGreen,
                     checkColor: AppConstants.textLight,
@@ -2368,7 +2410,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                   setState(() {
                     _affiliateCodeValidated = false;
                     _affiliateCodeValidatedToken = '';
+                    _affiliateType = null;
                   });
+                  clearAffiliateType();
+                  clearAffiliateCodeUsage();
                 }
               },
               suffix: Padding(

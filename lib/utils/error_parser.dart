@@ -44,6 +44,42 @@ class ErrorParser {
     http.Response response, {
     String context = 'api',
   }) {
+    String? tryResolveUnverifiedMessage(String? message, String? bodyLower) {
+      final candidates = <String>[];
+      if (message != null && message.isNotEmpty) {
+        candidates.add(message.toLowerCase());
+      }
+      if (bodyLower != null && bodyLower.isNotEmpty) {
+        candidates.add(bodyLower);
+      }
+
+      for (final lower in candidates) {
+        final looksLikeVerification =
+            lower.contains('no verificado') ||
+            lower.contains('no verificada') ||
+            lower.contains('not verified') ||
+            lower.contains('unverified') ||
+            lower.contains('verify your') ||
+            lower.contains('verifica tu') ||
+            lower.contains('confirmar correo') ||
+            lower.contains('confirm email') ||
+            lower.contains('verificacion') ||
+            lower.contains('verificación') ||
+            lower.contains('activation') ||
+            lower.contains('activar');
+
+        if (looksLikeVerification) {
+          return 'Tu cuenta no esta verificada. Revisa tu email para activarla.';
+        }
+      }
+
+      return null;
+    }
+
+    final bodyLower = response.body.isNotEmpty
+        ? response.body.toLowerCase()
+        : null;
+
     // Intentar extraer mensaje del body
     String? bodyMessage;
     try {
@@ -71,6 +107,11 @@ class ErrorParser {
       // Ignorar errores al parsear el body
     }
 
+    if (context == 'login') {
+      final resolved = tryResolveUnverifiedMessage(bodyMessage, bodyLower);
+      if (resolved != null) return resolved;
+    }
+
     // Mensajes por código de estado
     switch (response.statusCode) {
       case 400:
@@ -86,12 +127,20 @@ class ErrorParser {
         return 'Sesión expirada. Por favor, inicia sesión nuevamente.';
 
       case 403:
+        if (context == 'login') {
+          final resolved = tryResolveUnverifiedMessage(bodyMessage, bodyLower);
+          if (resolved != null) return resolved;
+        }
         return bodyMessage ?? 'No tienes permiso para realizar esta acción.';
 
       case 404:
         return bodyMessage ?? 'Recurso no encontrado.';
 
       case 409:
+        if (context == 'login') {
+          final resolved = tryResolveUnverifiedMessage(bodyMessage, bodyLower);
+          if (resolved != null) return resolved;
+        }
         return bodyMessage ?? 'El usuario o email ya están registrados.';
 
       case 422:

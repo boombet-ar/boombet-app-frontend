@@ -5,6 +5,7 @@ import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
+import 'package:boombet_app/views/pages/qr_scanner_page.dart';
 import 'package:boombet_app/views/pages/settings_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showExitButton;
   final bool showThemeToggle;
   final bool showAdminTools;
+  final bool showQrScannerButton;
   final bool showMenuButton;
   final VoidCallback? onMenuPressed;
   final VoidCallback? onBackPressed;
@@ -39,6 +41,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showExitButton = true,
     this.showThemeToggle = true,
     this.showAdminTools = true,
+    this.showQrScannerButton = false,
     this.showMenuButton = false,
     this.onMenuPressed,
     this.onBackPressed,
@@ -181,6 +184,20 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 tooltip: '',
                 onPressed: () {
                   Navigator.push(context, FadeRoute(page: SettingsPage()));
+                },
+              ),
+            ),
+          if (showQrScannerButton && !kIsWeb)
+            Tooltip(
+              message: 'Escanear QR',
+              child: IconButton(
+                icon: Icon(Icons.qr_code_scanner, color: greenColor),
+                tooltip: '',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    FadeRoute(page: const QrScannerPage()),
+                  );
                 },
               ),
             ),

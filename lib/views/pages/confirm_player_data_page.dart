@@ -288,8 +288,13 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           await prefs.setBool('roulette_eligible', eligible);
           if (eligible) {
             await prefs.setBool('roulette_shown', false);
+            await clearAffiliateCodeUsage();
           } else {
             await prefs.setBool('roulette_shown', true);
+            await saveAffiliateCodeUsage(
+              validated: true,
+              token: affiliateToken,
+            );
           }
         } catch (_) {}
 

@@ -177,6 +177,7 @@ Future<void> main() async {
 
   // Cargar preferencias de accesibilidad
   await loadFontSizeMultiplier();
+  await loadSelectedPage();
 
   // Configurar callback para manejar 401 (token expirado)
   HttpClient.onUnauthorized = () {

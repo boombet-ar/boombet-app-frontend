@@ -3,6 +3,7 @@
 import 'package:boombet_app/config/debug_affiliation_previews.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin_tools_page.dart';
@@ -14,12 +15,74 @@ import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/no_casinos_available_page.dart';
 import 'package:boombet_app/views/pages/onboarding_page.dart';
+import 'package:boombet_app/views/pages/play_roulette_page.dart';
 import 'package:boombet_app/views/pages/reset_password_page.dart';
 import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+const String _affiliationFlowRouteKey = 'affiliation_flow_route';
+const Duration _isVerifiedTtl = Duration(seconds: 20);
+bool? _cachedIsVerified;
+DateTime? _cachedIsVerifiedAt;
+
+bool _parseIsVerified(dynamic data) {
+  if (data is Map<String, dynamic>) {
+    final direct = data['is_verified'] ?? data['isVerified'] ?? data['verified'];
+    if (_parseIsVerified(direct)) return true;
+
+    final nested = data['data'];
+    if (nested is Map<String, dynamic>) {
+      return _parseIsVerified(nested);
+    }
+  }
+
+  if (data is bool) return data;
+  if (data is num) return data == 1;
+  if (data is String) {
+    final lowered = data.toLowerCase().trim();
+    return lowered == 'true' || lowered == '1';
+  }
+
+  return false;
+}
+
+Future<bool?> _fetchIsVerified() async {
+  final now = DateTime.now();
+  if (_cachedIsVerifiedAt != null &&
+      now.difference(_cachedIsVerifiedAt!) < _isVerifiedTtl) {
+    return _cachedIsVerified;
+  }
+
+  try {
+    final data = await PlayerService().getCurrentUser();
+    final parsed = _parseIsVerified(data);
+    _cachedIsVerified = parsed;
+    _cachedIsVerifiedAt = now;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<String?> _loadAffiliationFlowRoute() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final route = prefs.getString(_affiliationFlowRouteKey);
+    return route?.trim().isEmpty == true ? null : route;
+  } catch (_) {
+    return null;
+  }
+}
+
+bool _isAffiliationRoute(String path) {
+  return path == '/confirm' ||
+      path.startsWith('/confirm/') ||
+      path == '/limited-home' ||
+      path == '/affiliation-results';
+}
 
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
@@ -72,28 +135,41 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       (kIsWeb && state.uri.path == '/reset-password/change-password') ||
       state.uri.path == '/affiliation-results';
 
-  if (isPublicRoute) {
-    debugPrint('­ƒöÇ Path coincide con ruta p├║blica, permitir acceso');
-    return null; // No redirigir, permitir acceso sin login
-  }
-
   // Verificar si hay sesi├│n activa
   final isLoggedIn = await TokenService.isTokenValid();
   debugPrint('­ƒöÇ isLoggedIn: $isLoggedIn');
 
+  final path = state.uri.path;
+
   // Si no est├í logueado y no est├í en / o rutas p├║blicas, ir al login
-  if (!isLoggedIn && state.uri.path != '/' && !isPublicRoute) {
+  if (!isLoggedIn) {
+    if (path == '/' || isPublicRoute) {
+      debugPrint('­ƒöÇ Path coincide con ruta p├║blica, permitir acceso');
+      return null;
+    }
+
     debugPrint('­ƒöÇ Redirigiendo a login (no logueado y path no permitido)');
     return '/';
   }
 
-  // Si est├í logueado e intenta ir al login, ir al home
-  if (isLoggedIn && state.uri.path == '/') {
-    debugPrint('­ƒöÇ Redirigiendo a home (logueado en login)');
-    return '/home';
+  final isVerified = await _fetchIsVerified();
+  final flowRoute = await _loadAffiliationFlowRoute();
+
+  if (isVerified == true) {
+    if (path == '/' || _isAffiliationRoute(path)) {
+      debugPrint('­ƒöÇ Redirigiendo a home (verificado)');
+      return '/home';
+    }
+  } else if (isVerified == false) {
+    if (path == '/' || path == '/home') {
+      debugPrint('­ƒöÇ Redirigiendo a confirm (no verificado)');
+      return flowRoute ?? '/confirm';
+    }
+  } else if (path == '/' && flowRoute != null) {
+    return flowRoute;
   }
 
-  if (state.uri.path == '/admin-tools') {
+  if (path == '/admin-tools') {
     final role = await TokenService.getUserRole();
     if (role == null || role.toUpperCase() != 'ADMIN') {
       return '/home';
@@ -122,6 +198,15 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    GoRoute(
+      path: '/play-roulette',
+      builder: (context, state) => const PlayRoulettePage(),
+    ),
+    GoRoute(
+      path: '/limited-home',
+      builder: (context, state) =>
+          LimitedHomePage(affiliationService: AffiliationService()),
+    ),
     GoRoute(
       path: '/admin-tools',
       builder: (context, state) => const AdminToolsPage(),

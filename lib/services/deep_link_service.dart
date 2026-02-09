@@ -129,6 +129,20 @@ class DeepLinkPayload {
 
     return false;
   }
+
+  bool get isRoulette {
+    if (uri.scheme == 'boombet') {
+      final host = uri.host.toLowerCase();
+      final path = uri.path.toLowerCase();
+      return host.contains('roulette') || path.contains('roulette');
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return uri.path.toLowerCase().contains('roulette');
+    }
+
+    return false;
+  }
 }
 
 class DeepLinkService {
@@ -167,6 +181,10 @@ class DeepLinkService {
 
     if (payload.isAffiliationCompleted) {
       return '/affiliation-results';
+    }
+
+    if (payload.isRoulette) {
+      return '/play-roulette';
     }
 
     if (payload.isPasswordReset) {

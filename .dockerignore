@@ -1,0 +1,12 @@
+.git
+.dart_tool
+build
+android
+ios
+windows
+linux
+macos
+test
+node_modules
+.vscode
+.idea
