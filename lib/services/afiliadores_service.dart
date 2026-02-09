@@ -5,6 +5,30 @@ import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/services/http_client.dart';
 
 class AfiliadoresService {
+  Future<List<String>> fetchAfiliadorTipos() async {
+    final url = '${ApiConfig.baseUrl}/afiliadores/tipos-afiliador';
+    final response = await HttpClient.get(
+      url,
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        return data.map((e) => e.toString()).toList();
+      }
+      if (data is Map<String, dynamic>) {
+        final list = data['data'] ?? data['tipos'] ?? data['types'];
+        if (list is List) {
+          return list.map((e) => e.toString()).toList();
+        }
+      }
+      return [];
+    }
+
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
   Future<AfiliadoresPage> fetchAfiliadores({
     int page = 0,
     int size = 10,

@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: boombet-web:qa
+    container_name: boombet-frontend-qa
+    ports:
+      - "51147:80"
+    restart: unless-stopped

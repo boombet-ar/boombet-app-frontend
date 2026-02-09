@@ -53,6 +53,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   bool _isProcessing = false;
   bool _isVerified = false;
   bool _isCheckingVerification = false;
+  bool _affiliationLoaded = false;
 
   PlayerData? get _resolvedPlayerData =>
       widget.playerData ?? affiliationPlayerDataNotifier.value;
@@ -109,8 +110,22 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     }
 
     if (!widget.preview) {
-      _loadAffiliationData();
+      _initializeAffiliationState();
     }
+  }
+
+  Future<void> _initializeAffiliationState() async {
+    await saveAffiliationData(
+      email: widget.email,
+      username: widget.username,
+      password: widget.password,
+      dni: widget.dni,
+      telefono: widget.telefono,
+      genero: widget.genero,
+      playerData: widget.playerData,
+    );
+    saveAffiliationFlowRoute('/confirm');
+    await _loadAffiliationData();
   }
 
   @override
@@ -134,6 +149,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   Future<void> _checkIsVerified({bool showFeedback = false}) async {
     if (widget.preview) return;
     if (_isCheckingVerification || _isVerified) return;
+
+    if (!_affiliationLoaded) {
+      await _loadAffiliationData();
+    }
 
     // Obtener el email del usuario
     final email = _resolvedEmail;
@@ -159,12 +178,34 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       final url =
           '${ApiConfig.baseUrl}/users/auth/isVerified?email=${Uri.encodeComponent(email)}';
 
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: const {'Accept': 'application/json'},
+      );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final body = response.body.trim();
+        dynamic data;
+        if (body == 'true' || body == 'false') {
+          data = body == 'true';
+        } else {
+          try {
+            data = jsonDecode(response.body);
+          } catch (_) {
+            if (showFeedback && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No se pudo validar el email. Reintenta.'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+            return;
+          }
+        }
 
         // Intentar múltiples formas de parsear is_verified
         bool isVerified = false;
@@ -499,6 +540,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
       // Generar WebSocket URL
       final wsUrl = _generateWebSocketUrl();
+      await saveAffiliationWsUrl(wsUrl);
 
       // Preparar payload con estructura exacta requerida por el backend
       final payload = {
@@ -592,12 +634,17 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
         if (!mounted) return;
 
+        await saveAffiliationFlowRoute('/limited-home');
+
         // Navegar a LimitedHomePage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) =>
-                LimitedHomePage(affiliationService: _affiliationService),
+                LimitedHomePage(
+                  affiliationService: _affiliationService,
+                  wsUrl: wsUrl,
+                ),
           ),
         );
       } else {
@@ -664,20 +711,26 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         body: const {},
         includeAuth: true,
       );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         return null;
       }
 
+      String errorMessage = 'Error afiliando a Bonda.';
       try {
-        final errorData = jsonDecode(response.body);
-        final message = errorData['message']?.toString();
-        return message?.isNotEmpty == true
-            ? message
-            : 'Error ${response.statusCode}: ${response.body}';
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          errorMessage =
+              decoded['message'] ?? decoded['error'] ?? errorMessage;
+        }
       } catch (_) {
-        return 'Error ${response.statusCode}: ${response.body}';
+        if (response.body.isNotEmpty) {
+          errorMessage = 'Error ${response.statusCode}: ${response.body}';
+        }
       }
+
+      return errorMessage;
     } catch (e) {
       return 'Error afiliando a Bonda: $e';
     }
@@ -908,6 +961,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     if (!mounted) return;
 
     _syncControllersWithPlayerData();
+    _affiliationLoaded = true;
 
     if (widget.playerData == null) {
       setState(() {});

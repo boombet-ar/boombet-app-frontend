@@ -7,6 +7,9 @@ ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
 ValueNotifier<bool> isLightModeNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
 ValueNotifier<double> fontSizeMultiplierNotifier = ValueNotifier(1.0);
+ValueNotifier<String> affiliateTypeNotifier = ValueNotifier('');
+ValueNotifier<bool> affiliateCodeValidatedNotifier = ValueNotifier(false);
+ValueNotifier<String> affiliateCodeTokenNotifier = ValueNotifier('');
 
 // Notifiers para datos de afiliación
 ValueNotifier<PlayerData?> affiliationPlayerDataNotifier = ValueNotifier(null);
@@ -26,6 +29,14 @@ const String _keyDni = 'affiliation_dni';
 const String _keyTelefono = 'affiliation_telefono';
 const String _keyGenero = 'affiliation_genero';
 const String _keyFontSizeMultiplier = 'font_size_multiplier';
+const String _keyAffiliateType = 'affiliate_type';
+const String _keyAffiliateCodeValidated = 'affiliate_code_validated';
+const String _keyAffiliateCodeToken = 'affiliate_code_token';
+const String _keySelectedPage = 'selected_page_index';
+const String _keyAffiliationFlowRoute = 'affiliation_flow_route';
+const String _keyAffiliationWsUrl = 'affiliation_ws_url';
+
+bool selectedPageWasRestored = false;
 
 /// Guarda datos de afiliación en SharedPreferences
 Future<void> saveAffiliationData({
@@ -187,5 +198,170 @@ Future<void> loadFontSizeMultiplier() async {
     debugPrint('💾 [PERSIST] Font size multiplier cargado: $multiplier');
   } catch (e) {
     debugPrint('❌ [PERSIST] Error cargando font size multiplier: $e');
+  }
+}
+
+Future<void> saveAffiliateType(String? type) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final normalized = type?.trim() ?? '';
+    if (normalized.isEmpty) {
+      await prefs.remove(_keyAffiliateType);
+      affiliateTypeNotifier.value = '';
+      return;
+    }
+
+    await prefs.setString(_keyAffiliateType, normalized);
+    affiliateTypeNotifier.value = normalized;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando tipo afiliador: $e');
+  }
+}
+
+Future<void> loadAffiliateType() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_keyAffiliateType) ?? '';
+    affiliateTypeNotifier.value = value;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando tipo afiliador: $e');
+  }
+}
+
+Future<void> clearAffiliateType() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAffiliateType);
+    affiliateTypeNotifier.value = '';
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error limpiando tipo afiliador: $e');
+  }
+}
+
+Future<void> saveAffiliateCodeUsage({
+  required bool validated,
+  String? token,
+}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAffiliateCodeValidated, validated);
+    affiliateCodeValidatedNotifier.value = validated;
+
+    final normalized = token?.trim() ?? '';
+    if (normalized.isEmpty) {
+      await prefs.remove(_keyAffiliateCodeToken);
+      affiliateCodeTokenNotifier.value = '';
+    } else {
+      await prefs.setString(_keyAffiliateCodeToken, normalized);
+      affiliateCodeTokenNotifier.value = normalized;
+    }
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando uso de afiliador: $e');
+  }
+}
+
+Future<void> loadAffiliateCodeUsage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final validated = prefs.getBool(_keyAffiliateCodeValidated) ?? false;
+    affiliateCodeValidatedNotifier.value = validated;
+
+    final token = prefs.getString(_keyAffiliateCodeToken) ?? '';
+    affiliateCodeTokenNotifier.value = token;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando uso de afiliador: $e');
+  }
+}
+
+Future<void> clearAffiliateCodeUsage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAffiliateCodeValidated);
+    await prefs.remove(_keyAffiliateCodeToken);
+    affiliateCodeValidatedNotifier.value = false;
+    affiliateCodeTokenNotifier.value = '';
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error limpiando uso de afiliador: $e');
+  }
+}
+
+Future<void> saveSelectedPage(int value) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keySelectedPage, value);
+    selectedPageNotifier.value = value;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando selected page: $e');
+  }
+}
+
+Future<void> loadSelectedPage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt(_keySelectedPage);
+    if (saved != null) {
+      selectedPageNotifier.value = saved;
+    }
+    selectedPageWasRestored = true;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando selected page: $e');
+  }
+}
+
+Future<void> saveAffiliationFlowRoute(String route) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAffiliationFlowRoute, route);
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando flow route: $e');
+  }
+}
+
+Future<String?> loadAffiliationFlowRoute() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final route = prefs.getString(_keyAffiliationFlowRoute);
+    return route?.trim().isEmpty == true ? null : route;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando flow route: $e');
+    return null;
+  }
+}
+
+Future<void> clearAffiliationFlowRoute() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAffiliationFlowRoute);
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error limpiando flow route: $e');
+  }
+}
+
+Future<void> saveAffiliationWsUrl(String wsUrl) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAffiliationWsUrl, wsUrl);
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error guardando ws url: $e');
+  }
+}
+
+Future<String?> loadAffiliationWsUrl() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final wsUrl = prefs.getString(_keyAffiliationWsUrl);
+    return wsUrl?.trim().isEmpty == true ? null : wsUrl;
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error cargando ws url: $e');
+    return null;
+  }
+}
+
+Future<void> clearAffiliationWsUrl() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAffiliationWsUrl);
+  } catch (e) {
+    debugPrint('❌ [PERSIST] Error limpiando ws url: $e');
   }
 }

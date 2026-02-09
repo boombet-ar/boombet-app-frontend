@@ -28,6 +28,7 @@ Future<void> _subscribeToTopics() async {
 class _HomePageState extends State<HomePage> {
   late GlobalKey<DiscountsContentState> _discountsKey;
   late GlobalKey<ClaimedCouponsContentState> _claimedKey;
+  bool _allowQrScanner = false;
 
   @override
   void initState() {
@@ -35,9 +36,26 @@ class _HomePageState extends State<HomePage> {
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
     _subscribeToTopics();
+    _loadQrScannerAvailability();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      selectedPageNotifier.value = 0;
+      if (!kIsWeb || !selectedPageWasRestored) {
+        saveSelectedPage(0);
+      }
     });
+  }
+
+  Future<void> _loadQrScannerAvailability() async {
+    await loadAffiliateCodeUsage();
+    await loadAffiliateType();
+    if (!mounted) return;
+
+    if (!affiliateCodeValidatedNotifier.value) {
+      setState(() => _allowQrScanner = false);
+      return;
+    }
+
+    final tipo = affiliateTypeNotifier.value.trim().toUpperCase();
+    setState(() => _allowQrScanner = tipo == 'RULETA');
   }
 
   @override
@@ -47,12 +65,13 @@ class _HomePageState extends State<HomePage> {
       builder: (context, selectedPage, child) {
         final safeIndex = selectedPage.clamp(0, 5);
         return Scaffold(
-          appBar: const MainAppBar(
+          appBar: MainAppBar(
             showSettings: true,
             showLogo: true,
             showProfileButton: true,
             showLogoutButton: true,
             showExitButton: false,
+            showQrScannerButton: _allowQrScanner,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,

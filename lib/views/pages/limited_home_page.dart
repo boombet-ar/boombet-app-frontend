@@ -25,12 +25,14 @@ class LimitedHomePage extends StatefulWidget {
   final AffiliationService affiliationService;
   final bool preview;
   final String? previewStatusMessage;
+  final String? wsUrl;
 
   const LimitedHomePage({
     super.key,
     required this.affiliationService,
     this.preview = false,
     this.previewStatusMessage,
+    this.wsUrl,
   });
 
   @override
@@ -42,6 +44,8 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
   bool _affiliationCompleted = false;
   String _statusMessage = 'Iniciando proceso de afiliación...';
   bool _isGameOpen = false;
+  bool _wsRestored = false;
+  bool _allowQrScanner = false;
 
   static const _limitedGameRouteName = '/limited/game';
 
@@ -50,8 +54,16 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     super.initState();
     // Resetear a la página de Home cuando se carga
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      selectedPageNotifier.value = 0;
+      if (!kIsWeb || !selectedPageWasRestored) {
+        saveSelectedPage(0);
+      }
     });
+
+    if (!widget.preview) {
+      saveAffiliationFlowRoute('/limited-home');
+    }
+
+    _loadAffiliateType();
 
     // // Timer de 15 segundos para mostrar resultados
     // Future.delayed(const Duration(seconds: 15), () {
@@ -68,6 +80,8 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
       }
       return;
     }
+
+    _restoreWebSocketIfNeeded();
 
     // Escuchar mensajes del WebSocket
     _wsSubscription = widget.affiliationService.messageStream.listen(
@@ -104,6 +118,30 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
         }
       },
     );
+  }
+
+  Future<void> _restoreWebSocketIfNeeded() async {
+    if (_wsRestored) return;
+    _wsRestored = true;
+
+    final wsUrl = widget.wsUrl ?? await loadAffiliationWsUrl();
+    if (wsUrl == null || wsUrl.trim().isEmpty) return;
+
+    await widget.affiliationService.connectToWebSocket(wsUrl: wsUrl, token: '');
+  }
+
+  Future<void> _loadAffiliateType() async {
+    await loadAffiliateCodeUsage();
+    await loadAffiliateType();
+    if (!mounted) return;
+
+    if (!affiliateCodeValidatedNotifier.value) {
+      setState(() => _allowQrScanner = false);
+      return;
+    }
+
+    final tipo = affiliateTypeNotifier.value.trim().toUpperCase();
+    setState(() => _allowQrScanner = tipo == 'RULETA');
   }
 
   Future<void> _closeGameIfOpen() async {
@@ -174,12 +212,13 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
         final safeIndex = selectedPage.clamp(0, 4);
         return Scaffold(
           // AppBar sin configuración ni perfil
-          appBar: const MainAppBar(
+          appBar: MainAppBar(
             showSettings: false,
             showLogo: true,
             showProfileButton: false,
             showLogoutButton: true,
             showExitButton: false,
+            showQrScannerButton: _allowQrScanner,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,
