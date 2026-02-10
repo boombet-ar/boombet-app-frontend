@@ -1,4 +1,5 @@
 ﻿import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
@@ -12,6 +13,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:boombet_app/services/token_service.dart';
 
 class ClaimedCouponsContent extends StatefulWidget {
   const ClaimedCouponsContent({
@@ -35,6 +38,15 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   bool _hasError = false;
   String _errorMessage = '';
   bool _claimedHasMore = false;
+  bool _claimedCacheApplied = false;
+  DateTime? _claimedCacheTimestamp;
+  static const String _claimedCacheKey = 'cached_claimed_cupones_bonda';
+  static const String _claimedCacheTsKey = 'cached_claimed_cupones_ts_bonda';
+  static const String _claimedCachePageKey =
+      'cached_claimed_cupones_page';
+  static const String _claimedCacheHasMoreKey =
+      'cached_claimed_cupones_has_more';
+  static const Duration _claimedCacheTtl = Duration(hours: 6);
 
   String _safeImageUrl(String url) {
     if (url.isEmpty) return url;
@@ -59,13 +71,93 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadClaimedCupones();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadClaimedCache();
+      if (!_claimedCacheApplied) {
+        await _loadClaimedCupones();
+      }
     });
   }
 
   Future<void> refreshClaimedCupones() async {
     await _loadClaimedCupones();
+  }
+
+  Future<void> _clearClaimedCachePrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_claimedCacheKey);
+    await prefs.remove(_claimedCacheTsKey);
+    await prefs.remove(_claimedCachePageKey);
+    await prefs.remove(_claimedCacheHasMoreKey);
+  }
+
+  Future<void> _loadClaimedCache() async {
+    try {
+      final token = await TokenService.getToken();
+      if (token == null ||
+          token.isEmpty ||
+          TokenService.isJwtExpiredSafe(token)) {
+        await _clearClaimedCachePrefs();
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(_claimedCacheKey);
+      if (cached == null || cached.isEmpty) return;
+
+      final cachedTs = prefs.getString(_claimedCacheTsKey);
+      if (cachedTs != null) {
+        _claimedCacheTimestamp = DateTime.tryParse(cachedTs);
+      }
+
+      final decoded = jsonDecode(cached);
+      if (decoded is! List) return;
+      final cachedCupones = decoded
+          .map((item) {
+            try {
+              return Cupon.fromJson(item as Map<String, dynamic>);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<Cupon>()
+          .toList();
+      if (cachedCupones.isEmpty) return;
+      if (!mounted) return;
+
+      setState(() {
+        _claimedCupones = cachedCupones;
+        _claimedPage = prefs.getInt(_claimedCachePageKey) ?? _claimedPage;
+        _claimedHasMore =
+            prefs.getBool(_claimedCacheHasMoreKey) ?? _claimedHasMore;
+        _claimedCacheApplied = true;
+      });
+
+      final isStale = _claimedCacheTimestamp != null &&
+          DateTime.now().difference(_claimedCacheTimestamp!) >
+              _claimedCacheTtl;
+      if (isStale) {
+        debugPrint('INFO: Cache de cupones reclamados vencido, usando cache igualmente.');
+      }
+    } catch (e) {
+      debugPrint('WARN: No se pudo cargar cache de cupones reclamados: $e');
+    }
+  }
+
+  Future<void> _persistClaimedCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = _claimedCupones.map((c) => c.toJson()).toList();
+      await prefs.setString(_claimedCacheKey, jsonEncode(data));
+      await prefs.setString(
+        _claimedCacheTsKey,
+        DateTime.now().toIso8601String(),
+      );
+      await prefs.setInt(_claimedCachePageKey, _claimedPage);
+      await prefs.setBool(_claimedCacheHasMoreKey, _claimedHasMore);
+    } catch (e) {
+      debugPrint('WARN: No se pudo guardar cache de cupones reclamados: $e');
+    }
   }
 
   Future<void> _loadClaimedCupones({int? pageOverride}) async {
@@ -98,7 +190,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
         _claimedHasMore = result['has_more'] as bool? ?? false;
         _claimedPage = targetPage;
         _isLoading = false;
+        _claimedCacheApplied = true;
       });
+
+      unawaited(_persistClaimedCache());
     } catch (e) {
       if (!mounted) return;
 

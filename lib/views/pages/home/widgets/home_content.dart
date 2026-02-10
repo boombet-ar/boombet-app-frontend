@@ -63,6 +63,15 @@ class _HomeContentState extends State<HomeContent> {
       final prefs = await SharedPreferences.getInstance();
       final alreadyShown = prefs.getBool(_rouletteShownKey) ?? false;
       if (alreadyShown) return;
+
+      var eligible = prefs.getBool(_rouletteEligibleKey);
+      if (eligible == null) {
+        await loadAffiliateCodeUsage();
+        eligible = !affiliateCodeValidatedNotifier.value;
+        await prefs.setBool(_rouletteEligibleKey, eligible);
+      }
+      if (!eligible) return;
+
       if (_rouletteDialogOpen) return;
       if (!mounted) return;
 

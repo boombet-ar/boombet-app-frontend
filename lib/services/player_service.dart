@@ -11,20 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class PlayerService {
-  Future<PlayerData> getPlayerData(String idJugador) async {
-    final url = "${ApiConfig.baseUrl}/jugadores/$idJugador";
-    log("🌐 GET → $url");
-
-    final response = await HttpClient.get(url, includeAuth: true);
-
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body);
-      log("📥 PlayerData recibido: $jsonData");
-      return PlayerData.fromJugadorJson(jsonData);
-    } else {
-      throw Exception("Error ${response.statusCode}: ${response.body}");
-    }
-  }
 
   Future<PlayerData> updatePlayerData(PlayerUpdateRequest data) async {
     final url = "${ApiConfig.baseUrl}/jugadores/update";
@@ -66,6 +52,34 @@ class PlayerService {
     } else {
       throw Exception("Error ${response.statusCode}: ${response.body}");
     }
+  }
+
+  Future<CurrentUserSnapshot> getCurrentUserSnapshot() async {
+    final data = await getCurrentUser();
+    final jugador = _extractDatosJugador(data);
+    if (jugador == null) {
+      throw Exception('Respuesta sin datos_jugador');
+    }
+
+    final player = PlayerData.fromJugadorJson(jugador);
+    final avatarRaw = _extractAvatarUrl(data);
+    final avatarResolved = avatarRaw.isNotEmpty
+        ? _appendCacheBuster(_resolveAvatarUrl(avatarRaw))
+        : '';
+
+    return CurrentUserSnapshot(
+      playerData: player,
+      avatarUrl: avatarResolved,
+    );
+  }
+
+  Future<PlayerData> getCurrentUserPlayerData() async {
+    final data = await getCurrentUser();
+    final jugador = _extractDatosJugador(data);
+    if (jugador == null) {
+      throw Exception('Respuesta sin datos_jugador');
+    }
+    return PlayerData.fromJugadorJson(jugador);
   }
 
   Future<String?> getCurrentUserAvatarUrl() async {
@@ -216,4 +230,29 @@ class PlayerService {
 
     return '';
   }
+
+  Map<String, dynamic>? _extractDatosJugador(dynamic jsonData) {
+    if (jsonData is Map<String, dynamic>) {
+      final direct = jsonData['datos_jugador'];
+      if (direct is Map<String, dynamic>) return direct;
+
+      final data = jsonData['data'];
+      if (data is Map<String, dynamic>) {
+        final nested = data['datos_jugador'];
+        if (nested is Map<String, dynamic>) return nested;
+      }
+    }
+
+    return null;
+  }
+}
+
+class CurrentUserSnapshot {
+  final PlayerData playerData;
+  final String avatarUrl;
+
+  const CurrentUserSnapshot({
+    required this.playerData,
+    required this.avatarUrl,
+  });
 }

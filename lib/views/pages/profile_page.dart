@@ -1,5 +1,4 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
@@ -12,7 +11,6 @@ import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -128,38 +126,11 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      final token = await TokenService.getToken();
+        final snapshot = await PlayerService().getCurrentUserSnapshot();
 
-      debugPrint("🧪 TOKEN RAW: '$token'");
-
-      if (token == null || token.isEmpty || token == "null") {
-        throw Exception("Token vacío o inválido");
-      }
-
-      // Decodificar
-      late final Map<String, dynamic> decoded;
-      try {
-        decoded = JwtDecoder.decode(token);
-        debugPrint("🧩 DECODED: $decoded");
-      } catch (decodeError) {
-        throw Exception("Error decodificando token: $decodeError");
-      }
-
-      final idJugador = decoded["idJugador"];
-      if (idJugador == null) throw Exception("Token sin idJugador");
-
-      final player = await PlayerService().getPlayerData(idJugador.toString());
-
-      // Traer icono desde /users/me
-      final iconUrl = await PlayerService().getCurrentUserAvatarUrl();
-
-      final bustedUrl = iconUrl != null && iconUrl.isNotEmpty
-          ? '$iconUrl?t=${DateTime.now().millisecondsSinceEpoch}'
-          : null;
-
-      final mergedPlayer = bustedUrl != null
-          ? player.copyWith(avatarUrl: bustedUrl)
-          : player;
+        final mergedPlayer = snapshot.avatarUrl.isNotEmpty
+          ? snapshot.playerData.copyWith(avatarUrl: snapshot.avatarUrl)
+          : snapshot.playerData;
 
       setState(() {
         _playerData = mergedPlayer;

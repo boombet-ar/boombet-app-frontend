@@ -38,7 +38,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
       final response = await HttpClient.get(
         url,
         includeAuth: true,
-        cacheTtl: Duration.zero,
+        cacheTtl: const Duration(seconds: 45),
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {

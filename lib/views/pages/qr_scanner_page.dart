@@ -86,12 +86,27 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     final uri = _normalizeUri(value);
     if (uri == null) {
+      debugPrint('[QR] Raw value (no uri): $value');
       return;
     }
 
+    debugPrint('[QR] Raw value: $value');
+    debugPrint('[QR] Parsed uri: $uri');
+
     if (_isRouletteDeepLink(uri)) {
       if (!mounted) return;
-      Navigator.push(context, FadeRoute(page: const PlayRoulettePage()));
+      final codigo = _extractRouletteCode(uri);
+      debugPrint('[QR] Roulette deeplink codigoRuleta: ${codigo ?? ""}');
+      Navigator.push(
+        context,
+        FadeRoute(
+          page: PlayRoulettePage(
+            codigoRuleta: codigo,
+            qrRawValue: value,
+            qrParsedUri: uri.toString(),
+          ),
+        ),
+      );
       return;
     }
 
@@ -148,6 +163,25 @@ class _QrScannerPageState extends State<QrScannerPage>
     final host = uri.host.toLowerCase();
     final path = uri.path.toLowerCase();
     return host.contains('roulette') || path.contains('roulette');
+  }
+
+  String? _extractRouletteCode(Uri uri) {
+    final queryCode = uri.queryParameters['codigoRuleta'] ??
+        uri.queryParameters['codigo_ruleta'] ??
+        uri.queryParameters['code'] ??
+        uri.queryParameters['codigo'];
+    if (queryCode != null && queryCode.trim().isNotEmpty) {
+      return queryCode.trim();
+    }
+
+    if (uri.pathSegments.isNotEmpty) {
+      final last = uri.pathSegments.last.trim();
+      if (last.isNotEmpty && last.toLowerCase() != 'roulette') {
+        return last;
+      }
+    }
+
+    return null;
   }
 
   @override

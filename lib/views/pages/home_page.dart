@@ -29,12 +29,14 @@ class _HomePageState extends State<HomePage> {
   late GlobalKey<DiscountsContentState> _discountsKey;
   late GlobalKey<ClaimedCouponsContentState> _claimedKey;
   bool _allowQrScanner = false;
+  late List<Widget?> _pages;
 
   @override
   void initState() {
     super.initState();
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
+    _pages = List<Widget?>.filled(6, null);
     _subscribeToTopics();
     _loadQrScannerAvailability();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,6 +66,7 @@ class _HomePageState extends State<HomePage> {
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
         final safeIndex = selectedPage.clamp(0, 5);
+        _pages[safeIndex] ??= _buildPage(safeIndex);
         return Scaffold(
           appBar: MainAppBar(
             showSettings: true,
@@ -77,27 +80,42 @@ class _HomePageState extends State<HomePage> {
             maxWidth: 1200,
             child: IndexedStack(
               index: safeIndex,
-              children: [
-                HomeContent(),
-                DiscountsContent(
-                  key: _discountsKey,
-                  onCuponClaimed: () {
-                    _claimedKey.currentState?.refreshClaimedCupones();
-                    _discountsKey.currentState?.refreshClaimedIds();
-                  },
-                  claimedKey: _claimedKey,
-                ),
-                const RafflesPage(),
-                const ForumPage(),
-                const GamesPage(),
-                const MyCasinosPage(),
-              ],
+              children: List<Widget>.generate(6, (index) {
+                final page = _pages[index];
+                return page ?? const SizedBox.shrink();
+              }),
             ),
           ),
           bottomNavigationBar: const NavbarWidget(),
         );
       },
     );
+  }
+
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return HomeContent();
+      case 1:
+        return DiscountsContent(
+          key: _discountsKey,
+          onCuponClaimed: () {
+            _claimedKey.currentState?.refreshClaimedCupones();
+            _discountsKey.currentState?.refreshClaimedIds();
+          },
+          claimedKey: _claimedKey,
+        );
+      case 2:
+        return const RafflesPage();
+      case 3:
+        return const ForumPage();
+      case 4:
+        return const GamesPage();
+      case 5:
+        return const MyCasinosPage();
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 

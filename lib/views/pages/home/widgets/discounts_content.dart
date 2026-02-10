@@ -215,10 +215,8 @@ class DiscountsContentState extends State<DiscountsContent> {
       if (cachedTs != null) {
         _cacheTimestamp = DateTime.tryParse(cachedTs);
       }
-      if (_cacheTimestamp != null &&
-          DateTime.now().difference(_cacheTimestamp!) > _cacheTtl) {
-        return;
-      }
+        final isStale = _cacheTimestamp != null &&
+          DateTime.now().difference(_cacheTimestamp!) > _cacheTtl;
       final decoded = jsonDecode(cached);
       if (decoded is! List) return;
       final cachedCupones = decoded
@@ -243,6 +241,10 @@ class DiscountsContentState extends State<DiscountsContent> {
         _hasMore = prefs.getBool(_cachedHasMoreKey) ?? _hasMore;
         _pageCache[_apiPage] = cachedCupones;
       });
+
+      if (isStale) {
+        debugPrint('INFO: Cache de cupones vencido, usando cache igualmente.');
+      }
     } catch (e) {
       debugPrint('WARN: No se pudo cargar cache de cupones: $e');
     }

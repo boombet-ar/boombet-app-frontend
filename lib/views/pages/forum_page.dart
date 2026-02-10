@@ -329,7 +329,7 @@ class _ForumPageState extends State<ForumPage> {
       final response = await HttpClient.get(
         url,
         includeAuth: true,
-        cacheTtl: Duration.zero,
+        cacheTtl: const Duration(seconds: 45),
       );
 
       if (!mounted) return;
