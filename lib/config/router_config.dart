@@ -200,7 +200,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
     GoRoute(
       path: '/play-roulette',
-      builder: (context, state) => const PlayRoulettePage(),
+      builder: (context, state) => PlayRoulettePage(
+        codigoRuleta: state.uri.queryParameters['codigoRuleta'],
+      ),
     ),
     GoRoute(
       path: '/limited-home',

@@ -1,10 +1,105 @@
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 
-class PlayRoulettePage extends StatelessWidget {
-  const PlayRoulettePage({super.key});
+class PlayRoulettePage extends StatefulWidget {
+  final String? codigoRuleta;
+  final String? qrRawValue;
+  final String? qrParsedUri;
+
+  const PlayRoulettePage({
+    super.key,
+    this.codigoRuleta,
+    this.qrRawValue,
+    this.qrParsedUri,
+  });
+
+  @override
+  State<PlayRoulettePage> createState() => _PlayRoulettePageState();
+}
+
+class _PlayRoulettePageState extends State<PlayRoulettePage> {
+  bool _isLoading = false;
+  String? _rouletteStatus;
+  String? _statusMessage;
+  String? _resolvedCodigo;
+
+  Future<String> _resolveCodigoRuleta() async {
+    final direct = widget.codigoRuleta?.trim() ?? '';
+    if (direct.isNotEmpty) return direct;
+
+    await loadAffiliateCodeUsage();
+    return affiliateCodeTokenNotifier.value.trim();
+  }
+
+  Future<void> _playRoulette() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _statusMessage = null;
+    });
+
+    final code = await _resolveCodigoRuleta();
+    if (mounted) {
+      setState(() {
+        _resolvedCodigo = code.isEmpty ? null : code;
+      });
+    }
+    if (!mounted) return;
+
+    if (code.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _rouletteStatus = 'locked';
+        _statusMessage = 'No se encontró el código de afiliador.';
+      });
+      return;
+    }
+
+    final encoded = Uri.encodeComponent(code);
+    final url = '${ApiConfig.baseUrl}/ruleta/jugar?codigoRuleta=$encoded';
+
+    try {
+      final response = await HttpClient.post(
+        url,
+        body: const {},
+        includeAuth: true,
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _rouletteStatus = 'available';
+          _statusMessage = 'Ruleta disponible.';
+        });
+      } else {
+        setState(() {
+          _rouletteStatus = 'locked';
+          _statusMessage = response.body.isNotEmpty
+              ? response.body
+              : 'Ruleta ocupada o código inválido.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _rouletteStatus = 'locked';
+        _statusMessage = 'Error de conexión: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +149,38 @@ class PlayRoulettePage extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
+                if (_rouletteStatus != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _rouletteStatus == 'available'
+                        ? 'Estado: available'
+                        : 'Estado: locked',
+                    style: TextStyle(
+                      color: _rouletteStatus == 'available'
+                          ? AppConstants.primaryGreen
+                          : AppConstants.warningOrange,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (_statusMessage != null) ...[
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: Text(
+                      _statusMessage!,
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.75),
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+                if (widget.qrRawValue != null || widget.qrParsedUri != null) ...[
+                  const SizedBox(height: 16),
+                  _buildDebugPanel(textColor),
+                ],
                 const SizedBox(height: 20),
                 _buildPlayButton(accent),
               ],
@@ -90,17 +217,67 @@ class PlayRoulettePage extends StatelessWidget {
         width: 220,
         height: 52,
         child: TextButton(
-          onPressed: () {},
+          onPressed: _isLoading ? null : _playRoulette,
           style: TextButton.styleFrom(
             foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
             ),
           ),
-          child: const Text(
-            'Jugar',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  'Jugar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugPanel(Color textColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: textColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Debug QR',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w700,
+            ),
           ),
+          const SizedBox(height: 6),
+          _buildDebugRow('Raw', widget.qrRawValue, textColor),
+          _buildDebugRow('URI', widget.qrParsedUri, textColor),
+          _buildDebugRow('Codigo usado', _resolvedCodigo, textColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugRow(String label, String? value, Color textColor) {
+    final display = (value == null || value.trim().isEmpty)
+        ? '-'
+        : value.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        '$label: $display',
+        style: TextStyle(
+          color: textColor.withValues(alpha: 0.8),
+          fontSize: 12,
         ),
       ),
     );
