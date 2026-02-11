@@ -1,7 +1,6 @@
-import 'package:boombet_app/config/api_config.dart';
+import 'dart:math' as math;
+
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -22,92 +21,55 @@ class PlayRoulettePage extends StatefulWidget {
   State<PlayRoulettePage> createState() => _PlayRoulettePageState();
 }
 
-class _PlayRoulettePageState extends State<PlayRoulettePage> {
-  bool _isLoading = false;
-  String? _rouletteStatus;
-  String? _statusMessage;
-  String? _resolvedCodigo;
+class _PlayRoulettePageState extends State<PlayRoulettePage>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _rotateController;
+  late AnimationController _particlesController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
 
-  Future<String> _resolveCodigoRuleta() async {
-    final direct = widget.codigoRuleta?.trim() ?? '';
-    if (direct.isNotEmpty) return direct;
+  @override
+  void initState() {
+    super.initState();
 
-    await loadAffiliateCodeUsage();
-    return affiliateCodeTokenNotifier.value.trim();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _rotateController = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )..repeat();
+
+    _particlesController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
-  Future<void> _playRoulette() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-      _statusMessage = null;
-    });
-
-    final code = await _resolveCodigoRuleta();
-    if (mounted) {
-      setState(() {
-        _resolvedCodigo = code.isEmpty ? null : code;
-      });
-    }
-    if (!mounted) return;
-
-    if (code.isEmpty) {
-      setState(() {
-        _isLoading = false;
-        _rouletteStatus = 'locked';
-        _statusMessage = 'No se encontró el código de afiliador.';
-      });
-      return;
-    }
-
-    final encoded = Uri.encodeComponent(code);
-    final url = '${ApiConfig.baseUrl}/ruleta/jugar?codigoRuleta=$encoded';
-
-    try {
-      final response = await HttpClient.post(
-        url,
-        body: const {},
-        includeAuth: true,
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _rouletteStatus = 'available';
-          _statusMessage = 'Ruleta disponible.';
-        });
-      } else {
-        setState(() {
-          _rouletteStatus = 'locked';
-          _statusMessage = response.body.isNotEmpty
-              ? response.body
-              : 'Ruleta ocupada o código inválido.';
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _rouletteStatus = 'locked';
-        _statusMessage = 'Error de conexión: $e';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _rotateController.dispose();
+    _particlesController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
     final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
-    final accent = theme.colorScheme.primary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -119,167 +81,303 @@ class _PlayRoulettePageState extends State<PlayRoulettePage> {
       ),
       body: ResponsiveWrapper(
         maxWidth: 900,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.paddingLarge),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'RULETA',
+        child: Stack(
+          children: [
+            // Animated background particles
+            _buildParticlesBackground(),
+
+            // Main content
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppConstants.paddingXLarge),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+
+                    // Animated roulette icon with glow
+                    _buildAnimatedRouletteIcon(),
+
+                    const SizedBox(height: 40),
+
+                    // Success message with gradient
+                    _buildSuccessMessage(isDark),
+
+                    const SizedBox(height: 24),
+
+                    // Subtitle
+                    _buildSubtitle(isDark),
+
+                    const SizedBox(height: 40),
+
+                    // Decorative elements
+                    _buildDecorativeStars(),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParticlesBackground() {
+    return AnimatedBuilder(
+      animation: _particlesController,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _ParticlesPainter(animation: _particlesController.value),
+          size: Size.infinite,
+        );
+      },
+    );
+  }
+
+  Widget _buildAnimatedRouletteIcon() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_scaleAnimation, _glowAnimation]),
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Container(
+            width: 180,
+            height: 180,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppConstants.primaryGreen.withOpacity(_glowAnimation.value),
+                  AppConstants.primaryGreen.withOpacity(
+                    _glowAnimation.value * 0.3,
+                  ),
+                  Colors.transparent,
+                ],
+                stops: const [0.3, 0.6, 1.0],
+              ),
+            ),
+            child: Center(
+              child: AnimatedBuilder(
+                animation: _rotateController,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: _rotateController.value * 2 * math.pi,
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: SweepGradient(
+                          colors: [
+                            AppConstants.primaryGreen,
+                            const Color(0xFF00D4FF),
+                            AppConstants.primaryGreen,
+                            const Color(0xFFFFD700),
+                            AppConstants.primaryGreen,
+                          ],
+                          stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppConstants.primaryGreen.withOpacity(0.6),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppConstants.darkBg,
+                        ),
+                        child: const Icon(
+                          Icons.casino,
+                          size: 70,
+                          color: AppConstants.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSuccessMessage(bool isDark) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [
+              AppConstants.primaryGreen,
+              const Color(0xFF00E5FF),
+              AppConstants.primaryGreen,
+            ],
+            stops: [0.0, _pulseController.value, 1.0],
+          ).createShader(bounds),
+          child: Text(
+            '¡FELICIDADES!',
+            style: TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.0,
+              color: Colors.white,
+              shadows: [
+                Shadow(
+                  color: AppConstants.primaryGreen.withOpacity(0.8),
+                  blurRadius: 20,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSubtitle(bool isDark) {
+    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppConstants.primaryGreen.withOpacity(0.2),
+                const Color(0xFF00D4FF).withOpacity(0.2),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppConstants.primaryGreen.withOpacity(0.5),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppConstants.primaryGreen.withOpacity(0.3),
+                blurRadius: 15,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Text(
+                'Ya podés jugar en la',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: [AppConstants.primaryGreen, const Color(0xFF00E5FF)],
+                ).createShader(bounds),
+                child: const Text(
+                  '🎰 RULETA 🎰',
                   style: TextStyle(
-                    fontSize: AppConstants.headingLarge,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                    color: textColor,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 2.0,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  child: Text(
-                    'Apreta el siguiente boton para poder jugar a la ruleta en la pantalla',
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '¡Probá tu suerte ahora!',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: textColor.withOpacity(0.8),
+            fontStyle: FontStyle.italic,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDecorativeStars() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(5, (index) {
+        return AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            final delay = index * 0.2;
+            final phase = (_pulseController.value + delay) % 1.0;
+            final scale = 0.7 + (math.sin(phase * 2 * math.pi) * 0.3);
+            final opacity = 0.4 + (math.sin(phase * 2 * math.pi) * 0.4);
+
+            return Transform.scale(
+              scale: scale,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(
+                  index.isEven ? Icons.star : Icons.star_border,
+                  size: 30,
+                  color: AppConstants.primaryGreen.withOpacity(opacity),
                 ),
-                if (_rouletteStatus != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _rouletteStatus == 'available'
-                        ? 'Estado: available'
-                        : 'Estado: locked',
-                    style: TextStyle(
-                      color: _rouletteStatus == 'available'
-                          ? AppConstants.primaryGreen
-                          : AppConstants.warningOrange,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-                if (_statusMessage != null) ...[
-                  const SizedBox(height: 8),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 360),
-                    child: Text(
-                      _statusMessage!,
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.75),
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-                if (widget.qrRawValue != null || widget.qrParsedUri != null) ...[
-                  const SizedBox(height: 16),
-                  _buildDebugPanel(textColor),
-                ],
-                const SizedBox(height: 20),
-                _buildPlayButton(accent),
-              ],
-            ),
-          ),
-        ),
-      ),
+              ),
+            );
+          },
+        );
+      }),
     );
+  }
+}
+
+class _ParticlesPainter extends CustomPainter {
+  final double animation;
+
+  _ParticlesPainter({required this.animation});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final random = math.Random(42); // Fixed seed for consistent positions
+
+    for (int i = 0; i < 30; i++) {
+      final x = random.nextDouble() * size.width;
+      final baseY = random.nextDouble() * size.height;
+      final speed = 0.5 + random.nextDouble() * 0.5;
+      final y = (baseY + animation * size.height * speed) % size.height;
+      final size1 = 2 + random.nextDouble() * 3;
+      final opacity = 0.1 + random.nextDouble() * 0.3;
+
+      paint.color = AppConstants.primaryGreen.withOpacity(opacity);
+
+      canvas.drawCircle(Offset(x, y), size1, paint);
+    }
   }
 
-  Widget _buildPlayButton(Color accent) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [accent, accent.withValues(alpha: 0.75)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: SizedBox(
-        width: 220,
-        height: 52,
-        child: TextButton(
-          onPressed: _isLoading ? null : _playRoulette,
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.black,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text(
-                  'Jugar',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDebugPanel(Color textColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: textColor.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Debug QR',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _buildDebugRow('Raw', widget.qrRawValue, textColor),
-          _buildDebugRow('URI', widget.qrParsedUri, textColor),
-          _buildDebugRow('Codigo usado', _resolvedCodigo, textColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDebugRow(String label, String? value, Color textColor) {
-    final display = (value == null || value.trim().isEmpty)
-        ? '-'
-        : value.trim();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        '$label: $display',
-        style: TextStyle(
-          color: textColor.withValues(alpha: 0.8),
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(_ParticlesPainter oldDelegate) =>
+      animation != oldDelegate.animation;
 }

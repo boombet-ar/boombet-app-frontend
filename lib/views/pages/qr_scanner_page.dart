@@ -1,4 +1,6 @@
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/play_roulette_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -14,7 +16,7 @@ class QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<QrScannerPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _scanController;
   late final MobileScannerController _scannerController;
   final TextEditingController _manualCodeController = TextEditingController();
@@ -22,23 +24,84 @@ class _QrScannerPageState extends State<QrScannerPage>
   String? _lastCode;
   DateTime? _lastScanAt;
   bool _isLaunching = false;
+  bool _scannerActive = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scanController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
     _scannerController = MobileScannerController();
+    _scannerActive = true;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scanController.dispose();
     _scannerController.dispose();
     _manualCodeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _activateScanner();
+  }
+
+  @override
+  void deactivate() {
+    _deactivateScanner();
+    super.deactivate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _activateScanner();
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _deactivateScanner();
+    }
+  }
+
+  Future<void> _activateScanner() async {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    if (_scannerActive) return;
+
+    try {
+      await _scannerController.start();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) return;
+    _scanController.repeat(reverse: true);
+    _scannerActive = true;
+  }
+
+  Future<void> _deactivateScanner() async {
+    if (!_scannerActive) return;
+
+    try {
+      await _scannerController.stop();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) return;
+    _scanController.stop();
+    _scannerActive = false;
   }
 
   void _showSnack(String message) {
@@ -86,18 +149,27 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     final uri = _normalizeUri(value);
     if (uri == null) {
-      debugPrint('[QR] Raw value (no uri): $value');
       return;
     }
-
-    debugPrint('[QR] Raw value: $value');
-    debugPrint('[QR] Parsed uri: $uri');
 
     if (_isRouletteDeepLink(uri)) {
       if (!mounted) return;
       final codigo = _extractRouletteCode(uri);
-      debugPrint('[QR] Roulette deeplink codigoRuleta: ${codigo ?? ""}');
-      Navigator.push(
+      if (codigo == null || codigo.trim().isEmpty) {
+        _showSnack('Codigo de ruleta invalido');
+        return;
+      }
+
+      await _deactivateScanner();
+      final joined = await _joinRoulette(codigo.trim());
+      if (!mounted) return;
+      if (!joined) {
+        _showSnack('No se pudo habilitar la ruleta');
+        await _activateScanner();
+        return;
+      }
+
+      await Navigator.push(
         context,
         FadeRoute(
           page: PlayRoulettePage(
@@ -107,6 +179,8 @@ class _QrScannerPageState extends State<QrScannerPage>
           ),
         ),
       );
+      if (!mounted) return;
+      await _activateScanner();
       return;
     }
 
@@ -166,7 +240,8 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   String? _extractRouletteCode(Uri uri) {
-    final queryCode = uri.queryParameters['codigoRuleta'] ??
+    final queryCode =
+        uri.queryParameters['codigoRuleta'] ??
         uri.queryParameters['codigo_ruleta'] ??
         uri.queryParameters['code'] ??
         uri.queryParameters['codigo'];
@@ -182,6 +257,21 @@ class _QrScannerPageState extends State<QrScannerPage>
     }
 
     return null;
+  }
+
+  Future<bool> _joinRoulette(String codigo) async {
+    final encoded = Uri.encodeComponent(codigo);
+    final url = '${ApiConfig.baseUrl}/ruleta/jugar?codigoRuleta=$encoded';
+    try {
+      final response = await HttpClient.post(
+        url,
+        body: const {},
+        includeAuth: true,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
@@ -254,20 +344,6 @@ class _QrScannerPageState extends State<QrScannerPage>
               _buildScannerCard(isDark, accent, surfaceColor),
               const SizedBox(height: 18),
               _buildControls(isDark, accent, surfaceColor),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      FadeRoute(page: const PlayRoulettePage()),
-                    );
-                  },
-                  child: const Text('Ir a la ruleta (test)'),
-                ),
-              ),
-              const SizedBox(height: 18),
             ],
           ),
         ),
