@@ -62,6 +62,12 @@ class DiscountsContentState extends State<DiscountsContent> {
   static const String _cachedCuponesTsKey = 'cached_cupones_ts_bonda';
   static const String _cachedPageKey = 'cached_cupones_page';
   static const String _cachedHasMoreKey = 'cached_cupones_has_more';
+  static const List<String> _legacyCuponCacheKeys = [
+    _cachedCuponesKey,
+    _cachedCuponesTsKey,
+    _cachedPageKey,
+    _cachedHasMoreKey,
+  ];
   bool _cacheApplied = false;
   DateTime? _cacheTimestamp;
   static const Duration _cacheTtl = Duration(hours: 6);
@@ -74,10 +80,56 @@ class DiscountsContentState extends State<DiscountsContent> {
 
   Future<void> _clearCuponCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_cachedCuponesKey);
-    await prefs.remove(_cachedCuponesTsKey);
-    await prefs.remove(_cachedPageKey);
-    await prefs.remove(_cachedHasMoreKey);
+    await _removeCuponCacheKeys(prefs);
+  }
+
+  Future<String?> _currentCacheScope() async {
+    final tokenData = await TokenService.getTokenData();
+    if (tokenData == null) return null;
+
+    final raw =
+        tokenData['sub'] ??
+        tokenData['userId'] ??
+        tokenData['user_id'] ??
+        tokenData['id'] ??
+        tokenData['uid'];
+    if (raw == null) return null;
+
+    final value = raw.toString().trim();
+    if (value.isEmpty) return null;
+
+    return value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+  }
+
+  String _scopedKey(String baseKey, String scope) => '${baseKey}_$scope';
+
+  Future<void> _removeCuponCacheKeys(
+    SharedPreferences prefs, {
+    String? scope,
+  }) async {
+    for (final legacyKey in _legacyCuponCacheKeys) {
+      await prefs.remove(legacyKey);
+    }
+
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      final isScopedCuponCache = _legacyCuponCacheKeys.any(
+        (baseKey) => key.startsWith('${baseKey}_'),
+      );
+      if (!isScopedCuponCache) continue;
+
+      if (scope == null) {
+        await prefs.remove(key);
+        continue;
+      }
+
+      final matchesScope = _legacyCuponCacheKeys.any(
+        (baseKey) => key == _scopedKey(baseKey, scope),
+      );
+      if (matchesScope) {
+        await prefs.remove(key);
+      }
+    }
   }
 
   void _triggerSessionExpiredOnce() {
@@ -208,14 +260,28 @@ class DiscountsContentState extends State<DiscountsContent> {
         return;
       }
 
+      final scope = await _currentCacheScope();
+      if (scope == null) {
+        await _clearCuponCachePrefs();
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      final cached = prefs.getString(_cachedCuponesKey);
+      await _removeCuponCacheKeys(prefs, scope: scope);
+
+      final cacheKey = _scopedKey(_cachedCuponesKey, scope);
+      final cacheTsKey = _scopedKey(_cachedCuponesTsKey, scope);
+      final cachePageKey = _scopedKey(_cachedPageKey, scope);
+      final cacheHasMoreKey = _scopedKey(_cachedHasMoreKey, scope);
+
+      final cached = prefs.getString(cacheKey);
       if (cached == null || cached.isEmpty) return;
-      final cachedTs = prefs.getString(_cachedCuponesTsKey);
+      final cachedTs = prefs.getString(cacheTsKey);
       if (cachedTs != null) {
         _cacheTimestamp = DateTime.tryParse(cachedTs);
       }
-        final isStale = _cacheTimestamp != null &&
+      final isStale =
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) > _cacheTtl;
       final decoded = jsonDecode(cached);
       if (decoded is! List) return;
@@ -236,9 +302,9 @@ class DiscountsContentState extends State<DiscountsContent> {
         _updateCategorias();
         _applyFilter();
         _cacheApplied = true;
-        _apiPage = prefs.getInt(_cachedPageKey) ?? _apiPage;
+        _apiPage = prefs.getInt(cachePageKey) ?? _apiPage;
         _currentPage = _apiPage;
-        _hasMore = prefs.getBool(_cachedHasMoreKey) ?? _hasMore;
+        _hasMore = prefs.getBool(cacheHasMoreKey) ?? _hasMore;
         _pageCache[_apiPage] = cachedCupones;
       });
 
@@ -252,15 +318,22 @@ class DiscountsContentState extends State<DiscountsContent> {
 
   Future<void> _persistCuponCache() async {
     try {
+      final scope = await _currentCacheScope();
+      if (scope == null) return;
+
       final prefs = await SharedPreferences.getInstance();
+      await _removeCuponCacheKeys(prefs, scope: scope);
+
+      final cacheKey = _scopedKey(_cachedCuponesKey, scope);
+      final cacheTsKey = _scopedKey(_cachedCuponesTsKey, scope);
+      final cachePageKey = _scopedKey(_cachedPageKey, scope);
+      final cacheHasMoreKey = _scopedKey(_cachedHasMoreKey, scope);
+
       final data = _cupones.map((c) => c.toJson()).toList();
-      await prefs.setString(_cachedCuponesKey, jsonEncode(data));
-      await prefs.setString(
-        _cachedCuponesTsKey,
-        DateTime.now().toIso8601String(),
-      );
-      await prefs.setInt(_cachedPageKey, _apiPage);
-      await prefs.setBool(_cachedHasMoreKey, _hasMore);
+      await prefs.setString(cacheKey, jsonEncode(data));
+      await prefs.setString(cacheTsKey, DateTime.now().toIso8601String());
+      await prefs.setInt(cachePageKey, _apiPage);
+      await prefs.setBool(cacheHasMoreKey, _hasMore);
     } catch (e) {
       debugPrint('WARN: No se pudo guardar cache de cupones: $e');
     }
@@ -645,9 +718,11 @@ class DiscountsContentState extends State<DiscountsContent> {
       try {
         await _loadCategorias();
         await _loadClaimedCuponIds();
-        if (!_cacheApplied) {
-          await _loadCupones(reset: true);
-        }
+        await _loadCupones(
+          reset: !_cacheApplied,
+          forceRefresh: true,
+          pageOverride: _cacheApplied ? _currentPage : 1,
+        );
         return;
       } catch (e) {
         if (attempt == maxAttempts) rethrow;
@@ -1385,179 +1460,21 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 if (isWeb)
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: ElevatedButton.icon(
-                                      onPressed: () async {
-                                        LoadingOverlay.show(
-                                          context,
-                                          message: 'Reclamando cupón...',
-                                        );
-
-                                        try {
-                                          await CuponesService.claimCupon(
-                                            cuponId: cupon.id,
-                                          );
-
-                                          LoadingOverlay.hide(context);
-
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                '¡Cupón reclamado exitosamente!',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 3,
-                                              ),
-                                              backgroundColor: primaryGreen,
-                                              action: SnackBarAction(
-                                                label: 'OK',
-                                                onPressed: () {},
-                                              ),
-                                            ),
-                                          );
-
-                                          setState(() {
-                                            _claimedCuponIds.add(cupon.id);
-                                            if (cupon.displayCode.isNotEmpty) {
-                                              _claimedCuponCodes[cupon.id] =
-                                                  cupon.displayCode;
-                                            }
-                                            _applyFilter();
-                                          });
-                                          unawaited(_loadClaimedCuponIds());
-                                          widget.onCuponClaimed?.call();
-                                        } catch (e) {
-                                          LoadingOverlay.hide(context);
-
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Error: ${e.toString()}',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 3,
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      icon: const Icon(Icons.check_circle),
-                                      label: const Text('Reclamar'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryGreen,
-                                        foregroundColor: AppConstants.textLight,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 10,
-                                          horizontal: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        elevation: 2,
-                                      ),
+                                    child: _buildClaimButton(
+                                      context: context,
+                                      cupon: cupon,
+                                      primaryGreen: primaryGreen,
                                     ),
                                   )
                                 else
-                                  Row(
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const SizedBox(height: 3),
-                                          SizedBox(height: 28, width: 120),
-                                        ],
-                                      ),
-                                      const Spacer(),
-                                      Flexible(
-                                        child: ElevatedButton.icon(
-                                          onPressed: () async {
-                                            LoadingOverlay.show(
-                                              context,
-                                              message: 'Reclamando cupón...',
-                                            );
-
-                                            try {
-                                              await CuponesService.claimCupon(
-                                                cuponId: cupon.id,
-                                              );
-
-                                              LoadingOverlay.hide(context);
-
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: const Text(
-                                                    '¡Cupón reclamado exitosamente!',
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 3,
-                                                  ),
-                                                  backgroundColor: primaryGreen,
-                                                  action: SnackBarAction(
-                                                    label: 'OK',
-                                                    onPressed: () {},
-                                                  ),
-                                                ),
-                                              );
-
-                                              setState(() {
-                                                _claimedCuponIds.add(cupon.id);
-                                                if (cupon
-                                                    .displayCode
-                                                    .isNotEmpty) {
-                                                  _claimedCuponCodes[cupon.id] =
-                                                      cupon.displayCode;
-                                                }
-                                                _applyFilter();
-                                              });
-                                              unawaited(_loadClaimedCuponIds());
-                                              widget.onCuponClaimed?.call();
-                                            } catch (e) {
-                                              LoadingOverlay.hide(context);
-
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Error: ${e.toString()}',
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 3,
-                                                  ),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            }
-                                          },
-                                          icon: const Icon(Icons.check_circle),
-                                          label: const Text('Reclamar'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: primaryGreen,
-                                            foregroundColor:
-                                                AppConstants.textLight,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                              horizontal: 12,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            elevation: 2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: _buildClaimButton(
+                                      context: context,
+                                      cupon: cupon,
+                                      primaryGreen: primaryGreen,
+                                      compact: true,
+                                    ),
                                   ),
                                 if (!isWeb) SizedBox(height: gapMd),
                               ],
@@ -1766,98 +1683,14 @@ class DiscountsContentState extends State<DiscountsContent> {
                               ),
                               SizedBox(height: gapMd),
                             ] else ...[
-                              Row(
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const SizedBox(height: 3),
-                                      SizedBox(height: 28, width: 120),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  Flexible(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () async {
-                                        LoadingOverlay.show(
-                                          context,
-                                          message: 'Reclamando cupón...',
-                                        );
-
-                                        try {
-                                          await CuponesService.claimCupon(
-                                            cuponId: cupon.id,
-                                          );
-
-                                          LoadingOverlay.hide(context);
-
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                '¡Cupón reclamado exitosamente!',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 3,
-                                              ),
-                                              backgroundColor: primaryGreen,
-                                              action: SnackBarAction(
-                                                label: 'OK',
-                                                onPressed: () {},
-                                              ),
-                                            ),
-                                          );
-
-                                          setState(() {
-                                            _claimedCuponIds.add(cupon.id);
-                                            if (cupon.displayCode.isNotEmpty) {
-                                              _claimedCuponCodes[cupon.id] =
-                                                  cupon.displayCode;
-                                            }
-                                            _applyFilter();
-                                          });
-                                          unawaited(_loadClaimedCuponIds());
-                                          widget.onCuponClaimed?.call();
-                                        } catch (e) {
-                                          LoadingOverlay.hide(context);
-
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Error: ${e.toString()}',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 3,
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      icon: const Icon(Icons.check_circle),
-                                      label: const Text('Reclamar'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryGreen,
-                                        foregroundColor: AppConstants.textLight,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                          horizontal: 12,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        elevation: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _buildClaimButton(
+                                  context: context,
+                                  cupon: cupon,
+                                  primaryGreen: primaryGreen,
+                                  compact: true,
+                                ),
                               ),
                               SizedBox(height: gapMd),
                             ],
@@ -1872,6 +1705,95 @@ class DiscountsContentState extends State<DiscountsContent> {
         ),
       ),
     );
+  }
+
+  bool _isSmallScreen(BuildContext context) {
+    return MediaQuery.of(context).size.width < 380;
+  }
+
+  Widget _buildClaimButton({
+    required BuildContext context,
+    required Cupon cupon,
+    required Color primaryGreen,
+    bool compact = false,
+  }) {
+    final isSmallScreen = _isSmallScreen(context);
+    final showIcon = !isSmallScreen;
+
+    return ElevatedButton(
+      onPressed: () => _claimCupon(context, cupon, primaryGreen),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryGreen,
+        foregroundColor: AppConstants.textLight,
+        padding: EdgeInsets.symmetric(
+          vertical: isSmallScreen ? 6 : (compact ? 8 : 10),
+          horizontal: isSmallScreen ? 10 : (compact ? 12 : 14),
+        ),
+        minimumSize: Size(isSmallScreen ? 88 : 0, isSmallScreen ? 34 : 0),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showIcon) ...[
+            const Icon(Icons.check_circle, size: 17),
+            const SizedBox(width: 6),
+          ],
+          const Text(
+            'Reclamar',
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            softWrap: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _claimCupon(
+    BuildContext context,
+    Cupon cupon,
+    Color primaryGreen,
+  ) async {
+    LoadingOverlay.show(context, message: 'Reclamando cupón...');
+
+    try {
+      await CuponesService.claimCupon(cuponId: cupon.id);
+
+      LoadingOverlay.hide(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('¡Cupón reclamado exitosamente!'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: primaryGreen,
+          action: SnackBarAction(label: 'OK', onPressed: () {}),
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _claimedCuponIds.add(cupon.id);
+        if (cupon.displayCode.isNotEmpty) {
+          _claimedCuponCodes[cupon.id] = cupon.displayCode;
+        }
+        _applyFilter();
+      });
+      unawaited(_loadClaimedCuponIds());
+      widget.onCuponClaimed?.call();
+    } catch (e) {
+      LoadingOverlay.hide(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showCuponDetails(

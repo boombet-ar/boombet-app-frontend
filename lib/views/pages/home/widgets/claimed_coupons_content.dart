@@ -42,11 +42,17 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   DateTime? _claimedCacheTimestamp;
   static const String _claimedCacheKey = 'cached_claimed_cupones_bonda';
   static const String _claimedCacheTsKey = 'cached_claimed_cupones_ts_bonda';
-  static const String _claimedCachePageKey =
-      'cached_claimed_cupones_page';
+  static const String _claimedCachePageKey = 'cached_claimed_cupones_page';
   static const String _claimedCacheHasMoreKey =
       'cached_claimed_cupones_has_more';
   static const Duration _claimedCacheTtl = Duration(hours: 6);
+
+  static const List<String> _claimedLegacyKeys = [
+    _claimedCacheKey,
+    _claimedCacheTsKey,
+    _claimedCachePageKey,
+    _claimedCacheHasMoreKey,
+  ];
 
   String _safeImageUrl(String url) {
     if (url.isEmpty) return url;
@@ -73,9 +79,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadClaimedCache();
-      if (!_claimedCacheApplied) {
-        await _loadClaimedCupones();
-      }
+
+      // Siempre refrescar desde backend en background para evitar mostrar
+      // datos stale entre sesiones de usuarios en el mismo dispositivo.
+      unawaited(_loadClaimedCupones(pageOverride: _claimedPage));
     });
   }
 
@@ -85,10 +92,56 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
   Future<void> _clearClaimedCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_claimedCacheKey);
-    await prefs.remove(_claimedCacheTsKey);
-    await prefs.remove(_claimedCachePageKey);
-    await prefs.remove(_claimedCacheHasMoreKey);
+    await _removeClaimedCacheKeys(prefs);
+  }
+
+  Future<String?> _currentCacheScope() async {
+    final tokenData = await TokenService.getTokenData();
+    if (tokenData == null) return null;
+
+    final raw =
+        tokenData['sub'] ??
+        tokenData['userId'] ??
+        tokenData['user_id'] ??
+        tokenData['id'] ??
+        tokenData['uid'];
+    if (raw == null) return null;
+
+    final value = raw.toString().trim();
+    if (value.isEmpty) return null;
+
+    return value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+  }
+
+  String _scopedKey(String baseKey, String scope) => '${baseKey}_$scope';
+
+  Future<void> _removeClaimedCacheKeys(
+    SharedPreferences prefs, {
+    String? scope,
+  }) async {
+    for (final legacyKey in _claimedLegacyKeys) {
+      await prefs.remove(legacyKey);
+    }
+
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      final isScopedClaimedCache = _claimedLegacyKeys.any(
+        (baseKey) => key.startsWith('${baseKey}_'),
+      );
+      if (!isScopedClaimedCache) continue;
+
+      if (scope == null) {
+        await prefs.remove(key);
+        continue;
+      }
+
+      final matchesScope = _claimedLegacyKeys.any(
+        (baseKey) => key == _scopedKey(baseKey, scope),
+      );
+      if (matchesScope) {
+        await prefs.remove(key);
+      }
+    }
   }
 
   Future<void> _loadClaimedCache() async {
@@ -101,11 +154,24 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
         return;
       }
 
+      final scope = await _currentCacheScope();
+      if (scope == null) {
+        await _clearClaimedCachePrefs();
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      final cached = prefs.getString(_claimedCacheKey);
+      await _removeClaimedCacheKeys(prefs, scope: scope);
+
+      final cacheKey = _scopedKey(_claimedCacheKey, scope);
+      final cacheTsKey = _scopedKey(_claimedCacheTsKey, scope);
+      final cachePageKey = _scopedKey(_claimedCachePageKey, scope);
+      final cacheHasMoreKey = _scopedKey(_claimedCacheHasMoreKey, scope);
+
+      final cached = prefs.getString(cacheKey);
       if (cached == null || cached.isEmpty) return;
 
-      final cachedTs = prefs.getString(_claimedCacheTsKey);
+      final cachedTs = prefs.getString(cacheTsKey);
       if (cachedTs != null) {
         _claimedCacheTimestamp = DateTime.tryParse(cachedTs);
       }
@@ -127,17 +193,18 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
       setState(() {
         _claimedCupones = cachedCupones;
-        _claimedPage = prefs.getInt(_claimedCachePageKey) ?? _claimedPage;
-        _claimedHasMore =
-            prefs.getBool(_claimedCacheHasMoreKey) ?? _claimedHasMore;
+        _claimedPage = prefs.getInt(cachePageKey) ?? _claimedPage;
+        _claimedHasMore = prefs.getBool(cacheHasMoreKey) ?? _claimedHasMore;
         _claimedCacheApplied = true;
       });
 
-      final isStale = _claimedCacheTimestamp != null &&
-          DateTime.now().difference(_claimedCacheTimestamp!) >
-              _claimedCacheTtl;
+      final isStale =
+          _claimedCacheTimestamp != null &&
+          DateTime.now().difference(_claimedCacheTimestamp!) > _claimedCacheTtl;
       if (isStale) {
-        debugPrint('INFO: Cache de cupones reclamados vencido, usando cache igualmente.');
+        debugPrint(
+          'INFO: Cache de cupones reclamados vencido, usando cache igualmente.',
+        );
       }
     } catch (e) {
       debugPrint('WARN: No se pudo cargar cache de cupones reclamados: $e');
@@ -146,15 +213,22 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
   Future<void> _persistClaimedCache() async {
     try {
+      final scope = await _currentCacheScope();
+      if (scope == null) return;
+
       final prefs = await SharedPreferences.getInstance();
+      await _removeClaimedCacheKeys(prefs, scope: scope);
+
+      final cacheKey = _scopedKey(_claimedCacheKey, scope);
+      final cacheTsKey = _scopedKey(_claimedCacheTsKey, scope);
+      final cachePageKey = _scopedKey(_claimedCachePageKey, scope);
+      final cacheHasMoreKey = _scopedKey(_claimedCacheHasMoreKey, scope);
+
       final data = _claimedCupones.map((c) => c.toJson()).toList();
-      await prefs.setString(_claimedCacheKey, jsonEncode(data));
-      await prefs.setString(
-        _claimedCacheTsKey,
-        DateTime.now().toIso8601String(),
-      );
-      await prefs.setInt(_claimedCachePageKey, _claimedPage);
-      await prefs.setBool(_claimedCacheHasMoreKey, _claimedHasMore);
+      await prefs.setString(cacheKey, jsonEncode(data));
+      await prefs.setString(cacheTsKey, DateTime.now().toIso8601String());
+      await prefs.setInt(cachePageKey, _claimedPage);
+      await prefs.setBool(cacheHasMoreKey, _claimedHasMore);
     } catch (e) {
       debugPrint('WARN: No se pudo guardar cache de cupones reclamados: $e');
     }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
 import '../utils/error_parser.dart';
@@ -11,6 +12,35 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'biometric_service.dart';
 
 class AuthService {
+  static const List<String> _couponCacheBaseKeys = [
+    'cached_cupones_bonda',
+    'cached_cupones_ts_bonda',
+    'cached_cupones_page',
+    'cached_cupones_has_more',
+    'cached_claimed_cupones_bonda',
+    'cached_claimed_cupones_ts_bonda',
+    'cached_claimed_cupones_page',
+    'cached_claimed_cupones_has_more',
+  ];
+
+  Future<void> _clearCouponCaches() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    for (final baseKey in _couponCacheBaseKeys) {
+      await prefs.remove(baseKey);
+    }
+
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      final isScopedCouponCache = _couponCacheBaseKeys.any(
+        (baseKey) => key.startsWith('${baseKey}_'),
+      );
+      if (isScopedCouponCache) {
+        await prefs.remove(key);
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> login(
     String identifier,
     String password, {
@@ -37,6 +67,8 @@ class AuthService {
         final data = jsonDecode(response.body);
 
         try {
+          await _clearCouponCaches();
+
           // Limpiar cualquier token previo para evitar inconsistencias
           await TokenService.deleteToken();
 
@@ -83,6 +115,7 @@ class AuthService {
   /// Cierra la sesión del usuario eliminando el token
   Future<void> logout() async {
     BiometricService.resetRuntimeValidation();
+    await _clearCouponCaches();
     await TokenService.deleteToken();
     await TokenService.deleteFcmToken();
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:boombet_app/config/app_constants.dart';
@@ -194,64 +195,97 @@ class _OnboardingSlideWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final size = MediaQuery.of(context).size;
+    final imageMaxHeight = isIOS
+        ? (size.height * 0.44).clamp(220.0, 420.0)
+        : 500.0;
+    final imageMaxWidth = isIOS
+        ? (size.width * 0.68).clamp(200.0, 280.0)
+        : 280.0;
+    final topSpacing = isIOS ? 8.0 : 20.0;
+    final imageBottomSpacing = isIOS ? 24.0 : 48.0;
+    final titleFontSize = isIOS ? 28.0 : 32.0;
+    final descriptionFontSize = isIOS ? 15.0 : 16.0;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 20),
-          // Screenshot del mockup del teléfono
-          Container(
-            constraints: const BoxConstraints(maxHeight: 500, maxWidth: 280),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryGreen.withOpacity(0.3),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final content = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: isIOS
+                ? MainAxisAlignment.start
+                : MainAxisAlignment.center,
+            mainAxisSize: isIOS ? MainAxisSize.min : MainAxisSize.max,
+            children: [
+              SizedBox(height: topSpacing),
+              // Screenshot del mockup del teléfono
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: imageMaxHeight,
+                  maxWidth: imageMaxWidth,
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: Image.asset(slide.image, fit: BoxFit.contain),
-            ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withOpacity(0.3),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: Image.asset(slide.image, fit: BoxFit.contain),
+                ),
+              ),
+
+              SizedBox(height: imageBottomSpacing),
+
+              // Título
+              Text(
+                slide.title,
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w800,
+                  color: primaryGreen,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Descripción
+              Text(
+                slide.description,
+                style: TextStyle(
+                  fontSize: descriptionFontSize,
+                  fontWeight: FontWeight.w400,
+                  color: isDark
+                      ? Colors.white70
+                      : AppConstants.textLight.withValues(alpha: 0.7),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
+        );
 
-          const SizedBox(height: 48),
+        if (!isIOS) return content;
 
-          // Título
-          Text(
-            slide.title,
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              color: primaryGreen,
-              letterSpacing: 2,
-            ),
-            textAlign: TextAlign.center,
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 24),
+            child: content,
           ),
-
-          const SizedBox(height: 16),
-
-          // Descripción
-          Text(
-            slide.description,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: isDark
-                  ? Colors.white70
-                  : AppConstants.textLight.withValues(alpha: 0.7),
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
