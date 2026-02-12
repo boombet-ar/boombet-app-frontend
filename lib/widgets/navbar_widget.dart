@@ -12,6 +12,7 @@ class NavbarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final isCompact = media.size.width < 380;
+    final useShortLabels = media.size.width < 430;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
@@ -20,8 +21,18 @@ class NavbarWidget extends StatelessWidget {
     final unselectedColor = isDark
         ? const Color(0xFF808080)
         : AppConstants.lightHintText;
-    final iconSize = isCompact ? 22.0 : 26.0;
-    final barHeight = isCompact ? 62.0 : 70.0;
+    final iconSize = isCompact ? 20.0 : 26.0;
+    final barHeight = isCompact ? 58.0 : 70.0;
+    final compactLabelStyle = TextStyle(
+      fontSize: isCompact ? 9 : 10,
+      fontWeight: FontWeight.w600,
+      height: 1.0,
+    );
+    final regularLabelStyle = TextStyle(
+      fontSize: isCompact ? 8.5 : 10,
+      fontWeight: FontWeight.w500,
+      height: 1.0,
+    );
 
     return RepaintBoundary(
       child: ValueListenableBuilder<int>(
@@ -39,7 +50,7 @@ class NavbarWidget extends StatelessWidget {
                 color: selectedColor,
                 size: iconSize,
               ),
-              label: "Home",
+              label: useShortLabels ? 'Home' : 'Home',
             ),
             NavigationDestination(
               icon: Icon(
@@ -52,7 +63,7 @@ class NavbarWidget extends StatelessWidget {
                 color: selectedColor,
                 size: iconSize,
               ),
-              label: "Descuentos",
+              label: useShortLabels ? 'Desc.' : 'Descuentos',
             ),
             NavigationDestination(
               icon: Icon(
@@ -65,7 +76,7 @@ class NavbarWidget extends StatelessWidget {
                 color: selectedColor,
                 size: iconSize,
               ),
-              label: "Sorteos",
+              label: useShortLabels ? 'Sort.' : 'Sorteos',
             ),
             NavigationDestination(
               icon: Icon(
@@ -78,7 +89,7 @@ class NavbarWidget extends StatelessWidget {
                 color: selectedColor,
                 size: iconSize,
               ),
-              label: "Foro",
+              label: useShortLabels ? 'Foro' : 'Foro',
             ),
             NavigationDestination(
               icon: Icon(
@@ -91,7 +102,7 @@ class NavbarWidget extends StatelessWidget {
                 color: selectedColor,
                 size: iconSize,
               ),
-              label: "Juegos",
+              label: useShortLabels ? 'Juegos' : 'Juegos',
             ),
           ];
 
@@ -108,7 +119,7 @@ class NavbarWidget extends StatelessWidget {
                   color: selectedColor,
                   size: iconSize,
                 ),
-                label: "Casinos",
+                label: useShortLabels ? 'Casino' : 'Casinos',
               ),
             );
           }
@@ -131,16 +142,28 @@ class NavbarWidget extends StatelessWidget {
                   ),
                 ),
               ),
-              child: NavigationBar(
-                height: barHeight,
-                backgroundColor: bgColor,
-                indicatorColor: primaryGreen.withValues(alpha: 0.15),
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                destinations: destinations,
-                onDestinationSelected: (int value) {
-                  saveSelectedPage(value);
-                },
-                selectedIndex: safeIndex,
+              child: NavigationBarTheme(
+                data: NavigationBarThemeData(
+                  labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
+                    states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return compactLabelStyle;
+                    }
+                    return regularLabelStyle;
+                  }),
+                ),
+                child: NavigationBar(
+                  height: barHeight,
+                  backgroundColor: bgColor,
+                  indicatorColor: primaryGreen.withValues(alpha: 0.15),
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  destinations: destinations,
+                  onDestinationSelected: (int value) {
+                    saveSelectedPage(value);
+                  },
+                  selectedIndex: safeIndex,
+                ),
               ),
             ),
           );

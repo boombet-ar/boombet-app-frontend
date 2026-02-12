@@ -123,3 +123,10 @@ app.*.symbols
 
 android/key.properties
 android/app/*.jks
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/DerivedData/
+ios/Podfile.lock
