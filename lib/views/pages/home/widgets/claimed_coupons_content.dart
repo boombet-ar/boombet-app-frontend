@@ -289,9 +289,6 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     final pagedCupones = _claimedCupones;
     final canGoPrevious = _claimedPage > 1;
     final canGoNext = _claimedHasMore;
-    final claimedCanJumpBack5 = _claimedPage > 1;
-    final claimedCanJumpBack10 = _claimedPage > 1;
-    final claimedCanJumpForward = canGoNext;
     final isWeb = kIsWeb;
 
     final content = Column(
@@ -529,9 +526,6 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                           currentPage: _claimedPage,
                           canGoPrevious: canGoPrevious,
                           canGoNext: canGoNext,
-                          canJumpBack5: claimedCanJumpBack5,
-                          canJumpBack10: claimedCanJumpBack10,
-                          canJumpForward: claimedCanJumpForward,
                           onPrev: () {
                             final prevPage = (_claimedPage - 1).clamp(
                               1,
@@ -541,28 +535,6 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                           },
                           onNext: () {
                             final nextPage = _claimedPage + 1;
-                            _loadClaimedCupones(pageOverride: nextPage);
-                          },
-                          onJumpBack5: () {
-                            final prevPage = (_claimedPage - 5).clamp(
-                              1,
-                              1 << 30,
-                            );
-                            _loadClaimedCupones(pageOverride: prevPage);
-                          },
-                          onJumpBack10: () {
-                            final prevPage = (_claimedPage - 10).clamp(
-                              1,
-                              1 << 30,
-                            );
-                            _loadClaimedCupones(pageOverride: prevPage);
-                          },
-                          onJumpForward5: () {
-                            final nextPage = _claimedPage + 5;
-                            _loadClaimedCupones(pageOverride: nextPage);
-                          },
-                          onJumpForward10: () {
-                            final nextPage = _claimedPage + 10;
                             _loadClaimedCupones(pageOverride: nextPage);
                           },
                           primaryColor: primaryGreen,

@@ -5,6 +5,7 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/utils/error_parser.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -104,13 +105,154 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     super.dispose();
   }
 
+  void _showErrorDialog({required String title, required String message}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text(title, style: TextStyle(color: textColor)),
+        content: Text(message, style: TextStyle(color: textColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Entendido',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog({required String message, VoidCallback? onOk}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('¡Éxito!', style: TextStyle(color: textColor)),
+        content: Text(message, style: TextStyle(color: textColor)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onOk?.call();
+            },
+            child: const Text(
+              'Continuar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _extractBackendErrorMessage(
+    String rawBody, {
+    required String fallback,
+  }) {
+    String normalizeMessage(dynamic value) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+      if (value is List) {
+        final joined = value
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .join('\n');
+        if (joined.isNotEmpty) return joined;
+      }
+      if (value is Map) {
+        final joined = value.values
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .join('\n');
+        if (joined.isNotEmpty) return joined;
+      }
+      return '';
+    }
+
+    var candidate = rawBody.trim();
+
+    final statusPrefix = RegExp(r'^\s*\d{3}\s+[^:]+:\s*');
+    final statusPrefixMatch = statusPrefix.firstMatch(candidate);
+    if (statusPrefixMatch != null) {
+      candidate = candidate.substring(statusPrefixMatch.end).trim();
+    }
+
+    if (candidate.length >= 2) {
+      final first = candidate[0];
+      final last = candidate[candidate.length - 1];
+      if ((first == '"' && last == '"') || (first == "'" && last == "'")) {
+        candidate = candidate.substring(1, candidate.length - 1).trim();
+      }
+    }
+
+    for (var i = 0; i < 2; i++) {
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(candidate);
+      } catch (_) {
+        decoded = null;
+      }
+
+      if (decoded is Map) {
+        final dynamic messageLike =
+            decoded['message'] ??
+            decoded['mensaje'] ??
+            decoded['error'] ??
+            decoded['detail'] ??
+            decoded['errors'];
+
+        final normalized = normalizeMessage(messageLike);
+        if (normalized.isNotEmpty) return normalized;
+
+        break;
+      }
+
+      if (decoded is String && decoded.trim().isNotEmpty) {
+        candidate = decoded.trim();
+        continue;
+      }
+
+      break;
+    }
+
+    for (final key in ['message', 'mensaje', 'error', 'detail']) {
+      final match = RegExp('"$key"\\s*:\\s*"([^"]+)"').firstMatch(candidate);
+      final message = match?.group(1)?.trim();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+    }
+
+    return fallback;
+  }
+
   Future<void> _onConfirmarDatos() async {
     if (widget.preview) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preview: acción deshabilitada (solo visual).'),
-          duration: Duration(seconds: 2),
-        ),
+      _showErrorDialog(
+        title: 'Modo Preview',
+        message: 'Acción deshabilitada (solo visual).',
       );
       return;
     }
@@ -120,20 +262,16 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     // Validar Nombre
     final nombre = _nombreController.text.trim();
     if (nombre.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, ingresa tu nombre.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Campo incompleto',
+        message: 'Por favor, ingresa tu nombre.',
       );
       return;
     }
     if (nombre.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El nombre debe tener al menos 2 caracteres.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Validación de nombre',
+        message: 'El nombre debe tener al menos 2 caracteres.',
       );
       return;
     }
@@ -141,31 +279,25 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     // Validar Apellido
     final apellido = _apellidoController.text.trim();
     if (apellido.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, ingresa tu apellido.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Campo incompleto',
+        message: 'Por favor, ingresa tu apellido.',
       );
       return;
     }
     if (apellido.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El apellido debe tener al menos 2 caracteres.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Validación de apellido',
+        message: 'El apellido debe tener al menos 2 caracteres.',
       );
       return;
     }
 
     // Validar Género
     if (_selectedGenero == null || _selectedGenero!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona tu género.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Campo incompleto',
+        message: 'Por favor, selecciona tu género.',
       );
       return;
     }
@@ -173,11 +305,9 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     // Validar Estado Civil
     final estadoCivil = _estadoCivilController.text.trim();
     if (estadoCivil.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, ingresa tu estado civil.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Campo incompleto',
+        message: 'Por favor, ingresa tu estado civil.',
       );
       return;
     }
@@ -188,11 +318,9 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
     );
     if (!emailRegex.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, ingresa un email válido.'),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Email inválido',
+        message: 'Por favor, ingresa un email válido.',
       );
       return;
     }
@@ -200,13 +328,9 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     // Validar formato de teléfono
     final telefono = _telefonoController.text.trim();
     if (!RegExp(r'^\d{10,15}$').hasMatch(telefono)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'El teléfono debe contener solo números (10-15 dígitos).',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      _showErrorDialog(
+        title: 'Teléfono inválido',
+        message: 'El teléfono debe contener solo números (10-15 dígitos).',
       );
       return;
     }
@@ -298,17 +422,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           }
         } catch (_) {}
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cuenta creada. Verifica tu email para continuar...'),
-            backgroundColor: Color.fromARGB(255, 41, 255, 94),
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        // Pequeño delay para que el usuario vea el mensaje
-        await Future.delayed(const Duration(milliseconds: 500));
-
         if (!mounted) return;
 
         // Extraer los datos que devuelve el backend (estos son los datos confirmados)
@@ -350,9 +463,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
               (existingToken != null && existingToken.isNotEmpty);
 
           if (hasAuth) {
-            final sent = await const NotificationService()
-                .saveFcmTokenToBackend();
-          } else {}
+            await const NotificationService().saveFcmTokenToBackend();
+          }
         } catch (e) {}
 
         // Guardar datos en notifiers para acceso posterior en EmailConfirmationPage
@@ -381,76 +493,66 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           );
         }
 
-        // Navegar a EmailConfirmationPage sin token (se obtendrá del link del mail)
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EmailConfirmationPage(
-              playerData: updatedData,
-              email: email,
-              username: widget.username,
-              password: widget.password,
-              dni: widget.dni,
-              telefono: telefono,
-              genero: widget.genero,
-              verificacionToken: '', // Sin token aún, lo tendrá del mail
-            ),
-          ),
+        // Mostrar mensaje de éxito y navegar
+        _showSuccessDialog(
+          message: 'Cuenta creada. Verifica tu email para continuar...',
+          onOk: () {
+            if (!mounted) return;
+            // Navegar a EmailConfirmationPage sin token (se obtendrá del link del mail)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailConfirmationPage(
+                  playerData: updatedData,
+                  email: email,
+                  username: widget.username,
+                  password: widget.password,
+                  dni: widget.dni,
+                  telefono: telefono,
+                  genero: widget.genero,
+                  verificacionToken: '', // Sin token aún, lo tendrá del mail
+                ),
+              ),
+            );
+          },
         );
       } else if (response.statusCode == 409) {
         // ❌ ERROR 409 - Usuario/Email ya existe
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+        final errorMessage = _extractBackendErrorMessage(
+          response.body,
+          fallback:
               'El usuario o email ya están registrados. Por favor, intenta con otros datos.',
-            ),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 5),
-          ),
         );
+
+        _showErrorDialog(title: 'Usuario duplicado', message: errorMessage);
       } else {
         // ❌ OTROS ERRORES
         if (!mounted) return;
 
-        String errorMessage = 'Error al crear la cuenta';
-        try {
-          final errorData = jsonDecode(response.body);
-          final backendMsg = (errorData['message'] as String?) ?? '';
+        String errorMessage = _extractBackendErrorMessage(
+          response.body,
+          fallback: ErrorParser.parseResponse(response),
+        );
 
-          // Mapear errores conocidos a mensajes claros
-          if (backendMsg.toLowerCase().contains('duplicate key') ||
-              backendMsg.contains('jugadores_dni_key')) {
-            errorMessage =
-                'El DNI ya está registrado. Usá un DNI diferente o recuperá acceso.';
-          } else {
-            errorMessage = backendMsg.isNotEmpty ? backendMsg : errorMessage;
-          }
-        } catch (e) {
-          errorMessage = 'Error ${response.statusCode}: ${response.body}';
+        if (errorMessage.toLowerCase().contains('duplicate key') ||
+            errorMessage.contains('jugadores_dni_key')) {
+          errorMessage =
+              'El DNI ya está registrado. Usá un DNI diferente o recuperá acceso.';
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        _showErrorDialog(title: 'Error de registro', message: errorMessage);
       }
     } catch (e) {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error crítico: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      final errorTitle = 'Error de conexión';
+      final errorMessage = ErrorParser.parse(e);
+
+      _showErrorDialog(title: errorTitle, message: errorMessage);
     }
   }
 

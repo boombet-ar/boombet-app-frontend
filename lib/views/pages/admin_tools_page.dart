@@ -1059,10 +1059,6 @@ class _AdminAffiliatorsSection extends StatelessWidget {
     final lastIndex = totalPages > 0 ? totalPages - 1 : page;
     final canGoBack = page > 0 && !isFirstPage;
     final canGoForward = totalPages > 0 ? page < lastIndex : !isLastPage;
-    final canJumpBack5 = page >= 5;
-    final canJumpBack10 = page >= 10;
-    final canJumpForward5 = totalPages > 0 && page + 5 <= lastIndex;
-    final canJumpForward10 = totalPages > 0 && page + 10 <= lastIndex;
 
     return Column(
       children: [
@@ -1225,15 +1221,8 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                         currentPage: page + 1,
                         canGoPrevious: canGoBack,
                         canGoNext: canGoForward,
-                        canJumpBack5: canJumpBack5,
-                        canJumpBack10: canJumpBack10,
-                        canJumpForward: canJumpForward5,
                         onPrev: () => onGoToPage(page - 1),
                         onNext: () => onGoToPage(page + 1),
-                        onJumpBack5: () => onGoToPage(page - 5),
-                        onJumpBack10: () => onGoToPage(page - 10),
-                        onJumpForward5: () => onGoToPage(page + 5),
-                        onJumpForward10: () => onGoToPage(page + 10),
                         primaryColor: theme.colorScheme.primary,
                         textColor: theme.colorScheme.onSurface,
                       ),
