@@ -41,6 +41,8 @@ class DiscountsContentState extends State<DiscountsContent> {
   int _apiPage = 1;
   final int _pageSize = 15;
   final Map<int, List<Cupon>> _pageCache = {};
+  List<Cupon> _categoryFilteredUniverse = [];
+  String? _categoryUniverseKey;
   List<Categoria> _remoteCategories = [];
   bool _showClaimed = false;
 
@@ -412,12 +414,67 @@ class DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
-  void _jumpPages(int delta) {
-    if (_isLoading) return;
-    final target = (_currentPage + delta).clamp(1, 1 << 30);
-    if (target == _currentPage) return;
-    _scrollListToTop();
-    unawaited(_loadCupones(pageOverride: target));
+  List<Cupon> _filterCuponesList(
+    List<Cupon> source, {
+    String? selectedCategoryId,
+    String? selectedCategoryName,
+    required String query,
+  }) {
+    final selectedId = selectedCategoryId?.trim();
+    final selectedName = selectedCategoryName?.trim().toLowerCase();
+    final queryLower = query.trim().toLowerCase();
+
+    return source.where((c) {
+      if (selectedId != null && selectedId.isNotEmpty) {
+        final matchesId = c.categorias.any((cat) {
+          final catId = cat.id?.toString();
+          final catFinalId = cat.finalId?.toString();
+          return catId == selectedId || catFinalId == selectedId;
+        });
+        if (!matchesId) return false;
+      } else if (selectedName != null && selectedName.isNotEmpty) {
+        final matchesName = c.categorias.any(
+          (cat) => cat.nombre.trim().toLowerCase() == selectedName,
+        );
+        if (!matchesName) return false;
+      }
+
+      if (queryLower.isEmpty) return true;
+
+      final nameMatch = c.nombre.toLowerCase().contains(queryLower);
+      final companyMatch = c.empresa.nombre.toLowerCase().contains(queryLower);
+      final categoryMatch = c.categorias.any(
+        (cat) => cat.nombre.toLowerCase().contains(queryLower),
+      );
+
+      return nameMatch || companyMatch || categoryMatch;
+    }).toList();
+  }
+
+  String _buildCategoryUniverseKey({
+    String? categoryId,
+    String? categoryName,
+    required String query,
+  }) {
+    final idPart = categoryId?.trim() ?? '';
+    final namePart = categoryName?.trim().toLowerCase() ?? '';
+    final queryPart = query.trim().toLowerCase();
+    return '$idPart|$namePart|$queryPart';
+  }
+
+  void _applyCategoryUniversePage(int requestedPage) {
+    final total = _categoryFilteredUniverse.length;
+    final maxPage = total == 0 ? 1 : ((total - 1) ~/ _pageSize) + 1;
+    final safePage = requestedPage.clamp(1, maxPage);
+    final start = (safePage - 1) * _pageSize;
+    final pageSlice = _categoryFilteredUniverse
+        .skip(start)
+        .take(_pageSize)
+        .toList();
+
+    _currentPage = safePage;
+    _filteredCupones = pageSlice;
+    _hasMore = safePage < maxPage;
   }
 
   Future<void> _loadCupones({
@@ -441,12 +498,17 @@ class DiscountsContentState extends State<DiscountsContent> {
         ? null
         : categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
     final targetPage = (pageOverride ?? _currentPage).clamp(1, 1 << 30);
+    final hasCategoryFilter =
+        (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty) ||
+        (normalizedCategoryName != null && normalizedCategoryName.isNotEmpty);
 
     setState(() {
       _isLoading = true;
       if (reset) {
         _cupones.clear();
         _filteredCupones.clear();
+        _categoryFilteredUniverse.clear();
+        _categoryUniverseKey = null;
         _apiPage = 1;
         _currentPage = 1;
         _pageCache.clear();
@@ -455,7 +517,10 @@ class DiscountsContentState extends State<DiscountsContent> {
       }
     });
 
-    if (!reset && !forceRefresh && _pageCache.containsKey(targetPage)) {
+    if (!hasCategoryFilter &&
+        !reset &&
+        !forceRefresh &&
+        _pageCache.containsKey(targetPage)) {
       if (mounted) {
         setState(() {
           _cupones = List<Cupon>.from(_pageCache[targetPage]!);
@@ -472,43 +537,139 @@ class DiscountsContentState extends State<DiscountsContent> {
     }
 
     try {
-      final result =
-          await CuponesService.getCupones(
-            page: targetPage,
-            pageSize: _pageSize,
-            searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
-            categoryId: normalizedCategoryId,
-            categoryName: normalizedCategoryName,
-            orderBy: 'relevant',
-          ).timeout(
-            const Duration(seconds: 20),
-            onTimeout: () {
-              debugPrint('ERROR: Timeout loading cupones');
-              throw TimeoutException('Timeout cargando cupones');
-            },
-          );
+      if (hasCategoryFilter) {
+        final universeKey = _buildCategoryUniverseKey(
+          categoryId: normalizedCategoryId,
+          categoryName: normalizedCategoryName,
+          query: normalizedSearch,
+        );
 
-      final newCupones = result['cupones'] as List<Cupon>? ?? [];
+        if (!reset &&
+            !forceRefresh &&
+            _categoryUniverseKey == universeKey &&
+            _categoryFilteredUniverse.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _applyCategoryUniversePage(targetPage);
+              _hasError = false;
+              _isLoading = false;
+            });
+          }
+          return;
+        }
 
-      if (mounted) {
-        setState(() {
-          _cupones = newCupones;
-          _apiPage = targetPage;
-          _currentPage = targetPage;
-          final hasMoreResponse = result['has_more'] as bool? ?? false;
-          _hasMore = hasMoreResponse;
-          _hasError = false;
-          _pageCache[targetPage] = List<Cupon>.from(newCupones);
-          _updateCategorias();
-          _applyFilter();
-          unawaited(_persistCuponCache());
-        });
-      }
+        final allFetched = <Cupon>[];
+        final seenIds = <String>{};
+        var backendPage = 1;
+        var lastFetchedBackendPage = 0;
+        var backendHasMore = true;
+        var safetyIterations = 0;
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        while (backendHasMore && safetyIterations < 200) {
+          safetyIterations++;
+
+          final result =
+              await CuponesService.getCupones(
+                page: backendPage,
+                pageSize: _pageSize,
+                searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
+                orderBy: 'relevant',
+              ).timeout(
+                const Duration(seconds: 20),
+                onTimeout: () {
+                  debugPrint('ERROR: Timeout loading cupones');
+                  throw TimeoutException('Timeout cargando cupones');
+                },
+              );
+
+          final backendPageCupones = result['cupones'] as List<Cupon>? ?? [];
+          backendHasMore =
+              (result['has_more'] as bool? ?? false) ||
+              backendPageCupones.length >= _pageSize;
+
+          for (final cupon in backendPageCupones) {
+            if (seenIds.add(cupon.id)) {
+              allFetched.add(cupon);
+            }
+          }
+
+          lastFetchedBackendPage = backendPage;
+          backendPage++;
+
+          if (backendPageCupones.isEmpty) {
+            backendHasMore = false;
+          }
+        }
+
+        final fullyFiltered = _filterCuponesList(
+          allFetched,
+          selectedCategoryId: normalizedCategoryId,
+          selectedCategoryName: normalizedCategoryName,
+          query: normalizedSearch,
+        );
+
+        if (mounted) {
+          setState(() {
+            _cupones = allFetched;
+            _categoryFilteredUniverse = fullyFiltered;
+            _categoryUniverseKey = universeKey;
+            _apiPage = lastFetchedBackendPage;
+            _applyCategoryUniversePage(targetPage);
+            _hasError = false;
+            _updateCategorias();
+            _isLoading = false;
+            unawaited(_persistCuponCache());
+          });
+        }
+      } else {
+        _categoryFilteredUniverse.clear();
+        _categoryUniverseKey = null;
+
+        final result =
+            await CuponesService.getCupones(
+              page: targetPage,
+              pageSize: _pageSize,
+              searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
+              orderBy: 'relevant',
+            ).timeout(
+              const Duration(seconds: 20),
+              onTimeout: () {
+                debugPrint('ERROR: Timeout loading cupones');
+                throw TimeoutException('Timeout cargando cupones');
+              },
+            );
+
+        final newCupones = result['cupones'] as List<Cupon>? ?? [];
+
+        if (targetPage > 1 && newCupones.isEmpty) {
+          if (mounted) {
+            setState(() {
+              _apiPage = targetPage - 1;
+              _currentPage = targetPage - 1;
+              _hasMore = false;
+              _hasError = false;
+              _applyFilter();
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+
+        if (mounted) {
+          setState(() {
+            _cupones = newCupones;
+            _apiPage = targetPage;
+            _currentPage = targetPage;
+            final hasMoreResponse = result['has_more'] as bool? ?? false;
+            _hasMore = hasMoreResponse;
+            _hasError = false;
+            _pageCache[targetPage] = List<Cupon>.from(newCupones);
+            _updateCategorias();
+            _applyFilter();
+            _isLoading = false;
+            unawaited(_persistCuponCache());
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -529,6 +690,8 @@ class DiscountsContentState extends State<DiscountsContent> {
       _searchQuery = '';
       _searchController.clear();
       _pageCache.clear();
+      _categoryFilteredUniverse.clear();
+      _categoryUniverseKey = null;
       _cupones.clear();
       _filteredCupones.clear();
       _apiPage = 1;
@@ -567,28 +730,12 @@ class DiscountsContentState extends State<DiscountsContent> {
         ? (_categoriaByName[selectedName]?.finalId?.toString() ??
               _categoriaByName[selectedName]?.id?.toString())
         : null;
-    final query = _searchQuery.trim().toLowerCase();
-
-    _filteredCupones = _cupones.where((c) {
-      if (selectedId != null &&
-          !c.categorias.any((cat) {
-            final catId = cat.id?.toString();
-            final catFinalId = cat.finalId?.toString();
-            return catId == selectedId || catFinalId == selectedId;
-          })) {
-        return false;
-      }
-
-      if (query.isEmpty) return true;
-
-      final nameMatch = c.nombre.toLowerCase().contains(query);
-      final companyMatch = c.empresa.nombre.toLowerCase().contains(query);
-      final categoryMatch = c.categorias.any(
-        (cat) => (cat.nombre).toLowerCase().contains(query),
-      );
-
-      return nameMatch || companyMatch || categoryMatch;
-    }).toList();
+    _filteredCupones = _filterCuponesList(
+      _cupones,
+      selectedCategoryId: selectedId,
+      selectedCategoryName: selectedName,
+      query: _searchQuery,
+    );
   }
 
   void _onSearch(String query) {
@@ -2213,10 +2360,7 @@ class DiscountsContentState extends State<DiscountsContent> {
     final isDark = theme.brightness == Brightness.dark;
     final pagedFilteredCupones = _filteredCupones;
     final canGoPrevious = _currentPage > 1;
-    final canGoNext = _hasMore || pagedFilteredCupones.length == _pageSize;
-    final canJumpBack5 = _currentPage > 5;
-    final canJumpBack10 = _currentPage > 10;
-    final canJumpForward = canGoNext;
+    final canGoNext = _hasMore;
 
     final categories = <String>{'Todos'};
     categories.addAll(_remoteCategories.map((c) => c.nombre));
@@ -2647,9 +2791,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                               currentPage: _currentPage,
                               canGoPrevious: canGoPrevious,
                               canGoNext: canGoNext,
-                              canJumpBack5: canJumpBack5,
-                              canJumpBack10: canJumpBack10,
-                              canJumpForward: canJumpForward,
                               onPrev: () {
                                 _scrollListToTop();
                                 final prevPage = (_currentPage - 1).clamp(
@@ -2663,10 +2804,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 final nextPage = _currentPage + 1;
                                 unawaited(_loadCupones(pageOverride: nextPage));
                               },
-                              onJumpBack5: () => _jumpPages(-5),
-                              onJumpBack10: () => _jumpPages(-10),
-                              onJumpForward5: () => _jumpPages(5),
-                              onJumpForward10: () => _jumpPages(10),
                               primaryColor: primaryGreen,
                               textColor: textColor,
                             ),

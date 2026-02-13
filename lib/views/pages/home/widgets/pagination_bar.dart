@@ -6,15 +6,8 @@ class PaginationBar extends StatelessWidget {
     required this.currentPage,
     required this.canGoPrevious,
     required this.canGoNext,
-    required this.canJumpBack5,
-    required this.canJumpBack10,
-    required this.canJumpForward,
     required this.onPrev,
     required this.onNext,
-    required this.onJumpBack5,
-    required this.onJumpBack10,
-    required this.onJumpForward5,
-    required this.onJumpForward10,
     required this.primaryColor,
     required this.textColor,
   });
@@ -22,16 +15,9 @@ class PaginationBar extends StatelessWidget {
   final int currentPage;
   final bool canGoPrevious;
   final bool canGoNext;
-  final bool canJumpBack5;
-  final bool canJumpBack10;
-  final bool canJumpForward;
 
   final VoidCallback onPrev;
   final VoidCallback onNext;
-  final VoidCallback onJumpBack5;
-  final VoidCallback onJumpBack10;
-  final VoidCallback onJumpForward5;
-  final VoidCallback onJumpForward10;
 
   final Color primaryColor;
   final Color textColor;
@@ -42,73 +28,57 @@ class PaginationBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _squareButton(
-          label: '-10',
-          enabled: canJumpBack10,
-          onPressed: onJumpBack10,
+        _navButton(
+          icon: Icons.chevron_left_rounded,
+          enabled: canGoPrevious,
+          onPressed: onPrev,
+          tooltip: 'Página anterior',
         ),
-        const SizedBox(width: 2),
-        _squareButton(
-          label: '-5',
-          enabled: canJumpBack5,
-          onPressed: onJumpBack5,
-        ),
-        const SizedBox(width: 2),
-        _squareButton(label: '-1', enabled: canGoPrevious, onPressed: onPrev),
-        const SizedBox(width: 6),
+        const SizedBox(width: 12),
         Text(
-          'P$currentPage',
+          'Página $currentPage',
           style: TextStyle(
             color: textColor.withOpacity(0.65),
             fontWeight: FontWeight.w700,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
-        const SizedBox(width: 6),
-        _squareButton(label: '+1', enabled: canGoNext, onPressed: onNext),
-        const SizedBox(width: 2),
-        _squareButton(
-          label: '+5',
-          enabled: canJumpForward,
-          onPressed: onJumpForward5,
-        ),
-        const SizedBox(width: 2),
-        _squareButton(
-          label: '+10',
-          enabled: canJumpForward,
-          onPressed: onJumpForward10,
+        const SizedBox(width: 12),
+        _navButton(
+          icon: Icons.chevron_right_rounded,
+          enabled: canGoNext,
+          onPressed: onNext,
+          tooltip: 'Página siguiente',
         ),
       ],
     );
   }
 
-  Widget _squareButton({
-    required String label,
+  Widget _navButton({
+    required IconData icon,
     required bool enabled,
     required VoidCallback onPressed,
+    required String tooltip,
   }) {
     return SizedBox(
-      width: 36,
-      height: 36,
-      child: OutlinedButton(
+      width: 38,
+      height: 38,
+      child: IconButton(
+        tooltip: tooltip,
         onPressed: enabled ? onPressed : null,
-        style: OutlinedButton.styleFrom(
+        style: IconButton.styleFrom(
           padding: EdgeInsets.zero,
+          backgroundColor: primaryColor.withOpacity(enabled ? 0.12 : 0.04),
           side: BorderSide(
-            color: primaryColor.withOpacity(enabled ? 0.65 : 0.12),
-            width: 0.75,
+            color: primaryColor.withOpacity(enabled ? 0.35 : 0.12),
+            width: 1,
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: const CircleBorder(),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: enabled ? primaryColor : textColor.withOpacity(0.25),
-            fontWeight: FontWeight.w700,
-            fontSize: 10.5,
-            height: 1,
-          ),
-          textAlign: TextAlign.center,
+        icon: Icon(
+          icon,
+          size: 22,
+          color: enabled ? primaryColor : textColor.withOpacity(0.25),
         ),
       ),
     );

@@ -454,31 +454,6 @@ class _ForumPageState extends State<ForumPage> {
     _loadPosts();
   }
 
-  void _goToPage(int page) {
-    final lastIndex = _totalPages > 0 ? _totalPages - 1 : null;
-    if (_isLoading || page < 0) return;
-    if (lastIndex != null && page > lastIndex) return;
-    setState(() {
-      _currentPage = page;
-    });
-    _loadPosts();
-  }
-
-  void _jumpBackPages(int pages) {
-    final newPage = (_currentPage - pages).clamp(0, double.infinity).toInt();
-    _goToPage(newPage);
-  }
-
-  void _jumpForwardPages(int pages) {
-    if (!_hasMore && pages > 0) return;
-    final lastIndex = _totalPages > 0 ? _totalPages - 1 : null;
-    final target = lastIndex != null
-        ? (_currentPage + pages).clamp(0, lastIndex)
-        : _currentPage + pages;
-    if (target == _currentPage) return;
-    _goToPage(target);
-  }
-
   Future<void> _loadPosts({bool refresh = false}) async {
     if (!mounted) return;
 
@@ -1147,10 +1122,6 @@ class _ForumPageState extends State<ForumPage> {
     final lastIndex = _totalPages > 0 ? _totalPages - 1 : _currentPage;
     final canGoBack = _currentPage > 0;
     final canGoForward = _hasMore && _currentPage < lastIndex;
-    final canJumpBack5 = _currentPage >= 5;
-    final canJumpBack10 = _currentPage >= 10;
-    final canJumpForward5 = _totalPages > 0 && _currentPage + 5 <= lastIndex;
-    final canJumpForward10 = _totalPages > 0 && _currentPage + 10 <= lastIndex;
     final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
 
     return Container(
@@ -1172,15 +1143,8 @@ class _ForumPageState extends State<ForumPage> {
           currentPage: _currentPage + 1,
           canGoPrevious: canGoBack,
           canGoNext: canGoForward,
-          canJumpBack5: canJumpBack5,
-          canJumpBack10: canJumpBack10,
-          canJumpForward: canJumpForward5,
           onPrev: _goToPreviousPage,
           onNext: _goToNextPage,
-          onJumpBack5: () => _jumpBackPages(5),
-          onJumpBack10: () => _jumpBackPages(10),
-          onJumpForward5: () => _jumpForwardPages(5),
-          onJumpForward10: () => _jumpForwardPages(10),
           primaryColor: accent,
           textColor: textColor,
         ),

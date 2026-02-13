@@ -30,6 +30,8 @@ class _DiscountsPageState extends State<DiscountsPage> {
   int _apiPage = 1;
   bool _isPrefetching = false;
   static const int _pageSize = 15;
+  List<Cupon> _categoryFilteredUniverse = [];
+  String? _categoryUniverseKey;
 
   final Map<String, Categoria> _categoriaByName = {};
   String? _selectedCategory;
@@ -148,12 +150,21 @@ class _DiscountsPageState extends State<DiscountsPage> {
     }
 
     final targetPage = pageOverride ?? _apiPage;
+    final selectedName = _selectedCategory;
+    final selectedId = selectedName != null
+        ? _categoriaByName[selectedName]?.id?.toString()
+        : null;
+    final hasCategoryFilter =
+        selectedName != null && selectedName.trim().isNotEmpty;
+    final universeKey = '${selectedId ?? ''}|${selectedName ?? ''}';
 
     setState(() {
       _isLoading = true;
       if (reset) {
         _cupones.clear();
         _filteredCupones.clear();
+        _categoryFilteredUniverse.clear();
+        _categoryUniverseKey = null;
         _apiPage = 1;
         _currentPage = 1;
         _categoriaByName.clear();
@@ -161,32 +172,103 @@ class _DiscountsPageState extends State<DiscountsPage> {
     });
 
     try {
-      final result = await CuponesService.getCupones(
-        page: targetPage,
-        pageSize: _pageSize,
-      );
+      if (hasCategoryFilter) {
+        if (_categoryUniverseKey != universeKey ||
+            _categoryFilteredUniverse.isEmpty ||
+            reset) {
+          final allFetched = <Cupon>[];
+          final seenIds = <String>{};
+          var backendPage = 1;
+          var backendHasMore = true;
+          var lastBackendPage = 0;
+          var safetyIterations = 0;
 
-      final newCupones = result['cupones'] as List<Cupon>? ?? [];
+          while (backendHasMore && safetyIterations < 200) {
+            safetyIterations++;
+            final result = await CuponesService.getCupones(
+              page: backendPage,
+              pageSize: _pageSize,
+            );
 
-      setState(() {
-        if (reset || targetPage == 1) {
-          _cupones = newCupones;
-          _apiPage = 1;
-          _currentPage = 1;
-        } else {
-          _cupones.addAll(newCupones);
-          _apiPage = targetPage;
+            final batch = result['cupones'] as List<Cupon>? ?? [];
+            for (final cupon in batch) {
+              if (seenIds.add(cupon.id)) {
+                allFetched.add(cupon);
+              }
+            }
+
+            backendHasMore =
+                (result['has_more'] as bool? ?? false) ||
+                batch.length >= _pageSize;
+            lastBackendPage = backendPage;
+            backendPage++;
+
+            if (batch.isEmpty) {
+              backendHasMore = false;
+            }
+          }
+
+          _cupones = allFetched;
+          _updateCategorias();
+          _applyFilter();
+          _categoryFilteredUniverse = List<Cupon>.from(_filteredCupones);
+          _categoryUniverseKey = universeKey;
+          _apiPage = lastBackendPage;
         }
 
-        _hasMore =
-            (result['has_more'] as bool? ?? false) ||
-            newCupones.length >= _pageSize;
-        _hasError = false;
-        _isLoading = false;
+        final maxVisible = targetPage * _pageSize;
+        final visible = _categoryFilteredUniverse.take(maxVisible).toList();
 
-        _updateCategorias();
-        _applyFilter();
-      });
+        setState(() {
+          _currentPage = targetPage;
+          _filteredCupones = visible;
+          _hasMore = visible.length < _categoryFilteredUniverse.length;
+          _hasError = false;
+          _isLoading = false;
+        });
+      } else {
+        _categoryFilteredUniverse.clear();
+        _categoryUniverseKey = null;
+
+        final result = await CuponesService.getCupones(
+          page: targetPage,
+          pageSize: _pageSize,
+        );
+
+        final newCupones = result['cupones'] as List<Cupon>? ?? [];
+
+        if (targetPage > 1 && newCupones.isEmpty) {
+          setState(() {
+            _apiPage = targetPage - 1;
+            _currentPage = targetPage - 1;
+            _hasMore = false;
+            _hasError = false;
+            _isLoading = false;
+            _applyFilter();
+          });
+          return;
+        }
+
+        setState(() {
+          if (reset || targetPage == 1) {
+            _cupones = newCupones;
+            _apiPage = 1;
+            _currentPage = 1;
+          } else {
+            _cupones.addAll(newCupones);
+            _apiPage = targetPage;
+          }
+
+          _hasMore =
+              (result['has_more'] as bool? ?? false) ||
+              newCupones.length >= _pageSize;
+          _hasError = false;
+          _isLoading = false;
+
+          _updateCategorias();
+          _applyFilter();
+        });
+      }
     } catch (e) {
       setState(() {
         _hasError = true;
@@ -232,7 +314,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
 
   void _loadMore() {
     if (_isLoading) return;
-    final nextPage = _apiPage + 1;
+    final nextPage = _currentPage + 1;
     _currentPage = nextPage;
     _loadCupones(pageOverride: nextPage);
   }
