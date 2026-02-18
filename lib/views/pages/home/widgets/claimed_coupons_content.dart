@@ -87,7 +87,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
   }
 
   Future<void> refreshClaimedCupones() async {
-    await _loadClaimedCupones();
+    await _loadClaimedCupones(forceRefresh: true);
   }
 
   Future<void> _clearClaimedCachePrefs() async {
@@ -234,7 +234,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     }
   }
 
-  Future<void> _loadClaimedCupones({int? pageOverride}) async {
+  Future<void> _loadClaimedCupones({
+    int? pageOverride,
+    bool forceRefresh = false,
+  }) async {
     if (!mounted) return;
     final targetPage = pageOverride ?? _claimedPage;
 
@@ -249,6 +252,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
           await CuponesService.getCuponesRecibidos(
             page: targetPage,
             pageSize: _claimedPageSize,
+            forceRefresh: forceRefresh,
           ).timeout(
             const Duration(seconds: 15),
             onTimeout: () {
@@ -553,7 +557,8 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
     }
 
     return RefreshIndicator(
-      onRefresh: () async => _loadClaimedCupones(pageOverride: 1),
+      onRefresh: () async =>
+          _loadClaimedCupones(pageOverride: 1, forceRefresh: true),
       child: content,
     );
   }

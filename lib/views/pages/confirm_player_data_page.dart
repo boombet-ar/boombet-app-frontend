@@ -405,6 +405,10 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         // ✅ REGISTRO EXITOSO - El token se envía por mail
         if (!mounted) return;
 
+        // Evitar reutilizar tokens viejos/vencidos de sesiones anteriores
+        // durante el flujo de afiliación del registro actual.
+        await TokenService.deleteToken();
+
         final affiliateToken = widget.affiliateToken?.trim();
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -455,17 +459,8 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           }
         } catch (e) {}
 
-        // Enviar el FCM token al backend para habilitar push desde el inicio
-        try {
-          final existingToken = await TokenService.getToken();
-          final hasAuth =
-              (tokenFromResponse != null && tokenFromResponse.isNotEmpty) ||
-              (existingToken != null && existingToken.isNotEmpty);
-
-          if (hasAuth) {
-            await const NotificationService().saveFcmTokenToBackend();
-          }
-        } catch (e) {}
+        // Durante onboarding evitamos llamadas autenticadas extra (ej. FCM)
+        // para no disparar falsos "sesión expirada" con tokens recién emitidos.
 
         // Guardar datos en notifiers para acceso posterior en EmailConfirmationPage
         // Usar los datos devueltos por el backend si están disponibles, si no usar updatedData

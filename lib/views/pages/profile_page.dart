@@ -126,9 +126,9 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-        final snapshot = await PlayerService().getCurrentUserSnapshot();
+      final snapshot = await PlayerService().getCurrentUserSnapshot();
 
-        final mergedPlayer = snapshot.avatarUrl.isNotEmpty
+      final mergedPlayer = snapshot.avatarUrl.isNotEmpty
           ? snapshot.playerData.copyWith(avatarUrl: snapshot.avatarUrl)
           : snapshot.playerData;
 
@@ -698,225 +698,261 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black54,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(dialogRadius),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(dialogRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final maxDialogWidth = kIsWeb ? 860.0 : 560.0;
+        final desiredWidth = screenWidth * (kIsWeb ? 0.9 : 0.92);
+        final effectiveWidth = desiredWidth
+            .clamp(320.0, maxDialogWidth)
+            .toDouble();
+        final isCompactActions = effectiveWidth < 640;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: kIsWeb ? 20 : 16,
+            vertical: 24,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header con icono de advertencia
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50.withValues(alpha: 0.3),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(dialogRadius),
-                      topRight: Radius.circular(dialogRadius),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(dialogRadius),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxDialogWidth),
+            child: SizedBox(
+              width: effectiveWidth,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(dialogRadius),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade100.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.warning_amber_rounded,
-                          size: 48,
-                          color: Colors.red.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Desafiliarse de Boombet',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-
-                // Contenido
-                Padding(
-                  padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Esto es importante:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Puntos de información
-                      _buildUnaffiliateInfoCard(
-                        icon: Icons.delete_outline,
-                        title: 'Tu cuenta será eliminada',
-                        subtitle:
-                            'Toda tu información personal y datos de juego serán borrados permanentemente',
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUnaffiliateInfoCard(
-                        icon: Icons.logout_rounded,
-                        title: 'Te desafiliamos de Boombet',
-                        subtitle:
-                            'Perderás acceso a nuestra plataforma y sus beneficios',
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUnaffiliateInfoCard(
-                        icon: Icons.casino,
-                        title: 'Afiliación a casinos asociados',
-                        subtitle:
-                            'Permanecerás afiliado a los casinos asociados según tus acuerdos individuales',
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Pregunta de confirmación
+                      // Header con icono de advertencia
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.orange.shade900.withValues(alpha: 0.2)
-                              : Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.orange.shade200,
-                            width: 1,
+                          color: Colors.red.shade50.withValues(alpha: 0.3),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(dialogRadius),
+                            topRight: Radius.circular(dialogRadius),
                           ),
                         ),
-                        child: Text(
-                          '¿Estás completamente seguro de esta decisión? Esta acción no se puede deshacer.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? Colors.orange.shade200
-                                : Colors.orange.shade700,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Botones
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark
-                                ? Colors.grey.shade800
-                                : AppConstants.lightInputBg,
-                            foregroundColor: primaryGreen,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: primaryGreen.withValues(alpha: 0.3),
-                                width: 1.5,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100.withValues(
+                                  alpha: 0.5,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                size: 48,
+                                color: Colors.red.shade700,
                               ),
                             ),
-                          ),
-                          child: Text(
-                            'No, continuar',
-                            style: TextStyle(
-                              color: primaryGreen,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              letterSpacing: 0.3,
+                            const SizedBox(height: 16),
+                            Text(
+                              'Desafiliarse de Boombet',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isUnaffiliating
-                              ? null
-                              : () => _handleUnaffiliateConfirm(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade600,
-                            foregroundColor: textColor,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+
+                      // Contenido
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Esto es importante:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                          ),
-                          child: _isUnaffiliating
-                              ? SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: textColor,
+                            const SizedBox(height: 16),
+
+                            // Puntos de información
+                            _buildUnaffiliateInfoCard(
+                              icon: Icons.delete_outline,
+                              title: 'Tu cuenta será eliminada',
+                              subtitle:
+                                  'Toda tu información personal y datos de juego serán borrados permanentemente',
+                              isDark: isDark,
+                              textColor: textColor,
+                              subtitleColor: subtitleColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildUnaffiliateInfoCard(
+                              icon: Icons.logout_rounded,
+                              title: 'Te desafiliamos de Boombet',
+                              subtitle:
+                                  'Perderás acceso a nuestra plataforma y sus beneficios',
+                              isDark: isDark,
+                              textColor: textColor,
+                              subtitleColor: subtitleColor,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildUnaffiliateInfoCard(
+                              icon: Icons.casino,
+                              title: 'Afiliación a casinos asociados',
+                              subtitle:
+                                  'Permanecerás afiliado a los casinos asociados según tus acuerdos individuales',
+                              isDark: isDark,
+                              textColor: textColor,
+                              subtitleColor: subtitleColor,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Pregunta de confirmación
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.orange.shade900.withValues(
+                                        alpha: 0.2,
+                                      )
+                                    : Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '¿Estás completamente seguro de esta decisión? Esta acción no se puede deshacer.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark
+                                      ? Colors.orange.shade200
+                                      : Colors.orange.shade700,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Botones
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 20,
+                        ),
+                        child: Flex(
+                          direction: isCompactActions
+                              ? Axis.vertical
+                              : Axis.horizontal,
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isDark
+                                      ? Colors.grey.shade800
+                                      : AppConstants.lightInputBg,
+                                  foregroundColor: primaryGreen,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
                                   ),
-                                )
-                              : const Text(
-                                  'Sí, desafiliarme',
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'No, continuar',
                                   style: TextStyle(
+                                    color: primaryGreen,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     letterSpacing: 0.3,
                                   ),
                                 ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: isCompactActions ? 0 : 12,
+                              height: isCompactActions ? 12 : 0,
+                            ),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isUnaffiliating
+                                    ? null
+                                    : () => _handleUnaffiliateConfirm(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade600,
+                                  foregroundColor: textColor,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: _isUnaffiliating
+                                    ? SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: textColor,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Sí, desafiliarme',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

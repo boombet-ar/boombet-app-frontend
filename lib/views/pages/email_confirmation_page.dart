@@ -640,11 +640,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                LimitedHomePage(
-                  affiliationService: _affiliationService,
-                  wsUrl: wsUrl,
-                ),
+            builder: (context) => LimitedHomePage(
+              affiliationService: _affiliationService,
+              wsUrl: wsUrl,
+            ),
           ),
         );
       } else {
@@ -705,6 +704,20 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         return 'No se encontró token para completar la afiliación.';
       }
 
+      if (TokenService.isLikelyJwt(accessToken) &&
+          TokenService.isJwtExpiredSafe(accessToken)) {
+        final refreshToken = await TokenService.getRefreshToken();
+        final hasRefresh = refreshToken != null && refreshToken.isNotEmpty;
+        final refreshExpired =
+            hasRefresh &&
+            TokenService.isLikelyJwt(refreshToken!) &&
+            TokenService.isJwtExpiredSafe(refreshToken);
+
+        if (!hasRefresh || refreshExpired) {
+          return 'Tu sesión expiró. Iniciá sesión nuevamente para continuar la afiliación.';
+        }
+      }
+
       final url = '${ApiConfig.baseUrl}/cupones/afiliado';
       final response = await HttpClient.post(
         url,
@@ -721,8 +734,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       try {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
-          errorMessage =
-              decoded['message'] ?? decoded['error'] ?? errorMessage;
+          errorMessage = decoded['message'] ?? decoded['error'] ?? errorMessage;
         }
       } catch (_) {
         if (response.body.isNotEmpty) {

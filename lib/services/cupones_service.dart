@@ -37,6 +37,8 @@ class CuponesService {
       final normalizedOrderBy = (orderBy?.trim().isNotEmpty ?? false)
           ? orderBy!.trim()
           : 'relevant';
+      final normalizedCategoryId = categoryId?.trim();
+      final normalizedCategoryName = categoryName?.trim();
 
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
           .replace(
@@ -47,6 +49,24 @@ class CuponesService {
               'with_locations': 'false',
               // Incluir cupones en subcategorías (ej: Cines bajo Entretenimiento)
               'subcategories': 'true',
+              if (normalizedCategoryId != null &&
+                  normalizedCategoryId.isNotEmpty) ...{
+                // Compatibilidad: distintos backends usan distintas keys.
+                'category_id': normalizedCategoryId,
+                'categoria_id': normalizedCategoryId,
+                'categoryId': normalizedCategoryId,
+                'categoriaId': normalizedCategoryId,
+                'final_id': normalizedCategoryId,
+                'category': normalizedCategoryId,
+                'categoria': normalizedCategoryId,
+              },
+              if ((normalizedCategoryId == null ||
+                      normalizedCategoryId.isEmpty) &&
+                  normalizedCategoryName != null &&
+                  normalizedCategoryName.isNotEmpty) ...{
+                'category_name': normalizedCategoryName,
+                'categoryName': normalizedCategoryName,
+              },
               if (normalizedSearch != null && normalizedSearch.isNotEmpty) ...{
                 'query': normalizedSearch,
               },
@@ -172,6 +192,7 @@ class CuponesService {
   static Future<Map<String, dynamic>> getCuponesRecibidos({
     int page = 1,
     int pageSize = 25,
+    bool forceRefresh = false,
   }) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones/recibidos')
@@ -183,10 +204,15 @@ class CuponesService {
           )
           .toString();
 
+      if (forceRefresh) {
+        HttpClient.clearCache(urlPattern: '/cupones/recibidos');
+      }
+
       final response = await HttpClient.get(
         url,
         includeAuth: true,
         timeout: const Duration(seconds: 60),
+        cacheTtl: forceRefresh ? Duration.zero : null,
       );
 
       if (response.statusCode == 200) {
@@ -249,6 +275,11 @@ class CuponesService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Invalidar cache relacionada para que ambas vistas reflejen el reclamo
+        // de inmediato sin requerir reinicio.
+        HttpClient.clearCache(urlPattern: '/cupones/recibidos');
+        HttpClient.clearCache(urlPattern: '/cupones');
 
         return {'success': true, 'data': data['success'] ?? data};
       } else {
