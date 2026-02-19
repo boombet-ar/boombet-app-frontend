@@ -25,7 +25,9 @@ class ForumPost {
     casinoGralId: (json['casinoGralId'] is int)
         ? (json['casinoGralId'] as int)
         : int.tryParse('${json['casinoGralId'] ?? ''}'),
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    createdAt: _parseBackendCreatedAt(
+      json['createdAt'] ?? json['created_at'] ?? json['timestamp'],
+    ),
     avatarUrl: _extractAvatar(json),
   );
 
@@ -72,6 +74,17 @@ class ForumPost {
       if (nested is String && nested.isNotEmpty) return nested;
     }
     return '';
+  }
+
+  static DateTime _parseBackendCreatedAt(dynamic rawValue) {
+    final createdAtFromBackend = (rawValue ?? '').toString().trim();
+    if (createdAtFromBackend.isEmpty) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
+    final fecha = DateTime.parse(createdAtFromBackend);
+    final fechaLocal = fecha.toLocal();
+    return fechaLocal;
   }
 }
 

@@ -457,6 +457,8 @@ class _ForumPageState extends State<ForumPage> {
   Future<void> _loadPosts({bool refresh = false}) async {
     if (!mounted) return;
 
+    const newestFirstSort = ['createdAt,desc'];
+
     if (refresh) {
       setState(() {
         _currentPage = 0;
@@ -485,11 +487,13 @@ class _ForumPageState extends State<ForumPage> {
                 page: page,
                 size: 10,
                 casinoId: casinoGralId,
+                sort: newestFirstSort,
               )
             : await ForumService.getPosts(
                 page: page,
                 size: 10,
                 casinoId: casinoGralId,
+                sort: newestFirstSort,
               );
 
         if (!mounted) return;
@@ -530,11 +534,13 @@ class _ForumPageState extends State<ForumPage> {
                 page: page,
                 size: 10,
                 casinoId: casinoGralId,
+                sort: newestFirstSort,
               )
             : await ForumService.getPosts(
                 page: page,
                 size: 10,
                 casinoId: casinoGralId,
+                sort: newestFirstSort,
               );
 
         if (!mounted) return;
@@ -1255,9 +1261,8 @@ class _PostCard extends StatelessWidget {
   });
 
   String _formatDate(DateTime date) {
-    // Mostrar fecha/hora exacta según viene del backend
     final local = date.toLocal();
-    return DateFormat('yyyy-MM-dd HH:mm:ss').format(local);
+    return DateFormat('dd/MM/yyyy HH:mm').format(local);
   }
 
   @override
