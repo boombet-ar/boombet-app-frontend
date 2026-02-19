@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:typed_data';
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/afiliador_model.dart';
@@ -10,6 +11,8 @@ import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class AdminToolsPage extends StatefulWidget {
   const AdminToolsPage({super.key});
@@ -571,6 +574,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               key: ValueKey(_activeSection),
               section: _activeSection,
               onSelectAffiliators: () => _setSection(_AdminSection.affiliators),
+              onSelectAds: () => _setSection(_AdminSection.ads),
               onSelectEvents: () => _setSection(_AdminSection.events),
               onBack: () => _setSection(_AdminSection.home),
               onCreateAffiliator: showAffiliatorForm,
@@ -770,6 +774,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
 class _AdminSectionBody extends StatelessWidget {
   final _AdminSection section;
   final VoidCallback onSelectAffiliators;
+  final VoidCallback onSelectAds;
   final VoidCallback onSelectEvents;
   final VoidCallback onBack;
   final VoidCallback onCreateAffiliator;
@@ -794,6 +799,7 @@ class _AdminSectionBody extends StatelessWidget {
     super.key,
     required this.section,
     required this.onSelectAffiliators,
+    required this.onSelectAds,
     required this.onSelectEvents,
     required this.onBack,
     required this.onCreateAffiliator,
@@ -838,6 +844,14 @@ class _AdminSectionBody extends StatelessWidget {
                   icon: Icons.group_outlined,
                   accentColor: theme.colorScheme.primary,
                   onTap: onSelectAffiliators,
+                ),
+                const SizedBox(height: 12),
+                _AdminPrimaryActionButton(
+                  title: 'Publicidades',
+                  subtitle: 'Gestión de banners publicitarios',
+                  icon: Icons.campaign_outlined,
+                  accentColor: theme.colorScheme.primary,
+                  onTap: onSelectAds,
                 ),
                 const SizedBox(height: 12),
                 // _AdminPrimaryActionButton(
@@ -899,6 +913,7 @@ class _AdminSectionBody extends StatelessWidget {
             onToggleActive: onToggleAffiliatorActive,
             onDelete: onDeleteAffiliator,
           ),
+        if (section == _AdminSection.ads) const _AdminAdsSection(),
         if (section == _AdminSection.events)
           _AdminEventsSection(onBack: onBack, onCreate: onCreateEvent),
       ],
@@ -906,7 +921,331 @@ class _AdminSectionBody extends StatelessWidget {
   }
 }
 
-enum _AdminSection { home, affiliators, events }
+enum _AdminSection { home, affiliators, ads, events }
+
+class _AdminAdsSection extends StatefulWidget {
+  const _AdminAdsSection();
+
+  @override
+  State<_AdminAdsSection> createState() => _AdminAdsSectionState();
+}
+
+class _AdminAdsSectionState extends State<_AdminAdsSection> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+  final DateTime _startDate = DateTime.now();
+  DateTime? _expiryDate;
+  Uint8List? _imageBytes;
+  String? _imageName;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final file = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _imageBytes = bytes;
+        _imageName = file.name;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo cargar la imagen.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickExpiryDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initialDate = _expiryDate != null && _expiryDate!.isAfter(today)
+        ? _expiryDate!
+        : today;
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: DateTime(today.year + 3),
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() {
+      _expiryDate = selected;
+    });
+  }
+
+  void _saveMockAd() {
+    if (_isSubmitting) return;
+
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+
+    if (_imageBytes == null ||
+        title.isEmpty ||
+        description.isEmpty ||
+        _expiryDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Completá imagen, título, descripción y caducidad.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _titleController.clear();
+        _descriptionController.clear();
+        _expiryDate = null;
+        _imageBytes = null;
+        _imageName = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Publicidad mock guardada correctamente.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    });
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = theme.colorScheme.primary;
+    final now = DateTime.now();
+
+    return Column(
+      children: [
+        SectionHeaderWidget(
+          title: 'Publicidades',
+          subtitle: 'Carga de banner vertical para carrusel publicitario.',
+          icon: Icons.campaign_outlined,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppConstants.darkAccent
+                  : AppConstants.lightSurfaceVariant,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              border: Border.all(color: accent.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nueva publicidad',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: InkWell(
+                    onTap: _pickImage,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: 190,
+                      height: 320,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.22)
+                            : AppConstants.lightCardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.35),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: _imageBytes != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
+                                _imageBytes!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 34,
+                                  color: accent,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Cargar imagen\nvertical',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.75),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+                if (_imageName != null) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      _imageName!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.65,
+                        ),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    hintText: 'Ej: Bono especial fin de semana',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _descriptionController,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    hintText: 'Descripción breve de la publicidad',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Fecha de subida',
+                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        child: Text(
+                          _formatDate(now),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickExpiryDate,
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadius,
+                        ),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Fecha de baja',
+                            suffixIcon: Icon(Icons.calendar_today_outlined),
+                          ),
+                          child: Text(
+                            _expiryDate == null
+                                ? 'Seleccionar fecha'
+                                : _formatDate(_expiryDate!),
+                            style: TextStyle(
+                              color: _expiryDate == null
+                                  ? theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.65,
+                                    )
+                                  : theme.colorScheme.onSurface,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _saveMockAd,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: AppConstants.textLight,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadius,
+                        ),
+                      ),
+                    ),
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppConstants.textLight,
+                            ),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(
+                      _isSubmitting ? 'Guardando...' : 'Guardar publicidad',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _AdminPrimaryActionButton extends StatelessWidget {
   final String title;

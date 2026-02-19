@@ -690,22 +690,24 @@ class _ProfilePageState extends State<ProfilePage> {
     Color textColor,
     bool isDark,
   ) {
-    const dialogRadius = 20.0;
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg;
-    final subtitleColor = textColor;
+    const dialogRadius = 24.0;
+    const redDark = Color(0xFFE53935);
+    const redDeep = Color(0xFFB71C1C);
+    final bgColor = isDark ? const Color(0xFF141414) : AppConstants.lightCardBg;
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF6F6F6);
+    final cardBorder = isDark ? Colors.white10 : AppConstants.borderLight;
+    final subtitleColor = textColor.withValues(alpha: 0.6);
 
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
-        final maxDialogWidth = kIsWeb ? 860.0 : 560.0;
-        final desiredWidth = screenWidth * (kIsWeb ? 0.9 : 0.92);
-        final effectiveWidth = desiredWidth
-            .clamp(320.0, maxDialogWidth)
+        final maxDialogWidth = kIsWeb ? 580.0 : 480.0;
+        final effectiveWidth = (screenWidth * (kIsWeb ? 0.55 : 0.92))
+            .clamp(300.0, maxDialogWidth)
             .toDouble();
-        final isCompactActions = effectiveWidth < 640;
 
         return Dialog(
           insetPadding: EdgeInsets.symmetric(
@@ -725,227 +727,363 @@ class _ProfilePageState extends State<ProfilePage> {
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(dialogRadius),
+                  border: Border.all(
+                    color: redDark.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      color: redDark.withValues(alpha: 0.18),
+                      blurRadius: 40,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 12),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.40),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header con icono de advertencia
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50.withValues(alpha: 0.3),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(dialogRadius),
-                            topRight: Radius.circular(dialogRadius),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(dialogRadius),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ── Header con gradiente rojo ──
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF3A0A0A), Color(0xFF2A0808)],
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100.withValues(
-                                  alpha: 0.5,
+                          child: Column(
+                            children: [
+                              // Icono con glow
+                              Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [redDark, redDeep],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: redDark.withValues(alpha: 0.45),
+                                      blurRadius: 24,
+                                      spreadRadius: 2,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    width: 1.5,
+                                  ),
                                 ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.warning_amber_rounded,
-                                size: 48,
-                                color: Colors.red.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Desafiliarse de Boombet',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Contenido
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Esto es importante:',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Puntos de información
-                            _buildUnaffiliateInfoCard(
-                              icon: Icons.delete_outline,
-                              title: 'Tu cuenta será eliminada',
-                              subtitle:
-                                  'Toda tu información personal y datos de juego serán borrados permanentemente',
-                              isDark: isDark,
-                              textColor: textColor,
-                              subtitleColor: subtitleColor,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildUnaffiliateInfoCard(
-                              icon: Icons.logout_rounded,
-                              title: 'Te desafiliamos de Boombet',
-                              subtitle:
-                                  'Perderás acceso a nuestra plataforma y sus beneficios',
-                              isDark: isDark,
-                              textColor: textColor,
-                              subtitleColor: subtitleColor,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildUnaffiliateInfoCard(
-                              icon: Icons.casino,
-                              title: 'Afiliación a casinos asociados',
-                              subtitle:
-                                  'Permanecerás afiliado a los casinos asociados según tus acuerdos individuales',
-                              isDark: isDark,
-                              textColor: textColor,
-                              subtitleColor: subtitleColor,
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Pregunta de confirmación
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.orange.shade900.withValues(
-                                        alpha: 0.2,
-                                      )
-                                    : Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.orange.shade200,
-                                  width: 1,
+                                child: const Icon(
+                                  Icons.person_off_rounded,
+                                  size: 36,
+                                  color: Colors.white,
                                 ),
                               ),
-                              child: Text(
-                                '¿Estás completamente seguro de esta decisión? Esta acción no se puede deshacer.',
+                              const SizedBox(height: 18),
+                              const Text(
+                                'Desafiliarse de Boombet',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Esta acción es permanente e irreversible',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? Colors.orange.shade200
-                                      : Colors.orange.shade700,
-                                  height: 1.5,
+                                  color: Colors.white.withValues(alpha: 0.55),
+                                  letterSpacing: 0.2,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // Botones
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 20,
-                        ),
-                        child: Flex(
-                          direction: isCompactActions
-                              ? Axis.vertical
-                              : Axis.horizontal,
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => Navigator.pop(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isDark
-                                      ? Colors.grey.shade800
-                                      : AppConstants.lightInputBg,
-                                  foregroundColor: primaryGreen,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
+                        // ── Contenido ──
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Esto es importante:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor.withValues(alpha: 0.5),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              _buildUnaffiliateInfoCard(
+                                icon: Icons.delete_forever_rounded,
+                                title: 'Tu cuenta será eliminada',
+                                subtitle:
+                                    'Toda tu información personal y datos de juego serán borrados permanentemente.',
+                                isDark: isDark,
+                                textColor: textColor,
+                                subtitleColor: subtitleColor,
+                              ),
+                              const SizedBox(height: 10),
+                              _buildUnaffiliateInfoCard(
+                                icon: Icons.block_rounded,
+                                title: 'Perdés acceso a Boombet',
+                                subtitle:
+                                    'No podrás ingresar a la plataforma ni disfrutar de sus beneficios.',
+                                isDark: isDark,
+                                textColor: textColor,
+                                subtitleColor: subtitleColor,
+                              ),
+                              const SizedBox(height: 10),
+                              _buildUnaffiliateInfoCard(
+                                icon: Icons.casino_outlined,
+                                title: 'Casinos asociados',
+                                subtitle:
+                                    'Permanecerás afiliado a los casinos asociados según tus acuerdos individuales.',
+                                isDark: isDark,
+                                textColor: textColor,
+                                subtitleColor: subtitleColor,
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Advertencia final
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: redDark.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: redDark.withValues(alpha: 0.28),
+                                    width: 1,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 20,
+                                      color: redDark.withValues(alpha: 0.85),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        '¿Estás completamente seguro? Esta acción no se puede deshacer.',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.red.shade300
+                                              : Colors.red.shade700,
+                                          height: 1.45,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // ── Botones ──
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                          child: Column(
+                            children: [
+                              // Botón cancelar (outline estilo app)
+                              SizedBox(
+                                width: double.infinity,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    color: cardBg,
+                                    border: Border.all(
                                       color: primaryGreen.withValues(
-                                        alpha: 0.3,
+                                        alpha: 0.35,
                                       ),
                                       width: 1.5,
                                     ),
                                   ),
-                                ),
-                                child: Text(
-                                  'No, continuar',
-                                  style: TextStyle(
-                                    color: primaryGreen,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: isCompactActions ? 0 : 12,
-                              height: isCompactActions ? 12 : 0,
-                            ),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _isUnaffiliating
-                                    ? null
-                                    : () => _handleUnaffiliateConfirm(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade600,
-                                  foregroundColor: textColor,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: _isUnaffiliating
-                                    ? SizedBox(
-                                        height: 16,
-                                        width: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: textColor,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () => Navigator.pop(context),
+                                        splashColor: primaryGreen.withValues(
+                                          alpha: 0.08,
                                         ),
-                                      )
-                                    : const Text(
-                                        'Sí, desafiliarme',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                          letterSpacing: 0.3,
+                                        highlightColor: primaryGreen.withValues(
+                                          alpha: 0.04,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.arrow_back_rounded,
+                                                size: 18,
+                                                color: primaryGreen,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'No, continuar usando la app',
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: primaryGreen,
+                                                  letterSpacing: 0.2,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(height: 10),
+
+                              // Botón confirmar (gradiente rojo)
+                              SizedBox(
+                                width: double.infinity,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: _isUnaffiliating
+                                          ? [
+                                              redDark.withValues(alpha: 0.45),
+                                              redDeep.withValues(alpha: 0.45),
+                                            ]
+                                          : const [redDark, redDeep],
+                                    ),
+                                    boxShadow: _isUnaffiliating
+                                        ? []
+                                        : [
+                                            BoxShadow(
+                                              color: redDark.withValues(
+                                                alpha: 0.38,
+                                              ),
+                                              blurRadius: 18,
+                                              spreadRadius: 0.5,
+                                              offset: const Offset(0, 8),
+                                            ),
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.22,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: _isUnaffiliating ? 0.06 : 0.14,
+                                      ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _isUnaffiliating
+                                            ? null
+                                            : () => _handleUnaffiliateConfirm(
+                                                context,
+                                              ),
+                                        splashColor: Colors.white.withValues(
+                                          alpha: 0.10,
+                                        ),
+                                        highlightColor: Colors.white.withValues(
+                                          alpha: 0.06,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          child: _isUnaffiliating
+                                              ? const Center(
+                                                  child: SizedBox(
+                                                    height: 18,
+                                                    width: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                  ),
+                                                )
+                                              : const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.person_off_rounded,
+                                                      size: 18,
+                                                      color: Colors.white,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Sí, desafiliarme',
+                                                      style: TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: Colors.white,
+                                                        letterSpacing: 0.2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -971,30 +1109,45 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color textColor,
     required Color subtitleColor,
   }) {
+    const redDark = Color(0xFFE53935);
+    const redDeep = Color(0xFFB71C1C);
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3);
+    final cardBorder = isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : AppConstants.borderLight;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey.shade900.withValues(alpha: 0.3)
-            : AppConstants.lightCardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade700 : AppConstants.borderLight,
-          width: 1,
-        ),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Icono con gradiente rojo
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: Colors.red.shade100.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [redDark, redDeep],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: redDark.withValues(alpha: 0.30),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, size: 20, color: Colors.red.shade600),
+            child: Icon(icon, size: 18, color: Colors.white),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1003,8 +1156,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   title,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: textColor,
+                    letterSpacing: 0.1,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1013,7 +1167,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(
                     fontSize: 12,
                     color: subtitleColor,
-                    height: 1.4,
+                    height: 1.45,
                   ),
                 ),
               ],
