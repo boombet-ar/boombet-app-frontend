@@ -76,33 +76,6 @@ class SectionHeaderWidget extends StatelessWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: accent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          subtitle,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: textColor,
-                          ),
-                          maxLines: 3,
-                          softWrap: true,
-                          overflow: TextOverflow.fade,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),

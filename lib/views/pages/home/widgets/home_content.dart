@@ -592,26 +592,21 @@ class _HomeContentState extends State<HomeContent> {
                     final isNarrowWeb = constraints.maxWidth < 900;
 
                     if (isNarrowWeb) {
-                      final carouselHeight = (constraints.maxHeight * 0.64)
-                          .clamp(420.0, 760.0)
-                          .toDouble();
-
-                      return ListView(
+                      return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 12,
                         ),
-                        children: [
-                          SizedBox(
-                            height: carouselHeight,
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
                             child: _buildCarouselPanel(
                               primaryGreen: primaryGreen,
                               textColor: textColor,
                               margin: EdgeInsets.zero,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                        ],
+                        ),
                       );
                     }
 

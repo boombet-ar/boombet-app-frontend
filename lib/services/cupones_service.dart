@@ -25,8 +25,8 @@ class CuponesService {
   }
 
   static Future<Map<String, dynamic>> getCupones({
-    required int page,
-    required int pageSize,
+    int? page,
+    int? pageSize,
     String? categoryId,
     String? categoryName,
     String? searchQuery,
@@ -43,8 +43,8 @@ class CuponesService {
       final url = Uri.parse('${ApiConfig.baseUrl}/cupones')
           .replace(
             queryParameters: {
-              'page': page.toString(),
-              'page_size': pageSize.toString(),
+              if (page != null) 'page': page.toString(),
+              if (pageSize != null) 'page_size': pageSize.toString(),
               'orderBy': normalizedOrderBy,
               'with_locations': 'false',
               // Incluir cupones en subcategorías (ej: Cines bajo Entretenimiento)
@@ -93,9 +93,12 @@ class CuponesService {
           cuponList = data['results'] ?? data['data'] ?? data['cupones'] ?? [];
           total = data['count'] ?? cuponList.length;
           // Si el backend no envía 'next', inferimos con count; si la página viene vacía, no seguimos paginando
+          final safePage = page ?? 1;
+          final safePageSize = pageSize ?? cuponList.length;
           hasMore =
               cuponList.isNotEmpty &&
-              ((data['next'] != null) || (total > page * pageSize));
+              ((data['next'] != null) ||
+                  (safePageSize > 0 && total > safePage * safePageSize));
         }
 
         final cupones = cuponList
@@ -113,8 +116,8 @@ class CuponesService {
         return {
           'cupones': cupones,
           'total': total,
-          'page': page,
-          'page_size': pageSize,
+          'page': page ?? 1,
+          'page_size': pageSize ?? cupones.length,
           'has_more': hasMore,
         };
       } else {
@@ -281,7 +284,7 @@ class CuponesService {
         HttpClient.clearCache(urlPattern: '/cupones/recibidos');
         HttpClient.clearCache(urlPattern: '/cupones');
 
-        return {'success': true, 'data': data['success'] ?? data};
+        return {'success': true, 'data': data};
       } else {
         throw Exception(
           'Error claiming cupon: ${response.statusCode} - ${response.body}',

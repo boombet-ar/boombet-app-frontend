@@ -2,7 +2,12 @@ name: boombet_app
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.0+2 #Cambiar estos numeros a la hora de actualizar o generar appbundles nuevos.
+#version: X.Y.Z+N
+#X = Major version (Cambios incompatibles con versiones anteriores)
+#Y = Minor version (Nuevas funcionalidades compatibles con versiones anteriores)
+#Z = Patch version (Corrección de errores compatibles con versiones anteriores)
+#N = Build number (Número de compilación, siempre incrementado con cada lanzamiento osea cuando se genera un appbundle nuevo)
 
 environment:
   sdk: ^3.10.0

@@ -15,6 +15,8 @@ class FaqPage extends StatefulWidget {
 
 class _FaqPageState extends State<FaqPage> {
   bool _isLoggedIn = false;
+  static const String _bplayPoweredByUrl = 'https://www.bplay.bet.ar/';
+  static const String _sportsbetPoweredByUrl = 'https://sportsbet.bet.ar/';
   final List<Map<String, String>> _platformFaqs = [
     {
       'question': '¿Que es BoomBet?',
@@ -99,6 +101,49 @@ class _FaqPageState extends State<FaqPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('No se pudo abrir el sitio.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openPoweredBySite(String rawUrl) async {
+    final url = rawUrl.trim();
+    if (url.isEmpty || url.contains('REEMPLAZAR_')) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Configura la URL del logo en faq_page.dart'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('La URL configurada no es válida.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return;
+    }
+
+    final ok = await launchUrl(
+      uri,
+      mode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo abrir el enlace.'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
@@ -505,18 +550,25 @@ class _FaqPageState extends State<FaqPage> {
               Flexible(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.transparent
-                          : AppConstants.lightSurfaceVariant,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _openPoweredBySite(_bplayPoweredByUrl),
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.asset(
-                      'assets/images/bplay_logo.webp',
-                      height: 60,
-                      fit: BoxFit.contain,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.transparent
+                              : AppConstants.lightSurfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Image.asset(
+                          'assets/images/bplay_logo.webp',
+                          height: 60,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -524,18 +576,25 @@ class _FaqPageState extends State<FaqPage> {
               Flexible(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.transparent
-                          : AppConstants.lightSurfaceVariant,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _openPoweredBySite(_sportsbetPoweredByUrl),
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.asset(
-                      'assets/images/sportsbet_logo.webp',
-                      height: 60,
-                      fit: BoxFit.contain,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.transparent
+                              : AppConstants.lightSurfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Image.asset(
+                          'assets/images/sportsbet_logo.webp',
+                          height: 60,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                 ),
