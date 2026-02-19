@@ -264,7 +264,7 @@ class LimitedHomeContent extends StatelessWidget {
     ),
     _LimitedHomeBenefit(
       Icons.sports_esports,
-      'Juegos Rápidos',
+      'Juegos',
       'Minijuegos y experiencias rápidas mientras avanzás en la app.',
     ),
     _LimitedHomeBenefit(
@@ -314,17 +314,19 @@ class LimitedHomeContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: progressBanner,
-                  ),
-                  const SizedBox(height: 22),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildWelcomeAndFeatures(
-                      context,
-                      isDark: isDark,
-                      primaryGreen: primaryGreen,
-                      textColor: textColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        progressBanner,
+                        const SizedBox(height: 22),
+                        _buildWelcomeAndFeatures(
+                          context,
+                          isDark: isDark,
+                          primaryGreen: primaryGreen,
+                          textColor: textColor,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -334,7 +336,7 @@ class LimitedHomeContent extends StatelessWidget {
 
           // Desktop web: mantener 2 columnas con "squares".
           return Padding(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -404,6 +406,7 @@ class LimitedHomeContent extends StatelessWidget {
     }
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -413,16 +416,22 @@ class LimitedHomeContent extends StatelessWidget {
             icon: Icons.campaign,
           ),
           const SizedBox(height: 8),
-
-          // Banner de afiliación en proceso
-          progressBanner,
-
-          const SizedBox(height: 30),
-          _buildWelcomeAndFeatures(
-            context,
-            isDark: isDark,
-            primaryGreen: primaryGreen,
-            textColor: textColor,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Banner de afiliación en proceso
+                progressBanner,
+                const SizedBox(height: 26),
+                _buildWelcomeAndFeatures(
+                  context,
+                  isDark: isDark,
+                  primaryGreen: primaryGreen,
+                  textColor: textColor,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -435,40 +444,56 @@ class LimitedHomeContent extends StatelessWidget {
     required Color primaryGreen,
     required Color textColor,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '¡Bienvenido a BoomBet!',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Estamos preparando todo para que disfrutes de la mejor experiencia.',
-          style: TextStyle(
-            fontSize: 16,
-            color: textColor.withValues(alpha: 0.7),
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 30),
-        for (int i = 0; i < _benefits.length; i++) ...[
-          _buildFeatureCard(
-            context,
-            _benefits[i].icon,
-            _benefits[i].title,
-            _benefits[i].description,
-            isDark,
-            primaryGreen,
-            textColor,
-          ),
-          if (i != _benefits.length - 1) const SizedBox(height: 16),
-        ],
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 8.0;
+        final maxWidth = constraints.maxWidth;
+        const int columns = 3;
+        final rawTileSize = (maxWidth - (gap * (columns - 1))) / columns;
+        final tileSize = rawTileSize.clamp(92.0, 132.0).toDouble();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¡Bienvenido a BoomBet!',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Estamos preparando todo para que disfrutes de la mejor experiencia.',
+              style: TextStyle(
+                fontSize: 16,
+                color: textColor.withValues(alpha: 0.7),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final benefit in _benefits)
+                  SizedBox(
+                    width: tileSize,
+                    height: tileSize,
+                    child: _buildFeatureSquareCard(
+                      icon: benefit.icon,
+                      title: benefit.title,
+                      isDark: isDark,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -726,17 +751,15 @@ class LimitedHomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String description,
-    bool isDark,
-    Color primaryGreen,
-    Color textColor,
-  ) {
+  Widget _buildFeatureSquareCard({
+    required IconData icon,
+    required String title,
+    required bool isDark,
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
         borderRadius: BorderRadius.circular(12),
@@ -745,39 +768,29 @@ class LimitedHomeContent extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: primaryGreen, size: 32),
+            child: Icon(icon, color: primaryGreen, size: 24),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: textColor.withValues(alpha: 0.6),
-                    height: 1.3,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+              height: 1.25,
             ),
           ),
         ],
@@ -1008,68 +1021,328 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
   }
 
   void _showCuponDetails(Cupon cupon) {
-    showModalBottomSheet(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.colorScheme.onSurface;
+    final primaryGreen = theme.colorScheme.primary;
+
+    final dialogSurface = isDark
+        ? const Color(0xFF0A1A1A)
+        : AppConstants.lightCardBg;
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        builder: (context, scrollController) => ListView(
-          controller: scrollController,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    cupon.nombre,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    cupon.empresa.nombre,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Descuento: ${cupon.descuento}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (cupon.descripcionMicrositio.isNotEmpty) ...[
-                    const Text(
-                      'Cómo usarlo:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Html(data: cupon.descripcionMicrositio),
-                    const SizedBox(height: 12),
-                  ],
-                  if (cupon.legales.isNotEmpty) ...[
-                    const Text(
-                      'Términos y condiciones:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Html(data: cupon.legales),
-                  ],
-                ],
-              ),
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.8 : 0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+          decoration: BoxDecoration(
+            color: dialogSurface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: primaryGreen.withValues(alpha: 0.3),
+              width: 2,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.2),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryGreen.withValues(alpha: 0.15),
+                              Colors.red.withValues(alpha: 0.1),
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.red.shade500,
+                                    Colors.red.shade600,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withValues(alpha: 0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                cupon.descuento,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppConstants.textLight,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 36,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              cupon.nombre,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppConstants.textLight,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.business,
+                                  color: primaryGreen,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  cupon.empresa.nombre,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: primaryGreen,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: cupon.categorias.map((cat) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cat.nombre,
+                                    style: TextStyle(
+                                      color: primaryGreen,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : AppConstants.lightSurfaceVariant,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Beneficio provisto por ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.7)
+                                          : AppConstants.textLight,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 18,
+                                    width: 70,
+                                    child: Image.asset(
+                                      'assets/images/logo_bonda.png',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLimitedDetailSection(
+                              title: 'Cómo usar',
+                              icon: Icons.info_outline,
+                              primaryGreen: primaryGreen,
+                              content: cupon.descripcionMicrositio,
+                              textColor: textColor,
+                              isDark: isDark,
+                            ),
+                            const SizedBox(height: 18),
+                            _buildLimitedDetailSection(
+                              title: 'Términos y Condiciones',
+                              icon: Icons.gavel,
+                              primaryGreen: primaryGreen,
+                              content: cupon.legales,
+                              textColor: textColor.withValues(alpha: 0.8),
+                              isDark: isDark,
+                            ),
+                            const SizedBox(height: 18),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    color: Colors.orange.shade700,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Válido hasta',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          cupon.fechaVencimientoFormatted,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: AppConstants.textLight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 8,
+                                  shadowColor: primaryGreen.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'CERRAR',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.close,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : AppConstants.textLight,
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: isDark
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : AppConstants.lightSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1174,7 +1447,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
             itemCount: _cupones.length,
             itemBuilder: (context, index) {
               final cupon = _cupones[index];
-              return _buildCuponCardPreviewWeb(
+              return _buildCuponCardPreview(
                 context,
                 cupon,
                 primaryGreen,
@@ -1200,10 +1473,11 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: _buildCuponCardPreview(
+                context,
                 cupon,
-                isDark,
                 primaryGreen,
                 textColor,
+                isDark,
               ),
             ),
           ),
@@ -1233,174 +1507,12 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
   }
 
   Widget _buildCuponCardPreview(
-    Cupon cupon,
-    bool isDark,
-    Color primaryGreen,
-    Color textColor,
-  ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => _showCuponDetails(cupon),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              child: cupon.fotoUrl.isNotEmpty
-                  ? Image.network(
-                      _imageUrlForPlatform(cupon.fotoUrl),
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 140,
-                          color: primaryGreen.withValues(alpha: 0.12),
-                          child: Center(
-                            child: Icon(
-                              Icons.local_offer,
-                              size: 48,
-                              color: primaryGreen.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      height: 140,
-                      color: primaryGreen.withValues(alpha: 0.12),
-                      child: Center(
-                        child: Icon(
-                          Icons.local_offer,
-                          size: 48,
-                          color: primaryGreen.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    cupon.nombre,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    cupon.empresa.nombre,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: textColor.withValues(alpha: 0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _cleanHtml(
-                      cupon.descripcionBreve.isNotEmpty
-                          ? cupon.descripcionBreve
-                          : cupon.descripcionMicrositio,
-                    ),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textColor.withValues(alpha: 0.75),
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 14,
-                        color: textColor.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Válido hasta: ${cupon.fechaVencimientoFormatted}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: textColor.withValues(alpha: 0.55),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.lock_outline),
-                      label: const Text(
-                        'Disponible al completar tu afiliación',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        disabledBackgroundColor: primaryGreen.withValues(
-                          alpha: 0.25,
-                        ),
-                        disabledForegroundColor: textColor.withValues(
-                          alpha: 0.85,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCuponCardPreviewWeb(
     BuildContext context,
     Cupon cupon,
     Color primaryGreen,
     Color textColor,
     bool isDark,
   ) {
-    final double heroHeight = 140;
-    final String category = cupon.categorias.isNotEmpty
-        ? cupon.categorias.first.nombre
-        : 'Cupón';
-    final String description = _cleanHtml(
-      cupon.descripcionBreve.isNotEmpty
-          ? cupon.descripcionBreve
-          : cupon.descripcionMicrositio,
-    );
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1435,7 +1547,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                     Stack(
                       children: [
                         Container(
-                          height: heroHeight,
+                          height: kIsWeb ? 140 : 160,
                           width: double.infinity,
                           color: primaryGreen.withValues(alpha: 0.1),
                           child: cupon.fotoUrl.isNotEmpty
@@ -1478,19 +1590,22 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                         ),
                         Positioned(
                           top: 12,
-                          left: 12,
+                          right: 12,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                              horizontal: 12,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: primaryGreen,
-                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: [Colors.red.shade600, Colors.red],
+                              ),
+                              borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: primaryGreen.withValues(alpha: 0.4),
-                                  blurRadius: 6,
+                                  color: Colors.red.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
@@ -1501,45 +1616,91 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                     ? Colors.white
                                     : AppConstants.textLight,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
                         ),
                         Positioned(
                           top: 12,
-                          right: 12,
+                          left: 12,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.22),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.lock_outline,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  category,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
+                              color: isDark
+                                  ? Colors.white
+                                  : AppConstants.lightCardBg,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 8,
                                 ),
                               ],
+                            ),
+                            padding: const EdgeInsets.all(3),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: cupon.logoUrl.isNotEmpty
+                                  ? Image.network(
+                                      _imageUrlForPlatform(cupon.logoUrl),
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              width: 56,
+                                              height: 56,
+                                              color: AppConstants
+                                                  .lightSurfaceVariant,
+                                              child: Center(
+                                                child: Text(
+                                                  cupon.empresa.nombre
+                                                      .substring(
+                                                        0,
+                                                        (cupon
+                                                                .empresa
+                                                                .nombre
+                                                                .length)
+                                                            .clamp(0, 2),
+                                                      )
+                                                      .toUpperCase(),
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: primaryGreen,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                    )
+                                  : Container(
+                                      width: 56,
+                                      height: 56,
+                                      color: isDark
+                                          ? Colors.grey[800]
+                                          : AppConstants.lightSurfaceVariant,
+                                      child: Center(
+                                        child: Text(
+                                          cupon.empresa.nombre
+                                              .substring(
+                                                0,
+                                                (cupon.empresa.nombre.length)
+                                                    .clamp(0, 2),
+                                              )
+                                              .toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryGreen,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
@@ -1556,43 +1717,20 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.bold,
                               color: textColor,
+                              letterSpacing: 0.2,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  color: primaryGreen.withValues(alpha: 0.12),
-                                  child: cupon.logoUrl.isNotEmpty
-                                      ? Image.network(
-                                          _imageUrlForPlatform(cupon.logoUrl),
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                                return Icon(
-                                                  Icons.storefront,
-                                                  size: 18,
-                                                  color: primaryGreen
-                                                      .withValues(alpha: 0.7),
-                                                );
-                                              },
-                                        )
-                                      : Icon(
-                                          Icons.storefront,
-                                          size: 18,
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.7,
-                                          ),
-                                        ),
-                                ),
+                              Icon(
+                                Icons.storefront,
+                                size: 14,
+                                color: primaryGreen.withValues(alpha: 0.7),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   cupon.empresa.nombre,
@@ -1600,31 +1738,67 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: textColor.withValues(alpha: 0.72),
+                                    fontWeight: FontWeight.w500,
+                                    color: textColor.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Text(
-                            description,
+                            _cleanHtml(
+                              cupon.descripcionBreve.isNotEmpty
+                                  ? cupon.descripcionBreve
+                                  : cupon.descripcionMicrositio,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13,
-                              height: 1.3,
-                              color: textColor.withValues(alpha: 0.78),
+                              color: textColor.withValues(alpha: 0.7),
+                              height: 1.35,
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
+                          if (cupon.categorias.isNotEmpty)
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: cupon.categorias.take(2).map((cat) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cat.nombre,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: primaryGreen,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
                               Icon(
                                 Icons.calendar_today_rounded,
                                 size: 14,
-                                color: textColor.withValues(alpha: 0.5),
+                                color: textColor.withValues(alpha: 0.4),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
@@ -1632,36 +1806,18 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                   'Válido hasta: ${cupon.fechaVencimientoFormatted}',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: textColor.withValues(alpha: 0.55),
+                                    color: textColor.withValues(alpha: 0.5),
+                                    fontWeight: FontWeight.w500,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: null,
-                              icon: const Icon(Icons.lock_outline),
-                              label: const Text(
-                                'Disponible al completar tu afiliación',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                disabledBackgroundColor: primaryGreen
-                                    .withValues(alpha: 0.25),
-                                disabledForegroundColor: textColor.withValues(
-                                  alpha: 0.85,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
+                          _buildLockedAffiliationButton(
+                            primaryGreen: primaryGreen,
+                            textColor: textColor,
                           ),
                         ],
                       ),
@@ -1673,6 +1829,93 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLockedAffiliationButton({
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.lock_outline),
+        label: const Text('Disponible al completar tu afiliación'),
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: primaryGreen.withValues(alpha: 0.25),
+          disabledForegroundColor: textColor.withValues(alpha: 0.85),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLimitedDetailSection({
+    required String title,
+    required IconData icon,
+    required Color primaryGreen,
+    required String content,
+    required Color textColor,
+    required bool isDark,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: primaryGreen.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: primaryGreen, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.02)
+                : AppConstants.lightSurfaceVariant,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: primaryGreen.withValues(alpha: 0.15)),
+          ),
+          child: Html(
+            data: content,
+            style: {
+              'body': Style(
+                margin: Margins.zero,
+                padding: HtmlPaddings.zero,
+                fontSize: FontSize(13),
+                color: textColor,
+                lineHeight: const LineHeight(1.5),
+              ),
+              'p': Style(margin: Margins.only(bottom: 8)),
+              'ul': Style(margin: Margins.only(left: 16, bottom: 8)),
+              'li': Style(margin: Margins.only(bottom: 4)),
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1736,7 +1979,6 @@ class LimitedGamesContent extends StatelessWidget {
         description:
             'Esquiva columnas, suma puntos y pausa cuando necesites un respiro.',
         badge: 'Nuevo',
-        playable: true,
         onTap: () => onPlay((_) => const Game01Page()),
         asset: 'assets/icons/game_01_icon.png',
       ),
@@ -1746,7 +1988,6 @@ class LimitedGamesContent extends StatelessWidget {
         description:
             'Apila bloques en movimiento para construir la torre más alta posible.',
         badge: 'Arcade',
-        playable: true,
         onTap: () => onPlay((_) => const Game02Page()),
         asset: 'assets/icons/game_02_icon.png',
       ),
@@ -1778,9 +2019,10 @@ class LimitedGamesContent extends StatelessWidget {
                                   description: g.description,
                                   badge: g.badge,
                                   primaryGreen: primaryGreen,
+                                  textColor: textColor,
                                   isDark: isDark,
-                                  playable: g.playable,
-                                  onTap: g.playable ? g.onTap : null,
+                                  onPlay: g.onTap,
+                                  asset: g.asset,
                                 ),
                               )
                               .toList(),
@@ -1809,10 +2051,9 @@ class LimitedGamesContent extends StatelessWidget {
                             subtitle: g.subtitle,
                             badge: g.badge,
                             primaryGreen: primaryGreen,
-                            onTap: g.playable ? g.onTap : null,
+                            onPlay: g.onTap,
                             isDark: isDark,
                             asset: g.asset,
-                            playable: g.playable,
                           );
                         },
                       );
@@ -1827,9 +2068,10 @@ class LimitedGamesContent extends StatelessWidget {
                             description: g.description,
                             badge: g.badge,
                             primaryGreen: primaryGreen,
+                            textColor: textColor,
                             isDark: isDark,
-                            playable: g.playable,
-                            onTap: g.playable ? g.onTap : null,
+                            onPlay: g.onTap,
+                            asset: g.asset,
                           ),
                         )
                         .toList(),
@@ -1847,20 +2089,18 @@ class _LimitedGameGridCard extends StatelessWidget {
     required this.subtitle,
     required this.badge,
     required this.primaryGreen,
-    required this.onTap,
+    required this.onPlay,
     required this.isDark,
     required this.asset,
-    required this.playable,
   });
 
   final String title;
   final String subtitle;
   final String badge;
   final Color primaryGreen;
-  final VoidCallback? onTap;
+  final VoidCallback onPlay;
   final bool isDark;
   final String asset;
-  final bool playable;
 
   @override
   Widget build(BuildContext context) {
@@ -1875,148 +2115,160 @@ class _LimitedGameGridCard extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : AppConstants.lightSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Opacity(
-          opacity: playable ? 1.0 : 0.7,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
-                  primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
-                ],
-              ),
-              border: Border.all(
-                color: primaryGreen.withValues(alpha: 0.35),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 12,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: surfaceVariant,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor, width: 0.8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.videogame_asset, size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            badge,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      playable ? Icons.auto_awesome : Icons.lock_outline,
-                      color: fg,
-                      size: 18,
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final t = (((340 - w) / 140).clamp(0.0, 1.0));
+        final s = 1.0 + 0.22 * t;
+
+        final buttonHeight = (44 * s).clamp(44.0, 56.0);
+        final chipIconSize = (18 * s).clamp(18.0, 22.0);
+        final chipTextSize = (12 * s).clamp(12.0, 14.0);
+        final titleSize = (18 * s).clamp(18.0, 20.0);
+        final subtitleSize = (13 * s).clamp(13.0, 15.0);
+        final ctaIconSize = (18 * s).clamp(18.0, 22.0);
+        final ctaArrowSize = (16 * s).clamp(16.0, 20.0);
+        final ctaTextSize = (13 * s).clamp(13.0, 16.0);
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onPlay,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
+                    primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      color: surfaceVariant,
-                      child: Image.asset(asset, fit: BoxFit.contain),
-                    ),
-                  ),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.35),
+                  width: 1.2,
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: fg,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: fgSoft,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : AppConstants.lightSurfaceVariant,
-                    border: Border.all(color: borderColor, width: 0.9),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      Icon(Icons.sports_esports, size: 18, color: fg),
-                      const SizedBox(width: 8),
-                      Text(
-                        playable ? 'Jugar' : 'Bloqueado',
-                        style: TextStyle(
-                          color: fg,
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        playable
-                            ? Icons.arrow_forward_rounded
-                            : Icons.lock_outline,
-                        size: 18,
-                        color: fg,
+                        decoration: BoxDecoration(
+                          color: surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor, width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.videogame_asset,
+                              size: chipIconSize,
+                              color: fg,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              badge,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: chipTextSize,
+                                color: fg,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        color: surfaceVariant,
+                        child: Image.asset(asset, fit: BoxFit.contain),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: fg,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: fgSoft,
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: buttonHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : AppConstants.lightSurfaceVariant,
+                      border: Border.all(color: borderColor, width: 0.9),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.sports_esports,
+                          size: ctaIconSize,
+                          color: fg,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Jugar',
+                          style: TextStyle(
+                            color: fg,
+                            fontWeight: FontWeight.w800,
+                            fontSize: ctaTextSize,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Icon(Icons.north_east, size: ctaArrowSize, color: fg),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -2028,9 +2280,10 @@ class _GameCardLimited extends StatelessWidget {
     required this.description,
     required this.badge,
     required this.primaryGreen,
+    required this.textColor,
     required this.isDark,
-    required this.playable,
-    required this.onTap,
+    required this.onPlay,
+    required this.asset,
   });
 
   final String title;
@@ -2038,214 +2291,178 @@ class _GameCardLimited extends StatelessWidget {
   final String description;
   final String badge;
   final Color primaryGreen;
+  final Color textColor;
   final bool isDark;
-  final bool playable;
-  final VoidCallback? onTap;
+  final VoidCallback onPlay;
+  final String asset;
 
   @override
   Widget build(BuildContext context) {
+    final accentBg = isDark
+        ? Colors.black.withValues(alpha: 0.08)
+        : AppConstants.lightSurfaceVariant;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : AppConstants.borderLight.withValues(alpha: 0.7);
+    final fg = isDark ? Colors.white : AppConstants.textLight;
+    final fgSoft = isDark
+        ? Colors.white.withValues(alpha: 0.92)
+        : AppConstants.textLight;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Opacity(
-          opacity: playable ? 1.0 : 0.7,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
-                  primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
+        onTap: onPlay,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
+                primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
+              ],
+            ),
+            border: Border.all(
+              color: primaryGreen.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor, width: 0.8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.videogame_asset, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          badge,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.auto_awesome, color: fg, size: 18),
+                  const SizedBox(width: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: fgSoft,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
-              border: Border.all(
-                color: primaryGreen.withValues(alpha: 0.35),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 14,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.black.withValues(alpha: 0.08)
-                            : AppConstants.lightSurfaceVariant,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.18)
-                              : AppConstants.borderLight.withValues(alpha: 0.7),
-                          width: 0.8,
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
+                            color: fg,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.videogame_asset, size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            badge,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
+                        const SizedBox(height: 6),
+                        Text(
+                          description,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.38,
+                            color: fgSoft,
                           ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      playable ? Icons.auto_awesome : Icons.lock_outline,
-                      color: isDark ? Colors.white : AppConstants.textLight,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.92)
-                            : AppConstants.textLight,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppConstants.textLight,
-                            ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            description,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.38,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.92)
-                                  : AppConstants.textLight,
-                            ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : AppConstants.lightSurfaceVariant,
+                            border: Border.all(color: borderColor, width: 0.9),
                           ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : AppConstants.lightSurfaceVariant,
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.18)
-                                    : AppConstants.borderLight.withValues(
-                                        alpha: 0.7,
-                                      ),
-                                width: 0.9,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.sports_esports, size: 18, color: fg),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Jugar ahora',
+                                style: TextStyle(
+                                  color: fg,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  playable
-                                      ? Icons.sports_esports
-                                      : Icons.lock_outline,
-                                  size: 18,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppConstants.textLight,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  playable
-                                      ? 'Jugar ahora'
-                                      : 'Disponible al completar tu afiliación',
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppConstants.textLight,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  playable ? Icons.north_east : Icons.schedule,
-                                  size: 16,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppConstants.textLight,
-                                ),
-                              ],
-                            ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.north_east, size: 16, color: fg),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Container(
-                      height: 74,
-                      width: 74,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
+                  ),
+                  const SizedBox(width: 14),
+                  Container(
+                    height: 74,
+                    width: 74,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : AppConstants.lightSurfaceVariant,
+                      border: Border.all(
                         color: isDark
-                            ? Colors.white.withValues(alpha: 0.12)
-                            : AppConstants.lightSurfaceVariant,
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.2)
-                              : AppConstants.borderLight.withValues(alpha: 0.7),
-                          width: 0.9,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Image.asset(
-                          'assets/images/pixel_logo.png',
-                          fit: BoxFit.contain,
-                        ),
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : AppConstants.borderLight.withValues(alpha: 0.7),
+                        width: 0.9,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Image.asset(asset, fit: BoxFit.contain),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

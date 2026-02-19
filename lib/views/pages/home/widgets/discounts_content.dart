@@ -570,6 +570,7 @@ class DiscountsContentState extends State<DiscountsContent> {
         ? null
         : categoryName ?? (_selectedFilter == 'Todos' ? null : _selectedFilter);
     final targetPage = (pageOverride ?? _currentPage).clamp(1, 1 << 30);
+    final hasSearchQuery = normalizedSearch.isNotEmpty;
     final hasCategoryFilter =
         (normalizedCategoryId != null && normalizedCategoryId.isNotEmpty) ||
         (normalizedCategoryName != null && normalizedCategoryName.isNotEmpty);
@@ -592,6 +593,7 @@ class DiscountsContentState extends State<DiscountsContent> {
     });
 
     if (!hasCategoryFilter &&
+        !hasSearchQuery &&
         !reset &&
         !forceRefresh &&
         _pageCache.containsKey(targetPage)) {
@@ -693,55 +695,138 @@ class DiscountsContentState extends State<DiscountsContent> {
           });
         }
       } else {
-        _categoryFilteredUniverse.clear();
-        _categoryUniverseKey = null;
-        _categoryBackendPage = 0;
-        _categoryBackendHasMore = false;
+        if (hasSearchQuery) {
+          final universeKey = _buildCategoryUniverseKey(
+            categoryId: null,
+            categoryName: null,
+            query: normalizedSearch,
+          );
 
-        final result =
-            await CuponesService.getCupones(
-              page: targetPage,
-              pageSize: _pageSize,
-              searchQuery: normalizedSearch.isEmpty ? null : normalizedSearch,
-              orderBy: 'relevant',
-            ).timeout(
-              const Duration(seconds: 20),
-              onTimeout: () {
-                debugPrint('ERROR: Timeout loading cupones');
-                throw TimeoutException('Timeout cargando cupones');
-              },
+          final needsFreshUniverse =
+              forceRefresh || reset || _categoryUniverseKey != universeKey;
+
+          if (needsFreshUniverse) {
+            _categoryFilteredUniverse = [];
+            _categoryUniverseKey = universeKey;
+            _categoryBackendPage = 0;
+            _categoryBackendHasMore = true;
+          }
+
+          final requiredItems = targetPage * _pageSize;
+          var fetchGuard = 0;
+          var consecutiveEmptyFetches = 0;
+          while (_categoryFilteredUniverse.length < requiredItems &&
+              _categoryBackendHasMore &&
+              fetchGuard < 200) {
+            final nextBackendPage = _categoryBackendPage + 1;
+            final result =
+                await CuponesService.getCupones(
+                  page: nextBackendPage,
+                  pageSize: _pageSize,
+                  searchQuery: null,
+                  orderBy: 'relevant',
+                ).timeout(
+                  const Duration(seconds: 20),
+                  onTimeout: () {
+                    debugPrint('ERROR: Timeout loading cupones');
+                    throw TimeoutException('Timeout cargando cupones');
+                  },
+                );
+
+            final fetchedCupones = result['cupones'] as List<Cupon>? ?? [];
+            if (fetchedCupones.isEmpty) {
+              consecutiveEmptyFetches++;
+            } else {
+              consecutiveEmptyFetches = 0;
+            }
+
+            final filteredFetched = _filterCuponesList(
+              fetchedCupones,
+              selectedCategoryId: null,
+              selectedCategoryName: null,
+              query: normalizedSearch,
             );
 
-        final newCupones = result['cupones'] as List<Cupon>? ?? [];
+            final knownIds = _categoryFilteredUniverse.map((c) => c.id).toSet();
+            for (final cupon in filteredFetched) {
+              if (knownIds.add(cupon.id)) {
+                _categoryFilteredUniverse.add(cupon);
+              }
+            }
 
-        if (targetPage > 1 && newCupones.isEmpty) {
+            _categoryBackendPage = nextBackendPage;
+            _apiPage = nextBackendPage;
+            _categoryBackendHasMore = result['has_more'] as bool? ?? false;
+
+            fetchGuard++;
+            if ((fetchedCupones.isEmpty && !_categoryBackendHasMore) ||
+                consecutiveEmptyFetches >= 3) {
+              _categoryBackendHasMore = false;
+              break;
+            }
+          }
+
           if (mounted) {
             setState(() {
-              _apiPage = targetPage - 1;
-              _currentPage = targetPage - 1;
-              _hasMore = false;
+              _applyCategoryUniversePage(targetPage);
+              _cupones = List<Cupon>.from(_filteredCupones);
               _hasError = false;
-              _applyFilter();
+              _updateCategorias();
               _isLoading = false;
+              unawaited(_persistCuponCache());
             });
           }
-          return;
-        }
+        } else {
+          _categoryFilteredUniverse.clear();
+          _categoryUniverseKey = null;
+          _categoryBackendPage = 0;
+          _categoryBackendHasMore = false;
 
-        if (mounted) {
-          setState(() {
-            _cupones = newCupones;
-            _apiPage = targetPage;
-            _currentPage = targetPage;
-            final hasMoreResponse = result['has_more'] as bool? ?? false;
-            _hasMore = hasMoreResponse;
-            _hasError = false;
-            _pageCache[targetPage] = List<Cupon>.from(newCupones);
-            _updateCategorias();
-            _applyFilter();
-            _isLoading = false;
-            unawaited(_persistCuponCache());
-          });
+          final result =
+              await CuponesService.getCupones(
+                page: targetPage,
+                pageSize: _pageSize,
+                searchQuery: null,
+                orderBy: 'relevant',
+              ).timeout(
+                const Duration(seconds: 20),
+                onTimeout: () {
+                  debugPrint('ERROR: Timeout loading cupones');
+                  throw TimeoutException('Timeout cargando cupones');
+                },
+              );
+
+          final newCupones = result['cupones'] as List<Cupon>? ?? [];
+
+          if (targetPage > 1 && newCupones.isEmpty) {
+            if (mounted) {
+              setState(() {
+                _apiPage = targetPage - 1;
+                _currentPage = targetPage - 1;
+                _hasMore = false;
+                _hasError = false;
+                _applyFilter();
+                _isLoading = false;
+              });
+            }
+            return;
+          }
+
+          if (mounted) {
+            setState(() {
+              _cupones = newCupones;
+              _apiPage = targetPage;
+              _currentPage = targetPage;
+              final hasMoreResponse = result['has_more'] as bool? ?? false;
+              _hasMore = hasMoreResponse;
+              _hasError = false;
+              _pageCache[targetPage] = List<Cupon>.from(newCupones);
+              _updateCategorias();
+              _applyFilter();
+              _isLoading = false;
+              unawaited(_persistCuponCache());
+            });
+          }
         }
       }
     } catch (e) {

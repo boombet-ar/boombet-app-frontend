@@ -389,7 +389,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                           const SizedBox(width: 8),
                           Text(
                             DateFormat(
-                              'yyyy-MM-dd HH:mm:ss',
+                              'dd/MM/yyyy HH:mm',
                             ).format(_post!.createdAt.toLocal()),
                             style: TextStyle(
                               fontSize: 13,
@@ -537,7 +537,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                           const SizedBox(width: 6),
                           Text(
                             DateFormat(
-                              'yyyy-MM-dd HH:mm:ss',
+                              'dd/MM/yyyy HH:mm',
                             ).format(reply.createdAt.toLocal()),
                             style: TextStyle(
                               fontSize: 11,

@@ -1,7 +1,9 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/views/pages/faq_page.dart';
 import 'package:boombet_app/views/pages/forget_password_page.dart';
+import 'package:boombet_app/views/pages/limited_home_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
 import 'package:boombet_app/views/pages/profile_page.dart';
 import 'package:boombet_app/services/auth_service.dart';
@@ -165,6 +167,26 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
                 surfaceColor: surfaceColor,
               ),
+              // _buildSettingsTile(
+              //   context: context,
+              //   icon: Icons.visibility,
+              //   title: 'Preview Limited Home',
+              //   subtitle: 'Abrir vista limitada sin proceso de afiliación',
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //         builder: (context) => LimitedHomePage(
+              //            affiliationService: AffiliationService(),
+              //           preview: true,
+              //           previewStatusMessage:
+              //                'Vista previa para edición visual',
+              //         ),
+              //        ),
+              //     );
+              //   },
+              //   surfaceColor: surfaceColor,
+              //  ), //Descomentar para activar boton a preview de limited home
               const SizedBox(height: 12),
 
               // Biometría
