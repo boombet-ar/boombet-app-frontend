@@ -9,6 +9,7 @@ import 'package:boombet_app/services/cupones_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/utils/coupon_error_parser.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
@@ -718,8 +719,7 @@ class DiscountsContentState extends State<DiscountsContent> {
       if (mounted) {
         setState(() {
           _hasError = true;
-          _errorMessage =
-              'Error: ${e.toString()}\n\nIntenta revisar la consola de logs para más detalles.';
+          _errorMessage = parseCouponErrorMessage(e);
           _isLoading = false;
         });
       }

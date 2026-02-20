@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/services/afiliadores_service.dart';
-import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -103,6 +102,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
           id: affiliator.id,
           nombre: affiliator.nombre,
           tokenAfiliador: affiliator.tokenAfiliador,
+          tipoAfiliador: affiliator.tipoAfiliador,
           cantAfiliaciones: affiliator.cantAfiliaciones,
           activo: isActive,
           email: affiliator.email,
@@ -243,14 +243,17 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
     }
 
     Future<void> showAffiliatorForm() async {
-      final nameController = TextEditingController();
-      final emailController = TextEditingController();
-      final dniController = TextEditingController();
-      final phoneController = TextEditingController();
       final messenger = ScaffoldMessenger.of(context);
+      final nameController = TextEditingController();
+      final affiliateTokenController = TextEditingController();
 
       try {
         bool isSubmitting = false;
+        String? selectedType;
+        final availableTypes = await _afiliadoresService.fetchAfiliadorTipos();
+        final visibleTypes = availableTypes
+            .where((type) => type.trim().toUpperCase() != 'RULETA')
+            .toList();
 
         await showDialog<void>(
           context: context,
@@ -260,82 +263,38 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                 Future<void> handleSubmit() async {
                   if (isSubmitting) return;
 
-                  final nombre = nameController.text.trim();
-                  final email = emailController.text.trim();
-                  final dni = dniController.text.trim();
-                  final telefono = phoneController.text.trim();
-
-                  void showValidationDialog(String title, String message) {
-                    final theme = Theme.of(context);
-                    final isDark = theme.brightness == Brightness.dark;
-                    final dialogBg = isDark
-                        ? AppConstants.darkAccent
-                        : AppConstants.lightDialogBg;
-                    final textColor = isDark
-                        ? AppConstants.textDark
-                        : AppConstants.lightLabelText;
-
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        backgroundColor: dialogBg,
-                        title: Text(title, style: TextStyle(color: textColor)),
-                        content: Text(
-                          message,
-                          style: TextStyle(color: textColor),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text(
-                              'Entendido',
-                              style: TextStyle(
-                                color: AppConstants.primaryGreen,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (nombre.isEmpty ||
-                      email.isEmpty ||
-                      dni.isEmpty ||
-                      telefono.isEmpty) {
+                  if (selectedType == null || selectedType!.isEmpty) {
                     messenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Completa todos los campos.'),
+                        content: Text('Seleccioná un tipo para continuar.'),
                         duration: Duration(seconds: 2),
                       ),
                     );
                     return;
                   }
 
-                  if (!PasswordValidationService.isEmailValid(email)) {
-                    showValidationDialog(
-                      'Email inválido',
-                      PasswordValidationService.getEmailValidationMessage(
-                        email,
+                  final isEvento = selectedType!.toUpperCase() == 'EVENTO';
+                  final nombre = nameController.text.trim();
+                  final affiliateToken = affiliateTokenController.text.trim();
+
+                  if (!isEvento) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Por ahora solo está habilitado el tipo EVENTO.',
+                        ),
+                        duration: Duration(seconds: 2),
                       ),
                     );
                     return;
                   }
 
-                  if (!PasswordValidationService.isPhoneValid(telefono)) {
-                    showValidationDialog(
-                      'Teléfono inválido',
-                      PasswordValidationService.getPhoneValidationMessage(
-                        telefono,
+                  if (nombre.isEmpty) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Completá el nombre para EVENTO.'),
+                        duration: Duration(seconds: 2),
                       ),
-                    );
-                    return;
-                  }
-
-                  if (!PasswordValidationService.isDniValid(dni)) {
-                    showValidationDialog(
-                      'DNI inválido',
-                      PasswordValidationService.getDniValidationMessage(dni),
                     );
                     return;
                   }
@@ -347,9 +306,13 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
 
                     await _afiliadoresService.createAfiliador(
                       nombre: nombre,
-                      email: email,
-                      dni: dni,
-                      telefono: telefono,
+                      tipoAfiliador: selectedType!,
+                      email: null,
+                      dni: null,
+                      telefono: null,
+                      tokenAfiliador: isEvento && affiliateToken.isNotEmpty
+                          ? affiliateToken
+                          : null,
                     );
 
                     if (context.mounted && Navigator.of(context).canPop()) {
@@ -362,15 +325,32 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                         duration: Duration(seconds: 2),
                       ),
                     );
-                  } catch (_) {
+                  } catch (e) {
                     if (context.mounted) {
                       setState(() {
                         isSubmitting = false;
                       });
                     }
+
+                    final rawError = e.toString().toLowerCase();
+                    final isDuplicateCodeError =
+                        rawError.contains('409') ||
+                        rawError.contains('duplicate') ||
+                        rawError.contains('duplicado') ||
+                        rawError.contains('already exists') ||
+                        rawError.contains('ya existe') ||
+                        rawError.contains('token_afiliador') ||
+                        rawError.contains('codigo') ||
+                        rawError.contains('código') ||
+                        rawError.contains('unique');
+
                     messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('No se pudo crear el afiliador.'),
+                      SnackBar(
+                        content: Text(
+                          isDuplicateCodeError
+                              ? 'El código de afiliador ya existe. Usá otro código.'
+                              : 'No se pudo crear el afiliador.',
+                        ),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -380,46 +360,73 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                 return _buildPopupDialog(
                   context: context,
                   title: 'Crear afiliador',
-                  subtitle: 'Completa los datos del nuevo afiliador.',
+                  subtitle:
+                      'Seleccioná el tipo. Los campos se mostrarán según el tipo elegido.',
                   icon: Icons.person_add_alt_1,
-                  actionLabel: isSubmitting ? 'Guardando...' : 'Guardar',
+                  actionLabel: isSubmitting ? 'Guardando...' : 'Continuar',
                   isSubmitting: isSubmitting,
                   onSubmit: handleSubmit,
                   fields: [
-                    TextField(
-                      controller: nameController,
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
                       decoration: const InputDecoration(
-                        labelText: 'Nombre completo',
-                        hintText: 'Ej: Juan Pérez',
+                        labelText: 'Tipo',
+                        hintText: 'Seleccionar tipo',
                       ),
+                      items: visibleTypes
+                          .map(
+                            (type) => DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value;
+                        });
+                      },
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'afiliador@boombet.com',
+                    if (selectedType?.toUpperCase() == 'EVENTO') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre',
+                          hintText: 'Ingresá el nombre',
+                        ),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: dniController,
-                      decoration: const InputDecoration(
-                        labelText: 'DNI',
-                        hintText: '12345678',
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: affiliateTokenController,
+                        decoration: InputDecoration(
+                          labelText: 'Código de afiliador',
+                          hintText: 'Ingresá el código de afiliador',
+                          suffixIcon: IconButton(
+                            tooltip: 'Ayuda',
+                            icon: const Icon(Icons.help_outline),
+                            onPressed: () {
+                              showDialog<void>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Código de afiliador'),
+                                  content: const Text(
+                                    'Al dejar este campo vacio, el codigo se creara automaticamente. En caso de querer asignar un codigo personalizado, ingresalo en este campo. El codigo debe ser unico y no puede ser modificado luego de la creación.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext),
+                                      child: const Text('Cerrar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Teléfono',
-                        hintText: '+54 9 11 1234-5678',
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
+                    ],
                   ],
                 );
               },
@@ -429,16 +436,14 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
       } catch (_) {
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('No se pudo abrir el formulario.'),
+            content: Text('No se pudieron cargar los tipos de afiliador.'),
             duration: Duration(seconds: 2),
           ),
         );
       } finally {
         Future.delayed(const Duration(milliseconds: 200), () {
           nameController.dispose();
-          emailController.dispose();
-          dniController.dispose();
-          phoneController.dispose();
+          affiliateTokenController.dispose();
         });
       }
     }
@@ -1384,16 +1389,48 @@ class _AdminAffiliatorsSection extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final listItems = items
-        .map(
-          (item) => _AdminListItemData(
-            title: item.nombre,
-            subtitle:
-                'Código: ${item.tokenAfiliador} • Afiliaciones: ${item.cantAfiliaciones}',
-            trailing: item.activo ? 'Activo' : 'Inactivo',
-          ),
-        )
-        .toList();
+    _AffiliatorTypeVisual getTypeVisual(String type) {
+      final normalized = type.trim().toUpperCase();
+      final scheme = theme.colorScheme;
+
+      final isEvento = normalized.contains('EVENTO');
+      final isRuleta = normalized.contains('RULETA');
+
+      if (isEvento) {
+        return _AffiliatorTypeVisual(
+          icon: Icons.celebration_outlined,
+          color: scheme.error,
+        );
+      }
+
+      if (isRuleta) {
+        return _AffiliatorTypeVisual(
+          icon: Icons.casino_rounded,
+          color: scheme.secondary,
+        );
+      }
+
+      return _AffiliatorTypeVisual(
+        icon: Icons.person_outline,
+        color: scheme.primary,
+      );
+    }
+
+    final listItems = items.map((item) {
+      final typeVisual = getTypeVisual(item.tipoAfiliador);
+      final tipo = item.tipoAfiliador.trim().isEmpty
+          ? 'SIN TIPO'
+          : item.tipoAfiliador;
+
+      return _AdminListItemData(
+        title: item.nombre,
+        subtitle:
+            'Tipo: $tipo • Código: ${item.tokenAfiliador}\nAfiliaciones: ${item.cantAfiliaciones}',
+        trailing: item.activo ? 'Activo' : 'Inactivo',
+        leadingIcon: typeVisual.icon,
+        accentColor: typeVisual.color,
+      );
+    }).toList();
 
     final lastIndex = totalPages > 0 ? totalPages - 1 : page;
     final canGoBack = page > 0 && !isFirstPage;
@@ -1435,6 +1472,7 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                   final index = entry.key;
                   final afiliador = entry.value;
                   final item = listItems[index];
+                  final itemAccentColor = item.accentColor;
                   final isUpdating = updatingIds.contains(afiliador.id);
                   final isDeleting = deletingIds.contains(afiliador.id);
 
@@ -1442,7 +1480,7 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _AdminListTile(
                       item: item,
-                      accentColor: theme.colorScheme.primary,
+                      accentColor: itemAccentColor,
                       trailingWidget: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1452,15 +1490,13 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.12,
-                              ),
+                              color: itemAccentColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               afiliador.activo ? 'Activo' : 'Inactivo',
                               style: TextStyle(
-                                color: theme.colorScheme.primary,
+                                color: itemAccentColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1472,7 +1508,7 @@ class _AdminAffiliatorsSection extends StatelessWidget {
                             onChanged: isUpdating || isDeleting
                                 ? null
                                 : (value) => onToggleActive(afiliador, value),
-                            activeColor: theme.colorScheme.primary,
+                            activeColor: itemAccentColor,
                           ),
                           const SizedBox(width: 4),
                           IconButton(
@@ -1817,15 +1853,26 @@ class _AdminAffiliatorsEmpty extends StatelessWidget {
   }
 }
 
+class _AffiliatorTypeVisual {
+  final IconData icon;
+  final Color color;
+
+  const _AffiliatorTypeVisual({required this.icon, required this.color});
+}
+
 class _AdminListItemData {
   final String title;
   final String subtitle;
   final String trailing;
+  final IconData leadingIcon;
+  final Color accentColor;
 
   const _AdminListItemData({
     required this.title,
     required this.subtitle,
     required this.trailing,
+    this.leadingIcon = Icons.folder_shared,
+    this.accentColor = AppConstants.primaryGreen,
   });
 }
 
@@ -1862,7 +1909,7 @@ class _AdminListTile extends StatelessWidget {
               color: accentColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.folder_shared, color: accentColor, size: 20),
+            child: Icon(item.leadingIcon, color: accentColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(

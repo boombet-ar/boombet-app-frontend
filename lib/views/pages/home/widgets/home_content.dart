@@ -56,6 +56,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   Future<void> _checkAndShowRouletteOnce() async {
+    if (kIsWeb) return;
     if (_rouletteChecked) return;
     _rouletteChecked = true;
 

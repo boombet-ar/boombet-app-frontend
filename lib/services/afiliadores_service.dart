@@ -6,7 +6,7 @@ import 'package:boombet_app/services/http_client.dart';
 
 class AfiliadoresService {
   Future<List<String>> fetchAfiliadorTipos() async {
-    final url = '${ApiConfig.baseUrl}/afiliadores/tipos-afiliador';
+    final url = '${ApiConfig.baseUrl}/afiliadores/tipos';
     final response = await HttpClient.get(
       url,
       includeAuth: true,
@@ -29,6 +29,7 @@ class AfiliadoresService {
 
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
+
   Future<AfiliadoresPage> fetchAfiliadores({
     int page = 0,
     int size = 10,
@@ -55,31 +56,28 @@ class AfiliadoresService {
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
 
-  Future<AfiliadorModel> createAfiliador({
+  Future<void> createAfiliador({
     required String nombre,
-    required String email,
-    required String dni,
-    required String telefono,
+    required String tipoAfiliador,
+    String? email,
+    String? dni,
+    String? telefono,
+    String? tokenAfiliador,
   }) async {
     final url = '${ApiConfig.baseUrl}/afiliadores';
+    final body = <String, dynamic>{
+      'nombre': nombre.trim(),
+      'email': email,
+      'dni': dni,
+      'telefono': telefono,
+      'token_afiliador': tokenAfiliador,
+      'tipo_afiliador': tipoAfiliador,
+    };
 
-    final response = await HttpClient.post(
-      url,
-      includeAuth: true,
-      body: {
-        'nombre': nombre,
-        'email': email,
-        'dni': dni,
-        'telefono': telefono,
-      },
-    );
+    final response = await HttpClient.post(url, includeAuth: true, body: body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body);
-      if (data is Map<String, dynamic>) {
-        return AfiliadorModel.fromJson(data);
-      }
-      throw Exception('Formato inesperado de respuesta');
+      return;
     }
 
     throw Exception('Error ${response.statusCode}: ${response.body}');
