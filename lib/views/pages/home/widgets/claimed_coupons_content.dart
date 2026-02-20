@@ -6,6 +6,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/cupones_service.dart';
+import 'package:boombet_app/utils/coupon_error_parser.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -277,8 +278,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
 
       setState(() {
         _hasError = true;
-        _errorMessage =
-            'Error: ${e.toString()}\n\nIntenta revisar la consola de logs para más detalles.';
+        _errorMessage = parseCouponErrorMessage(e, claimedCoupons: true);
         _isLoading = false;
       });
     }

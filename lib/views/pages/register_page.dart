@@ -857,7 +857,8 @@ class _RegisterPageState extends State<RegisterPage> {
         final decoded = jsonDecode(raw);
         if (decoded is Map<String, dynamic>) {
           final value = decoded['isTokenValid'];
-          final tipo = decoded['tipo_afiliador'] ??
+          final tipo =
+              decoded['tipo_afiliador'] ??
               decoded['tipoAfiliador'] ??
               decoded['tipo'] ??
               (decoded['data'] is Map<String, dynamic>
@@ -2334,8 +2335,24 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             backgroundColor: accentColor,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 28),
 
+          // Botón Registrarse
+          AppButton(
+            label: 'Crear cuenta',
+            onPressed: _validateAndRegister,
+            isLoading: _isLoading,
+            icon: Icons.person_add,
+          ),
+          const SizedBox(height: 20),
+        ],
+      );
+    }
+
+    Widget buildAffiliateCodeSection() {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           InkWell(
             borderRadius: BorderRadius.circular(borderRadius),
             onTap: () {
@@ -2384,7 +2401,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Tengo un codigo de afiliador',
+                      'Tengo un código promocional',
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.w600,
@@ -2395,11 +2412,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               ),
             ),
           ),
-
           if (_hasAffiliateCode) ...[
             const SizedBox(height: 12),
             AppTextFormField(
-              label: 'Codigo de afiliador',
+              label: 'Codigo de promocional',
               hint: 'Ingresa tu codigo',
               controller: _affiliateCodeController,
               keyboardType: TextInputType.text,
@@ -2442,17 +2458,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               ),
             ),
           ],
-
-          const SizedBox(height: 28),
-
-          // Botón Registrarse
-          AppButton(
-            label: 'Crear cuenta',
-            onPressed: _validateAndRegister,
-            isLoading: _isLoading,
-            icon: Icons.person_add,
-          ),
-          const SizedBox(height: 20),
         ],
       );
     }
@@ -2471,6 +2476,8 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                 padding: const EdgeInsets.only(top: 20.0),
                 child: buildLogo(width: 200),
               ),
+              const SizedBox(height: 14),
+              buildAffiliateCodeSection(),
               const SizedBox(height: 24),
               registerHeader,
               buildRegisterFields(),
@@ -2504,6 +2511,8 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                         children: [
                           const SizedBox(height: 6),
                           buildLogo(width: 190),
+                          const SizedBox(height: 14),
+                          buildAffiliateCodeSection(),
                           const SizedBox(height: 20),
                           registerHeader,
                           buildRegisterFields(),
@@ -2558,6 +2567,8 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    buildAffiliateCodeSection(),
+                                    const SizedBox(height: 20),
                                     registerHeader,
                                     buildRegisterFields(),
                                   ],
