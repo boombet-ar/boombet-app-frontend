@@ -31,12 +31,20 @@ class _HomePageState extends State<HomePage> {
   bool _allowQrScanner = false;
   late List<Widget?> _pages;
 
+  bool get _hideCasinosOnMobile {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
+  int get _pageCount => _hideCasinosOnMobile ? 5 : 6;
+
   @override
   void initState() {
     super.initState();
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
-    _pages = List<Widget?>.filled(6, null);
+    _pages = List<Widget?>.filled(_pageCount, null);
     _subscribeToTopics();
     _loadQrScannerAvailability();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,7 +73,12 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<int>(
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
-        final safeIndex = selectedPage.clamp(0, 5);
+        final safeIndex = selectedPage.clamp(0, _pages.length - 1);
+        if (safeIndex != selectedPage) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            saveSelectedPage(safeIndex);
+          });
+        }
         _pages[safeIndex] ??= _buildPage(safeIndex);
         return Scaffold(
           appBar: MainAppBar(
@@ -80,13 +93,13 @@ class _HomePageState extends State<HomePage> {
             maxWidth: 1200,
             child: IndexedStack(
               index: safeIndex,
-              children: List<Widget>.generate(6, (index) {
+              children: List<Widget>.generate(_pages.length, (index) {
                 final page = _pages[index];
                 return page ?? const SizedBox.shrink();
               }),
             ),
           ),
-          bottomNavigationBar: const NavbarWidget(),
+          bottomNavigationBar: NavbarWidget(showCasinos: !_hideCasinosOnMobile),
         );
       },
     );
