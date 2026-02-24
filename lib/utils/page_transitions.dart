@@ -27,7 +27,7 @@ class SlideRightRoute extends PageRouteBuilder {
 }
 
 /// Transición de desvanecimiento (fade)
-class FadeRoute extends PageRouteBuilder {
+class FadeRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
   FadeRoute({required this.page})

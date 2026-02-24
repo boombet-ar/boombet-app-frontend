@@ -1,18 +1,25 @@
 import 'dart:math' as math;
+import 'dart:async';
+import 'dart:convert';
 
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 
 class PlayRoulettePage extends StatefulWidget {
   final String? codigoRuleta;
+  final String? rouletteWsUrl;
   final String? qrRawValue;
   final String? qrParsedUri;
 
   const PlayRoulettePage({
     super.key,
     this.codigoRuleta,
+    this.rouletteWsUrl,
     this.qrRawValue,
     this.qrParsedUri,
   });
@@ -28,6 +35,9 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
   late AnimationController _particlesController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
+  final AffiliationService _affiliationService = AffiliationService();
+  StreamSubscription<Map<String, dynamic>>? _wsSubscription;
+  bool _spinFinishedHandled = false;
 
   @override
   void initState() {
@@ -55,10 +65,129 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
     _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _listenRouletteMessages();
+    _connectRouletteWebSocket();
+  }
+
+  void _listenRouletteMessages() {
+    _wsSubscription = _affiliationService.messageStream.listen(
+      (payload) {
+        if (_spinFinishedHandled) return;
+
+        final spinFinishedValue = payload['spinFinished'];
+        final isSpinFinished =
+            spinFinishedValue == true ||
+            spinFinishedValue?.toString().toLowerCase() == 'true';
+
+        if (!isSpinFinished) return;
+
+        _spinFinishedHandled = true;
+        _closeAfterSpinFinished();
+      },
+      onError: (error) {},
+      onDone: () {},
+    );
+  }
+
+  Future<void> _closeAfterSpinFinished() async {
+    _affiliationService.closeWebSocket();
+
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop(true);
+    }
+  }
+
+  Future<void> _connectRouletteWebSocket() async {
+    final wsUrl = widget.rouletteWsUrl?.trim();
+    if (wsUrl == null || wsUrl.isEmpty) {
+      return;
+    }
+
+    try {
+      await _affiliationService.connectToWebSocket(wsUrl: wsUrl);
+      await _sendUsernameOnSocketConnected();
+    } catch (e) {
+      return;
+    }
+  }
+
+  Future<void> _sendUsernameOnSocketConnected() async {
+    final username = await _resolveUsernameFromUsersMe();
+    if (username.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo obtener username desde /users/me'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final sent = _affiliationService.sendMessage({'username': username});
+    if (!sent && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo enviar username por WS')),
+      );
+    }
+  }
+
+  Future<String> _resolveUsernameFromUsersMe() async {
+    final url = '${ApiConfig.baseUrl}/users/me';
+    try {
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        cacheTtl: Duration.zero,
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return '';
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final direct = decoded['username'];
+        if (direct != null && direct.toString().trim().isNotEmpty) {
+          return direct.toString().trim();
+        }
+
+        final data = decoded['data'];
+        if (data is Map<String, dynamic>) {
+          final nested = data['username'];
+          if (nested != null && nested.toString().trim().isNotEmpty) {
+            return nested.toString().trim();
+          }
+        }
+      }
+
+      return '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _sendSpinRoulette() async {
+    final payload = {'spinRoulette': true};
+
+    final sent = _affiliationService.sendMessage(payload);
+    if (!sent) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo enviar el giro por WS')),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _affiliationService.dispose();
     _pulseController.dispose();
     _rotateController.dispose();
     _particlesController.dispose();
@@ -109,6 +238,10 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
 
                     // Subtitle
                     _buildSubtitle(isDark),
+
+                    const SizedBox(height: 28),
+
+                    _buildSpinButton(),
 
                     const SizedBox(height: 40),
 
@@ -348,6 +481,44 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
           },
         );
       }),
+    );
+  }
+
+  Widget _buildSpinButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          colors: [AppConstants.primaryGreen, Color(0xFF00D4FF)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryGreen.withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: _sendSpinRoulette,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: AppConstants.textLight,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        icon: const Icon(Icons.casino_outlined, size: 22),
+        label: const Text(
+          'Hace girar la ruleta!',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+      ),
     );
   }
 }

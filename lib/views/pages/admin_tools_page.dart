@@ -251,9 +251,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         bool isSubmitting = false;
         String? selectedType;
         final availableTypes = await _afiliadoresService.fetchAfiliadorTipos();
-        final visibleTypes = availableTypes
-            .where((type) => type.trim().toUpperCase() != 'RULETA')
-            .toList();
 
         await showDialog<void>(
           context: context,
@@ -277,22 +274,10 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                   final nombre = nameController.text.trim();
                   final affiliateToken = affiliateTokenController.text.trim();
 
-                  if (!isEvento) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Por ahora solo está habilitado el tipo EVENTO.',
-                        ),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    return;
-                  }
-
                   if (nombre.isEmpty) {
                     messenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Completá el nombre para EVENTO.'),
+                        content: Text('Completá el nombre para continuar.'),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -373,7 +358,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                         labelText: 'Tipo',
                         hintText: 'Seleccionar tipo',
                       ),
-                      items: visibleTypes
+                      items: availableTypes
                           .map(
                             (type) => DropdownMenuItem<String>(
                               value: type,
@@ -387,7 +372,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                         });
                       },
                     ),
-                    if (selectedType?.toUpperCase() == 'EVENTO') ...[
+                    if (selectedType != null && selectedType!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       TextField(
                         controller: nameController,
@@ -396,6 +381,8 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                           hintText: 'Ingresá el nombre',
                         ),
                       ),
+                    ],
+                    if (selectedType?.toUpperCase() == 'EVENTO') ...[
                       const SizedBox(height: 12),
                       TextField(
                         controller: affiliateTokenController,
