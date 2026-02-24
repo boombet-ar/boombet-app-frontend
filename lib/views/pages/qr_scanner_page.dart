@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
@@ -25,6 +28,7 @@ class _QrScannerPageState extends State<QrScannerPage>
   DateTime? _lastScanAt;
   bool _isLaunching = false;
   bool _scannerActive = false;
+  bool _handlingRouletteFlow = false;
 
   @override
   void initState() {
@@ -123,6 +127,8 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   Future<void> _handleDetection(BarcodeCapture capture) async {
+    if (_handlingRouletteFlow) return;
+
     String? value;
     for (final barcode in capture.barcodes) {
       final raw = barcode.rawValue?.trim();
@@ -160,26 +166,39 @@ class _QrScannerPageState extends State<QrScannerPage>
         return;
       }
 
+      _handlingRouletteFlow = true;
+
       await _deactivateScanner();
-      final joined = await _joinRoulette(codigo.trim());
+      final rouletteWsUrl = await _joinRoulette(codigo.trim());
       if (!mounted) return;
-      if (!joined) {
+      if (rouletteWsUrl == null || rouletteWsUrl.trim().isEmpty) {
         _showSnack('No se pudo habilitar la ruleta');
+        _handlingRouletteFlow = false;
         await _activateScanner();
         return;
       }
 
-      await Navigator.push(
+      final spinFinished = await Navigator.push<bool>(
         context,
-        FadeRoute(
+        FadeRoute<bool>(
           page: PlayRoulettePage(
             codigoRuleta: codigo,
+            rouletteWsUrl: rouletteWsUrl,
             qrRawValue: value,
             qrParsedUri: uri.toString(),
           ),
         ),
       );
       if (!mounted) return;
+
+      if (spinFinished == true) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      _handlingRouletteFlow = false;
       await _activateScanner();
       return;
     }
@@ -259,7 +278,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     return null;
   }
 
-  Future<bool> _joinRoulette(String codigo) async {
+  Future<String?> _joinRoulette(String codigo) async {
     final encoded = Uri.encodeComponent(codigo);
     final url = '${ApiConfig.baseUrl}/ruleta/jugar?codigoRuleta=$encoded';
     try {
@@ -268,10 +287,58 @@ class _QrScannerPageState extends State<QrScannerPage>
         body: const {},
         includeAuth: true,
       );
-      return response.statusCode == 200;
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final roomId = _extractRoomIdFromJoinResponse(response.body);
+      if (roomId == null || roomId.trim().isEmpty) {
+        return null;
+      }
+
+      return _buildRouletteWsUrl(roomId.trim());
     } catch (e) {
-      return false;
+      return null;
     }
+  }
+
+  String? _extractRoomIdFromJoinResponse(String body) {
+    dynamic decoded;
+
+    try {
+      decoded = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+
+    String? readFrom(dynamic node) {
+      if (node is! Map) return null;
+
+      final map = Map<String, dynamic>.from(node as Map);
+      final direct =
+          map['roomId'] ?? map['room_id'] ?? map['roomID'] ?? map['room'];
+      if (direct != null && direct.toString().trim().isNotEmpty) {
+        return direct.toString().trim();
+      }
+
+      final data = map['data'];
+      if (data is Map) {
+        final nested = readFrom(data);
+        if (nested != null && nested.isNotEmpty) {
+          return nested;
+        }
+      }
+
+      return null;
+    }
+
+    return readFrom(decoded);
+  }
+
+  String _buildRouletteWsUrl(String roomId) {
+    final safeRoomId = Uri.encodeComponent(roomId);
+    return '${ApiConfig.wsBaseUrl}/ruleta/$safeRoomId';
   }
 
   @override

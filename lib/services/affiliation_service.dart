@@ -85,6 +85,25 @@ class AffiliationService {
     _channel = null;
   }
 
+  /// Envía un mensaje JSON por WebSocket
+  bool sendMessage(Map<String, dynamic> message) {
+    final channel = _channel;
+    if (channel == null) {
+      log('[AffiliationService] ⚠️ No hay canal WebSocket para enviar mensaje');
+      return false;
+    }
+
+    try {
+      final encoded = jsonEncode(message);
+      channel.sink.add(encoded);
+      log('[AffiliationService] 📤 Mensaje enviado: $encoded');
+      return true;
+    } catch (e) {
+      log('[AffiliationService] ❌ Error enviando mensaje WS: $e');
+      return false;
+    }
+  }
+
   /// Limpia recursos
   void dispose() {
     closeWebSocket();
