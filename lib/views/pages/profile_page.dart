@@ -1,6 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/my_prizes_page.dart';
 import 'package:boombet_app/views/pages/unaffiliate_result_page.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/services/auth_service.dart';
@@ -634,6 +635,25 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
 
           const SizedBox(height: 10),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _buildActionGradientButton(
+              label: 'Mis premios',
+              icon: Icons.workspace_premium_rounded,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyPrizesPage()),
+                );
+              },
+              gradientColors: [
+                const Color(0xFF4FC3F7),
+                const Color(0xFF81D4FA),
+              ],
+              glowColor: const Color(0xFF4FC3F7),
+            ),
+          ),
 
           // 🚀 BOTÓN PARA EDITAR PERFIL
           Padding(

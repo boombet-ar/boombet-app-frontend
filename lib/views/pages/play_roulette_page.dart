@@ -115,27 +115,33 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
   }
 
   Future<void> _sendUsernameOnSocketConnected() async {
-    final username = await _resolveUsernameFromUsersMe();
-    if (username.isEmpty) {
+    final identity = await _resolveUserIdentityFromUsersMe();
+    final username = identity['username']?.toString().trim() ?? '';
+    final userId = identity['userId'];
+
+    if (username.isEmpty || userId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No se pudo obtener username desde /users/me'),
+            content: Text('No se pudo obtener username/id desde /users/me'),
           ),
         );
       }
       return;
     }
 
-    final sent = _affiliationService.sendMessage({'username': username});
+    final sent = _affiliationService.sendMessage({
+      'username': username,
+      'userId': userId,
+    });
     if (!sent && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo enviar username por WS')),
+        const SnackBar(content: Text('No se pudo enviar username/id por WS')),
       );
     }
   }
 
-  Future<String> _resolveUsernameFromUsersMe() async {
+  Future<Map<String, dynamic>> _resolveUserIdentityFromUsersMe() async {
     final url = '${ApiConfig.baseUrl}/users/me';
     try {
       final response = await HttpClient.get(
@@ -145,28 +151,58 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        return '';
+        return const {};
       }
 
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) {
-        final direct = decoded['username'];
-        if (direct != null && direct.toString().trim().isNotEmpty) {
-          return direct.toString().trim();
+        dynamic pickFirstId(Map<String, dynamic>? source) {
+          if (source == null) return null;
+          return source['id'] ?? source['usuario_id'] ?? source['user_id'];
         }
 
-        final data = decoded['data'];
-        if (data is Map<String, dynamic>) {
-          final nested = data['username'];
-          if (nested != null && nested.toString().trim().isNotEmpty) {
-            return nested.toString().trim();
+        dynamic normalizeId(dynamic value) {
+          if (value == null) return null;
+          if (value is int) return value;
+          final parsed = int.tryParse(value.toString().trim());
+          return parsed ?? value;
+        }
+
+        final rootUserId = normalizeId(pickFirstId(decoded));
+        final rootData = decoded['data'];
+        final dataUserId = normalizeId(
+          rootData is Map<String, dynamic> ? pickFirstId(rootData) : null,
+        );
+
+        Map<String, dynamic>? datosJugador;
+        final direct = decoded['datos_jugador'];
+        if (direct is Map<String, dynamic>) {
+          datosJugador = direct;
+        } else {
+          final data = decoded['data'];
+          if (data is Map<String, dynamic>) {
+            final nested = data['datos_jugador'];
+            if (nested is Map<String, dynamic>) {
+              datosJugador = nested;
+            }
           }
+        }
+
+        if (datosJugador == null) {
+          return const {};
+        }
+
+        final username = datosJugador['username']?.toString().trim() ?? '';
+        final userId = rootUserId ?? dataUserId;
+
+        if (username.isNotEmpty && userId != null) {
+          return {'username': username, 'userId': userId};
         }
       }
 
-      return '';
+      return const {};
     } catch (_) {
-      return '';
+      return const {};
     }
   }
 
