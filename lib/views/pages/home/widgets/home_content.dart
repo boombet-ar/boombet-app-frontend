@@ -8,7 +8,7 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/profile_page.dart';
+import 'package:boombet_app/views/pages/profile/profile_page.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';

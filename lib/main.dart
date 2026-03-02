@@ -12,7 +12,7 @@ import 'package:boombet_app/services/deep_link_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';

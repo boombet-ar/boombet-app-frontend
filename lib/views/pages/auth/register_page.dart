@@ -8,7 +8,7 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/confirm_player_data_page.dart';
+import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';

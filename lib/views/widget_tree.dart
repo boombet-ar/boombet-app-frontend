@@ -1,10 +1,10 @@
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/views/pages/discounts_page.dart';
-import 'package:boombet_app/views/pages/forum_page.dart';
-import 'package:boombet_app/views/pages/games_page.dart';
-import 'package:boombet_app/views/pages/home_page.dart';
-import 'package:boombet_app/views/pages/my_casinos_page.dart';
-import 'package:boombet_app/views/pages/raffles_page.dart';
+import 'package:boombet_app/views/pages/rewards/discounts_page.dart';
+import 'package:boombet_app/views/pages/community/forum_page.dart';
+import 'package:boombet_app/views/pages/games/games_page.dart';
+import 'package:boombet_app/views/pages/home/home_page.dart';
+import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
+import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:flutter/material.dart';
 
 List<Widget> pages = [

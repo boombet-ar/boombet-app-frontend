@@ -1,11 +1,11 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/views/pages/faq_page.dart';
-import 'package:boombet_app/views/pages/forget_password_page.dart';
-import 'package:boombet_app/views/pages/limited_home_page.dart';
-import 'package:boombet_app/views/pages/login_page.dart';
-import 'package:boombet_app/views/pages/profile_page.dart';
+import 'package:boombet_app/views/pages/other/faq_page.dart';
+import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
+import 'package:boombet_app/views/pages/home/limited_home_page.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/views/pages/profile/profile_page.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/notification_service.dart';
