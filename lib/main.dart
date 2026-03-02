@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
@@ -25,10 +24,6 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
 
 bool _sessionExpiredDialogOpen = false;
-
-NavigatorState? _routerNavigator() {
-  return appRouter.routerDelegate.navigatorKey.currentState;
-}
 
 BuildContext? _routerContext() {
   return appRouter.routerDelegate.navigatorKey.currentContext;
@@ -215,24 +210,18 @@ Future<void> main() async {
 
       _sessionExpiredDialogOpen = true;
 
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
       showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Sesión expirada', style: TextStyle(color: textColor)),
+          backgroundColor: AppConstants.darkAccent,
+          title: const Text(
+            'Sesión expirada',
+            style: TextStyle(color: AppConstants.textDark),
+          ),
           content: Text(
             'Tu sesión expiró. Por favor, inicia sesión nuevamente.',
-            style: TextStyle(color: textColor),
+            style: const TextStyle(color: AppConstants.textDark),
           ),
           actions: [
             TextButton(
@@ -283,124 +272,6 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // Cache themes to avoid rebuilding
-  static final _lightTheme = ThemeData(
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: AppConstants.lightBg,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppConstants.lightSurfaceVariant,
-      foregroundColor: AppConstants.textLight,
-      elevation: 0,
-    ),
-    colorScheme: const ColorScheme.light(
-      primary: AppConstants.primaryGreen,
-      secondary: AppConstants.primaryGreen,
-      surface: AppConstants.lightSurfaceVariant,
-      background: AppConstants.lightBg,
-      error: AppConstants.errorRed,
-      onPrimary: AppConstants.textLight,
-      onSecondary: AppConstants.textLight,
-      onSurface: AppConstants.textLight,
-      onBackground: AppConstants.textLight,
-      onError: AppConstants.textLight,
-    ),
-    cardColor: AppConstants.lightCardBg,
-    cardTheme: const CardThemeData(
-      color: AppConstants.lightCardBg,
-      surfaceTintColor: Colors.transparent,
-      elevation: 2,
-      margin: EdgeInsets.zero,
-    ),
-    dialogBackgroundColor: AppConstants.lightDialogBg,
-    dialogTheme: const DialogThemeData(
-      backgroundColor: AppConstants.lightDialogBg,
-      surfaceTintColor: Colors.transparent,
-    ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: AppConstants.lightDialogBg,
-      surfaceTintColor: Colors.transparent,
-    ),
-    chipTheme: ChipThemeData(
-      backgroundColor: AppConstants.lightSurfaceVariant,
-      selectedColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
-      disabledColor: AppConstants.borderLight,
-      secondarySelectedColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      labelStyle: const TextStyle(color: AppConstants.textLight),
-      secondaryLabelStyle: const TextStyle(color: AppConstants.textLight),
-      brightness: Brightness.light,
-      shape: StadiumBorder(side: BorderSide(color: AppConstants.borderLight)),
-    ),
-    navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: AppConstants.lightAccent,
-      indicatorColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
-      labelTextStyle: MaterialStateProperty.resolveWith<TextStyle>((states) {
-        final color = states.contains(MaterialState.selected)
-            ? AppConstants.textLight
-            : AppConstants.lightHintText;
-        return TextStyle(color: color, fontSize: 12);
-      }),
-      iconTheme: MaterialStateProperty.resolveWith<IconThemeData>((states) {
-        final color = states.contains(MaterialState.selected)
-            ? AppConstants.primaryGreen
-            : AppConstants.lightHintText;
-        return IconThemeData(color: color);
-      }),
-    ),
-    snackBarTheme: const SnackBarThemeData(
-      contentTextStyle: TextStyle(color: AppConstants.textLight),
-      actionTextColor: AppConstants.textLight,
-    ),
-    inputDecorationTheme: const InputDecorationTheme(
-      filled: true,
-      fillColor: AppConstants.lightInputBg,
-      hintStyle: TextStyle(color: AppConstants.lightHintText),
-      labelStyle: TextStyle(color: AppConstants.lightLabelText),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: AppConstants.lightInputBorder),
-        borderRadius: BorderRadius.all(
-          Radius.circular(AppConstants.borderRadius),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: AppConstants.lightInputBorderFocus),
-        borderRadius: BorderRadius.all(
-          Radius.circular(AppConstants.borderRadius),
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: AppConstants.errorRed),
-        borderRadius: BorderRadius.all(
-          Radius.circular(AppConstants.borderRadius),
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: AppConstants.errorRed),
-        borderRadius: BorderRadius.all(
-          Radius.circular(AppConstants.borderRadius),
-        ),
-      ),
-    ),
-    dividerColor: AppConstants.lightDivider,
-    textTheme: ThemeData.light().textTheme.apply(
-      bodyColor: AppConstants.textLight,
-      displayColor: AppConstants.textLight,
-    ),
-    primaryTextTheme: ThemeData.light().primaryTextTheme.apply(
-      bodyColor: AppConstants.textLight,
-      displayColor: AppConstants.textLight,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(foregroundColor: AppConstants.textLight),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: AppConstants.textLight),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(foregroundColor: AppConstants.textLight),
-    ),
-  );
-
   static final _darkTheme = ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppConstants.darkBg,
@@ -426,37 +297,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: isLightModeNotifier,
-      builder: (context, isLightMode, child) {
-        return ValueListenableBuilder<double>(
-          valueListenable: fontSizeMultiplierNotifier,
-          builder: (context, fontSizeMultiplier, _) {
-            return MaterialApp.router(
-              debugShowCheckedModeBanner: false,
-              scaffoldMessengerKey: scaffoldMessengerKey,
-              title: 'BoomBet',
-              themeAnimationDuration: const Duration(milliseconds: 150),
-              themeAnimationCurve: Curves.fastOutSlowIn,
-              theme: _lightTheme,
-              darkTheme: _darkTheme,
-              themeMode: isLightMode ? ThemeMode.light : ThemeMode.dark,
-              routerConfig: appRouter,
-              builder: (context, child) {
-                final mediaQuery = MediaQuery.of(context);
-                return MediaQuery(
-                  data: mediaQuery.copyWith(
-                    textScaler: TextScaler.linear(fontSizeMultiplier),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    left: false,
-                    right: false,
-                    bottom: true,
-                    child: child!,
-                  ),
-                );
-              },
+    return ValueListenableBuilder<double>(
+      valueListenable: fontSizeMultiplierNotifier,
+      builder: (context, fontSizeMultiplier, _) {
+        return MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          title: 'BoomBet',
+          themeAnimationDuration: const Duration(milliseconds: 150),
+          themeAnimationCurve: Curves.fastOutSlowIn,
+          theme: _darkTheme,
+          routerConfig: appRouter,
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(fontSizeMultiplier),
+              ),
+              child: SafeArea(
+                top: false,
+                left: false,
+                right: false,
+                bottom: true,
+                child: child!,
+              ),
             );
           },
         );

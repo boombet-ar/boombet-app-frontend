@@ -946,10 +946,8 @@ class _QuickActionsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg;
-    final panelBorder = isDark
-        ? primaryGreen.withValues(alpha: 0.18)
-        : AppConstants.borderLight.withValues(alpha: 0.85);
+    const bg = Color(0xFF0A0A0A);
+    final panelBorder = primaryGreen.withValues(alpha: 0.18);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -987,7 +985,7 @@ class _QuickActionsPanel extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    primaryGreen.withValues(alpha: isDark ? 0.14 : 0.10),
+                    primaryGreen.withValues(alpha: 0.14),
                     bg.withValues(alpha: 0.02),
                   ],
                 ),
@@ -1241,16 +1239,10 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = isDark ? Colors.white : AppConstants.textLight;
-    final fgSoft = isDark
-        ? Colors.white.withValues(alpha: 0.88)
-        : AppConstants.textLight.withValues(alpha: 0.9);
-    final surfaceVariant = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : AppConstants.lightSurfaceVariant;
-    final borderColor = isDark
-        ? accent.withValues(alpha: 0.22)
-        : AppConstants.borderLight.withValues(alpha: 0.85);
+    final fg = Colors.white;
+    final fgSoft = Colors.white.withValues(alpha: 0.88);
+    final surfaceVariant = Colors.white.withValues(alpha: 0.08);
+    final borderColor = accent.withValues(alpha: 0.22);
 
     final s = uiScale;
 
@@ -1267,8 +1259,8 @@ class _QuickActionTile extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                accent.withValues(alpha: isDark ? 0.22 : 0.16),
-                accent.withValues(alpha: isDark ? 0.08 : 0.06),
+                accent.withValues(alpha: 0.22),
+                accent.withValues(alpha: 0.08),
               ],
             ),
             border: Border.all(color: borderColor, width: 1.1),
@@ -1287,7 +1279,7 @@ class _QuickActionTile extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 74 * s,
-                    color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.10),
+                    color: Colors.white.withValues(alpha: 0.14),
                   ),
                 ),
               ),
@@ -1435,7 +1427,6 @@ class _RouletteDialogState extends State<_RouletteDialog>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1448,7 +1439,7 @@ class _RouletteDialogState extends State<_RouletteDialog>
         Container(
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141414) : AppConstants.lightCardBg,
+            color: const Color(0xFF141414),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: primary.withValues(alpha: 0.25)),
             boxShadow: [

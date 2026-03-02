@@ -81,8 +81,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void _showError(String msg) {
     debugPrint('[UNAFFILIATE][UI] showError: $msg');
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final snackTextColor = isDark ? Colors.white : AppConstants.textLight;
+    const snackTextColor = Colors.white;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: TextStyle(color: snackTextColor)),
@@ -113,8 +112,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     if (!kIsWeb && !canUseNativeCropper) {
@@ -155,11 +152,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         if (defaultTargetPlatform == TargetPlatform.android)
           AndroidUiSettings(
             toolbarTitle: 'Editar foto',
-            toolbarColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
-            toolbarWidgetColor: isDark ? Colors.white : Colors.black,
+            toolbarColor: const Color(0xFF0B0B0B),
+            toolbarWidgetColor: Colors.white,
             activeControlsWidgetColor: primaryGreen,
-            statusBarColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
-            backgroundColor: isDark ? const Color(0xFF0B0B0B) : Colors.white,
+            statusBarColor: const Color(0xFF0B0B0B),
+            backgroundColor: const Color(0xFF0B0B0B),
             cropStyle: CropStyle.circle,
             hideBottomControls: false,
             lockAspectRatio: true,
@@ -252,19 +249,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         SnackBar(
           content: Text(
             '✅ Datos actualizados correctamente',
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : AppConstants.textLight,
-            ),
+            style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: AppConstants.successGreen,
           duration: AppConstants.snackbarDuration,
           action: SnackBarAction(
             label: 'OK',
-            textColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : AppConstants.textLight,
+            textColor: Colors.white,
             onPressed: () {},
           ),
         ),
@@ -323,19 +314,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         SnackBar(
           content: Text(
             '✅ Avatar actualizado',
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : AppConstants.textLight,
-            ),
+            style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: AppConstants.successGreen,
           duration: AppConstants.snackbarDuration,
           action: SnackBarAction(
             label: 'OK',
-            textColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : AppConstants.textLight,
+            textColor: Colors.white,
             onPressed: () {},
           ),
         ),
@@ -827,10 +812,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required IconData icon,
     required List<Widget> children,
   }) {
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : AppConstants.lightCardBg;
+    const cardColor = Color(0xFF1A1A1A);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -875,10 +857,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // ------------------------
 
   Widget _avatarSection(ThemeData theme, Color onSurface, Color primaryGreen) {
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : AppConstants.lightCardBg;
+    const cardColor = Color(0xFF1A1A1A);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -993,7 +972,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-    final isDark = theme.brightness == Brightness.dark;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
     final borderColor = primaryGreen.withValues(alpha: readOnly ? 0.35 : 0.8);
     final textColor = onSurface.withValues(alpha: readOnly ? 0.8 : 1.0);
@@ -1011,9 +989,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           labelText: label,
           labelStyle: TextStyle(color: onSurface.withValues(alpha: 0.7)),
           filled: true,
-          fillColor: isDark
-              ? const Color(0xFF1A1A1A)
-              : AppConstants.lightInputBg,
+          fillColor: const Color(0xFF1A1A1A),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: borderColor),

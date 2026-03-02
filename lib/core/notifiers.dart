@@ -4,7 +4,6 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
-ValueNotifier<bool> isLightModeNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
 ValueNotifier<double> fontSizeMultiplierNotifier = ValueNotifier(1.0);
 ValueNotifier<String> affiliateTypeNotifier = ValueNotifier('');

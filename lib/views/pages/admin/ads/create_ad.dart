@@ -326,15 +326,12 @@ class _CreateAdSectionState extends State<CreateAdSection> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
 
     final formCard = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightSurfaceVariant,
+        color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(color: accent.withValues(alpha: 0.2)),
       ),
@@ -358,9 +355,7 @@ class _CreateAdSectionState extends State<CreateAdSection> {
                 width: 190,
                 height: 320,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.black.withValues(alpha: 0.22)
-                      : AppConstants.lightCardBg,
+                  color: Colors.black.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: accent.withValues(alpha: 0.35),
@@ -448,7 +443,7 @@ class _CreateAdSectionState extends State<CreateAdSection> {
           TextField(
             controller: _titleController,
             decoration: const InputDecoration(
-              labelText: 'Nombre',
+              labelText: 'Texto',
               hintText: 'Ej: Bono especial fin de semana',
             ),
           ),

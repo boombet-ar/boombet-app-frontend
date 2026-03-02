@@ -197,9 +197,7 @@ class AffiliatesManagementeView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppConstants.darkAccent
-                        : AppConstants.lightSurfaceVariant,
+                    color: AppConstants.darkAccent,
                     borderRadius: BorderRadius.circular(
                       AppConstants.borderRadius,
                     ),
@@ -237,9 +235,7 @@ class AffiliatesManagementeView extends StatelessWidget {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF1A1A1A)
-                          : AppConstants.lightAccent,
+                      color: const Color(0xFF1A1A1A),
                       borderRadius: BorderRadius.circular(
                         AppConstants.borderRadius,
                       ),
@@ -285,7 +281,6 @@ class _AdminCreateButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -293,9 +288,7 @@ class _AdminCreateButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightSurfaceVariant,
+          color: AppConstants.darkAccent,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           border: Border.all(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
@@ -331,14 +324,11 @@ class _AdminAffiliatorsError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightSurfaceVariant,
+        color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(color: AppConstants.errorRed.withValues(alpha: 0.3)),
       ),
@@ -383,14 +373,11 @@ class _AdminAffiliatorsEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightSurfaceVariant,
+        color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(
           color: theme.colorScheme.primary.withValues(alpha: 0.15),
@@ -453,14 +440,11 @@ class _AdminListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightSurfaceVariant,
+        color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(color: accentColor.withValues(alpha: 0.2)),
       ),

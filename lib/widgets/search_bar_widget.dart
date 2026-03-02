@@ -72,20 +72,17 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final greenColor = theme.colorScheme.primary;
-    final surfaceColor = isDark ? Colors.grey[850] : AppConstants.lightInputBg;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
-    final hintColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightHintText;
+    final surfaceColor = AppConstants.darkCardBg;
+    final textColor = AppConstants.textDark;
+    final hintColor = AppConstants.textDark.withValues(alpha: 0.65);
 
     return Container(
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : AppConstants.lightInputBorder,
+          color: AppConstants.borderDark.withValues(alpha: 0.6),
           width: 1,
         ),
       ),
@@ -131,9 +128,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                       ),
                       child: Icon(
                         Icons.clear,
-                        color: isDark
-                            ? Colors.grey[300]
-                            : AppConstants.lightHintText,
+                        color: AppConstants.textDark.withValues(alpha: 0.75),
                         size: 20,
                       ),
                     ),

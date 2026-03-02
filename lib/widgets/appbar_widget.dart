@@ -22,7 +22,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showLogoutButton;
   final bool showFaqButton;
   final bool showExitButton;
-  final bool showThemeToggle;
   final bool showAdminTools;
   final bool showQrScannerButton;
   final bool showMenuButton;
@@ -39,7 +38,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showLogoutButton = false,
     this.showFaqButton = true,
     this.showExitButton = true,
-    this.showThemeToggle = true,
     this.showAdminTools = true,
     this.showQrScannerButton = false,
     this.showMenuButton = false,
@@ -53,9 +51,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final greenColor = theme.colorScheme.primary;
-    final appBarBg = isDark ? Colors.black38 : AppConstants.lightSurfaceVariant;
+    const appBarBg = Colors.black38;
 
     Future<void> openBoomBetSite() async {
       final uri = Uri.parse('https://boombet-ar.bet');
@@ -78,9 +75,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     return AppBar(
-      systemOverlayStyle: isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
       backgroundColor: appBarBg,
       leading: null,
       automaticallyImplyLeading: false,
@@ -125,24 +120,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 final shouldLogout = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: isDark
-                        ? const Color(0xFF1A1A1A)
-                        : AppConstants.lightDialogBg,
+                    backgroundColor: const Color(0xFF1A1A1A),
                     title: Text(
                       '¿Cerrar sesión?',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppConstants.textDark
-                            : AppConstants.lightLabelText,
-                      ),
+                      style: const TextStyle(color: AppConstants.textDark),
                     ),
                     content: Text(
                       '¿Estás seguro de que deseas cerrar sesión?',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppConstants.textDark
-                            : AppConstants.lightLabelText,
-                      ),
+                      style: const TextStyle(color: AppConstants.textDark),
                     ),
                     actions: [
                       TextButton(
@@ -252,7 +237,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 },
               ),
             ),
-          if (showThemeToggle) const SizedBox.shrink(),
           Spacer(),
           if (showLogo)
             Padding(

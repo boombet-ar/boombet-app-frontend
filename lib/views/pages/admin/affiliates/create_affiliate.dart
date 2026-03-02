@@ -154,12 +154,9 @@ Widget _buildCreateAffiliateDialog({
   required bool isSubmitting,
 }) {
   final theme = Theme.of(context);
-  final isDark = theme.brightness == Brightness.dark;
-  final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
+  final textColor = AppConstants.textDark;
   final accent = theme.colorScheme.primary;
-  final dialogBg = isDark
-      ? AppConstants.darkAccent
-      : AppConstants.lightDialogBg;
+  const dialogBg = AppConstants.darkAccent;
 
   return Dialog(
     insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),

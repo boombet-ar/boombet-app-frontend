@@ -57,14 +57,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     if (_identifierError || _passwordError) {
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
+      const dialogBg = AppConstants.darkAccent;
+      const textColor = AppConstants.textDark;
 
       showDialog(
         context: context,
@@ -95,14 +89,8 @@ class _LoginPageState extends State<LoginPage> {
         setState(() {
           _identifierError = true;
         });
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
+        const dialogBg = AppConstants.darkAccent;
+        const textColor = AppConstants.textDark;
 
         showDialog(
           context: context,
@@ -179,14 +167,8 @@ class _LoginPageState extends State<LoginPage> {
           _identifierError = true;
           _passwordError = true;
         });
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
+        const dialogBg = AppConstants.darkAccent;
+        const textColor = AppConstants.textDark;
 
         showDialog(
           context: context,
@@ -216,14 +198,8 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
+      const dialogBg = AppConstants.darkAccent;
+      const textColor = AppConstants.textDark;
 
       // Detectar error de CORS o ClientException
       String errorTitle = 'Error de conexión';
@@ -261,18 +237,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isWeb = kIsWeb;
 
     final primaryGreen = theme.colorScheme.primary;
     final bgColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
-    final accentColor = isDark
-        ? AppConstants.borderDark
-        : AppConstants.lightAccent;
-    final borderColor = isDark
-        ? AppConstants.borderDark
-        : AppConstants.borderLight;
+    final accentColor = AppConstants.borderDark;
+    final borderColor = AppConstants.borderDark;
     final borderRadius = AppConstants.borderRadius;
 
     Widget buildLogo({required double width}) {
@@ -305,9 +276,7 @@ class _LoginPageState extends State<LoginPage> {
             },
             decoration: InputDecoration(
               hintText: 'Usuario o Email',
-              hintStyle: TextStyle(
-                color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[500]),
               prefixIcon: Icon(
                 Icons.person_outline,
                 color: _identifierError ? Colors.red : primaryGreen,
@@ -363,9 +332,7 @@ class _LoginPageState extends State<LoginPage> {
             },
             decoration: InputDecoration(
               hintText: 'Contraseña',
-              hintStyle: TextStyle(
-                color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[500]),
               prefixIcon: Icon(
                 Icons.lock_outline,
                 color: _passwordError ? Colors.red : primaryGreen,
