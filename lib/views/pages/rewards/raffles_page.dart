@@ -9,10 +9,9 @@ class RafflesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : AppConstants.lightBg,
+      backgroundColor: Colors.black,
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
@@ -31,7 +30,6 @@ class RafflesPage extends StatelessWidget {
                 subtitle:
                     'Muy pronto vas a poder participar por premios exclusivos. Déjanos pulir la experiencia para que valga la pena.',
                 accent: primaryGreen,
-                isDark: isDark,
               ),
             ),
           ],
@@ -46,21 +44,19 @@ class _ComingSoonCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color accent;
-  final bool isDark;
 
   const _ComingSoonCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.accent,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgStart = isDark ? Colors.grey[900]! : AppConstants.lightCardBg;
-    final bgEnd = isDark ? Colors.grey[850]! : AppConstants.lightSurfaceVariant;
-    final textColor = isDark ? Colors.white : AppConstants.textLight;
+    final bgStart = Colors.grey[900]!;
+    final bgEnd = Colors.grey[850]!;
+    const textColor = Colors.white;
 
     return Container(
       width: double.infinity,
@@ -110,12 +106,7 @@ class _ComingSoonCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Funcionalidad en preparación',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? Colors.grey[400]
-                          : textColor.withValues(alpha: 0.7),
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                   ),
                 ],
               ),
@@ -136,9 +127,7 @@ class _ComingSoonCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
-              color: isDark
-                  ? Colors.grey[300]
-                  : textColor.withValues(alpha: 0.7),
+              color: Colors.grey[300],
             ),
           ),
           const SizedBox(height: 16),
@@ -151,9 +140,7 @@ class _ComingSoonCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? Colors.grey[200]
-                      : textColor.withValues(alpha: 0.8),
+                  color: Colors.grey[200],
                 ),
               ),
             ],

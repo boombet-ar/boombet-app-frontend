@@ -1,6 +1,5 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/games/game_02/game_02_page.dart';
-import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +11,6 @@ class GamesContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
-    final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.colorScheme.onSurface;
     final isWeb = kIsWeb;
 
@@ -72,7 +70,6 @@ class GamesContent extends StatelessWidget {
                                   primaryGreen: primaryGreen,
                                   textColor: textColor,
                                   onPlay: g.onPlay,
-                                  isDark: isDark,
                                   asset: g.asset,
                                 ),
                               )
@@ -103,7 +100,6 @@ class GamesContent extends StatelessWidget {
                             badge: g.badge,
                             primaryGreen: primaryGreen,
                             onPlay: g.onPlay,
-                            isDark: isDark,
                             asset: g.asset,
                           );
                         },
@@ -121,7 +117,6 @@ class GamesContent extends StatelessWidget {
                             primaryGreen: primaryGreen,
                             textColor: textColor,
                             onPlay: g.onPlay,
-                            isDark: isDark,
                             asset: g.asset,
                           ),
                         )
@@ -141,7 +136,6 @@ class _GameGridCard extends StatelessWidget {
     required this.badge,
     required this.primaryGreen,
     required this.onPlay,
-    required this.isDark,
     required this.asset,
   });
 
@@ -150,21 +144,14 @@ class _GameGridCard extends StatelessWidget {
   final String badge;
   final Color primaryGreen;
   final VoidCallback onPlay;
-  final bool isDark;
   final String asset;
 
   @override
   Widget build(BuildContext context) {
-    final fg = isDark ? Colors.white : AppConstants.textLight;
-    final fgSoft = isDark
-        ? Colors.white.withValues(alpha: 0.92)
-        : AppConstants.textLight;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : AppConstants.borderLight.withValues(alpha: 0.7);
-    final surfaceVariant = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : AppConstants.lightSurfaceVariant;
+    final fg = Colors.white;
+    final fgSoft = Colors.white.withValues(alpha: 0.92);
+    final borderColor = Colors.white.withValues(alpha: 0.18);
+    final surfaceVariant = Colors.white.withValues(alpha: 0.08);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -195,8 +182,8 @@ class _GameGridCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
-                    primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
+                    primaryGreen.withValues(alpha: 0.22),
+                    primaryGreen.withValues(alpha: 0.1),
                   ],
                 ),
                 border: Border.all(
@@ -288,9 +275,7 @@ class _GameGridCard extends StatelessWidget {
                     height: buttonHeight,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : AppConstants.lightSurfaceVariant,
+                      color: Colors.white.withValues(alpha: 0.1),
                       border: Border.all(color: borderColor, width: 0.9),
                     ),
                     child: Row(
@@ -334,7 +319,6 @@ class _GameCard extends StatelessWidget {
     required this.primaryGreen,
     required this.textColor,
     required this.onPlay,
-    required this.isDark,
     required this.asset,
   });
 
@@ -345,21 +329,14 @@ class _GameCard extends StatelessWidget {
   final Color primaryGreen;
   final Color textColor;
   final VoidCallback onPlay;
-  final bool isDark;
   final String asset;
 
   @override
   Widget build(BuildContext context) {
-    final accentBg = isDark
-        ? Colors.black.withValues(alpha: 0.08)
-        : AppConstants.lightSurfaceVariant;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : AppConstants.borderLight.withValues(alpha: 0.7);
-    final fg = isDark ? Colors.white : AppConstants.textLight;
-    final fgSoft = isDark
-        ? Colors.white.withValues(alpha: 0.92)
-        : AppConstants.textLight;
+    final accentBg = Colors.black.withValues(alpha: 0.08);
+    final borderColor = Colors.white.withValues(alpha: 0.18);
+    final fg = Colors.white;
+    final fgSoft = Colors.white.withValues(alpha: 0.92);
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -373,8 +350,8 @@ class _GameCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
-              primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
+              primaryGreen.withValues(alpha: 0.24),
+              primaryGreen.withValues(alpha: 0.1),
             ],
           ),
           border: Border.all(
@@ -464,9 +441,7 @@ class _GameCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : AppConstants.lightSurfaceVariant,
+                          color: Colors.white.withValues(alpha: 0.1),
                           border: Border.all(color: borderColor, width: 0.9),
                         ),
                         child: Row(
@@ -495,13 +470,9 @@ class _GameCard extends StatelessWidget {
                   width: 74,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : AppConstants.lightSurfaceVariant,
+                    color: Colors.white.withValues(alpha: 0.12),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : AppConstants.borderLight.withValues(alpha: 0.7),
+                      color: Colors.white.withValues(alpha: 0.2),
                       width: 0.9,
                     ),
                   ),

@@ -218,9 +218,8 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
-    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
+    final textColor = AppConstants.textDark;
+    final bgColor = AppConstants.darkBg;
 
     void handleAppBarBack() {
       if (_activeSection != _AdminSection.home) {
@@ -265,7 +264,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               showLogoutButton: false,
               showFaqButton: false,
               showExitButton: false,
-              showThemeToggle: true,
               showAdminTools: false,
             ),
             body: const Center(child: CircularProgressIndicator()),
@@ -285,7 +283,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               showLogoutButton: false,
               showFaqButton: false,
               showExitButton: false,
-              showThemeToggle: true,
               showAdminTools: false,
             ),
             body: Center(
@@ -309,7 +306,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
             showLogoutButton: false,
             showFaqButton: false,
             showExitButton: false,
-            showThemeToggle: true,
             showAdminTools: false,
           ),
           body: AnimatedSwitcher(
@@ -487,7 +483,6 @@ class _AdminPrimaryActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -503,14 +498,12 @@ class _AdminPrimaryActionButton extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          color: isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightSurfaceVariant,
+          color: AppConstants.darkAccent,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           border: Border.all(color: accentColor.withValues(alpha: 0.35)),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withValues(alpha: isDark ? 0.2 : 0.25),
+              color: accentColor.withValues(alpha: 0.2),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),

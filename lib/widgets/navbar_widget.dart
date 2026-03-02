@@ -14,13 +14,10 @@ class NavbarWidget extends StatelessWidget {
     final isCompact = media.size.width < 380;
     final useShortLabels = media.size.width < 430;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightAccent;
+    final bgColor = AppConstants.darkBg;
     final selectedColor = primaryGreen;
-    final unselectedColor = isDark
-        ? const Color(0xFF808080)
-        : AppConstants.lightHintText;
+    final unselectedColor = const Color(0xFF808080);
     final iconSize = isCompact ? 20.0 : 26.0;
     final barHeight = isCompact ? 58.0 : 70.0;
     final compactLabelStyle = TextStyle(
@@ -135,9 +132,7 @@ class NavbarWidget extends StatelessWidget {
                 color: bgColor,
                 border: Border(
                   top: BorderSide(
-                    color: isDark
-                        ? AppConstants.borderDark.withValues(alpha: 0.6)
-                        : AppConstants.borderLight,
+                    color: AppConstants.borderDark.withValues(alpha: 0.6),
                     width: 1,
                   ),
                 ),

@@ -302,15 +302,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       }
 
       final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
       final primaryGreen = theme.colorScheme.primary;
       final textColor = theme.colorScheme.onSurface;
-      final accentColor = isDark
-          ? AppConstants.borderDark
-          : AppConstants.lightAccent;
-      final borderColor = isDark
-          ? AppConstants.borderDark
-          : AppConstants.lightInputBorder;
+      final accentColor = AppConstants.borderDark;
+      final borderColor = AppConstants.borderDark;
       final borderRadius = AppConstants.borderRadius;
       final isWeb = kIsWeb;
 
@@ -361,9 +356,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               },
               decoration: InputDecoration(
                 hintText: 'Nueva contraseña',
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
-                ),
+                hintStyle: TextStyle(color: Colors.grey[500]),
                 prefixIcon: Icon(
                   Icons.lock_outline,
                   color: _passwordError ? Colors.red : primaryGreen,
@@ -449,9 +442,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               },
               decoration: InputDecoration(
                 hintText: 'Confirma tu contraseña',
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
-                ),
+                hintStyle: TextStyle(color: Colors.grey[500]),
                 prefixIcon: Icon(
                   Icons.lock_outline,
                   color: _confirmPasswordError ? Colors.red : primaryGreen,

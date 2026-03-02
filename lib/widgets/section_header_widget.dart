@@ -22,16 +22,15 @@ class SectionHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.textLight;
+    final textColor = AppConstants.textDark;
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            accent.withOpacity(0.15),
-            accent.withOpacity(0.05),
+            accent.withValues(alpha: 0.15),
+            accent.withValues(alpha: 0.05),
             Colors.transparent,
           ],
           begin: Alignment.topCenter,
@@ -50,11 +49,11 @@ class SectionHeaderWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.2),
+                color: accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: accent.withOpacity(0.3),
+                    color: accent.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -82,9 +81,7 @@ class SectionHeaderWidget extends StatelessWidget {
             if (onSwitch != null)
               Container(
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppConstants.darkCardBg
-                      : AppConstants.lightSurfaceVariant,
+                  color: AppConstants.darkCardBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -97,9 +94,7 @@ class SectionHeaderWidget extends StatelessWidget {
             if (onRefresh != null && onSwitch == null)
               Container(
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppConstants.darkCardBg
-                      : AppConstants.lightSurfaceVariant,
+                  color: AppConstants.darkCardBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(

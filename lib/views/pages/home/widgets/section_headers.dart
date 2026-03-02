@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:boombet_app/config/app_constants.dart';
 
 Widget buildSectionHeader(
   String title,
@@ -8,8 +7,8 @@ Widget buildSectionHeader(
   Color primaryGreen,
   bool isDark,
 ) {
-  final headerBg = isDark ? Colors.grey[800] : AppConstants.lightAccent;
-  final headerTextColor = isDark ? Colors.white : AppConstants.textLight;
+  final headerBg = Colors.grey[800];
+  final headerTextColor = Colors.white;
 
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -68,8 +67,8 @@ Widget buildSectionHeaderWithSwitch(
   required bool isShowingClaimed,
   required VoidCallback onSwitchPressed,
 }) {
-  final headerBg = isDark ? Colors.grey[800] : AppConstants.lightAccent;
-  final headerTextColor = isDark ? Colors.white : AppConstants.textLight;
+  final headerBg = Colors.grey[800];
+  final headerTextColor = Colors.white;
 
   return Container(
     width: double.infinity,

@@ -585,12 +585,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoCard(bool isDark, Color textColor, Color primaryGreen) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
+        color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white10 : AppConstants.borderLight,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white10, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -713,9 +710,9 @@ class _ProfilePageState extends State<ProfilePage> {
     const dialogRadius = 24.0;
     const redDark = Color(0xFFE53935);
     const redDeep = Color(0xFFB71C1C);
-    final bgColor = isDark ? const Color(0xFF141414) : AppConstants.lightCardBg;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF6F6F6);
-    final cardBorder = isDark ? Colors.white10 : AppConstants.borderLight;
+    const bgColor = Color(0xFF141414);
+    const cardBg = Color(0xFF1E1E1E);
+    const cardBorder = Colors.white10;
     final subtitleColor = textColor.withValues(alpha: 0.6);
 
     showDialog(
@@ -1131,10 +1128,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     const redDark = Color(0xFFE53935);
     const redDeep = Color(0xFFB71C1C);
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3);
-    final cardBorder = isDark
-        ? Colors.white.withValues(alpha: 0.07)
-        : AppConstants.borderLight;
+    final cardBg = const Color(0xFF1E1E1E);
+    final cardBorder = Colors.white.withValues(alpha: 0.07);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -1256,12 +1251,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.white10 : AppConstants.borderLight,
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.white10, width: 1)),
       ),
       child: Row(
         children: [

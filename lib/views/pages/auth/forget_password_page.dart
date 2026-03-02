@@ -114,14 +114,9 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
 
   void _showDialog(String title, String message, {bool isSuccess = false}) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final primaryGreen = theme.colorScheme.primary;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = AppConstants.darkAccent;
+    const textColor = AppConstants.textDark;
 
     showDialog(
       context: context,
@@ -148,16 +143,11 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isWeb = kIsWeb;
     final primaryGreen = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
-    final accentColor = isDark
-        ? AppConstants.borderDark
-        : AppConstants.lightAccent;
-    final borderColor = isDark
-        ? AppConstants.borderDark
-        : AppConstants.lightInputBorder;
+    final accentColor = AppConstants.borderDark;
+    final borderColor = AppConstants.borderDark;
     final borderRadius = AppConstants.borderRadius;
 
     Widget buildLogo({required double width}) {
@@ -208,9 +198,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
           },
           decoration: InputDecoration(
             hintText: 'Tu correo electrónico',
-            hintStyle: TextStyle(
-              color: isDark ? Colors.grey[500] : AppConstants.lightHintText,
-            ),
+            hintStyle: TextStyle(color: Colors.grey[500]),
             prefixIcon: Icon(
               Icons.email_outlined,
               color: _emailError ? Colors.red : primaryGreen,

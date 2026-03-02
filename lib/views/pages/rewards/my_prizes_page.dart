@@ -95,10 +95,9 @@ class _MyPrizesPageState extends State<MyPrizesPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
+    final bgColor = AppConstants.darkBg;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -172,15 +171,9 @@ class _MyPrizesPageState extends State<MyPrizesPage> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1A1A1A)
-                            : AppConstants.lightCardBg,
+                        color: const Color(0xFF1A1A1A),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white10
-                              : AppConstants.borderLight,
-                        ),
+                        border: Border.all(color: Colors.white10),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(14),

@@ -112,11 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = isDark
-        ? AppConstants.darkCardBg
-        : AppConstants.lightCardBg;
+    final surfaceColor = AppConstants.darkCardBg;
 
     return Scaffold(
       appBar: const MainAppBar(
@@ -125,7 +121,6 @@ class _SettingsPageState extends State<SettingsPage> {
         showBackButton: true,
         showProfileButton: false,
         showFaqButton: false,
-        showThemeToggle: false,
       ),
       body: ResponsiveWrapper(
         maxWidth: 800,
@@ -281,12 +276,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ValueListenableBuilder<double>(
                         valueListenable: fontSizeMultiplierNotifier,
                         builder: (context, multiplier, _) {
-                          final sliderLabelColor = isDark
-                              ? Colors.grey.shade600
-                              : AppConstants.lightHintText;
-                          final sliderInactiveColor = isDark
-                              ? Colors.grey.shade300
-                              : AppConstants.lightDivider;
+                          final sliderLabelColor = Colors.grey.shade600;
+                          final sliderInactiveColor = Colors.grey.shade300;
                           return Row(
                             children: [
                               Text(
@@ -443,15 +434,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAboutDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final surface = isDark ? AppConstants.darkAccent : AppConstants.lightCardBg;
+    const dialogBg = AppConstants.darkAccent;
+    const textColor = AppConstants.textDark;
+    const surface = AppConstants.darkAccent;
 
     showDialog(
       context: context,
@@ -537,14 +522,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _showLogoutConfirmation(BuildContext context) async {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = AppConstants.darkAccent;
+    const textColor = AppConstants.textDark;
 
     final result = await showDialog<bool>(
       context: context,
@@ -575,14 +554,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showLegalsDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = AppConstants.darkAccent;
+    const textColor = AppConstants.textDark;
 
     showDialog(
       context: context,
@@ -662,11 +635,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const textColor = AppConstants.textDark;
 
     return GestureDetector(
       onTap: onTap,
@@ -706,14 +675,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _openLegalDocument(String documentType) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = AppConstants.darkAccent;
+    const textColor = AppConstants.textDark;
 
     // Obtener el contenido del documento
     final content = _getLegalDocumentContent(documentType);
