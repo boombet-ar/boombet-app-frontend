@@ -1,11 +1,15 @@
+import 'dart:convert';
+
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/views/pages/forum_page.dart';
+import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
-import 'package:boombet_app/views/pages/my_casinos_page.dart';
-import 'package:boombet_app/views/pages/raffles_page.dart';
-import 'package:boombet_app/views/pages/games_page.dart';
+import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
+import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
+import 'package:boombet_app/views/pages/games/games_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -59,13 +63,74 @@ class _HomePageState extends State<HomePage> {
     await loadAffiliateType();
     if (!mounted) return;
 
-    if (!affiliateCodeValidatedNotifier.value) {
-      setState(() => _allowQrScanner = false);
-      return;
+    final storedValidated = affiliateCodeValidatedNotifier.value;
+    final storedType = affiliateTypeNotifier.value.trim().toUpperCase();
+    var allowQr = storedValidated && storedType == 'RULETA';
+
+    if (!allowQr) {
+      allowQr = await _resolveRuletaAffiliationFromUsersMe();
+      if (!mounted) return;
     }
 
-    final tipo = affiliateTypeNotifier.value.trim().toUpperCase();
-    setState(() => _allowQrScanner = tipo == 'RULETA');
+    setState(() => _allowQrScanner = allowQr);
+  }
+
+  Future<bool> _resolveRuletaAffiliationFromUsersMe() async {
+    try {
+      final response = await HttpClient.get(
+        '${ApiConfig.baseUrl}/users/me',
+        includeAuth: true,
+        cacheTtl: Duration.zero,
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return false;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return false;
+
+      bool hasRuletaType(dynamic value) {
+        if (value is String) {
+          return value.trim().toUpperCase() == 'RULETA';
+        }
+
+        if (value is List) {
+          for (final item in value) {
+            if (hasRuletaType(item)) return true;
+          }
+          return false;
+        }
+
+        if (value is Map) {
+          for (final entry in value.entries) {
+            final key = entry.key.toString().toLowerCase();
+            final entryValue = entry.value;
+
+            if (entryValue is String) {
+              final normalized = entryValue.trim().toUpperCase();
+              if (normalized == 'RULETA') {
+                if (key.contains('tipo') ||
+                    key.contains('affiliate') ||
+                    key.contains('afilia')) {
+                  return true;
+                }
+              }
+            }
+
+            if (hasRuletaType(entryValue)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      }
+
+      return hasRuletaType(decoded);
+    } catch (_) {
+      return false;
+    }
   }
 
   @override

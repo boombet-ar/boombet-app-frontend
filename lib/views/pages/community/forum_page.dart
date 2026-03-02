@@ -6,7 +6,7 @@ import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
-import 'package:boombet_app/views/pages/forum_post_detail_page.dart';
+import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -8,7 +9,8 @@ import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/views/pages/affiliation_results_page.dart';
+import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -135,13 +137,74 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     await loadAffiliateType();
     if (!mounted) return;
 
-    if (!affiliateCodeValidatedNotifier.value) {
-      setState(() => _allowQrScanner = false);
-      return;
+    final storedValidated = affiliateCodeValidatedNotifier.value;
+    final storedType = affiliateTypeNotifier.value.trim().toUpperCase();
+    var allowQr = storedValidated && storedType == 'RULETA';
+
+    if (!allowQr) {
+      allowQr = await _resolveRuletaAffiliationFromUsersMe();
+      if (!mounted) return;
     }
 
-    final tipo = affiliateTypeNotifier.value.trim().toUpperCase();
-    setState(() => _allowQrScanner = tipo == 'RULETA');
+    setState(() => _allowQrScanner = allowQr);
+  }
+
+  Future<bool> _resolveRuletaAffiliationFromUsersMe() async {
+    try {
+      final response = await HttpClient.get(
+        '${ApiConfig.baseUrl}/users/me',
+        includeAuth: true,
+        cacheTtl: Duration.zero,
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return false;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return false;
+
+      bool hasRuletaType(dynamic value) {
+        if (value is String) {
+          return value.trim().toUpperCase() == 'RULETA';
+        }
+
+        if (value is List) {
+          for (final item in value) {
+            if (hasRuletaType(item)) return true;
+          }
+          return false;
+        }
+
+        if (value is Map) {
+          for (final entry in value.entries) {
+            final key = entry.key.toString().toLowerCase();
+            final entryValue = entry.value;
+
+            if (entryValue is String) {
+              final normalized = entryValue.trim().toUpperCase();
+              if (normalized == 'RULETA') {
+                if (key.contains('tipo') ||
+                    key.contains('affiliate') ||
+                    key.contains('afilia')) {
+                  return true;
+                }
+              }
+            }
+
+            if (hasRuletaType(entryValue)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      }
+
+      return hasRuletaType(decoded);
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _closeGameIfOpen() async {

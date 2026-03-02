@@ -1,5 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/views/pages/login_page.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:flutter/material.dart';
 
 class NoCasinosAvailablePage extends StatelessWidget {

@@ -5,7 +5,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/play_roulette_page.dart';
+import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';

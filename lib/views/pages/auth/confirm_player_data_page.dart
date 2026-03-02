@@ -7,7 +7,7 @@ import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/error_parser.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
-import 'package:boombet_app/views/pages/email_confirmation_page.dart';
+import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
