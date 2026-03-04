@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
+import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay.dart';
 import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:boombet_app/views/pages/games/games_page.dart';
@@ -18,7 +20,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.showLoginTutorial = false});
+
+  final bool showLoginTutorial;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -32,6 +36,21 @@ Future<void> _subscribeToTopics() async {
 class _HomePageState extends State<HomePage> {
   late GlobalKey<DiscountsContentState> _discountsKey;
   late GlobalKey<ClaimedCouponsContentState> _claimedKey;
+  final GlobalKey _inicioNavbarTutorialKey = GlobalKey();
+  final GlobalKey _descuentosNavbarTutorialKey = GlobalKey();
+  final GlobalKey _sorteosNavbarTutorialKey = GlobalKey();
+  final GlobalKey _foroNavbarTutorialKey = GlobalKey();
+  final GlobalKey _juegosNavbarTutorialKey = GlobalKey();
+  final GlobalKey _firstCouponTutorialKey = GlobalKey();
+  final GlobalKey _firstGameTutorialKey = GlobalKey();
+  final GlobalKey _faqAppbarTutorialKey = GlobalKey();
+  final GlobalKey _profileAppbarTutorialKey = GlobalKey();
+  final GlobalKey _settingsAppbarTutorialKey = GlobalKey();
+  final GlobalKey _logoutAppbarTutorialKey = GlobalKey();
+  final GlobalKey _claimedSwitchTutorialKey = GlobalKey();
+  final GlobalKey _forumBoomBetSelectorTutorialKey = GlobalKey();
+  final GlobalKey _forumAddPostTutorialKey = GlobalKey();
+  final GlobalKey _forumMyPostsTutorialKey = GlobalKey();
   bool _allowQrScanner = false;
   late List<Widget?> _pages;
 
@@ -48,6 +67,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
+    rouletteTriggerAfterTutorialNotifier.value =
+        !widget.showLoginTutorial || kIsWeb;
     _pages = List<Widget?>.filled(_pageCount, null);
     _subscribeToTopics();
     _loadQrScannerAvailability();
@@ -55,7 +76,130 @@ class _HomePageState extends State<HomePage> {
       if (!kIsWeb || !selectedPageWasRestored) {
         saveSelectedPage(0);
       }
+
+      if (widget.showLoginTutorial && !kIsWeb) {
+        _maybeShowLoginTutorialOverlay();
+      }
     });
+  }
+
+  Future<void> _maybeShowLoginTutorialOverlay() async {
+    if (kIsWeb) return;
+
+    final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
+    if (!mounted) return;
+
+    if (isFirstLogin == false) {
+      return;
+    }
+
+    await _showLoginTutorialOverlay();
+  }
+
+  Future<void> _showLoginTutorialOverlay() async {
+    if (kIsWeb) return;
+    if (!mounted) return;
+
+    final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
+    if (!mounted) return;
+    if (isFirstLogin == false) return;
+
+    final shouldShowRoulette = await _shouldShowRouletteForCurrentUser();
+
+    loginTutorialActiveNotifier.value = true;
+    try {
+      await showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'tutorial',
+        barrierColor: Colors.transparent,
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return HomeLoginTutorialOverlay(
+            inicioTargetKey: _inicioNavbarTutorialKey,
+            descuentosTargetKey: _descuentosNavbarTutorialKey,
+            sorteosTargetKey: _sorteosNavbarTutorialKey,
+            foroTargetKey: _foroNavbarTutorialKey,
+            juegosTargetKey: _juegosNavbarTutorialKey,
+            firstCouponTargetKey: _firstCouponTutorialKey,
+            firstGameTargetKey: _firstGameTutorialKey,
+            faqTargetKey: _faqAppbarTutorialKey,
+            profileTargetKey: _profileAppbarTutorialKey,
+            settingsTargetKey: _settingsAppbarTutorialKey,
+            logoutTargetKey: _logoutAppbarTutorialKey,
+            claimedSwitchTargetKey: _claimedSwitchTutorialKey,
+            forumBoomBetTargetKey: _forumBoomBetSelectorTutorialKey,
+            forumAddPostTargetKey: _forumAddPostTutorialKey,
+            forumMyPostsTargetKey: _forumMyPostsTutorialKey,
+            onRequestOpenDiscounts: () {
+              saveSelectedPage(1);
+            },
+            onRequestOpenRaffles: () {
+              saveSelectedPage(2);
+            },
+            onRequestOpenForum: () {
+              saveSelectedPage(3);
+            },
+            onRequestOpenGames: () {
+              saveSelectedPage(4);
+            },
+            onRequestOpenClaimedCoupons: () {
+              saveSelectedPage(1);
+              _discountsKey.currentState?.openClaimedFromTutorial();
+            },
+            onTutorialCompleted: () async {
+              if (shouldShowRoulette) {
+                rouletteTriggerAfterTutorialNotifier.value = true;
+                return;
+              }
+              await _setFirstLoginFalseSafely();
+            },
+            onClose: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          );
+        },
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      );
+    } finally {
+      loginTutorialActiveNotifier.value = false;
+    }
+  }
+
+  Future<void> _setFirstLoginFalseSafely() async {
+    try {
+      await PlayerService().setFirstLoginFalse();
+    } catch (_) {
+      // Evitar romper el flujo si falla el endpoint.
+    }
+  }
+
+  Future<bool> _shouldShowRouletteForCurrentUser() async {
+    if (kIsWeb) return false;
+
+    try {
+      final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
+      if (isFirstLogin == false) return false;
+
+      await loadAffiliateCodeUsage();
+      final eligible = !affiliateCodeValidatedNotifier.value;
+
+      return eligible;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool?> _getCurrentUserIsFirstLoginSafely() async {
+    try {
+      return await PlayerService().getCurrentUserIsFirstLogin();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _loadQrScannerAvailability() async {
@@ -153,6 +297,10 @@ class _HomePageState extends State<HomePage> {
             showLogoutButton: true,
             showExitButton: false,
             showQrScannerButton: _allowQrScanner,
+            faqTutorialTargetKey: _faqAppbarTutorialKey,
+            profileTutorialTargetKey: _profileAppbarTutorialKey,
+            settingsTutorialTargetKey: _settingsAppbarTutorialKey,
+            logoutTutorialTargetKey: _logoutAppbarTutorialKey,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,
@@ -164,7 +312,14 @@ class _HomePageState extends State<HomePage> {
               }),
             ),
           ),
-          bottomNavigationBar: NavbarWidget(showCasinos: !_hideCasinosOnMobile),
+          bottomNavigationBar: NavbarWidget(
+            showCasinos: !_hideCasinosOnMobile,
+            inicioTutorialTargetKey: _inicioNavbarTutorialKey,
+            descuentosTutorialTargetKey: _descuentosNavbarTutorialKey,
+            sorteosTutorialTargetKey: _sorteosNavbarTutorialKey,
+            foroTutorialTargetKey: _foroNavbarTutorialKey,
+            juegosTutorialTargetKey: _juegosNavbarTutorialKey,
+          ),
         );
       },
     );
@@ -177,6 +332,8 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return DiscountsContent(
           key: _discountsKey,
+          firstCouponTutorialTargetKey: _firstCouponTutorialKey,
+          claimedSwitchTutorialTargetKey: _claimedSwitchTutorialKey,
           onCuponClaimed: () {
             _claimedKey.currentState?.refreshClaimedCupones();
             _discountsKey.currentState?.refreshClaimedIds();
@@ -186,9 +343,13 @@ class _HomePageState extends State<HomePage> {
       case 2:
         return const RafflesPage();
       case 3:
-        return const ForumPage();
+        return ForumPage(
+          tutorialBoomBetForumTargetKey: _forumBoomBetSelectorTutorialKey,
+          tutorialAddPostButtonKey: _forumAddPostTutorialKey,
+          tutorialMyPostsButtonKey: _forumMyPostsTutorialKey,
+        );
       case 4:
-        return const GamesPage();
+        return GamesPage(firstGameTutorialTargetKey: _firstGameTutorialKey);
       case 5:
         return const MyCasinosPage();
       default:

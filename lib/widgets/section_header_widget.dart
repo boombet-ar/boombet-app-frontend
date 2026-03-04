@@ -8,6 +8,7 @@ class SectionHeaderWidget extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback? onSwitch;
   final IconData? switchIcon;
+  final Key? switchButtonKey;
 
   const SectionHeaderWidget({
     super.key,
@@ -17,6 +18,7 @@ class SectionHeaderWidget extends StatelessWidget {
     this.onRefresh,
     this.onSwitch,
     this.switchIcon,
+    this.switchButtonKey,
   });
 
   @override
@@ -80,6 +82,7 @@ class SectionHeaderWidget extends StatelessWidget {
             ),
             if (onSwitch != null)
               Container(
+                key: switchButtonKey,
                 decoration: BoxDecoration(
                   color: AppConstants.darkCardBg,
                   borderRadius: BorderRadius.circular(12),

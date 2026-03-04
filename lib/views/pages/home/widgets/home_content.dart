@@ -6,6 +6,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
+import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/profile/profile_page.dart';
@@ -15,7 +16,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 class HomeContent extends StatefulWidget {
@@ -24,9 +24,6 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  static const String _rouletteEligibleKey = 'roulette_eligible';
-  static const String _rouletteShownKey = 'roulette_shown';
-
   final PageController _carouselController = PageController();
   final PublicidadService _publicidadService = PublicidadService();
   final Map<int, VideoPlayerController> _videoControllers = {};
@@ -50,44 +47,80 @@ class _HomeContentState extends State<HomeContent> {
   void initState() {
     super.initState();
     _fetchAds();
+    rouletteTriggerAfterTutorialNotifier.addListener(_onRouletteTriggerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowRouletteOnce();
     });
   }
 
+  void _onRouletteTriggerChanged() {
+    if (!mounted) return;
+    if (rouletteTriggerAfterTutorialNotifier.value) {
+      _checkAndShowRouletteOnce();
+    }
+  }
+
   Future<void> _checkAndShowRouletteOnce() async {
     if (kIsWeb) return;
     if (_rouletteChecked) return;
-    _rouletteChecked = true;
+
+    if (!rouletteTriggerAfterTutorialNotifier.value) {
+      return;
+    }
+
+    if (loginTutorialActiveNotifier.value) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) {
+          _checkAndShowRouletteOnce();
+        }
+      });
+      return;
+    }
+
+    final currentRoute = ModalRoute.of(context);
+    if (currentRoute != null && !currentRoute.isCurrent) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) {
+          _checkAndShowRouletteOnce();
+        }
+      });
+      return;
+    }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final alreadyShown = prefs.getBool(_rouletteShownKey) ?? false;
-      if (alreadyShown) return;
+      final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
+      if (isFirstLogin == false) return;
 
-      var eligible = prefs.getBool(_rouletteEligibleKey);
-      if (eligible == null) {
-        await loadAffiliateCodeUsage();
-        eligible = !affiliateCodeValidatedNotifier.value;
-        await prefs.setBool(_rouletteEligibleKey, eligible);
-      }
+      await loadAffiliateCodeUsage();
+      final eligible = !affiliateCodeValidatedNotifier.value;
       if (!eligible) return;
 
       if (_rouletteDialogOpen) return;
       if (!mounted) return;
 
+      _rouletteChecked = true;
+
       _rouletteDialogOpen = true;
       await showDialog<void>(
         context: context,
-        barrierDismissible: true,
+        barrierDismissible: false,
         barrierColor: Colors.black.withValues(alpha: 0.75),
-        builder: (dialogContext) => const _RouletteDialog(),
+        builder: (dialogContext) =>
+            PopScope(canPop: false, child: const _RouletteDialog()),
       );
-
-      if (!mounted) return;
-      await prefs.setBool(_rouletteShownKey, true);
     } finally {
+      if (!_rouletteDialogOpen) {
+        _rouletteChecked = true;
+      }
       _rouletteDialogOpen = false;
+    }
+  }
+
+  Future<bool?> _getCurrentUserIsFirstLoginSafely() async {
+    try {
+      return await PlayerService().getCurrentUserIsFirstLogin();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -108,6 +141,9 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   void dispose() {
+    rouletteTriggerAfterTutorialNotifier.removeListener(
+      _onRouletteTriggerChanged,
+    );
     for (final controller in _videoControllers.values) {
       controller.dispose();
     }
@@ -575,7 +611,6 @@ class _HomeContentState extends State<HomeContent> {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final primaryGreen = theme.colorScheme.primary;
-    final isDark = theme.brightness == Brightness.dark;
     final isWeb = kIsWeb;
 
     return Column(
@@ -587,12 +622,30 @@ class _HomeContentState extends State<HomeContent> {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: isWeb
-              ? LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrowWeb = constraints.maxWidth < 900;
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final homeBody = isWeb
+                  ? (() {
+                      final isNarrowWeb = constraints.maxWidth < 900;
+                      if (isNarrowWeb) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 12,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: _buildCarouselPanel(
+                                primaryGreen: primaryGreen,
+                                textColor: textColor,
+                                margin: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
 
-                    if (isNarrowWeb) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -600,7 +653,7 @@ class _HomeContentState extends State<HomeContent> {
                         ),
                         child: Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 520),
+                            constraints: const BoxConstraints(maxWidth: 720),
                             child: _buildCarouselPanel(
                               primaryGreen: primaryGreen,
                               textColor: textColor,
@@ -609,34 +662,29 @@ class _HomeContentState extends State<HomeContent> {
                           ),
                         ),
                       );
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
+                    })()
+                  : _buildCarouselPanel(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      margin: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 12,
                       ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: _buildCarouselPanel(
-                            primaryGreen: primaryGreen,
-                            textColor: textColor,
-                            margin: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
                     );
-                  },
-                )
-              : _buildCarouselPanel(
-                  primaryGreen: primaryGreen,
-                  textColor: textColor,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
+
+              return RefreshIndicator(
+                onRefresh: _fetchAds,
+                color: primaryGreen,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  children: [
+                    SizedBox(height: constraints.maxHeight, child: homeBody),
+                  ],
                 ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -1369,6 +1417,7 @@ class _RouletteDialogState extends State<_RouletteDialog>
   List<String> _segments = const [];
   int _targetIndex = 0;
   late final List<_RouletteConfetti> _confetti;
+  bool _confirmingPrize = false;
 
   @override
   void initState() {
@@ -1422,6 +1471,21 @@ class _RouletteDialogState extends State<_RouletteDialog>
     _controller
       ..reset()
       ..forward();
+  }
+
+  Future<void> _confirmPrizeAndClose() async {
+    if (_confirmingPrize) return;
+    setState(() => _confirmingPrize = true);
+
+    try {
+      await PlayerService().setFirstLoginFalse();
+    } catch (_) {
+      // Ignorar para no bloquear el cierre del flujo.
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   @override
@@ -1632,9 +1696,9 @@ class _RouletteDialogState extends State<_RouletteDialog>
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
+                                onPressed: _confirmingPrize
+                                    ? null
+                                    : _confirmPrizeAndClose,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppConstants.primaryGreen,
                                   foregroundColor: AppConstants.textLight,

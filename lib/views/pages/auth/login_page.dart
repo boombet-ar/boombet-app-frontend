@@ -160,7 +160,10 @@ class _LoginPageState extends State<LoginPage> {
 
         // Navegar directamente a HomePage
         // Los usuarios que hacen login ya pasaron por el proceso de confirmación de datos
-        Navigator.pushReplacement(context, ScaleRoute(page: const HomePage()));
+        Navigator.pushReplacement(
+          context,
+          ScaleRoute(page: const HomePage(showLoginTutorial: true)),
+        );
       } else {
         // Error en el login
         setState(() {

@@ -611,7 +611,7 @@ class _RegisterPageState extends State<RegisterPage> {
           }
 
           // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             SlideFadeRoute(
               page: ConfirmPlayerDataPage(
@@ -1814,7 +1814,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           }
 
           // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             SlideFadeRoute(
               page: ConfirmPlayerDataPage(
@@ -2029,6 +2029,11 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
     // Al menos un símbolo
     if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]'))) {
       return 'La contraseña debe tener al menos un símbolo';
+    }
+
+    // Detectar números repetidos consecutivos (ej: 00, 11)
+    if (RegExp(r'(\d)\1').hasMatch(password)) {
+      return 'La contraseña no puede contener números repetidos consecutivos.';
     }
 
     // Detectar secuencias de caracteres repetidos (3 o más seguidos)

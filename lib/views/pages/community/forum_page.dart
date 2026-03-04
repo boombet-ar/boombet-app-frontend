@@ -146,7 +146,16 @@ class _AffiliatedCasino {
 }
 
 class ForumPage extends StatefulWidget {
-  const ForumPage({super.key});
+  const ForumPage({
+    super.key,
+    this.tutorialBoomBetForumTargetKey,
+    this.tutorialAddPostButtonKey,
+    this.tutorialMyPostsButtonKey,
+  });
+
+  final Key? tutorialBoomBetForumTargetKey;
+  final Key? tutorialAddPostButtonKey;
+  final Key? tutorialMyPostsButtonKey;
 
   @override
   State<ForumPage> createState() => _ForumPageState();
@@ -759,6 +768,7 @@ class _ForumPageState extends State<ForumPage> {
                 ),
               ),
               Container(
+                key: widget.tutorialAddPostButtonKey,
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withOpacity(0.05)
@@ -774,6 +784,7 @@ class _ForumPageState extends State<ForumPage> {
               ),
               const SizedBox(width: 8),
               Container(
+                key: widget.tutorialMyPostsButtonKey,
                 decoration: BoxDecoration(
                   color: _showMine
                       ? accent.withOpacity(0.15)
@@ -831,6 +842,9 @@ class _ForumPageState extends State<ForumPage> {
           return Material(
             color: Colors.transparent,
             child: InkWell(
+              key: forum.id == _boomBetForumId
+                  ? widget.tutorialBoomBetForumTargetKey
+                  : null,
               borderRadius: BorderRadius.circular(16),
               onTap: () => _selectForum(forum),
               child: Ink(

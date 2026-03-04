@@ -27,6 +27,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showMenuButton;
   final VoidCallback? onMenuPressed;
   final VoidCallback? onBackPressed;
+  final GlobalKey? faqTutorialTargetKey;
+  final GlobalKey? profileTutorialTargetKey;
+  final GlobalKey? settingsTutorialTargetKey;
+  final GlobalKey? logoutTutorialTargetKey;
 
   const MainAppBar({
     super.key,
@@ -43,6 +47,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showMenuButton = false,
     this.onMenuPressed,
     this.onBackPressed,
+    this.faqTutorialTargetKey,
+    this.profileTutorialTargetKey,
+    this.settingsTutorialTargetKey,
+    this.logoutTutorialTargetKey,
   });
 
   @override
@@ -113,6 +121,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           if (showLogoutButton)
             IconButton(
+              key: logoutTutorialTargetKey,
               icon: Icon(Icons.logout, color: greenColor),
               tooltip: 'Cerrar Sesión',
               onPressed: () async {
@@ -165,6 +174,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             Tooltip(
               message: 'Configuración',
               child: IconButton(
+                key: settingsTutorialTargetKey,
                 icon: Icon(Icons.settings, color: greenColor),
                 tooltip: '',
                 onPressed: () {
@@ -190,6 +200,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             Tooltip(
               message: 'Ver perfil',
               child: IconButton(
+                key: profileTutorialTargetKey,
                 icon: Icon(Icons.person, color: greenColor),
                 tooltip: '',
                 onPressed: () {
@@ -230,6 +241,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             Tooltip(
               message: 'Ayuda y preguntas frecuentes',
               child: IconButton(
+                key: faqTutorialTargetKey,
                 icon: Icon(Icons.help_outline, color: greenColor),
                 tooltip: '',
                 onPressed: () {

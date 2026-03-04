@@ -32,9 +32,10 @@ class PasswordValidationService {
     return password.contains(RegExp(r'[!@#$%^&*()_+\-=\[\]{};:",.<>?/\\|`~]'));
   }
 
-  /// Detecta caracteres repetidos (3 o más consecutivos)
+  /// Detecta caracteres repetidos (3+ consecutivos) y números iguales consecutivos (00, 11, etc.)
   static bool hasRepeatedCharacters(String password) {
-    return RegExp(AppConstants.sequencePattern).hasMatch(password);
+    return RegExp(r'(\d)\1').hasMatch(password) ||
+        RegExp(AppConstants.sequencePattern).hasMatch(password);
   }
 
   /// Detecta secuencias: dígitos (2+ asc/desc) y letras (3+ asc/desc)
