@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class GamesContent extends StatelessWidget {
-  const GamesContent({super.key});
+  const GamesContent({super.key, this.firstGameTutorialTargetKey});
+
+  final GlobalKey? firstGameTutorialTargetKey;
 
   @override
   Widget build(BuildContext context) {
@@ -60,20 +62,31 @@ class GamesContent extends StatelessWidget {
                         // On small web widths, use the mobile-style list so
                         // content stays readable and buttons have space.
                         return Column(
-                          children: games
-                              .map(
-                                (g) => _GameCard(
-                                  title: g.title,
-                                  subtitle: g.subtitle,
-                                  description: g.description,
-                                  badge: g.badge,
-                                  primaryGreen: primaryGreen,
-                                  textColor: textColor,
-                                  onPlay: g.onPlay,
-                                  asset: g.asset,
-                                ),
-                              )
-                              .toList(),
+                          children: List<Widget>.generate(games.length, (
+                            index,
+                          ) {
+                            final g = games[index];
+                            final card = _GameCard(
+                              title: g.title,
+                              subtitle: g.subtitle,
+                              description: g.description,
+                              badge: g.badge,
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              onPlay: g.onPlay,
+                              asset: g.asset,
+                            );
+
+                            if (index == 0 &&
+                                firstGameTutorialTargetKey != null) {
+                              return KeyedSubtree(
+                                key: firstGameTutorialTargetKey,
+                                child: card,
+                              );
+                            }
+
+                            return card;
+                          }),
                         );
                       }
 
@@ -94,7 +107,7 @@ class GamesContent extends StatelessWidget {
                         ),
                         itemBuilder: (context, index) {
                           final g = games[index];
-                          return _GameGridCard(
+                          final card = _GameGridCard(
                             title: g.title,
                             subtitle: g.subtitle,
                             badge: g.badge,
@@ -102,25 +115,43 @@ class GamesContent extends StatelessWidget {
                             onPlay: g.onPlay,
                             asset: g.asset,
                           );
+
+                          if (index == 0 &&
+                              firstGameTutorialTargetKey != null) {
+                            return KeyedSubtree(
+                              key: firstGameTutorialTargetKey,
+                              child: card,
+                            );
+                          }
+
+                          return card;
                         },
                       );
                     },
                   )
                 : Column(
-                    children: games
-                        .map(
-                          (g) => _GameCard(
-                            title: g.title,
-                            subtitle: g.subtitle,
-                            description: g.description,
-                            badge: g.badge,
-                            primaryGreen: primaryGreen,
-                            textColor: textColor,
-                            onPlay: g.onPlay,
-                            asset: g.asset,
-                          ),
-                        )
-                        .toList(),
+                    children: List<Widget>.generate(games.length, (index) {
+                      final g = games[index];
+                      final card = _GameCard(
+                        title: g.title,
+                        subtitle: g.subtitle,
+                        description: g.description,
+                        badge: g.badge,
+                        primaryGreen: primaryGreen,
+                        textColor: textColor,
+                        onPlay: g.onPlay,
+                        asset: g.asset,
+                      );
+
+                      if (index == 0 && firstGameTutorialTargetKey != null) {
+                        return KeyedSubtree(
+                          key: firstGameTutorialTargetKey,
+                          child: card,
+                        );
+                      }
+
+                      return card;
+                    }),
                   ),
           ),
         ],

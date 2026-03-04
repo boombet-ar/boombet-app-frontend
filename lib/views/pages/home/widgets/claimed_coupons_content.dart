@@ -326,7 +326,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                     ],
                   ),
                 )
-              : _hasError
+            : _hasError
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

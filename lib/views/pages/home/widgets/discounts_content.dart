@@ -23,10 +23,18 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DiscountsContent extends StatefulWidget {
-  const DiscountsContent({super.key, this.onCuponClaimed, this.claimedKey});
+  const DiscountsContent({
+    super.key,
+    this.onCuponClaimed,
+    this.claimedKey,
+    this.firstCouponTutorialTargetKey,
+    this.claimedSwitchTutorialTargetKey,
+  });
 
   final VoidCallback? onCuponClaimed;
   final GlobalKey<ClaimedCouponsContentState>? claimedKey;
+  final GlobalKey? firstCouponTutorialTargetKey;
+  final GlobalKey? claimedSwitchTutorialTargetKey;
 
   @override
   State<DiscountsContent> createState() => DiscountsContentState();
@@ -85,6 +93,13 @@ class DiscountsContentState extends State<DiscountsContent> {
   bool _authBlocked = false;
   bool _authCheckInProgress = false;
   DateTime? _lastAuthCheckAt;
+
+  void openClaimedFromTutorial() {
+    setState(() {
+      _showClaimed = true;
+    });
+    _resetDiscountsState(triggerLoad: false);
+  }
 
   Future<void> _clearCuponCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1218,17 +1233,21 @@ class DiscountsContentState extends State<DiscountsContent> {
     Cupon cupon,
     Color primaryGreen,
     Color textColor,
-    bool isDark,
-  ) {
+    bool isDark, {
+    bool compactMobile = false,
+  }) {
     final isClaimed = _claimedCuponIds.contains(cupon.id);
     final displayCode = (_claimedCuponCodes[cupon.id] ?? cupon.codigo).trim();
     final isWeb = kIsWeb;
-    final double heroHeight = isWeb ? 140 : 160;
+    final double heroHeight = isWeb ? 140 : (compactMobile ? 112 : 160);
+    final double logoSize = compactMobile ? 40 : 56;
     final EdgeInsets contentPadding = isWeb
-        ? const EdgeInsets.fromLTRB(14, 12, 14, 12)
-        : const EdgeInsets.fromLTRB(16, 14, 16, 0);
-    final double gapSm = isWeb ? 8 : 10;
-    final double gapMd = isWeb ? 10 : 14;
+        ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
+        : (compactMobile
+              ? const EdgeInsets.fromLTRB(14, 12, 14, 0)
+              : const EdgeInsets.fromLTRB(16, 14, 16, 0));
+    final double gapSm = isWeb ? 8 : (compactMobile ? 6 : 10);
+    final double gapMd = isWeb ? 10 : (compactMobile ? 8 : 14);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1241,15 +1260,15 @@ class DiscountsContentState extends State<DiscountsContent> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-                spreadRadius: 1,
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+                spreadRadius: 2,
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -1258,7 +1277,7 @@ class DiscountsContentState extends State<DiscountsContent> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
               child: Container(
-                color: Colors.grey[900],
+                color: Colors.grey[900]!,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1299,8 +1318,8 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withValues(alpha: 0.15),
-                                  Colors.black.withValues(alpha: 0.35),
+                                  Colors.black.withValues(alpha: 0.25),
+                                  Colors.black.withValues(alpha: 0.45),
                                 ],
                               ),
                             ),
@@ -1316,18 +1335,28 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: primaryGreen,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        primaryGreen.withValues(alpha: 0.9),
+                                        primaryGreen,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
                                         color: primaryGreen.withValues(
-                                          alpha: 0.4,
+                                          alpha: 0.5,
                                         ),
-                                        blurRadius: 6,
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                        spreadRadius: 1,
                                       ),
                                     ],
                                   ),
                                   child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         Icons.check_circle,
@@ -1345,6 +1374,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                               : AppConstants.textLight,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 11,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ],
@@ -1353,22 +1383,35 @@ class DiscountsContentState extends State<DiscountsContent> {
                               : const SizedBox.shrink(),
                         ),
                         Positioned(
-                          top: 12,
-                          right: 12,
+                          top: compactMobile ? 8 : 12,
+                          right: compactMobile ? 8 : 12,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: compactMobile ? 9 : 12,
+                              vertical: compactMobile ? 4 : 6,
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.red.shade600, Colors.red],
+                                colors: [
+                                  Colors.red.shade700,
+                                  Colors.red.shade500,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.circular(
+                                compactMobile ? 18 : 24,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.red.withValues(alpha: 0.4),
-                                  blurRadius: 8,
+                                  color: Colors.red.withValues(alpha: 0.5),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                  spreadRadius: 1,
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
@@ -1380,25 +1423,38 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     ? Colors.white
                                     : AppConstants.textLight,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
+                                fontSize: compactMobile ? 12 : 16,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           ),
                         ),
                         Positioned(
-                          bottom: 12,
-                          left: 12,
+                          bottom: compactMobile ? 8 : 12,
+                          left: compactMobile ? 8 : 12,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(
+                                compactMobile ? 10 : 12,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 8,
+                                  color: primaryGreen.withValues(alpha: 0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                  spreadRadius: 0,
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                width: 1.5,
+                              ),
                             ),
                             padding: const EdgeInsets.all(3),
                             child: ClipRRect(
@@ -1406,14 +1462,14 @@ class DiscountsContentState extends State<DiscountsContent> {
                               child: cupon.logoUrl.isNotEmpty
                                   ? Image.network(
                                       _imageUrlForPlatform(cupon.logoUrl),
-                                      width: 56,
-                                      height: 56,
+                                      width: logoSize,
+                                      height: logoSize,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
                                             return Container(
-                                              width: 56,
-                                              height: 56,
+                                              width: logoSize,
+                                              height: logoSize,
                                               color: Colors.grey[850],
                                               child: Center(
                                                 child: Text(
@@ -1439,8 +1495,8 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           },
                                     )
                                   : Container(
-                                      width: 56,
-                                      height: 56,
+                                      width: logoSize,
+                                      height: logoSize,
                                       color: Colors.grey[800],
                                       child: Center(
                                         child: Text(
@@ -1586,17 +1642,28 @@ class DiscountsContentState extends State<DiscountsContent> {
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        primaryGreen.withValues(alpha: 0.08),
-                                        primaryGreen.withValues(alpha: 0.04),
+                                        primaryGreen.withValues(alpha: 0.12),
+                                        primaryGreen.withValues(alpha: 0.06),
                                       ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
                                       color: primaryGreen.withValues(
-                                        alpha: 0.2,
+                                        alpha: 0.3,
                                       ),
-                                      width: 1,
+                                      width: 1.2,
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Row(
                                     children: [
@@ -1610,9 +1677,10 @@ class DiscountsContentState extends State<DiscountsContent> {
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: textColor.withValues(
-                                                  alpha: 0.5,
+                                                  alpha: 0.6,
                                                 ),
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.3,
                                               ),
                                             ),
                                             const SizedBox(height: 6),
@@ -1623,7 +1691,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                                 fontWeight: FontWeight.bold,
                                                 color: primaryGreen,
                                                 fontFamily: 'monospace',
-                                                letterSpacing: 1,
+                                                letterSpacing: 1.2,
                                               ),
                                             ),
                                           ],
@@ -1655,10 +1723,16 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: primaryGreen.withValues(
-                                              alpha: 0.1,
+                                              alpha: 0.15,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               12,
+                                            ),
+                                            border: Border.all(
+                                              color: primaryGreen.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                              width: 1,
                                             ),
                                           ),
                                           child: Icon(
@@ -1671,7 +1745,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     ],
                                   ),
                                 ),
-                                if (!isWeb) SizedBox(height: gapMd),
                               ] else ...[
                                 if (isWeb)
                                   Align(
@@ -1692,225 +1765,271 @@ class DiscountsContentState extends State<DiscountsContent> {
                                       compact: true,
                                     ),
                                   ),
-                                if (!isWeb) SizedBox(height: gapMd),
                               ],
                             ],
                           ),
                         ),
                       )
                     else
-                      Padding(
-                        padding: contentPadding,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              cupon.nombre,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: 0.2,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.storefront,
-                                  size: 14,
-                                  color: primaryGreen.withValues(alpha: 0.7),
+                      Expanded(
+                        child: Padding(
+                          padding: contentPadding,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                cupon.nombre,
+                                style: TextStyle(
+                                  fontSize: compactMobile ? 14 : 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                  letterSpacing: 0.2,
                                 ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    cupon.empresa.nombre,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textColor.withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                maxLines: compactMobile ? 1 : 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.storefront,
+                                    size: 14,
+                                    color: primaryGreen.withValues(alpha: 0.7),
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: gapSm),
-                            Text(
-                              _cleanHtml(cupon.descripcionBreve),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textColor.withValues(alpha: 0.7),
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: gapSm),
-                            if (cupon.categorias.isNotEmpty)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: cupon.categorias.take(2).map((cat) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        width: 0.5,
-                                      ),
-                                    ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
                                     child: Text(
-                                      cat.nombre,
+                                      cupon.empresa.nombre,
                                       style: TextStyle(
-                                        fontSize: 11,
-                                        color: primaryGreen,
-                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                        color: textColor.withValues(alpha: 0.6),
+                                        fontWeight: FontWeight.w500,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  );
-                                }).toList(),
+                                  ),
+                                ],
                               ),
-                            SizedBox(height: gapSm),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 14,
-                                  color: textColor.withValues(alpha: 0.4),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    isClaimed
-                                        ? 'Reclamado el: ${cupon.fechaVencimientoFormatted}'
-                                        : 'Válido hasta: ${cupon.fechaVencimientoFormatted}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                              SizedBox(height: gapSm),
+                              if (!compactMobile) ...[
+                                Text(
+                                  _cleanHtml(cupon.descripcionBreve),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: textColor.withValues(alpha: 0.7),
+                                    height: 1.4,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                SizedBox(height: gapSm),
                               ],
-                            ),
-                            SizedBox(height: gapMd),
-                            if (isClaimed) ...[
-                              Container(
-                                padding: EdgeInsets.all(isWeb ? 10 : 12),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primaryGreen.withValues(alpha: 0.08),
-                                      primaryGreen.withValues(alpha: 0.04),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: primaryGreen.withValues(alpha: 0.2),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Tu Código',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: textColor.withValues(
-                                                alpha: 0.5,
+                              if (cupon.categorias.isNotEmpty)
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: cupon.categorias
+                                      .take(compactMobile ? 1 : 2)
+                                      .map((cat) {
+                                        final rawCategoryName = cat.nombre
+                                            .trim();
+                                        final compactCategoryName =
+                                            rawCategoryName.contains(',')
+                                            ? rawCategoryName
+                                                  .split(',')
+                                                  .first
+                                                  .trim()
+                                            : rawCategoryName;
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: primaryGreen.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                            border: Border.all(
+                                              color: primaryGreen.withValues(
+                                                alpha: 0.2,
                                               ),
+                                              width: 0.5,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            compactMobile
+                                                ? compactCategoryName
+                                                : rawCategoryName,
+                                            style: TextStyle(
+                                              fontSize: compactMobile ? 10 : 11,
+                                              color: primaryGreen,
                                               fontWeight: FontWeight.w600,
                                             ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            displayCode,
-                                            style: TextStyle(
-                                              fontSize: isWeb ? 16 : 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryGreen,
-                                              fontFamily: 'monospace',
-                                              letterSpacing: 1,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    InkWell(
-                                      onTap: () async {
-                                        if (displayCode.isEmpty) return;
-                                        await Clipboard.setData(
-                                          ClipboardData(text: displayCode),
-                                        );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Código copiado: $displayCode',
-                                            ),
-                                            duration: const Duration(
-                                              seconds: 2,
-                                            ),
-                                            backgroundColor: primaryGreen,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: false,
                                           ),
                                         );
-                                      },
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                      })
+                                      .toList(),
+                                ),
+                              SizedBox(height: gapSm),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 14,
+                                    color: textColor.withValues(alpha: 0.4),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      isClaimed
+                                          ? 'Reclamado el: ${cupon.fechaVencimientoFormatted}'
+                                          : 'Válido hasta: ${cupon.fechaVencimientoFormatted}',
+                                      style: TextStyle(
+                                        fontSize: compactMobile ? 10 : 11,
+                                        color: textColor.withValues(alpha: 0.5),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: gapMd),
+                              if (isClaimed) ...[
+                                Container(
+                                  padding: EdgeInsets.all(
+                                    isWeb ? 10 : (compactMobile ? 8 : 12),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        primaryGreen.withValues(alpha: 0.12),
+                                        primaryGreen.withValues(alpha: 0.06),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      width: 1.2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.08,
                                         ),
-                                        child: Icon(
-                                          Icons.content_copy,
-                                          color: primaryGreen,
-                                          size: 20,
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Tu Código',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: textColor.withValues(
+                                                  alpha: 0.6,
+                                                ),
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              displayCode,
+                                              style: TextStyle(
+                                                fontSize: isWeb
+                                                    ? 16
+                                                    : (compactMobile ? 14 : 18),
+                                                fontWeight: FontWeight.bold,
+                                                color: primaryGreen,
+                                                fontFamily: 'monospace',
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 12),
+                                      InkWell(
+                                        onTap: () async {
+                                          if (displayCode.isEmpty) return;
+                                          await Clipboard.setData(
+                                            ClipboardData(text: displayCode),
+                                          );
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Código copiado: $displayCode',
+                                              ),
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
+                                              backgroundColor: primaryGreen,
+                                            ),
+                                          );
+                                        },
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: primaryGreen.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            border: Border.all(
+                                              color: primaryGreen.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.content_copy,
+                                            color: primaryGreen,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: gapMd),
-                            ] else ...[
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: _buildClaimButton(
-                                  context: context,
-                                  cupon: cupon,
-                                  primaryGreen: primaryGreen,
-                                  compact: true,
+                              ] else ...[
+                                Align(
+                                  alignment: compactMobile
+                                      ? Alignment.center
+                                      : Alignment.centerRight,
+                                  child: _buildClaimButton(
+                                    context: context,
+                                    cupon: cupon,
+                                    primaryGreen: primaryGreen,
+                                    compact: true,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: gapMd),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                   ],
@@ -1951,20 +2070,24 @@ class DiscountsContentState extends State<DiscountsContent> {
           context,
         ).colorScheme.onSurface.withValues(alpha: 0.6),
         padding: EdgeInsets.symmetric(
-          vertical: isSmallScreen ? 6 : (compact ? 8 : 10),
-          horizontal: isSmallScreen ? 10 : (compact ? 12 : 14),
+          vertical: isSmallScreen ? 7 : (compact ? 9 : 11),
+          horizontal: isSmallScreen ? 12 : (compact ? 14 : 16),
         ),
-        minimumSize: Size(isSmallScreen ? 88 : 0, isSmallScreen ? 34 : 0),
+        minimumSize: Size(isSmallScreen ? 88 : 0, isSmallScreen ? 36 : 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 4,
+        shadowColor: primaryGreen.withValues(alpha: 0.4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (showIcon) ...[
-            const Icon(Icons.check_circle, size: 17),
-            const SizedBox(width: 6),
+            Icon(
+              isClaimed ? Icons.check_circle_outline : Icons.check_circle,
+              size: 17,
+            ),
+            const SizedBox(width: 7),
           ],
           Text(
             isClaimed
@@ -1973,6 +2096,10 @@ class DiscountsContentState extends State<DiscountsContent> {
             maxLines: 1,
             overflow: TextOverflow.fade,
             softWrap: false,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
           ),
         ],
       ),
@@ -2669,6 +2796,7 @@ class DiscountsContentState extends State<DiscountsContent> {
               title: 'Descuentos Exclusivos',
               subtitle: '',
               icon: Icons.local_offer,
+              switchButtonKey: widget.claimedSwitchTutorialTargetKey,
               onSwitch: () {
                 setState(() {
                   _showClaimed = true;
@@ -2989,48 +3117,118 @@ class DiscountsContentState extends State<DiscountsContent> {
                                       itemBuilder: (context, index) {
                                         final cupon =
                                             pagedFilteredCupones[index];
-                                        return _buildCuponCard(
+                                        final card = _buildCuponCard(
                                           context,
                                           cupon,
                                           primaryGreen,
                                           textColor,
                                           isDark,
                                         );
+                                        if (index == 0 &&
+                                            widget.firstCouponTutorialTargetKey !=
+                                                null) {
+                                          return KeyedSubtree(
+                                            key: widget
+                                                .firstCouponTutorialTargetKey,
+                                            child: card,
+                                          );
+                                        }
+                                        return card;
                                       },
                                     );
                                   },
                                 )
                               else
-                                ListView.builder(
-                                  controller: _listScrollController,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    16,
-                                    16,
-                                    24,
-                                  ),
-                                  itemCount: pagedFilteredCupones.length,
-                                  itemBuilder: (context, index) {
-                                    final cupon = pagedFilteredCupones[index];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 16,
-                                      ),
-                                      child: Align(
-                                        alignment: Alignment.center,
-                                        child: ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 520,
-                                          ),
-                                          child: _buildCuponCard(
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final isTwoColumnPhone =
+                                        constraints.maxWidth >= 360;
+
+                                    if (isTwoColumnPhone) {
+                                      return GridView.builder(
+                                        controller: _listScrollController,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          12,
+                                          12,
+                                          12,
+                                          20,
+                                        ),
+                                        gridDelegate:
+                                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: 2,
+                                              mainAxisSpacing: 12,
+                                              crossAxisSpacing: 12,
+                                              childAspectRatio: 0.68,
+                                            ),
+                                        itemCount: pagedFilteredCupones.length,
+                                        itemBuilder: (context, index) {
+                                          final cupon =
+                                              pagedFilteredCupones[index];
+                                          final card = _buildCuponCard(
                                             context,
                                             cupon,
                                             primaryGreen,
                                             textColor,
                                             isDark,
-                                          ),
-                                        ),
+                                            compactMobile: true,
+                                          );
+                                          if (index == 0 &&
+                                              widget.firstCouponTutorialTargetKey !=
+                                                  null) {
+                                            return KeyedSubtree(
+                                              key: widget
+                                                  .firstCouponTutorialTargetKey,
+                                              child: card,
+                                            );
+                                          }
+                                          return card;
+                                        },
+                                      );
+                                    }
+
+                                    return ListView.builder(
+                                      controller: _listScrollController,
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        16,
+                                        16,
+                                        24,
                                       ),
+                                      itemCount: pagedFilteredCupones.length,
+                                      itemBuilder: (context, index) {
+                                        final cupon =
+                                            pagedFilteredCupones[index];
+                                        final item = Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 16,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 520,
+                                              ),
+                                              child: _buildCuponCard(
+                                                context,
+                                                cupon,
+                                                primaryGreen,
+                                                textColor,
+                                                isDark,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                        if (index == 0 &&
+                                            widget.firstCouponTutorialTargetKey !=
+                                                null) {
+                                          return KeyedSubtree(
+                                            key: widget
+                                                .firstCouponTutorialTargetKey,
+                                            child: item,
+                                          );
+                                        }
+                                        return item;
+                                      },
                                     );
                                   },
                                 ),

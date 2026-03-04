@@ -11,7 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class PlayerService {
-
   Future<PlayerData> updatePlayerData(PlayerUpdateRequest data) async {
     final url = "${ApiConfig.baseUrl}/jugadores/update";
 
@@ -70,7 +69,28 @@ class PlayerService {
     return CurrentUserSnapshot(
       playerData: player,
       avatarUrl: avatarResolved,
+      isFirstLogin: _extractIsFirstLogin(data),
     );
+  }
+
+  Future<bool?> getCurrentUserIsFirstLogin() async {
+    final data = await getCurrentUser();
+    return _extractIsFirstLogin(data);
+  }
+
+  Future<void> setFirstLoginFalse() async {
+    final url = "${ApiConfig.baseUrl}/users/set_first_login";
+    log("PATCH → $url");
+
+    final response = await HttpClient.patch(url, includeAuth: true);
+    log("RESP PATCH set_first_login ${response.statusCode} → ${response.body}");
+
+    if (response.statusCode == 200) {
+      HttpClient.clearCache(urlPattern: '/users/me');
+      return;
+    }
+
+    throw Exception("Error ${response.statusCode}: ${response.body}");
   }
 
   Future<PlayerData> getCurrentUserPlayerData() async {
@@ -245,14 +265,43 @@ class PlayerService {
 
     return null;
   }
+
+  bool? _extractIsFirstLogin(dynamic jsonData) {
+    if (jsonData is! Map<String, dynamic>) return null;
+
+    final direct = _parseDynamicBool(
+      jsonData['is_first_login'] ?? jsonData['isFirstLogin'],
+    );
+    if (direct != null) return direct;
+
+    final data = jsonData['data'];
+    if (data is Map<String, dynamic>) {
+      return _parseDynamicBool(data['is_first_login'] ?? data['isFirstLogin']);
+    }
+
+    return null;
+  }
+
+  bool? _parseDynamicBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value == 1;
+    if (value is String) {
+      final lowered = value.trim().toLowerCase();
+      if (lowered == 'true' || lowered == '1') return true;
+      if (lowered == 'false' || lowered == '0') return false;
+    }
+    return null;
+  }
 }
 
 class CurrentUserSnapshot {
   final PlayerData playerData;
   final String avatarUrl;
+  final bool? isFirstLogin;
 
   const CurrentUserSnapshot({
     required this.playerData,
     required this.avatarUrl,
+    this.isFirstLogin,
   });
 }
