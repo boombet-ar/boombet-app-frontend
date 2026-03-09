@@ -108,6 +108,9 @@ void _initializeDeepLinkHandling() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Bloquea la app en vertical en todas las pantallas.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
   debugPrint = (String? message, {int? wrapWidth}) {};
 
   // Web: usar URLs con path (/confirm?token=...) en lugar de hash (/#/confirm?...)

@@ -12,6 +12,8 @@ class TokenService {
   static const _tempRefreshTokenKey = 'temp_refresh_token';
   static const _fcmTokenKey = 'fcm_token';
   static const _notificationsEnabledKey = 'notifications_enabled';
+  static const _adsNotificationsEnabledKey = 'notifications_ads_enabled';
+  static const _forumNotificationsEnabledKey = 'notifications_forum_enabled';
 
   static String _previewToken(String? token, {int keep = 12}) {
     if (token == null) return 'null';
@@ -379,6 +381,36 @@ class TokenService {
   static Future<void> setNotificationsEnabled(bool enabled) async {
     await _storage.write(
       key: _notificationsEnabledKey,
+      value: enabled.toString(),
+    );
+  }
+
+  /// Preferencia del usuario: recibir notificaciones de publicidades/promos.
+  /// Por defecto es true.
+  static Future<bool> getAdsNotificationsEnabled() async {
+    final value = await _storage.read(key: _adsNotificationsEnabledKey);
+    if (value == null) return true;
+    return value.toLowerCase() == 'true';
+  }
+
+  static Future<void> setAdsNotificationsEnabled(bool enabled) async {
+    await _storage.write(
+      key: _adsNotificationsEnabledKey,
+      value: enabled.toString(),
+    );
+  }
+
+  /// Preferencia del usuario: recibir notificaciones del foro.
+  /// Por defecto es true.
+  static Future<bool> getForumNotificationsEnabled() async {
+    final value = await _storage.read(key: _forumNotificationsEnabledKey);
+    if (value == null) return true;
+    return value.toLowerCase() == 'true';
+  }
+
+  static Future<void> setForumNotificationsEnabled(bool enabled) async {
+    await _storage.write(
+      key: _forumNotificationsEnabledKey,
       value: enabled.toString(),
     );
   }

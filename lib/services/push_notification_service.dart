@@ -17,6 +17,8 @@ class PushNotificationService {
   static bool _initialized = false;
   static bool _listening = false;
   static bool _enabledCache = true;
+  static bool _adsEnabledCache = true;
+  static bool _forumEnabledCache = true;
 
   static StreamSubscription<RemoteMessage>? _onMessageSub;
   static StreamSubscription<RemoteMessage>? _onMessageOpenedSub;
@@ -43,6 +45,8 @@ class PushNotificationService {
 
     // Cachear preferencia y aplicar estado.
     _enabledCache = await TokenService.getNotificationsEnabled();
+    _adsEnabledCache = await TokenService.getAdsNotificationsEnabled();
+    _forumEnabledCache = await TokenService.getForumNotificationsEnabled();
     if (!_enabledCache) {
       await _disableNotificationsFlow(deleteRemoteToken: false);
       debugPrint('🔕 PushNotificationService: notifications disabled (init)');
@@ -57,6 +61,16 @@ class PushNotificationService {
     return _enabledCache;
   }
 
+  static Future<bool> isAdsNotificationsEnabled() async {
+    _adsEnabledCache = await TokenService.getAdsNotificationsEnabled();
+    return _adsEnabledCache;
+  }
+
+  static Future<bool> isForumNotificationsEnabled() async {
+    _forumEnabledCache = await TokenService.getForumNotificationsEnabled();
+    return _forumEnabledCache;
+  }
+
   static Future<void> setNotificationsEnabled(bool enabled) async {
     _enabledCache = enabled;
     await TokenService.setNotificationsEnabled(enabled);
@@ -66,6 +80,16 @@ class PushNotificationService {
     } else {
       await _disableNotificationsFlow(deleteRemoteToken: true);
     }
+  }
+
+  static Future<void> setAdsNotificationsEnabled(bool enabled) async {
+    _adsEnabledCache = enabled;
+    await TokenService.setAdsNotificationsEnabled(enabled);
+  }
+
+  static Future<void> setForumNotificationsEnabled(bool enabled) async {
+    _forumEnabledCache = enabled;
+    await TokenService.setForumNotificationsEnabled(enabled);
   }
 
   static Future<void> _enableNotificationsFlow() async {
@@ -126,6 +150,7 @@ class PushNotificationService {
     // Mensajes recibidos con la app en foreground
     _onMessageSub = FirebaseMessaging.onMessage.listen((message) {
       if (!_enabledCache) return;
+      if (!_shouldAllowMessage(message)) return;
       _logMessage(message, origin: 'FOREGROUND');
       _showLocalNotification(message);
     });
@@ -135,6 +160,7 @@ class PushNotificationService {
       message,
     ) {
       if (!_enabledCache) return;
+      if (!_shouldAllowMessage(message)) return;
       _logMessage(message, origin: 'OPENED_APP');
       _handleNavigationFromMessage(message);
     });
@@ -154,10 +180,109 @@ class PushNotificationService {
 
   static Future<void> _handleInitialMessage() async {
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
+    if (initialMessage != null && _shouldAllowMessage(initialMessage)) {
       _logMessage(initialMessage, origin: 'INITIAL_MESSAGE');
       _handleNavigationFromMessage(initialMessage);
     }
+  }
+
+  static bool _shouldAllowMessage(RemoteMessage message) {
+    if (!_enabledCache) return false;
+
+    final data = Map<String, dynamic>.from(message.data);
+
+    // Fallback: cuando no hay data útil, usar texto para heurística básica.
+    if (data.isEmpty) {
+      data['title'] = message.notification?.title ?? '';
+      data['body'] = message.notification?.body ?? '';
+    }
+
+    return _shouldAllowData(data);
+  }
+
+  static bool _shouldAllowData(Map<String, dynamic> data) {
+    if (!_enabledCache) return false;
+
+    if (!_forumEnabledCache && _isForumNotification(data)) {
+      return false;
+    }
+
+    if (!_adsEnabledCache && _isAdsNotification(data)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  static bool _isForumNotification(Map<String, dynamic> data) {
+    final text = _flattenNotificationData(data);
+    const forumMarkers = [
+      'forum',
+      'foro',
+      '/forum/',
+      '/foro/',
+      'post',
+      'publicacion',
+      'publicaciones',
+      'respuesta',
+      'reply',
+    ];
+    return forumMarkers.any(text.contains);
+  }
+
+  static bool _isAdsNotification(Map<String, dynamic> data) {
+    final text = _flattenNotificationData(data);
+    const adsMarkers = [
+      'ad',
+      'ads',
+      'advert',
+      'advertising',
+      'promo',
+      'promocion',
+      'promoción',
+      'publicidad',
+      'campaign',
+      'cupon',
+      'cupón',
+      'descuento',
+      'oferta',
+    ];
+    return adsMarkers.any(text.contains);
+  }
+
+  static String _flattenNotificationData(Map<String, dynamic> data) {
+    final buffer = StringBuffer();
+
+    void appendValue(dynamic value) {
+      if (value == null) return;
+      if (value is String) {
+        buffer.write(' ');
+        buffer.write(value.toLowerCase());
+        return;
+      }
+      if (value is num || value is bool) {
+        buffer.write(' ');
+        buffer.write(value.toString().toLowerCase());
+        return;
+      }
+      if (value is Map) {
+        for (final entry in value.entries) {
+          appendValue(entry.key);
+          appendValue(entry.value);
+        }
+        return;
+      }
+      if (value is Iterable) {
+        for (final item in value) {
+          appendValue(item);
+        }
+        return;
+      }
+      appendValue(value.toString());
+    }
+
+    appendValue(data);
+    return buffer.toString();
   }
 
   static void _logMessage(RemoteMessage message, {required String origin}) {
@@ -198,6 +323,7 @@ class PushNotificationService {
           final decoded = jsonDecode(payload);
           if (decoded is Map) {
             final data = Map<String, dynamic>.from(decoded as Map);
+            if (!_shouldAllowData(data)) return;
             debugPrint('📩 [LOCAL_TAP] payload decoded: ${data.keys.toList()}');
             _handleNavigationFromData(data);
           } else {

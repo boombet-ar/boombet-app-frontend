@@ -17,6 +17,7 @@ class _FaqPageState extends State<FaqPage> {
   bool _isLoggedIn = false;
   static const String _bplayPoweredByUrl = 'https://www.bplay.bet.ar/';
   static const String _sportsbetPoweredByUrl = 'https://sportsbet.bet.ar/';
+  static const String _betssonPoweredByUrl = 'https://www.betsson.bet.ar/';
   final List<Map<String, String>> _platformFaqs = [
     {
       'question': '¿Que es BoomBet?',
@@ -59,6 +60,28 @@ class _FaqPageState extends State<FaqPage> {
       'question': '¿Los beneficios tienen vencimiento?',
       'answer':
           'Sí. Cada beneficio tiene una fecha de expiración que se muestra en su tarjeta dentro de la app.',
+    },
+  ];
+  final List<Map<String, String>> _forumFaqs = [
+    {
+      'question': '¿Cómo publico en el foro?',
+      'answer':
+          'Entrá a la pestaña Foro, tocá el botón para crear publicación, escribí tu título y mensaje, y confirmá para publicarlo. Tu post quedará visible para la comunidad.',
+    },
+    {
+      'question': '¿Puedo borrar una publicación mía?',
+      'answer':
+          'Sí. En tus publicaciones (icono de perfil) vas a ver la opción para eliminar. Si borrás una publicación, se elimina del foro y ya no podrá ser vista por otros usuarios.',
+    },
+    {
+      'question': '¿Cómo respondo a otro usuario en el foro?',
+      'answer':
+          'Abrí la publicación, escribí tu comentario en la sección de respuestas y enviá. También podés volver a entrar después para seguir la conversación.',
+    },
+    {
+      'question': '¿Me llegan notificaciones de actividad del foro?',
+      'answer':
+          'Sí, podés recibir notificaciones cuando hay actividad relevante. Desde Configuración > Notificaciones podés activar o desactivar la subcategoría Foro cuando quieras.',
     },
   ];
 
@@ -252,29 +275,11 @@ class _FaqPageState extends State<FaqPage> {
           const SizedBox(height: 12),
           _buildFaqSection(
             context,
-            icon: Icons.shield,
-            title: 'Puntos',
+            icon: Icons.forum,
+            title: 'Foro',
             cardColor: cardColor,
             textColor: textColor,
-            disabled: true,
-          ),
-          const SizedBox(height: 12),
-          _buildFaqSection(
-            context,
-            icon: Icons.article,
-            title: 'Actividades',
-            cardColor: cardColor,
-            textColor: textColor,
-            disabled: true,
-          ),
-          const SizedBox(height: 12),
-          _buildFaqSection(
-            context,
-            icon: Icons.thumb_up,
-            title: 'Sorteos',
-            cardColor: cardColor,
-            textColor: textColor,
-            disabled: true,
+            items: _forumFaqs,
           ),
           const SizedBox(height: 32),
           _buildPoweredByPanel(
@@ -379,31 +384,13 @@ class _FaqPageState extends State<FaqPage> {
                 items: _benefitsFaqs,
               ),
               const SizedBox(height: 12),
-              _buildFaqSection(
+              _buildFaqCategoryWeb(
                 context,
-                icon: Icons.shield,
-                title: 'Puntos',
+                icon: Icons.forum,
+                title: 'Foro',
                 cardColor: cardColor,
                 textColor: textColor,
-                disabled: true,
-              ),
-              const SizedBox(height: 12),
-              _buildFaqSection(
-                context,
-                icon: Icons.article,
-                title: 'Actividades',
-                cardColor: cardColor,
-                textColor: textColor,
-                disabled: true,
-              ),
-              const SizedBox(height: 12),
-              _buildFaqSection(
-                context,
-                icon: Icons.thumb_up,
-                title: 'Sorteos',
-                cardColor: cardColor,
-                textColor: textColor,
-                disabled: true,
+                items: _forumFaqs,
               ),
             ],
           ),
@@ -544,62 +531,43 @@ class _FaqPageState extends State<FaqPage> {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _openPoweredBySite(_bplayPoweredByUrl),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.transparent
-                              : AppConstants.lightSurfaceVariant,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Image.asset(
-                          'assets/images/bplay_logo.webp',
-                          height: 60,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding = constraints.maxWidth > 1200
+                  ? 24.0
+                  : 12.0;
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildPoweredByLogoTile(
+                      assetPath: 'assets/images/bplay_logo.webp',
+                      url: _bplayPoweredByUrl,
+                      logoHeight: 58,
+                      isDark: isDark,
+                      horizontalPadding: horizontalPadding,
                     ),
                   ),
-                ),
-              ),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _openPoweredBySite(_sportsbetPoweredByUrl),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.transparent
-                              : AppConstants.lightSurfaceVariant,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Image.asset(
-                          'assets/images/sportsbet_logo.webp',
-                          height: 60,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                  Expanded(
+                    child: _buildPoweredByLogoTile(
+                      assetPath: 'assets/images/sportsbet_logo.webp',
+                      url: _sportsbetPoweredByUrl,
+                      logoHeight: 52,
+                      isDark: isDark,
+                      horizontalPadding: horizontalPadding,
                     ),
                   ),
-                ),
-              ),
-            ],
+                  Expanded(
+                    child: _buildPoweredByLogoTile(
+                      assetPath: 'assets/images/betsson_logo.png',
+                      url: _betssonPoweredByUrl,
+                      logoHeight: 50,
+                      isDark: isDark,
+                      horizontalPadding: horizontalPadding,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 30),
           Text(
@@ -628,6 +596,41 @@ class _FaqPageState extends State<FaqPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPoweredByLogoTile({
+    required String assetPath,
+    required String url,
+    required double logoHeight,
+    required bool isDark,
+    required double horizontalPadding,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding / 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openPoweredBySite(url),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 94,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.transparent
+                  : AppConstants.lightSurfaceVariant,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Image.asset(
+              assetPath,
+              height: logoHeight,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
       ),
     );
   }

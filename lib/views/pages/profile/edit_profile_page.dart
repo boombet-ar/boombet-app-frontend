@@ -40,6 +40,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     final p = widget.player;
 
+    _c["username"] = TextEditingController(text: p.username);
     _c["nombre"] = TextEditingController(text: p.nombre);
     _c["apellido"] = TextEditingController(text: p.apellido);
     _c["email"] = TextEditingController(text: p.correoElectronico);
@@ -218,6 +219,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
 
     final request = PlayerUpdateRequest(
+      username: _c["username"]!.text.trim(),
       nombre: _c["nombre"]!.text.trim(),
       apellido: _c["apellido"]!.text.trim(),
       email: _c["email"]!.text.trim(),
@@ -380,6 +382,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                   _avatarSection(theme, onSurface, primaryGreen),
 
+                  const SizedBox(height: 16),
+
+                  _usernameSection(theme, onSurface, primaryGreen),
+
                   const SizedBox(height: 12),
 
                   // --- SECCIÓN 1 ---
@@ -505,6 +511,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 18),
                       _avatarSection(theme, onSurface, primaryGreen),
+                      const SizedBox(height: 16),
+                      _usernameSection(theme, onSurface, primaryGreen),
                       const SizedBox(height: 16),
                       _webCard(
                         theme: theme,
@@ -661,6 +669,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         StaggeredGridTile.fit(
                           crossAxisCellCount: leftSpan,
                           child: _avatarSection(theme, onSurface, primaryGreen),
+                        ),
+                        StaggeredGridTile.fit(
+                          crossAxisCellCount: leftSpan,
+                          child: _usernameSection(
+                            theme,
+                            onSurface,
+                            primaryGreen,
+                          ),
                         ),
                         StaggeredGridTile.fit(
                           crossAxisCellCount: rightSpan,
@@ -960,6 +976,51 @@ class _EditProfilePageState extends State<EditProfilePage> {
           fontWeight: FontWeight.bold,
           color: primaryGreen,
         ),
+      ),
+    );
+  }
+
+  Widget _usernameSection(
+    ThemeData theme,
+    Color onSurface,
+    Color primaryGreen,
+  ) {
+    const cardColor = Color(0xFF1A1A1A);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.alternate_email, color: primaryGreen),
+              const SizedBox(width: 8),
+              Text(
+                'Nombre de usuario',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _field('Usuario', _c["username"]!),
+        ],
       ),
     );
   }

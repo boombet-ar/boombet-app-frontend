@@ -15,7 +15,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 class HomeContent extends StatefulWidget {
@@ -34,6 +36,8 @@ class _HomeContentState extends State<HomeContent> {
   static const Duration _videoAdvanceDelay = Duration(seconds: 3);
   static const double _adAspectRatio =
       9 / 17; // Slightly taller viewport for ads
+  static const String _playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.boombet.app';
 
   int _currentCarouselPage = 0;
   Timer? _autoScrollTimer;
@@ -198,6 +202,26 @@ class _HomeContentState extends State<HomeContent> {
         _adsError = 'No se pudieron cargar las publicidades: $e';
         _adsLoading = false;
       });
+    }
+  }
+
+  Future<void> _openPlayStore() async {
+    final uri = Uri.parse(_playStoreUrl);
+    final ok = await launchUrl(
+      uri,
+      mode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo abrir Play Store.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
     }
   }
 
@@ -628,39 +652,15 @@ class _HomeContentState extends State<HomeContent> {
                   ? (() {
                       final isNarrowWeb = constraints.maxWidth < 900;
                       if (isNarrowWeb) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 12,
-                          ),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 520),
-                              child: _buildCarouselPanel(
-                                primaryGreen: primaryGreen,
-                                textColor: textColor,
-                                margin: EdgeInsets.zero,
-                              ),
-                            ),
-                          ),
+                        return _buildWebNarrowHomeLayout(
+                          primaryGreen: primaryGreen,
+                          textColor: textColor,
                         );
                       }
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 720),
-                            child: _buildCarouselPanel(
-                              primaryGreen: primaryGreen,
-                              textColor: textColor,
-                              margin: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
+                      return _buildWebDesktopHomeLayout(
+                        primaryGreen: primaryGreen,
+                        textColor: textColor,
                       );
                     })()
                   : _buildCarouselPanel(
@@ -671,6 +671,10 @@ class _HomeContentState extends State<HomeContent> {
                         vertical: 12,
                       ),
                     );
+
+              if (isWeb) {
+                return SizedBox(height: constraints.maxHeight, child: homeBody);
+              }
 
               return RefreshIndicator(
                 onRefresh: _fetchAds,
@@ -690,10 +694,341 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
+  Widget _buildWebDesktopHomeLayout({
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: _buildWebDownloadCard(
+                  primaryGreen: primaryGreen,
+                  textColor: textColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: _buildCarouselPanel(
+                  primaryGreen: primaryGreen,
+                  textColor: textColor,
+                  margin: EdgeInsets.zero,
+                  maxPanelWidth: 460,
+                  maxAdWidth: 320,
+                  adAspectRatio: 9 / 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebNarrowHomeLayout({
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      child: Column(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: _buildWebDownloadCard(
+                primaryGreen: primaryGreen,
+                textColor: textColor,
+                compact: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: _buildCarouselPanel(
+                  primaryGreen: primaryGreen,
+                  textColor: textColor,
+                  margin: EdgeInsets.zero,
+                  maxPanelWidth: 420,
+                  maxAdWidth: 260,
+                  adAspectRatio: 9 / 15,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebDownloadCard({
+    required Color primaryGreen,
+    required Color textColor,
+    bool compact = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: compact
+          ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
+          : const EdgeInsets.fromLTRB(28, 32, 28, 28),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(compact ? 16 : 24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryGreen.withValues(alpha: isDark ? 0.22 : 0.18),
+            primaryGreen.withValues(alpha: isDark ? 0.08 : 0.06),
+          ],
+        ),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: isDark ? 0.35 : 0.32),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: isDark ? 0.15 : 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: compact
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryGreen.withValues(
+                          alpha: isDark ? 0.22 : 0.14,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.phone_android,
+                        color: primaryGreen,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        'Descarga nuestra app oficial',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          height: 1.15,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildStoreButtonsRow(compact: true, textColor: textColor),
+              ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: primaryGreen.withValues(alpha: isDark ? 0.25 : 0.16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryGreen.withValues(alpha: 0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.phone_android,
+                    color: primaryGreen,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Descarga nuestra app oficial',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    height: 1.2,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Disfruta de todas las funciones desde tu móvil',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.75),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildStoreButtonsRow(compact: false, textColor: textColor),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildStoreButtonsRow({
+    required bool compact,
+    required Color textColor,
+  }) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: compact ? 14 : 20,
+      runSpacing: 12,
+      children: [
+        _buildPlayStoreLogoButton(compact: compact),
+        _buildAppStoreComingSoonButton(compact: compact, textColor: textColor),
+      ],
+    );
+  }
+
+  Widget _buildPlayStoreLogoButton({required bool compact}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openPlayStore,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: Colors.white.withValues(alpha: 0.08),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 4 : 6,
+            vertical: compact ? 4 : 6,
+          ),
+          child: SvgPicture.asset(
+            'assets/images/playstore_logo.svg',
+            height: compact ? 40 : 52,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppStoreComingSoonButton({
+    required bool compact,
+    required Color textColor,
+  }) {
+    final badgeFontSize = compact ? 11.0 : 12.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Opacity(
+          opacity: 0.4,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 1.8, sigmaY: 1.8),
+              child: SvgPicture.asset(
+                'assets/images/appstore_logo.svg',
+                height: compact ? 40 : 52,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+        IgnorePointer(
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 10 : 12,
+              vertical: compact ? 5 : 6,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: Colors.black.withValues(alpha: isDark ? 0.65 : 0.6),
+              border: Border.all(
+                color: textColor.withValues(alpha: 0.35),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  size: compact ? 13 : 14,
+                  color: textColor.withValues(alpha: 0.95),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Proximamente',
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.95),
+                    fontSize: badgeFontSize,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCarouselPanel({
     required Color primaryGreen,
     required Color textColor,
     required EdgeInsetsGeometry margin,
+    double? maxPanelWidth,
+    double? maxAdWidth,
+    double adAspectRatio = _adAspectRatio,
   }) {
     return RepaintBoundary(
       child: Container(
@@ -706,7 +1041,8 @@ class _HomeContentState extends State<HomeContent> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: kIsWeb ? 520 : double.infinity,
+                      maxWidth:
+                          maxPanelWidth ?? (kIsWeb ? 520 : double.infinity),
                     ),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -788,124 +1124,136 @@ class _HomeContentState extends State<HomeContent> {
               ),
             Expanded(
               child: Center(
-                child: AspectRatio(
-                  aspectRatio: _adAspectRatio,
-                  child: PageView.builder(
-                    controller: _carouselController,
-                    scrollBehavior: kIsWeb
-                        ? MaterialScrollBehavior().copyWith(
-                            dragDevices: {
-                              PointerDeviceKind.touch,
-                              PointerDeviceKind.mouse,
-                            },
-                          )
-                        : null,
-                    onPageChanged: (index) {
-                      final previousIndex = _currentCarouselPage;
-                      setState(() {
-                        _currentCarouselPage = index;
-                      });
-                      _cancelVideoEndTimer(previousIndex);
-                      unawaited(_pauseAndResetVideo(previousIndex));
-                      unawaited(_prepareVideoForPage(index));
-                    },
-                    itemCount: _ads.isNotEmpty ? _ads.length : 1,
-                    itemBuilder: (context, index) {
-                      if (_adsLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: maxAdWidth ?? double.infinity,
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: adAspectRatio,
+                    child: PageView.builder(
+                      controller: _carouselController,
+                      scrollBehavior: kIsWeb
+                          ? MaterialScrollBehavior().copyWith(
+                              dragDevices: {
+                                PointerDeviceKind.touch,
+                                PointerDeviceKind.mouse,
+                              },
+                            )
+                          : null,
+                      onPageChanged: (index) {
+                        final previousIndex = _currentCarouselPage;
+                        setState(() {
+                          _currentCarouselPage = index;
+                        });
+                        _cancelVideoEndTimer(previousIndex);
+                        unawaited(_pauseAndResetVideo(previousIndex));
+                        unawaited(_prepareVideoForPage(index));
+                      },
+                      itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                      itemBuilder: (context, index) {
+                        if (_adsLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                      if (_adsError != null) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: primaryGreen.withValues(alpha: 0.4),
-                                width: 2,
+                        if (_adsError != null) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.warning_amber_rounded,
-                                    size: 36,
-                                    color: Colors.orange,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 36,
+                                      color: Colors.orange,
                                     ),
-                                    child: Text(
-                                      _adsError!,
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontSize: 14,
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
                                       ),
-                                      textAlign: TextAlign.center,
+                                      child: Text(
+                                        _adsError!,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  ElevatedButton.icon(
-                                    onPressed: _fetchAds,
-                                    icon: const Icon(Icons.refresh),
-                                    label: const Text('Reintentar'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreen,
-                                      foregroundColor: AppConstants.textLight,
+                                    const SizedBox(height: 10),
+                                    ElevatedButton.icon(
+                                      onPressed: _fetchAds,
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('Reintentar'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryGreen,
+                                        foregroundColor: AppConstants.textLight,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-
-                      if (_ads.isNotEmpty) {
-                        final ad = _ads[index];
-                        debugPrint(
-                          '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
-                        );
-                        return _buildAdCard(ad, index, primaryGreen, textColor);
-                      }
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: primaryGreen.withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: primaryGreen.withValues(alpha: 0.4),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: primaryGreen),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'No hay ninguna publicidad para mostrar actualmente',
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          );
+                        }
+
+                        if (_ads.isNotEmpty) {
+                          final ad = _ads[index];
+                          debugPrint(
+                            '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
+                          );
+                          return _buildAdCard(
+                            ad,
+                            index,
+                            primaryGreen,
+                            textColor,
+                          );
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: primaryGreen.withValues(alpha: 0.08),
+                            border: Border.all(
+                              color: primaryGreen.withValues(alpha: 0.4),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: primaryGreen),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'No hay ninguna publicidad para mostrar actualmente',
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
