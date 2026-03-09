@@ -52,6 +52,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey _forumAddPostTutorialKey = GlobalKey();
   final GlobalKey _forumMyPostsTutorialKey = GlobalKey();
   bool _allowQrScanner = false;
+  bool _tutorialInteractionLocked = false;
   late List<Widget?> _pages;
 
   bool get _hideCasinosOnMobile {
@@ -67,6 +68,11 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _discountsKey = GlobalKey<DiscountsContentState>();
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
+    _tutorialInteractionLocked = widget.showLoginTutorial && !kIsWeb;
+    if (_tutorialInteractionLocked) {
+      // Bloquea cualquier interacción desde el primer frame.
+      loginTutorialActiveNotifier.value = true;
+    }
     rouletteTriggerAfterTutorialNotifier.value =
         !widget.showLoginTutorial || kIsWeb;
     _pages = List<Widget?>.filled(_pageCount, null);
@@ -90,6 +96,8 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
 
     if (isFirstLogin == false) {
+      setState(() => _tutorialInteractionLocked = false);
+      loginTutorialActiveNotifier.value = false;
       return;
     }
 
@@ -102,7 +110,13 @@ class _HomePageState extends State<HomePage> {
 
     final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
     if (!mounted) return;
-    if (isFirstLogin == false) return;
+    if (isFirstLogin == false) {
+      if (mounted) {
+        setState(() => _tutorialInteractionLocked = false);
+      }
+      loginTutorialActiveNotifier.value = false;
+      return;
+    }
 
     final shouldShowRoulette = await _shouldShowRouletteForCurrentUser();
 
@@ -166,6 +180,9 @@ class _HomePageState extends State<HomePage> {
         },
       );
     } finally {
+      if (mounted) {
+        setState(() => _tutorialInteractionLocked = false);
+      }
       loginTutorialActiveNotifier.value = false;
     }
   }
@@ -289,36 +306,39 @@ class _HomePageState extends State<HomePage> {
           });
         }
         _pages[safeIndex] ??= _buildPage(safeIndex);
-        return Scaffold(
-          appBar: MainAppBar(
-            showSettings: true,
-            showLogo: true,
-            showProfileButton: true,
-            showLogoutButton: true,
-            showExitButton: false,
-            showQrScannerButton: _allowQrScanner,
-            faqTutorialTargetKey: _faqAppbarTutorialKey,
-            profileTutorialTargetKey: _profileAppbarTutorialKey,
-            settingsTutorialTargetKey: _settingsAppbarTutorialKey,
-            logoutTutorialTargetKey: _logoutAppbarTutorialKey,
-          ),
-          body: ResponsiveWrapper(
-            maxWidth: 1200,
-            child: IndexedStack(
-              index: safeIndex,
-              children: List<Widget>.generate(_pages.length, (index) {
-                final page = _pages[index];
-                return page ?? const SizedBox.shrink();
-              }),
+        return AbsorbPointer(
+          absorbing: _tutorialInteractionLocked,
+          child: Scaffold(
+            appBar: MainAppBar(
+              showSettings: true,
+              showLogo: true,
+              showProfileButton: true,
+              showLogoutButton: true,
+              showExitButton: false,
+              showQrScannerButton: _allowQrScanner,
+              faqTutorialTargetKey: _faqAppbarTutorialKey,
+              profileTutorialTargetKey: _profileAppbarTutorialKey,
+              settingsTutorialTargetKey: _settingsAppbarTutorialKey,
+              logoutTutorialTargetKey: _logoutAppbarTutorialKey,
             ),
-          ),
-          bottomNavigationBar: NavbarWidget(
-            showCasinos: !_hideCasinosOnMobile,
-            inicioTutorialTargetKey: _inicioNavbarTutorialKey,
-            descuentosTutorialTargetKey: _descuentosNavbarTutorialKey,
-            sorteosTutorialTargetKey: _sorteosNavbarTutorialKey,
-            foroTutorialTargetKey: _foroNavbarTutorialKey,
-            juegosTutorialTargetKey: _juegosNavbarTutorialKey,
+            body: ResponsiveWrapper(
+              maxWidth: 1200,
+              child: IndexedStack(
+                index: safeIndex,
+                children: List<Widget>.generate(_pages.length, (index) {
+                  final page = _pages[index];
+                  return page ?? const SizedBox.shrink();
+                }),
+              ),
+            ),
+            bottomNavigationBar: NavbarWidget(
+              showCasinos: !_hideCasinosOnMobile,
+              inicioTutorialTargetKey: _inicioNavbarTutorialKey,
+              descuentosTutorialTargetKey: _descuentosNavbarTutorialKey,
+              sorteosTutorialTargetKey: _sorteosNavbarTutorialKey,
+              foroTutorialTargetKey: _foroNavbarTutorialKey,
+              juegosTutorialTargetKey: _juegosNavbarTutorialKey,
+            ),
           ),
         );
       },

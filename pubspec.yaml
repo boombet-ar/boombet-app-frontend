@@ -44,6 +44,7 @@ dependencies:
   flutter_local_notifications: ^17.1.2
   mobile_scanner: ^7.1.4
   tutorial_coach_mark: ^1.3.3
+  flutter_svg: ^2.0.17
 
 dev_dependencies:
   flutter_test:

@@ -207,6 +207,7 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
         TextFormField(
           controller: widget.controller,
           obscureText: _obscureText,
+          enableInteractiveSelection: false,
           onChanged: widget.onChanged,
           textInputAction: widget.textInputAction,
           focusNode: widget.focusNode,

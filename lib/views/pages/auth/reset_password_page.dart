@@ -348,6 +348,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             TextField(
               controller: _passwordController,
               obscureText: true,
+              enableInteractiveSelection: false,
               style: TextStyle(color: textColor),
               onChanged: (value) {
                 if (_passwordError && value.isNotEmpty) {
@@ -434,6 +435,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             TextField(
               controller: _confirmPasswordController,
               obscureText: true,
+              enableInteractiveSelection: false,
               style: TextStyle(color: textColor),
               onChanged: (value) {
                 if (_confirmPasswordError && value.isNotEmpty) {

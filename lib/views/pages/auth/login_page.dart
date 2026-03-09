@@ -11,6 +11,7 @@ import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/services/biometric_service.dart';
+import 'package:boombet_app/widgets/casino_logo_carousel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -326,7 +327,7 @@ class _LoginPageState extends State<LoginPage> {
             obscureText: _obscurePassword,
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.done,
-            enableInteractiveSelection: true,
+            enableInteractiveSelection: false,
             style: TextStyle(color: textColor),
             onChanged: (value) {
               if (_passwordError && value.isNotEmpty) {
@@ -519,6 +520,9 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              const SizedBox(height: 10),
+              const CasinoLogoCarousel(height: 58),
+
               // Logo en la parte superior
               Padding(
                 padding: const EdgeInsets.only(top: 20.0),
@@ -554,7 +558,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(top: 18.0),
+                          padding: const EdgeInsets.only(top: 16.0),
                           child: buildLogo(width: 190),
                         ),
                         const SizedBox(height: 22),
@@ -583,7 +587,15 @@ class _LoginPageState extends State<LoginPage> {
                         final double logoWidth = (inner.maxWidth * 0.8)
                             .clamp(260.0, 520.0)
                             .toDouble();
-                        return Center(child: buildLogo(width: logoWidth));
+                        return Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 460),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [buildLogo(width: logoWidth)],
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -632,7 +644,30 @@ class _LoginPageState extends State<LoginPage> {
           // Quitar el foco de los campos al tocar fuera
           FocusScope.of(context).unfocus();
         },
-        child: isWeb ? buildWebBody() : mobileBody,
+        child: isWeb
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool isNarrowWeb = constraints.maxWidth < 900;
+                  final double carouselHeight = isNarrowWeb ? 56 : 64;
+
+                  return Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.fromLTRB(
+                          isNarrowWeb ? 12 : 20,
+                          10,
+                          isNarrowWeb ? 12 : 20,
+                          6,
+                        ),
+                        child: CasinoLogoCarousel(height: carouselHeight),
+                      ),
+                      Expanded(child: buildWebBody()),
+                    ],
+                  );
+                },
+              )
+            : mobileBody,
       ),
     );
   }

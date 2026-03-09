@@ -1,4 +1,5 @@
 class PlayerUpdateRequest {
+  String username;
   String nombre;
   String apellido;
   String email;
@@ -15,6 +16,7 @@ class PlayerUpdateRequest {
   String cp;
 
   PlayerUpdateRequest({
+    required this.username,
     required this.nombre,
     required this.apellido,
     required this.email,
@@ -33,6 +35,7 @@ class PlayerUpdateRequest {
 
   Map<String, dynamic> toJson() {
     return {
+      "username": username,
       "nombre": nombre,
       "apellido": apellido,
       "email": email,

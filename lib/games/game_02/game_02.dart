@@ -90,8 +90,14 @@ class Game02 extends FlameGame with TapCallbacks {
   // dificultad
   static const double _speedStart = 320;
   static const double _speedAddPerBlock = 10;
+  static const double _speedMax = 760;
   static const double _widthStartRatio = 0.25;
   static const double _minWidth = 0; // permite heredar tamaños muy pequeños
+
+  // Bloque en movimiento: evitar que quede pegado al borde superior.
+  static const double _movingLaneTopRatio = 0.16;
+  static const double _movingLaneMinPx = 56;
+  static const double _movingLaneMaxPx = 132;
 
   // ====== State ======
   StackState state = StackState.playing;
@@ -153,6 +159,7 @@ class Game02 extends FlameGame with TapCallbacks {
   double _cameraTargetY = 0;
   static const double _cameraFollowSpeed = 10.0; // más alto = más rápido
   double _cameraStepY = 0;
+  double _movingLaneOffsetY = 84;
 
   // ===== Background (visual only) =====
   PositionComponent? _bgSky;
@@ -334,6 +341,10 @@ class Game02 extends FlameGame with TapCallbacks {
 
     _cameraMargin = size.y * 0.30;
     _cameraStepY = _blockHeight * 0.90;
+    _movingLaneOffsetY = (size.y * _movingLaneTopRatio).clamp(
+      _movingLaneMinPx,
+      _movingLaneMaxPx,
+    );
 
     // Fondo: ParallaxComponent + overlay/filtro para empujarlo hacia atrás.
     if (!_backgroundLoaded) {
@@ -799,22 +810,39 @@ class Game02 extends FlameGame with TapCallbacks {
     if (state != StackState.playing) return;
 
     final prev = tower.last;
+    final placedBlocks = math.max(0, tower.length - 1);
+    final speedMul = _difficultyMultiplierFor(placedBlocks);
+    final baseSpeed = _speedStart + (placedBlocks * _speedAddPerBlock);
+    final absSpeed = (baseSpeed * speedMul).clamp(
+      _speedStart * 0.85,
+      _speedMax,
+    );
 
     _movingWidth = prev.size.x; // hereda exactamente el ancho del último bloque
 
-    // Spawnea visible, pegado a la parte superior de la vista actual.
+    // Spawnea en una "franja" superior (pero no pegada al borde).
     final double cameraTop = _camera?.viewfinder.position.y ?? 0.0;
-    final double spawnY = cameraTop + 8;
+    final double spawnY = cameraTop + _movingLaneOffsetY;
 
     final double maxX = math.max(0.0, size.x - _movingWidth);
-    final double startX = _rng.nextDouble() * maxX;
+    final bool shouldUsePattern = placedBlocks % 5 != 0;
+    final bool spawnFromLeft = shouldUsePattern
+        ? placedBlocks.isEven
+        : _rng.nextBool();
+    final double edgePad = math.min(12.0, maxX / 4);
+    final double startX = spawnFromLeft
+        ? edgePad
+        : math.max(edgePad, maxX - edgePad);
+    final double signedSpeed = spawnFromLeft ? absSpeed : -absSpeed;
+
+    _movingSpeed = absSpeed;
 
     final block = BlockComponent(
       position: Vector2(startX, spawnY),
       size: Vector2(_movingWidth, _blockHeight),
       colorSeed: tower.length,
       isMoving: true,
-      speed: _movingSpeed,
+      speed: signedSpeed,
       towerImage: _towerImage,
       imageScale: _imageScale,
       shadowOpacity: _blockShadowOpacity,
@@ -867,6 +895,11 @@ class Game02 extends FlameGame with TapCallbacks {
 
     _layoutBackground();
     _syncBackgroundToCamera(1 / 60);
+
+    _movingLaneOffsetY = (canvasSize.y * _movingLaneTopRatio).clamp(
+      _movingLaneMinPx,
+      _movingLaneMaxPx,
+    );
 
     // Recalcular alto del piso si cambia el ancho (evita desalineaciones en primer arranque).
     final floorImg = _floorImage;
@@ -926,7 +959,7 @@ class Game02 extends FlameGame with TapCallbacks {
 
     if (m != null && m.isMoving && !m.isDropping) {
       final cameraTop = _camera?.viewfinder.position.y ?? 0.0;
-      m.position.y = cameraTop + 8;
+      m.position.y = cameraTop + _movingLaneOffsetY;
     }
 
     if (m != null && m.isDropping) {
@@ -1047,12 +1080,29 @@ class Game02 extends FlameGame with TapCallbacks {
       _cameraTargetY -= _cameraStepY;
     }
 
-    // dificultad
-    _movingSpeed += _speedAddPerBlock;
+    // dificultad: se recalcula en _spawnNextBlock con ritmo/patrón.
     _movingWidth = curr.size.x;
 
     // spawnear siguiente
     _spawnNextBlock();
+  }
+
+  double _difficultyMultiplierFor(int placedBlocks) {
+    // Patrón base por fases: acelera/desacelera para evitar monotonía lineal.
+    const pattern = <double>[0.92, 1.00, 1.08, 1.16, 1.03, 0.95, 1.10, 1.22];
+    double mul = pattern[placedBlocks % pattern.length];
+
+    // "Respiración" cada ciertos bloques para dar micro-pausa de ritmo.
+    if (placedBlocks > 0 && placedBlocks % 7 == 0) {
+      mul *= 0.83;
+    }
+
+    // Pequeño empujón en tramos altos para sostener tensión.
+    if (placedBlocks >= 18 && placedBlocks % 6 == 3) {
+      mul *= 1.06;
+    }
+
+    return mul;
   }
 
   // Separador se agrega al iniciar una nueva “B” (ver _spawnNextBlock)

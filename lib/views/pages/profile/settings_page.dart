@@ -28,8 +28,11 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _bioToggling = false;
 
   bool _pushEnabled = true;
+  bool _adsPushEnabled = true;
+  bool _forumPushEnabled = true;
   bool _pushLoading = true;
   bool _pushToggling = false;
+  bool _pushSubToggling = false;
 
   @override
   void initState() {
@@ -39,10 +42,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadPushState() async {
-    final enabled = await PushNotificationService.isNotificationsEnabled();
+    final results = await Future.wait<bool>([
+      PushNotificationService.isNotificationsEnabled(),
+      PushNotificationService.isAdsNotificationsEnabled(),
+      PushNotificationService.isForumNotificationsEnabled(),
+    ]);
     if (!mounted) return;
     setState(() {
-      _pushEnabled = enabled;
+      _pushEnabled = results[0];
+      _adsPushEnabled = results[1];
+      _forumPushEnabled = results[2];
       _pushLoading = false;
     });
   }
@@ -56,7 +65,11 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _togglePushNotifications(bool nextEnabled) async {
     if (_pushLoading || _pushToggling) return;
 
-    setState(() => _pushToggling = true);
+    final previousEnabled = _pushEnabled;
+    setState(() {
+      _pushToggling = true;
+      _pushEnabled = nextEnabled;
+    });
 
     try {
       await PushNotificationService.setNotificationsEnabled(nextEnabled);
@@ -66,9 +79,6 @@ class _SettingsPageState extends State<SettingsPage> {
         await const NotificationService().saveFcmTokenToBackend();
       }
 
-      if (!mounted) return;
-      setState(() => _pushEnabled = nextEnabled);
-
       _showSnack(
         nextEnabled
             ? 'Notificaciones activadas'
@@ -76,9 +86,58 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _pushEnabled = previousEnabled);
       _showSnack('Error actualizando notificaciones: $e');
     } finally {
       if (mounted) setState(() => _pushToggling = false);
+    }
+  }
+
+  Future<void> _toggleAdsNotifications(bool nextEnabled) async {
+    if (_pushLoading || _pushToggling || _pushSubToggling || !_pushEnabled) {
+      return;
+    }
+
+    setState(() => _pushSubToggling = true);
+
+    try {
+      await PushNotificationService.setAdsNotificationsEnabled(nextEnabled);
+      if (!mounted) return;
+      setState(() => _adsPushEnabled = nextEnabled);
+      _showSnack(
+        nextEnabled
+            ? 'Notificaciones de publicidades activadas'
+            : 'Notificaciones de publicidades desactivadas',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error actualizando publicidades: $e');
+    } finally {
+      if (mounted) setState(() => _pushSubToggling = false);
+    }
+  }
+
+  Future<void> _toggleForumNotifications(bool nextEnabled) async {
+    if (_pushLoading || _pushToggling || _pushSubToggling || !_pushEnabled) {
+      return;
+    }
+
+    setState(() => _pushSubToggling = true);
+
+    try {
+      await PushNotificationService.setForumNotificationsEnabled(nextEnabled);
+      if (!mounted) return;
+      setState(() => _forumPushEnabled = nextEnabled);
+      _showSnack(
+        nextEnabled
+            ? 'Notificaciones de foro activadas'
+            : 'Notificaciones de foro desactivadas',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error actualizando foro: $e');
+    } finally {
+      if (mounted) setState(() => _pushSubToggling = false);
     }
   }
 
@@ -222,28 +281,384 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Sección: Notificaciones
               _buildSectionTitle('Notificaciones', Icons.notifications),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Card(
                 color: surfaceColor,
-                child: SwitchListTile(
-                  secondary: Icon(
-                    _pushEnabled
-                        ? Icons.notifications_active
-                        : Icons.notifications_off,
-                    color: AppConstants.primaryGreen,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                    width: 1.5,
                   ),
-                  title: const Text('Notificaciones'),
-                  subtitle: Text(_pushEnabled ? 'Activadas' : 'Desactivadas'),
-                  value: _pushEnabled,
-                  activeThumbColor: AppConstants.primaryGreen,
-                  onChanged: _pushLoading || _pushToggling
-                      ? null
-                      : (value) {
-                          _togglePushNotifications(value);
-                        },
+                ),
+                child: Column(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _pushLoading || _pushToggling
+                            ? null
+                            : () {
+                                _togglePushNotifications(!_pushEnabled);
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppConstants.primaryGreen.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  _pushEnabled
+                                      ? Icons.notifications_active
+                                      : Icons.notifications_off,
+                                  color: AppConstants.primaryGreen,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Notificaciones',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppConstants.textDark,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _pushEnabled
+                                          ? 'Todas las notificaciones activadas'
+                                          : 'Todas las notificaciones desactivadas',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppConstants.textDark.withValues(
+                                          alpha: 0.65,
+                                        ),
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 50,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: _pushEnabled
+                                      ? AppConstants.primaryGreen
+                                      : Colors.grey.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Align(
+                                  alignment: _pushEnabled
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(2),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, color: null),
+                    // Publicidades
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap:
+                            (_pushLoading ||
+                                _pushToggling ||
+                                _pushSubToggling ||
+                                !_pushEnabled)
+                            ? null
+                            : () {
+                                _toggleAdsNotifications(!_adsPushEnabled);
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.only(
+                            left: 32,
+                            right: 16,
+                            top: 12,
+                            bottom: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            color: _pushEnabled
+                                ? Colors.transparent
+                                : Colors.grey.withValues(alpha: 0.02),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: _pushEnabled
+                                      ? AppConstants.primaryGreen.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                                child: Icon(
+                                  Icons.campaign,
+                                  color: _pushEnabled
+                                      ? AppConstants.primaryGreen
+                                      : Colors.grey.withValues(alpha: 0.4),
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Publicidades y promociones',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: _pushEnabled
+                                            ? AppConstants.textDark
+                                            : AppConstants.textDark.withValues(
+                                                alpha: 0.4,
+                                              ),
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      'Recibí avisos de promos y descuentos',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _pushEnabled
+                                            ? AppConstants.textDark.withValues(
+                                                alpha: 0.6,
+                                              )
+                                            : AppConstants.textDark.withValues(
+                                                alpha: 0.25,
+                                              ),
+                                        letterSpacing: 0.05,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              if (!_pushEnabled)
+                                Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: Colors.grey.withValues(alpha: 0.5),
+                                )
+                              else
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 48,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: _adsPushEnabled
+                                        ? AppConstants.primaryGreen
+                                        : Colors.grey.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(13),
+                                  ),
+                                  child: Align(
+                                    alignment: _adsPushEnabled
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(1.5),
+                                      child: Container(
+                                        width: 22,
+                                        height: 22,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            11,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Foro
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap:
+                            (_pushLoading ||
+                                _pushToggling ||
+                                _pushSubToggling ||
+                                !_pushEnabled)
+                            ? null
+                            : () {
+                                _toggleForumNotifications(!_forumPushEnabled);
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.only(
+                            left: 32,
+                            right: 16,
+                            top: 12,
+                            bottom: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _pushEnabled
+                                ? Colors.transparent
+                                : Colors.grey.withValues(alpha: 0.02),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: _pushEnabled
+                                      ? AppConstants.primaryGreen.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                                child: Icon(
+                                  Icons.forum,
+                                  color: _pushEnabled
+                                      ? AppConstants.primaryGreen
+                                      : Colors.grey.withValues(alpha: 0.4),
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Foro',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: _pushEnabled
+                                            ? AppConstants.textDark
+                                            : AppConstants.textDark.withValues(
+                                                alpha: 0.4,
+                                              ),
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      'Recibí respuestas y actividad del foro',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _pushEnabled
+                                            ? AppConstants.textDark.withValues(
+                                                alpha: 0.6,
+                                              )
+                                            : AppConstants.textDark.withValues(
+                                                alpha: 0.25,
+                                              ),
+                                        letterSpacing: 0.05,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              if (!_pushEnabled)
+                                Icon(
+                                  Icons.lock,
+                                  size: 16,
+                                  color: Colors.grey.withValues(alpha: 0.5),
+                                )
+                              else
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 48,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: _forumPushEnabled
+                                        ? AppConstants.primaryGreen
+                                        : Colors.grey.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(13),
+                                  ),
+                                  child: Align(
+                                    alignment: _forumPushEnabled
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(1.5),
+                                      child: Container(
+                                        width: 22,
+                                        height: 22,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            11,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
               // Accesibilidad - Tamaño de letra
               Card(
@@ -358,26 +773,67 @@ class _SettingsPageState extends State<SettingsPage> {
               // Botón de Cerrar Sesión
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final confirmed = await _showLogoutConfirmation(context);
-                    if (!confirmed || !context.mounted) return;
-                    await AuthService().logout();
-                    if (!context.mounted) return;
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.red.shade600, Colors.red.shade700],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Cerrar Sesión'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: AppConstants.lightCardBg,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          final confirmed = await _showLogoutConfirmation(
+                            context,
+                          );
+                          if (!confirmed || !context.mounted) return;
+                          await AuthService().logout();
+                          if (!context.mounted) return;
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.logout, size: 20, color: Colors.white),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -415,20 +871,92 @@ class _SettingsPageState extends State<SettingsPage> {
     required Color? surfaceColor,
     bool enabled = true,
   }) {
-    return Card(
-      color: surfaceColor,
-      child: ListTile(
-        enabled: enabled,
-        leading: Icon(
-          icon,
-          color: enabled
-              ? AppConstants.primaryGreen
-              : AppConstants.primaryGreen.withValues(alpha: 0.5),
-        ),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                // Icono en círculo
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryGreen.withValues(
+                      alpha: enabled ? 0.15 : 0.06,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: enabled
+                        ? AppConstants.primaryGreen
+                        : AppConstants.primaryGreen.withValues(alpha: 0.4),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Contenido
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: enabled
+                              ? AppConstants.textDark
+                              : AppConstants.textDark.withValues(alpha: 0.5),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: enabled
+                              ? AppConstants.textDark.withValues(alpha: 0.65)
+                              : AppConstants.textDark.withValues(alpha: 0.35),
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Flecha
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: enabled
+                      ? AppConstants.primaryGreen.withValues(alpha: 0.6)
+                      : AppConstants.primaryGreen.withValues(alpha: 0.2),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -449,14 +977,18 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: surface.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
                 ),
                 child: Image.asset(
                   'assets/images/boombetlogo.png',
-                  height: 100,
+                  height: 80,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -467,6 +999,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   color: textColor,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
@@ -476,44 +1009,88 @@ class _SettingsPageState extends State<SettingsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: AppConstants.primaryGreen,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.2),
+                  width: 1,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'Versión 1.0',
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: AppConstants.primaryGreen,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'Versión 1.0',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(
               'BoomBet es el primer portal de Casinos Online en Argentina.',
-              style: TextStyle(color: textColor, height: 1.4),
+              style: TextStyle(
+                color: textColor,
+                height: 1.5,
+                fontSize: 13,
+                letterSpacing: 0.1,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               '© 2025 BoomBet. Todos los derechos reservados.',
               style: TextStyle(
-                color: textColor.withValues(alpha: 0.8),
-                fontSize: 13,
+                color: textColor.withValues(alpha: 0.7),
+                fontSize: 12,
+                letterSpacing: 0.05,
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cerrar',
-              style: TextStyle(color: AppConstants.primaryGreen),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
+                    child: Text(
+                      'Cerrar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppConstants.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -529,23 +1106,73 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Cerrar Sesión', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_outlined, color: Colors.red.shade600, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              'Cerrar Sesión',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
         content: Text(
-          '¿Estás seguro de que deseas cerrar sesión?',
-          style: TextStyle(color: textColor),
+          '¿Estás seguro de que deseas cerrar sesión? Tendrás que iniciar sesión nuevamente.',
+          style: TextStyle(color: textColor, fontSize: 14, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
             child: Text(
               'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
+              style: TextStyle(
+                color: AppConstants.primaryGreen,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Cerrar Sesión'),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.red.shade600, Colors.red.shade700],
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => Navigator.pop(context, true),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.logout, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Cerrar Sesión',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -562,13 +1189,32 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         backgroundColor: dialogBg,
-        title: Text(
-          'Documentos Legales',
-          style: TextStyle(
-            color: AppConstants.primaryGreen,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.description,
+                color: AppConstants.primaryGreen,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Documentos Legales',
+              style: TextStyle(
+                color: AppConstants.primaryGreen,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
@@ -579,10 +1225,15 @@ class _SettingsPageState extends State<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Selecciona un documento para consultar:',
-                  style: TextStyle(color: textColor, fontSize: 14),
+                  'Consulta nuestros documentos legales:',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 13,
+                    height: 1.4,
+                    letterSpacing: 0.1,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _buildLegalsButton(
                   context,
                   title: 'Términos y Condiciones',
@@ -617,11 +1268,36 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cerrar',
-              style: TextStyle(color: AppConstants.primaryGreen),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
+                    child: Text(
+                      'Cerrar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppConstants.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -637,38 +1313,50 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     const textColor = AppConstants.textDark;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: AppConstants.primaryGreen.withValues(alpha: 0.3),
-            width: 1.5,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.25),
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            color: AppConstants.primaryGreen.withValues(alpha: 0.06),
           ),
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          color: AppConstants.primaryGreen.withValues(alpha: 0.05),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppConstants.primaryGreen, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: AppConstants.primaryGreen, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    letterSpacing: 0.1,
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: AppConstants.primaryGreen.withValues(alpha: 0.6),
-            ),
-          ],
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppConstants.primaryGreen.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -686,9 +1374,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => Dialog(
         backgroundColor: dialogBg,
         elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -697,27 +1383,49 @@ class _SettingsPageState extends State<SettingsPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                gradient: LinearGradient(
+                  colors: [
+                    AppConstants.primaryGreen.withValues(alpha: 0.15),
+                    AppConstants.primaryGreen.withValues(alpha: 0.08),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(AppConstants.borderRadius),
-                  topRight: Radius.circular(AppConstants.borderRadius),
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
                 border: Border(
                   bottom: BorderSide(
-                    color: AppConstants.primaryGreen.withValues(alpha: 0.3),
-                    width: 2,
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.2),
+                    width: 1.5,
                   ),
                 ),
               ),
-              child: Text(
-                documentType,
-                style: TextStyle(
-                  color: AppConstants.primaryGreen,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
-                ),
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        color: AppConstants.primaryGreen,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          documentType,
+                          style: TextStyle(
+                            color: AppConstants.primaryGreen,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             // Content
@@ -729,9 +1437,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     content,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 15,
-                      height: 1.6,
-                      letterSpacing: 0.2,
+                      fontSize: 13,
+                      height: 1.7,
+                      letterSpacing: 0.15,
                     ),
                   ),
                 ),
@@ -744,22 +1452,48 @@ class _SettingsPageState extends State<SettingsPage> {
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey.withValues(alpha: 0.2),
+                    color: Colors.grey.withValues(alpha: 0.15),
                     width: 1,
                   ),
                 ),
               ),
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  'Cerrar',
-                  style: TextStyle(
-                    color: AppConstants.primaryGreen,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.close_rounded,
+                            color: AppConstants.primaryGreen,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Cerrar',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppConstants.primaryGreen,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
