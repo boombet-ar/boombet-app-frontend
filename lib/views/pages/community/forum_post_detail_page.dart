@@ -1,5 +1,6 @@
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -157,6 +158,13 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
     if (_isSubmittingReply) return;
     final content = _replyController.text.trim();
     if (content.isEmpty) return;
+
+    final blocked =
+        await InappropriateContentGuard.blockIfContainsInappropriateContent(
+          context: context,
+          text: content,
+        );
+    if (blocked) return;
 
     setState(() => _isSubmittingReply = true);
     try {

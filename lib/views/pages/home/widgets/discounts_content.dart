@@ -102,6 +102,45 @@ class DiscountsContentState extends State<DiscountsContent> {
     _resetDiscountsState(triggerLoad: false);
   }
 
+  Widget _buildScrollableCouponCode(
+    String code,
+    Color primaryGreen, {
+    double fontSize = 16,
+    FontWeight fontWeight = FontWeight.w800,
+    double letterSpacing = 1,
+  }) {
+    if (code.isEmpty) {
+      return Text(
+        'Codigo no disponible',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: primaryGreen.withValues(alpha: 0.8),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: fontSize + 6,
+      width: double.infinity,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Text(
+          code,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            color: primaryGreen,
+            fontFamily: 'monospace',
+            letterSpacing: letterSpacing,
+          ),
+          softWrap: false,
+        ),
+      ),
+    );
+  }
+
   Future<void> _clearCuponCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();
     await _removeCuponCacheKeys(prefs);
@@ -1752,15 +1791,12 @@ class DiscountsContentState extends State<DiscountsContent> {
                                                 ),
                                               )
                                             else
-                                              Text(
+                                              _buildScrollableCouponCode(
                                                 displayCode,
-                                                style: TextStyle(
-                                                  fontSize: isWeb ? 16 : 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryGreen,
-                                                  fontFamily: 'monospace',
-                                                  letterSpacing: 1.2,
-                                                ),
+                                                primaryGreen,
+                                                fontSize: isWeb ? 16 : 18,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.2,
                                               ),
                                           ],
                                         ),
@@ -2127,16 +2163,12 @@ class DiscountsContentState extends State<DiscountsContent> {
                                                     ),
                                                   ),
                                                   const SizedBox(height: 6),
-                                                  Text(
+                                                  _buildScrollableCouponCode(
                                                     displayCode,
-                                                    style: TextStyle(
-                                                      fontSize: isWeb ? 16 : 18,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: primaryGreen,
-                                                      fontFamily: 'monospace',
-                                                      letterSpacing: 1.2,
-                                                    ),
+                                                    primaryGreen,
+                                                    fontSize: isWeb ? 16 : 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 1.2,
                                                   ),
                                                 ],
                                               ),
@@ -2712,17 +2744,12 @@ class DiscountsContentState extends State<DiscountsContent> {
                                                 ),
                                               ),
                                               const SizedBox(height: 6),
-                                              Text(
-                                                displayCode.isEmpty
-                                                    ? 'Código no disponible'
-                                                    : displayCode,
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryGreen,
-                                                  fontFamily: 'monospace',
-                                                  letterSpacing: 1,
-                                                ),
+                                              _buildScrollableCouponCode(
+                                                displayCode,
+                                                primaryGreen,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1,
                                               ),
                                             ],
                                           ),
@@ -3345,6 +3372,12 @@ class DiscountsContentState extends State<DiscountsContent> {
                                   builder: (context, constraints) {
                                     final isTwoColumnPhone =
                                         constraints.maxWidth >= 360;
+                                    final hasClaimedInPage =
+                                        pagedFilteredCupones.any(
+                                          (cupon) => _claimedCuponIds.contains(
+                                            cupon.id,
+                                          ),
+                                        );
 
                                     if (isTwoColumnPhone) {
                                       return GridView.builder(
@@ -3356,11 +3389,15 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           20,
                                         ),
                                         gridDelegate:
-                                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                            SliverGridDelegateWithFixedCrossAxisCount(
                                               crossAxisCount: 2,
                                               mainAxisSpacing: 12,
                                               crossAxisSpacing: 12,
-                                              childAspectRatio: 0.68,
+                                              // Cuando hay cupones reclamados en la grilla,
+                                              // el bloque de código necesita algunos px extra.
+                                              childAspectRatio: hasClaimedInPage
+                                                  ? 0.62
+                                                  : 0.66,
                                             ),
                                         itemCount: pagedFilteredCupones.length,
                                         itemBuilder: (context, index) {

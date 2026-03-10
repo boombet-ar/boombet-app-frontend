@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/ad_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -243,6 +244,13 @@ class _CreateAdSectionState extends State<CreateAdSection> {
 
     final adText = _titleController.text.trim();
     final hasImage = _imageBytes != null || _existingImageUrl != null;
+
+    final blocked =
+        await InappropriateContentGuard.blockIfContainsInappropriateContent(
+          context: context,
+          text: adText,
+        );
+    if (blocked) return;
 
     if (!hasImage || adText.isEmpty || _expiryDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(

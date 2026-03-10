@@ -4,6 +4,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FaqPage extends StatefulWidget {
@@ -503,6 +504,10 @@ class _FaqPageState extends State<FaqPage> {
     required Color textColor,
     required bool isDark,
   }) {
+    final isAndroid =
+        !kIsWeb && Theme.of(context).platform == TargetPlatform.android;
+    final logoHeight = isAndroid ? 52.0 : 58.0;
+
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
@@ -542,7 +547,7 @@ class _FaqPageState extends State<FaqPage> {
                     child: _buildPoweredByLogoTile(
                       assetPath: 'assets/images/bplay_logo.webp',
                       url: _bplayPoweredByUrl,
-                      logoHeight: 58,
+                      logoHeight: logoHeight,
                       isDark: isDark,
                       horizontalPadding: horizontalPadding,
                     ),
@@ -551,16 +556,16 @@ class _FaqPageState extends State<FaqPage> {
                     child: _buildPoweredByLogoTile(
                       assetPath: 'assets/images/sportsbet_logo.webp',
                       url: _sportsbetPoweredByUrl,
-                      logoHeight: 52,
+                      logoHeight: logoHeight,
                       isDark: isDark,
                       horizontalPadding: horizontalPadding,
                     ),
                   ),
                   Expanded(
                     child: _buildPoweredByLogoTile(
-                      assetPath: 'assets/images/betsson_logo.png',
+                      assetPath: 'assets/images/betsson_logo.svg',
                       url: _betssonPoweredByUrl,
-                      logoHeight: 50,
+                      logoHeight: logoHeight,
                       isDark: isDark,
                       horizontalPadding: horizontalPadding,
                     ),
@@ -624,11 +629,17 @@ class _FaqPageState extends State<FaqPage> {
                   : AppConstants.lightSurfaceVariant,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Image.asset(
-              assetPath,
-              height: logoHeight,
-              fit: BoxFit.contain,
-            ),
+            child: assetPath.toLowerCase().endsWith('.svg')
+                ? SvgPicture.asset(
+                    assetPath,
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  )
+                : Image.asset(
+                    assetPath,
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  ),
           ),
         ),
       ),

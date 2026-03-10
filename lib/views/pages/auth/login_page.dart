@@ -4,6 +4,7 @@ import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
+import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/home/home_page.dart';
 import 'package:boombet_app/views/pages/auth/register_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -159,12 +160,20 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
 
-        // Navegar directamente a HomePage
-        // Los usuarios que hacen login ya pasaron por el proceso de confirmación de datos
-        Navigator.pushReplacement(
-          context,
-          ScaleRoute(page: const HomePage(showLoginTutorial: true)),
-        );
+        final role = await TokenService.getUserRole();
+        if (!mounted) return;
+
+        if (role?.trim().toUpperCase() == 'AFILIADOR') {
+          Navigator.pushReplacement(
+            context,
+            ScaleRoute(page: const AffiliatesToolsPage()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            ScaleRoute(page: const HomePage(showLoginTutorial: true)),
+          );
+        }
       } else {
         // Error en el login
         setState(() {

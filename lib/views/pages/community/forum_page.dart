@@ -4,6 +4,7 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
@@ -618,6 +619,13 @@ class _ForumPageState extends State<ForumPage> {
             }
             return;
           }
+
+          final blocked =
+              await InappropriateContentGuard.blockIfContainsInappropriateContent(
+                context: context,
+                text: content,
+              );
+          if (blocked) return;
 
           try {
             // BoomBet (foro general) = casino_gral_id null.

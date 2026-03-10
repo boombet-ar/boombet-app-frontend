@@ -7,6 +7,7 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
+import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
@@ -25,12 +26,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _affiliationFlowRouteKey = 'affiliation_flow_route';
 const Duration _isVerifiedTtl = Duration(seconds: 20);
+// Toggle temporal para QA: si está en true, siempre abre onboarding.
+// Dejar en false para volver al flujo normal.
+const bool _forceShowOnboardingAlways = false;
 bool? _cachedIsVerified;
 DateTime? _cachedIsVerifiedAt;
 
 bool _parseIsVerified(dynamic data) {
   if (data is Map<String, dynamic>) {
-    final direct = data['is_verified'] ?? data['isVerified'] ?? data['verified'];
+    final direct =
+        data['is_verified'] ?? data['isVerified'] ?? data['verified'];
     if (_parseIsVerified(direct)) return true;
 
     final nested = data['data'];
@@ -84,6 +89,10 @@ bool _isAffiliationRoute(String path) {
       path == '/affiliation-results';
 }
 
+bool _isAffiliatesRoute(String path) {
+  return path == '/affiliates-tools' || path.startsWith('/affiliates-tools/');
+}
+
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   debugPrint('­ƒöÇ ===== REDIRECT CALLBACK =====');
@@ -103,6 +112,11 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   final hasSeenOnboarding = kIsWeb
       ? true
       : (prefs.getBool('hasSeenOnboarding') ?? false);
+
+  if (_forceShowOnboardingAlways) {
+    if (state.uri.path == '/onboarding') return null;
+    return '/onboarding';
+  }
 
   // En Web no mostramos onboarding nunca (ni siquiera entrando directo a /onboarding)
   if (kIsWeb && state.uri.path == '/onboarding') {
@@ -152,6 +166,16 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     return '/';
   }
 
+  final role = await TokenService.getUserRole();
+  final roleUpper = role?.trim().toUpperCase();
+
+  // AFILIADOR: acceso exclusivo al panel de afiliador
+  if (roleUpper == 'AFILIADOR') {
+    if (_isAffiliatesRoute(path)) return null;
+    debugPrint('🔒 Afiliador intentando acceder a ruta no permitida: $path → /affiliates-tools');
+    return '/affiliates-tools';
+  }
+
   final isVerified = await _fetchIsVerified();
   final flowRoute = await _loadAffiliationFlowRoute();
 
@@ -170,10 +194,11 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   }
 
   if (path == '/admin-tools') {
-    final role = await TokenService.getUserRole();
-    if (role == null || role.toUpperCase() != 'ADMIN') {
-      return '/home';
-    }
+    if (roleUpper != 'ADMIN') return '/home';
+  }
+
+  if (_isAffiliatesRoute(path)) {
+    return '/home';
   }
 
   debugPrint('­ƒöÇ No redirigir');
@@ -212,6 +237,18 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/admin-tools',
       builder: (context, state) => const AdminToolsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools',
+      builder: (context, state) => const AffiliatesToolsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/tids',
+      builder: (context, state) => const TidsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/eventos',
+      builder: (context, state) => const EventosPage(),
     ),
 
     // Deeplink: detalle de publicación del foro

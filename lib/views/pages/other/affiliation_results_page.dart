@@ -1,4 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/casino_response.dart';
 import 'package:boombet_app/views/pages/home/home_page.dart';
@@ -39,6 +40,21 @@ class AffiliationResultsPage extends StatelessWidget {
         .length;
     final totalCount = visibleEntries.length;
     final isWeb = kIsWeb;
+    final dni = _resolveCredential(
+      result!.playerData,
+      keys: const ['dni', 'documento', 'doc'],
+      fallback: affiliationDniNotifier.value,
+    );
+    final username = _resolveCredential(
+      result!.playerData,
+      keys: const ['user', 'username', 'usuario'],
+      fallback: affiliationUsernameNotifier.value,
+    );
+    final password = _resolveCredential(
+      result!.playerData,
+      keys: const ['password', 'contrasena', 'contraseña', 'pass'],
+      fallback: affiliationPasswordNotifier.value,
+    );
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -66,6 +82,9 @@ class AffiliationResultsPage extends StatelessWidget {
                       totalCount: totalCount,
                       successCount: successCount,
                       alreadyAffiliatedCount: alreadyAffiliatedCount,
+                      dni: dni,
+                      username: username,
+                      password: password,
                     );
                   }
 
@@ -78,6 +97,9 @@ class AffiliationResultsPage extends StatelessWidget {
                     totalCount: totalCount,
                     successCount: successCount,
                     alreadyAffiliatedCount: alreadyAffiliatedCount,
+                    dni: dni,
+                    username: username,
+                    password: password,
                   );
                 },
               )
@@ -247,6 +269,17 @@ class AffiliationResultsPage extends StatelessWidget {
 
                     const SizedBox(height: 32),
 
+                    _buildCredentialsCard(
+                      isDark: isDark,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      dni: dni,
+                      username: username,
+                      password: password,
+                    ),
+
+                    const SizedBox(height: 24),
+
                     // Botón para continuar
                     SizedBox(
                       width: double.infinity,
@@ -341,6 +374,9 @@ class AffiliationResultsPage extends StatelessWidget {
     required int totalCount,
     required int successCount,
     required int alreadyAffiliatedCount,
+    required String dni,
+    required String username,
+    required String password,
   }) {
     final size = MediaQuery.sizeOf(context);
     final gridHeight = (size.height - 280).clamp(520.0, 760.0);
@@ -540,6 +576,15 @@ class AffiliationResultsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
+          _buildCredentialsCard(
+            isDark: isDark,
+            primaryGreen: primaryGreen,
+            textColor: textColor,
+            dni: dni,
+            username: username,
+            password: password,
+          ),
+          const SizedBox(height: 22),
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 360),
@@ -603,6 +648,9 @@ class AffiliationResultsPage extends StatelessWidget {
     required int totalCount,
     required int successCount,
     required int alreadyAffiliatedCount,
+    required String dni,
+    required String username,
+    required String password,
   }) {
     final uiScale = (maxWidth / 420).clamp(0.78, 1.0);
 
@@ -777,6 +825,17 @@ class AffiliationResultsPage extends StatelessWidget {
                   ],
                 ),
               ),
+              SizedBox(height: 14 * uiScale),
+              _buildCredentialsCard(
+                isDark: isDark,
+                primaryGreen: primaryGreen,
+                textColor: textColor,
+                dni: dni,
+                username: username,
+                password: password,
+                compact: true,
+                scale: uiScale,
+              ),
               SizedBox(height: 18 * uiScale),
               SizedBox(
                 height: 52 * uiScale,
@@ -941,6 +1000,124 @@ class AffiliationResultsPage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildCredentialsCard({
+    required bool isDark,
+    required Color primaryGreen,
+    required Color textColor,
+    required String dni,
+    required String username,
+    required String password,
+    bool compact = false,
+    double scale = 1.0,
+  }) {
+    final cardBg = isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg;
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : AppConstants.lightDivider;
+
+    Widget credentialRow({
+      required IconData icon,
+      required String label,
+      required String value,
+    }) {
+      return Container(
+        margin: EdgeInsets.only(bottom: 10 * scale),
+        padding: EdgeInsets.symmetric(
+          horizontal: 12 * scale,
+          vertical: 10 * scale,
+        ),
+        decoration: BoxDecoration(
+          color: primaryGreen.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: primaryGreen.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: primaryGreen, size: 20 * scale),
+            SizedBox(width: 10 * scale),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14 * scale,
+                    height: 1.35,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '$label: ',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(
+                      text: value.isEmpty ? 'No disponible' : value,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all((compact ? 14 : 18) * scale),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recorda que tus mismas credenciales de BoomBet son las que tenes que utilizar para ingresar en los casinos.',
+            style: TextStyle(
+              color: textColor,
+              fontSize: (compact ? 13.5 : 15) * scale,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          SizedBox(height: 14 * scale),
+          credentialRow(icon: Icons.badge_outlined, label: 'DNI', value: dni),
+          credentialRow(
+            icon: Icons.person_outline,
+            label: 'Usuario',
+            value: username,
+          ),
+          credentialRow(
+            icon: Icons.lock_outline,
+            label: 'Contraseña',
+            value: password,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _resolveCredential(
+    Map<String, dynamic> playerData, {
+    required List<String> keys,
+    required String fallback,
+  }) {
+    for (final key in keys) {
+      final raw = playerData[key];
+      final value = raw?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    final normalizedFallback = fallback.trim();
+    return normalizedFallback;
   }
 
   Widget _buildCasinoDetail({

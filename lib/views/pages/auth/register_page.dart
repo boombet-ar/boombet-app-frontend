@@ -4,6 +4,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
@@ -189,6 +190,21 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
+
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: [
+            _usernameController.text.trim(),
+            _emailController.text.trim(),
+            _dniController.text.trim(),
+            _phoneController.text.trim(),
+            _passwordController.text.trim(),
+            _confirmPasswordController.text.trim(),
+            _affiliateCodeController.text.trim(),
+          ],
+        );
+    if (blocked) return;
 
     // Validar formato de email usando PasswordValidationService
     final email = _emailController.text.trim();

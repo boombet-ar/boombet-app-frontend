@@ -57,21 +57,20 @@ class AfiliadoresService {
   }
 
   Future<void> createAfiliador({
-    required String nombre,
-    required String tipoAfiliador,
-    String? email,
+    required String username,
+    required String password,
     String? dni,
+    String? email,
     String? telefono,
-    String? tokenAfiliador,
   }) async {
     final url = '${ApiConfig.baseUrl}/afiliadores';
     final body = <String, dynamic>{
-      'nombre': nombre.trim(),
-      'email': email,
-      'dni': dni,
-      'telefono': telefono,
-      'token_afiliador': tokenAfiliador,
-      'tipo_afiliador': tipoAfiliador,
+      'username': username.trim(),
+      'password': password,
+      'role': 'AFILIADOR',
+      if (dni != null && dni.trim().isNotEmpty) 'dni': dni.trim(),
+      if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+      if (telefono != null && telefono.trim().isNotEmpty) 'telefono': telefono.trim(),
     };
 
     final response = await HttpClient.post(url, includeAuth: true, body: body);

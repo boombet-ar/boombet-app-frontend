@@ -23,6 +23,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showFaqButton;
   final bool showExitButton;
   final bool showAdminTools;
+  final bool showAffiliatesTools;
   final bool showQrScannerButton;
   final bool showMenuButton;
   final VoidCallback? onMenuPressed;
@@ -43,6 +44,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showFaqButton = true,
     this.showExitButton = true,
     this.showAdminTools = true,
+    this.showAffiliatesTools = true,
     this.showQrScannerButton = false,
     this.showMenuButton = false,
     this.onMenuPressed,
@@ -232,6 +234,37 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     tooltip: '',
                     onPressed: () {
                       context.go('/admin-tools');
+                    },
+                  ),
+                );
+              },
+            ),
+          if (showAffiliatesTools)
+            FutureBuilder<List<dynamic>>(
+              future: Future.wait<dynamic>([
+                TokenService.hasActiveSession(),
+                TokenService.getUserRole(),
+              ]),
+              builder: (context, snapshot) {
+                final results = snapshot.data;
+                final hasSession = results != null && results.isNotEmpty
+                    ? (results[0] as bool? ?? false)
+                    : false;
+                final role = results != null && results.length > 1
+                    ? (results[1] as String?)
+                    : null;
+                final isAffiliator =
+                    role != null && role.toUpperCase() == 'AFILIADOR';
+                if (!hasSession || !isAffiliator) {
+                  return const SizedBox.shrink();
+                }
+                return Tooltip(
+                  message: 'Herramientas afiliador',
+                  child: IconButton(
+                    icon: Icon(Icons.insights_outlined, color: greenColor),
+                    tooltip: '',
+                    onPressed: () {
+                      context.go('/affiliates-tools');
                     },
                   ),
                 );

@@ -1,7 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class CasinoLogoCarousel extends StatefulWidget {
   const CasinoLogoCarousel({
@@ -9,14 +8,14 @@ class CasinoLogoCarousel extends StatefulWidget {
     this.logos = defaultLogos,
     this.height = 62,
     this.title = 'Powered By',
-    this.autoPlayInterval = const Duration(milliseconds: 1800),
-    this.animationDuration = const Duration(milliseconds: 500),
+    this.autoPlayInterval = Duration.zero,
+    this.animationDuration = const Duration(milliseconds: 1150),
   });
 
   static const List<String> defaultLogos = [
     'assets/images/bplay_logo.webp',
     'assets/images/sportsbet_logo.webp',
-    'assets/images/betsson_logo.png',
+    'assets/images/betsson_logo.svg',
   ];
 
   final List<String> logos;
@@ -31,7 +30,7 @@ class CasinoLogoCarousel extends StatefulWidget {
 
 class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
   late final PageController _controller;
-  Timer? _timer;
+  bool _autoPlayRunning = false;
 
   int get _initialPage => widget.logos.length * 1000;
   double get _viewportFraction => kIsWeb ? 0.38 : 0.55;
@@ -43,7 +42,9 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
       viewportFraction: _viewportFraction,
       initialPage: _initialPage,
     );
-    _startAutoPlay();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoPlay();
+    });
   }
 
   double _maxCardWidth(double availableWidth) {
@@ -58,28 +59,37 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
   @override
   void didUpdateWidget(covariant CasinoLogoCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.autoPlayInterval != widget.autoPlayInterval) {
-      _timer?.cancel();
+    if (oldWidget.autoPlayInterval != widget.autoPlayInterval ||
+        oldWidget.animationDuration != widget.animationDuration ||
+        oldWidget.logos.length != widget.logos.length) {
+      _autoPlayRunning = false;
       _startAutoPlay();
     }
   }
 
-  void _startAutoPlay() {
-    if (widget.logos.length <= 1) return;
-    _timer = Timer.periodic(widget.autoPlayInterval, (_) {
-      if (!mounted || !_controller.hasClients) return;
+  Future<void> _startAutoPlay() async {
+    if (_autoPlayRunning || widget.logos.length <= 1) return;
+    _autoPlayRunning = true;
+
+    while (mounted && _controller.hasClients && _autoPlayRunning) {
       final currentPage = _controller.page?.round() ?? _controller.initialPage;
-      _controller.animateToPage(
+      await _controller.animateToPage(
         currentPage + 1,
         duration: widget.animationDuration,
-        curve: Curves.easeInOut,
+        curve: Curves.linear,
       );
-    });
+      if (!mounted || !_autoPlayRunning) break;
+      if (widget.autoPlayInterval > Duration.zero) {
+        await Future.delayed(widget.autoPlayInterval);
+      }
+    }
+
+    _autoPlayRunning = false;
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _autoPlayRunning = false;
     _controller.dispose();
     super.dispose();
   }
@@ -115,10 +125,11 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                 itemBuilder: (context, index) {
                   final asset = logos[index % logos.length];
                   return Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxCardWidth),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: SizedBox(
+                        width: maxCardWidth,
+                        height: widget.height,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.03),
@@ -133,7 +144,7 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                               horizontal: 10,
                               vertical: 8,
                             ),
-                            child: Image.asset(asset, fit: BoxFit.contain),
+                            child: _buildLogoAsset(asset),
                           ),
                         ),
                       ),
@@ -146,5 +157,12 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
         ),
       ],
     );
+  }
+
+  Widget _buildLogoAsset(String assetPath) {
+    if (assetPath.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(assetPath, fit: BoxFit.contain);
+    }
+    return Image.asset(assetPath, fit: BoxFit.contain);
   }
 }

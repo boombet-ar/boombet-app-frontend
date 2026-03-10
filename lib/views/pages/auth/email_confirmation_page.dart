@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
@@ -483,6 +484,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     }
 
     if (_isProcessing) return;
+
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: [
+            _nombreController.text.trim(),
+            _apellidoController.text.trim(),
+          ],
+        );
+    if (blocked) return;
 
     // Validar que tenemos los datos necesarios
     final playerData = _resolvedPlayerData;

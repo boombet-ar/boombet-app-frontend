@@ -326,7 +326,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                     ],
                   ),
                 )
-            : _hasError
+              : _hasError
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -439,12 +439,12 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 // Las cards reclamadas tienen más contenido (código + fecha),
                                 // así que en web fijamos un alto para evitar overflows.
                                 final double mainAxisExtent = width >= 1700
-                                    ? 380
+                                    ? 392
                                     : width >= 1400
-                                    ? 370
+                                    ? 382
                                     : width >= 1100
-                                    ? 360
-                                    : 350;
+                                    ? 372
+                                    : 362;
 
                                 return GridView.builder(
                                   padding: const EdgeInsets.symmetric(
@@ -804,12 +804,15 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                           Text(
                                             cupon.displayCode,
                                             style: const TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                               color: Colors.green,
                                               fontFamily: 'monospace',
                                               letterSpacing: 1,
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: false,
                                           ),
                                         ],
                                       ),
@@ -961,12 +964,15 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                         Text(
                                           cupon.displayCode,
                                           style: TextStyle(
-                                            fontSize: 18,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.green,
                                             fontFamily: 'monospace',
                                             letterSpacing: 1,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: false,
                                         ),
                                       ],
                                     ),

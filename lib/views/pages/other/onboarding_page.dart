@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:boombet_app/config/app_constants.dart';
@@ -33,11 +32,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
       title: 'FOROS',
       description:
           'Conectá con la comunidad de BoomBet y compartí tus experiencias.',
-    ),
-    OnboardingSlide(
-      image: 'assets/images/screenshot_casinos.png',
-      title: 'CASINOS',
-      description: 'Explorá y accede facilmente a tus casinos afiliados.',
     ),
     OnboardingSlide(
       image: 'assets/images/screenshot_games.png',
@@ -195,28 +189,30 @@ class _OnboardingSlideWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-    final size = MediaQuery.of(context).size;
-    final imageMaxHeight = isIOS
-        ? (size.height * 0.44).clamp(220.0, 420.0)
-        : 500.0;
-    final imageMaxWidth = isIOS
-        ? (size.width * 0.68).clamp(200.0, 280.0)
-        : 280.0;
-    final topSpacing = isIOS ? 8.0 : 20.0;
-    final imageBottomSpacing = isIOS ? 24.0 : 48.0;
-    final titleFontSize = isIOS ? 28.0 : 32.0;
-    final descriptionFontSize = isIOS ? 15.0 : 16.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final maxHeight = constraints.maxHeight;
+        final compactWidth = maxWidth < 360;
+        final compactHeight = maxHeight < 560;
+
+        final imageMaxHeight = (maxHeight * (compactHeight ? 0.44 : 0.56))
+            .clamp(180.0, 420.0);
+        final imageMaxWidth = (maxWidth * (compactWidth ? 0.72 : 0.68)).clamp(
+          190.0,
+          300.0,
+        );
+        final topSpacing = compactHeight ? 6.0 : 14.0;
+        final imageBottomSpacing = compactHeight ? 14.0 : 28.0;
+        final titleFontSize = (maxWidth * 0.085).clamp(24.0, 32.0);
+        final descriptionFontSize = (maxWidth * 0.043).clamp(13.0, 16.0);
+
         final content = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            mainAxisAlignment: isIOS
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.center,
-            mainAxisSize: isIOS ? MainAxisSize.min : MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(height: topSpacing),
               // Screenshot del mockup del teléfono
@@ -251,37 +247,40 @@ class _OnboardingSlideWidget extends StatelessWidget {
                   fontSize: titleFontSize,
                   fontWeight: FontWeight.w800,
                   color: primaryGreen,
-                  letterSpacing: 2,
+                  letterSpacing: compactWidth ? 1.4 : 2,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: compactHeight ? 10 : 16),
 
               // Descripción
-              Text(
-                slide.description,
-                style: TextStyle(
-                  fontSize: descriptionFontSize,
-                  fontWeight: FontWeight.w400,
-                  color: isDark
-                      ? Colors.white70
-                      : AppConstants.textLight.withValues(alpha: 0.7),
-                  height: 1.5,
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth * 0.9),
+                child: Text(
+                  slide.description,
+                  style: TextStyle(
+                    fontSize: descriptionFontSize,
+                    fontWeight: FontWeight.w400,
+                    color: isDark
+                        ? Colors.white70
+                        : AppConstants.textLight.withValues(alpha: 0.7),
+                    height: compactHeight ? 1.35 : 1.5,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
         );
 
-        if (!isIOS) return content;
-
         return SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: compactHeight ? 8 : 12),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight - 24),
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - (compactHeight ? 16 : 24),
+            ),
             child: content,
           ),
         );

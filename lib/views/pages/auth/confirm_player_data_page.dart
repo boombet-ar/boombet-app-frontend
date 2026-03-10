@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
@@ -258,6 +259,19 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     }
 
     if (_isLoading) return; // Prevenir doble tap
+
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: [
+            _nombreController.text.trim(),
+            _apellidoController.text.trim(),
+            _correoController.text.trim(),
+            _telefonoController.text.trim(),
+            _estadoCivilController.text.trim(),
+          ],
+        );
+    if (blocked) return;
 
     // Validar Nombre
     final nombre = _nombreController.text.trim();

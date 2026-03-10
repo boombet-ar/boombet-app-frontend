@@ -1,4 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
 import 'package:boombet_app/services/player_service.dart';
@@ -201,6 +202,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _saveChanges() async {
     if (_loading) return;
+
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: _c.values.map((controller) => controller.text.trim()),
+        );
+    if (blocked) return;
 
     if (!_c["email"]!.text.contains("@")) {
       _showError("Ingresá un email válido");
