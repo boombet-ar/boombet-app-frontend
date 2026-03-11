@@ -457,11 +457,20 @@ class _ProfilePageState extends State<ProfilePage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            primaryGreen.withValues(alpha: 0.25),
-            primaryGreen.withValues(alpha: 0.05),
-          ],
+          colors: isDark
+              ? [const Color(0xFF0D0D0D), const Color(0xFF131313)]
+              : [primaryGreen.withValues(alpha: 0.08), primaryGreen.withValues(alpha: 0.02)],
         ),
+        border: Border(
+          bottom: BorderSide(color: primaryGreen.withValues(alpha: 0.18), width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -540,22 +549,31 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildVerifiedBadge(Color primaryGreen, String username) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: primaryGreen.withValues(alpha: 0.15),
+        color: primaryGreen.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.35), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.18),
+            blurRadius: 14,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person, size: 16, color: primaryGreen),
-          const SizedBox(width: 6),
+          Icon(Icons.alternate_email, size: 13, color: primaryGreen),
+          const SizedBox(width: 7),
           Text(
             username,
             style: TextStyle(
               color: primaryGreen,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -566,31 +584,79 @@ class _ProfilePageState extends State<ProfilePage> {
   // ----------------- INFO SECTION -----------------
 
   Widget _buildSectionTitle(Color primaryGreen, Color textColor) {
-    return Row(
-      children: [
-        Icon(Icons.person_outline_rounded, color: primaryGreen, size: 28),
-        const SizedBox(width: 12),
-        Text(
-          "Información Personal",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [primaryGreen, primaryGreen.withValues(alpha: 0.15)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.5),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.05),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: primaryGreen.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline_rounded, color: primaryGreen, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      "Información Personal",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildInfoCard(bool isDark, Color textColor, Color primaryGreen) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10, width: 1),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.14), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: primaryGreen.withValues(alpha: 0.05),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1260,6 +1326,15 @@ class _ProfilePageState extends State<ProfilePage> {
             decoration: BoxDecoration(
               color: primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: primaryGreen.withValues(alpha: 0.22), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(icon, color: primaryGreen, size: 22),
           ),

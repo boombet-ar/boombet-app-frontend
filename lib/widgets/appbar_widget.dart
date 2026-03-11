@@ -56,13 +56,48 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 1);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final greenColor = theme.colorScheme.primary;
-    const appBarBg = Colors.black38;
+
+    // Helper: icono de navegación con contenedor oscuro y borde neon
+    Widget navBtn({
+      required IconData icon,
+      required String tooltip,
+      required VoidCallback? onPressed,
+      Key? widgetKey,
+      double iconSize = 19,
+    }) {
+      return Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: widgetKey,
+            borderRadius: BorderRadius.circular(10),
+            onTap: onPressed,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: greenColor.withValues(alpha: 0.18),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Icon(icon, color: greenColor, size: iconSize),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     Future<void> openBoomBetSite() async {
       final uri = Uri.parse('https://boombet-ar.bet');
@@ -84,225 +119,296 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
     }
 
-    return AppBar(
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      backgroundColor: appBarBg,
-      leading: null,
-      automaticallyImplyLeading: false,
-      title: Row(
-        children: [
-          if (showMenuButton)
-            IconButton(
-              icon: Icon(Icons.menu, color: greenColor),
-              tooltip: 'Menú',
-              onPressed: onMenuPressed,
-            ),
-          // Solo mostrar botón de volver o salir si no es web o si es botón de volver
-          if (showBackButton || (!kIsWeb && showExitButton))
-            IconButton(
-              icon: Icon(
-                showBackButton ? Icons.arrow_back : Icons.exit_to_app,
-                color: greenColor,
-              ),
-              tooltip: showBackButton ? 'Volver' : 'Salir',
-              onPressed: () {
-                if (showBackButton) {
-                  if (onBackPressed != null) {
-                    onBackPressed!();
-                    return;
-                  }
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/home');
-                  }
-                } else {
-                  SystemNavigator.pop();
-                }
-              },
-            ),
-          if (showLogoutButton)
-            IconButton(
-              key: logoutTutorialTargetKey,
-              icon: Icon(Icons.logout, color: greenColor),
-              tooltip: 'Cerrar Sesión',
-              onPressed: () async {
-                // Mostrar diálogo de confirmación
-                final shouldLogout = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1A1A1A),
-                    title: Text(
-                      '¿Cerrar sesión?',
-                      style: const TextStyle(color: AppConstants.textDark),
-                    ),
-                    content: Text(
-                      '¿Estás seguro de que deseas cerrar sesión?',
-                      style: const TextStyle(color: AppConstants.textDark),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: Text(
-                          'Cancelar',
-                          style: TextStyle(color: greenColor),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: Text(
-                          'Cerrar Sesión',
-                          style: TextStyle(color: greenColor),
-                        ),
-                      ),
-                    ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppBar(
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          backgroundColor: const Color(0xFF080808),
+          elevation: 0,
+          leading: null,
+          automaticallyImplyLeading: false,
+          title: Row(
+            children: [
+              if (showMenuButton)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    icon: Icons.menu_rounded,
+                    tooltip: 'Menú',
+                    onPressed: onMenuPressed,
                   ),
-                );
+                ),
+              if (showBackButton || (!kIsWeb && showExitButton))
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    icon: showBackButton
+                        ? Icons.arrow_back_ios_new_rounded
+                        : Icons.exit_to_app_rounded,
+                    tooltip: showBackButton ? 'Volver' : 'Salir',
+                    onPressed: () {
+                      if (showBackButton) {
+                        if (onBackPressed != null) {
+                          onBackPressed!();
+                          return;
+                        }
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/home');
+                        }
+                      } else {
+                        SystemNavigator.pop();
+                      }
+                    },
+                  ),
+                ),
+              if (showLogoutButton)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    widgetKey: logoutTutorialTargetKey,
+                    icon: Icons.logout_rounded,
+                    tooltip: 'Cerrar Sesión',
+                    onPressed: () async {
+                      final shouldLogout = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF0E0E0E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: greenColor.withValues(alpha: 0.20),
+                              width: 1,
+                            ),
+                          ),
+                          title: const Text(
+                            '¿Cerrar sesión?',
+                            style: TextStyle(
+                              color: AppConstants.textDark,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          content: const Text(
+                            '¿Estás seguro de que deseas cerrar sesión?',
+                            style: TextStyle(
+                              color: AppConstants.textDark,
+                              fontSize: 13,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text(
+                                'Cancelar',
+                                style: TextStyle(
+                                  color: greenColor.withValues(alpha: 0.70),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.only(
+                                right: 8,
+                                bottom: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: greenColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: greenColor.withValues(alpha: 0.30),
+                                  width: 1,
+                                ),
+                              ),
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'Cerrar Sesión',
+                                  style: TextStyle(
+                                    color: greenColor,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
 
-                if (shouldLogout == true) {
-                  final authService = AuthService();
-                  await authService.logout();
+                      if (shouldLogout == true) {
+                        final authService = AuthService();
+                        await authService.logout();
 
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      FadeRoute(page: const LoginPage()),
-                      (route) => false,
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            FadeRoute(page: const LoginPage()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              if (showSettings && !kIsWeb)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    widgetKey: settingsTutorialTargetKey,
+                    icon: Icons.settings_rounded,
+                    tooltip: 'Configuración',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        FadeRoute(page: SettingsPage()),
+                      );
+                    },
+                  ),
+                ),
+              if (showQrScannerButton && !kIsWeb)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    icon: Icons.qr_code_scanner_rounded,
+                    tooltip: 'Escanear QR',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        FadeRoute(page: const QrScannerPage()),
+                      );
+                    },
+                  ),
+                ),
+              if (showProfileButton)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    widgetKey: profileTutorialTargetKey,
+                    icon: Icons.person_rounded,
+                    tooltip: 'Ver perfil',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        ScaleRoute(page: ProfilePage()),
+                      );
+                    },
+                  ),
+                ),
+              if (showAdminTools)
+                FutureBuilder<List<bool>>(
+                  future: Future.wait([
+                    TokenService.hasActiveSession(),
+                    TokenService.isAdmin(),
+                  ]),
+                  builder: (context, snapshot) {
+                    final results = snapshot.data;
+                    final hasSession = results != null && results.isNotEmpty
+                        ? results[0]
+                        : false;
+                    final isAdmin = results != null && results.length > 1
+                        ? results[1]
+                        : false;
+                    if (!hasSession || !isAdmin) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: navBtn(
+                        icon: Icons.build_rounded,
+                        tooltip: 'Herramientas admin',
+                        onPressed: () {
+                          context.go('/admin-tools');
+                        },
+                      ),
                     );
-                  }
-                }
-              },
-            ),
-          if (showSettings && !kIsWeb)
-            Tooltip(
-              message: 'Configuración',
-              child: IconButton(
-                key: settingsTutorialTargetKey,
-                icon: Icon(Icons.settings, color: greenColor),
-                tooltip: '',
-                onPressed: () {
-                  Navigator.push(context, FadeRoute(page: SettingsPage()));
-                },
-              ),
-            ),
-          if (showQrScannerButton && !kIsWeb)
-            Tooltip(
-              message: 'Escanear QR',
-              child: IconButton(
-                icon: Icon(Icons.qr_code_scanner, color: greenColor),
-                tooltip: '',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    FadeRoute(page: const QrScannerPage()),
-                  );
-                },
-              ),
-            ),
-          if (showProfileButton)
-            Tooltip(
-              message: 'Ver perfil',
-              child: IconButton(
-                key: profileTutorialTargetKey,
-                icon: Icon(Icons.person, color: greenColor),
-                tooltip: '',
-                onPressed: () {
-                  Navigator.push(context, ScaleRoute(page: ProfilePage()));
-                },
-              ),
-            ),
-          if (showAdminTools)
-            FutureBuilder<List<bool>>(
-              future: Future.wait([
-                TokenService.hasActiveSession(),
-                TokenService.isAdmin(),
-              ]),
-              builder: (context, snapshot) {
-                final results = snapshot.data;
-                final hasSession = results != null && results.isNotEmpty
-                    ? results[0]
-                    : false;
-                final isAdmin = results != null && results.length > 1
-                    ? results[1]
-                    : false;
-                if (!hasSession || !isAdmin) {
-                  return const SizedBox.shrink();
-                }
-                return Tooltip(
-                  message: 'Herramientas admin',
-                  child: IconButton(
-                    icon: Icon(Icons.build, color: greenColor),
-                    tooltip: '',
+                  },
+                ),
+              if (showAffiliatesTools)
+                FutureBuilder<List<dynamic>>(
+                  future: Future.wait<dynamic>([
+                    TokenService.hasActiveSession(),
+                    TokenService.getUserRole(),
+                  ]),
+                  builder: (context, snapshot) {
+                    final results = snapshot.data;
+                    final hasSession = results != null && results.isNotEmpty
+                        ? (results[0] as bool? ?? false)
+                        : false;
+                    final role = results != null && results.length > 1
+                        ? (results[1] as String?)
+                        : null;
+                    final isAffiliator =
+                        role != null && role.toUpperCase() == 'AFILIADOR';
+                    if (!hasSession || !isAffiliator) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: navBtn(
+                        icon: Icons.insights_outlined,
+                        tooltip: 'Herramientas afiliador',
+                        onPressed: () {
+                          context.go('/affiliates-tools');
+                        },
+                      ),
+                    );
+                  },
+                ),
+              if (showFaqButton)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: navBtn(
+                    widgetKey: faqTutorialTargetKey,
+                    icon: Icons.help_outline_rounded,
+                    tooltip: 'Ayuda y preguntas frecuentes',
                     onPressed: () {
-                      context.go('/admin-tools');
+                      Navigator.push(
+                        context,
+                        FadeRoute(page: const FaqPage()),
+                      );
                     },
                   ),
-                );
-              },
-            ),
-          if (showAffiliatesTools)
-            FutureBuilder<List<dynamic>>(
-              future: Future.wait<dynamic>([
-                TokenService.hasActiveSession(),
-                TokenService.getUserRole(),
-              ]),
-              builder: (context, snapshot) {
-                final results = snapshot.data;
-                final hasSession = results != null && results.isNotEmpty
-                    ? (results[0] as bool? ?? false)
-                    : false;
-                final role = results != null && results.length > 1
-                    ? (results[1] as String?)
-                    : null;
-                final isAffiliator =
-                    role != null && role.toUpperCase() == 'AFILIADOR';
-                if (!hasSession || !isAffiliator) {
-                  return const SizedBox.shrink();
-                }
-                return Tooltip(
-                  message: 'Herramientas afiliador',
-                  child: IconButton(
-                    icon: Icon(Icons.insights_outlined, color: greenColor),
-                    tooltip: '',
-                    onPressed: () {
-                      context.go('/affiliates-tools');
-                    },
-                  ),
-                );
-              },
-            ),
-          if (showFaqButton)
-            Tooltip(
-              message: 'Ayuda y preguntas frecuentes',
-              child: IconButton(
-                key: faqTutorialTargetKey,
-                icon: Icon(Icons.help_outline, color: greenColor),
-                tooltip: '',
-                onPressed: () {
-                  Navigator.push(context, FadeRoute(page: const FaqPage()));
-                },
-              ),
-            ),
-          Spacer(),
-          if (showLogo)
-            Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Hero(
-                tag: 'boombet_logo',
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: openBoomBetSite,
-                    child: Image.asset(
-                      'assets/images/boombetlogo.png',
-                      height: 80,
+                ),
+              const Spacer(),
+              if (showLogo)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Hero(
+                    tag: 'boombet_logo',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: openBoomBetSite,
+                        child: Image.asset(
+                          'assets/images/boombetlogo.png',
+                          height: 80,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+            ],
+          ),
+          actions: const [],
+        ),
+        // Línea separadora neon
+        Container(
+          height: 1,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.transparent,
+                greenColor.withValues(alpha: 0.25),
+                greenColor.withValues(alpha: 0.50),
+                greenColor.withValues(alpha: 0.25),
+                Colors.transparent,
+              ],
             ),
-        ],
-      ),
-      actions: [],
+          ),
+        ),
+      ],
     );
   }
 }

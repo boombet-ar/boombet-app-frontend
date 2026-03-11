@@ -514,7 +514,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     LoadingOverlay.show(context, message: 'Completando tu afiliación...');
 
     try {
-      final bondaError = await _afiliarBonda();
+      final bondaError = AppConstants.couponAffiliationOnRegisterEnabled
+          ? await _afiliarBonda()
+          : null;
       if (bondaError != null) {
         LoadingOverlay.hide(context);
         if (!mounted) return;

@@ -14,6 +14,8 @@ class TidsManagementView extends StatelessWidget {
   final VoidCallback onRetry;
   final void Function(TidModel) onEdit;
   final void Function(TidModel) onDelete;
+  final void Function(TidModel) onViewAffiliations;
+  final Map<int, String> eventoNames;
 
   const TidsManagementView({
     super.key,
@@ -27,6 +29,8 @@ class TidsManagementView extends StatelessWidget {
     required this.onRetry,
     required this.onEdit,
     required this.onDelete,
+    required this.onViewAffiliations,
+    this.eventoNames = const {},
   });
 
   @override
@@ -74,6 +78,8 @@ class TidsManagementView extends StatelessWidget {
                     child: _TidListTile(
                       tid: tid,
                       accentColor: theme.colorScheme.primary,
+                      eventoNames: eventoNames,
+                      onViewAffiliations: () => onViewAffiliations(tid),
                       trailingWidget: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -298,24 +304,29 @@ class _TidsEmpty extends StatelessWidget {
   }
 }
 
-String _eventoLabel(TidModel tid) {
+String _eventoLabel(TidModel tid, Map<int, String> eventoNames) {
+  if (tid.idEvento == 0) return 'Sin evento';
   if (tid.eventoNombre != null && tid.eventoNombre!.trim().isNotEmpty) {
     return 'Evento: ${tid.eventoNombre}';
   }
-  if (tid.idEvento == 0) return 'Sin evento';
+  final nombre = eventoNames[tid.idEvento];
+  if (nombre != null && nombre.trim().isNotEmpty) return 'Evento: $nombre';
   return 'Evento #${tid.idEvento}';
 }
-
 
 class _TidListTile extends StatelessWidget {
   final TidModel tid;
   final Color accentColor;
+  final Map<int, String> eventoNames;
   final Widget? trailingWidget;
+  final VoidCallback? onViewAffiliations;
 
   const _TidListTile({
     required this.tid,
     required this.accentColor,
+    this.eventoNames = const {},
     this.trailingWidget,
+    this.onViewAffiliations,
   });
 
   @override
@@ -357,10 +368,24 @@ class _TidListTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _eventoLabel(tid),
+                  _eventoLabel(tid, eventoNames),
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                TextButton.icon(
+                  onPressed: onViewAffiliations,
+                  icon: Icon(Icons.people_outline, size: 14, color: accentColor),
+                  label: Text(
+                    'Ver cantidad de afiliaciones',
+                    style: TextStyle(color: accentColor, fontSize: 12),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
               ],

@@ -103,31 +103,31 @@ class _CreateAffiliateDialogBodyState
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      widget.onError('Usuario y contraseña son obligatorios para continuar.');
+    if (username.isEmpty || email.isEmpty || dni.isEmpty || telefono.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      widget.onError('Todos los campos son obligatorios para continuar.');
       return;
     }
 
     final blocked =
         await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
           context: context,
-          values: [username, if (email.isNotEmpty) email],
+          values: [username, email],
         );
     if (blocked || !mounted) return;
 
-    if (email.isNotEmpty && !PasswordValidationService.isEmailValid(email)) {
+    if (!PasswordValidationService.isEmailValid(email)) {
       widget.onError(PasswordValidationService.getEmailValidationMessage(email));
       return;
     }
 
-    if (telefono.isNotEmpty && !PasswordValidationService.isPhoneValid(telefono)) {
+    if (!PasswordValidationService.isPhoneValid(telefono)) {
       widget.onError(
         PasswordValidationService.getPhoneValidationMessage(telefono),
       );
       return;
     }
 
-    if (dni.isNotEmpty && !PasswordValidationService.isDniValid(dni)) {
+    if (!PasswordValidationService.isDniValid(dni)) {
       widget.onError(PasswordValidationService.getDniValidationMessage(dni));
       return;
     }
@@ -158,9 +158,9 @@ class _CreateAffiliateDialogBodyState
       await widget.service.createAfiliador(
         username: username,
         password: password,
-        dni: dni.isEmpty ? null : dni,
-        email: email.isEmpty ? null : email,
-        telefono: telefono.isEmpty ? null : telefono,
+        dni: dni,
+        email: email,
+        telefono: telefono,
       );
 
       if (mounted && Navigator.of(context).canPop()) {
@@ -302,7 +302,7 @@ class _CreateAffiliateDialogBodyState
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: 'Email (opcional)',
+                        labelText: 'Email',
                         hintText: 'Ej: juan@email.com',
                       ),
                     ),
@@ -311,7 +311,7 @@ class _CreateAffiliateDialogBodyState
                       controller: _dniController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'DNI (opcional)',
+                        labelText: 'DNI',
                         hintText: 'Ej: 12345678',
                       ),
                     ),
@@ -320,7 +320,7 @@ class _CreateAffiliateDialogBodyState
                       controller: _telefonoController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
-                        labelText: 'Teléfono (opcional)',
+                        labelText: 'Teléfono',
                         hintText: 'Ej: 1123456789',
                       ),
                     ),

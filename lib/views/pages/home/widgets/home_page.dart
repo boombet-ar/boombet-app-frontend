@@ -1,8 +1,4 @@
-import 'dart:convert';
-
-import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
@@ -32,7 +28,6 @@ Future<void> _subscribeToTopics() async {
 class _HomePageState extends State<HomePage> {
   late GlobalKey<DiscountsContentState> _discountsKey;
   late GlobalKey<ClaimedCouponsContentState> _claimedKey;
-  bool _allowQrScanner = false;
   late List<Widget?> _pages;
 
   bool get _hideCasinosOnMobile {
@@ -50,87 +45,11 @@ class _HomePageState extends State<HomePage> {
     _claimedKey = GlobalKey<ClaimedCouponsContentState>();
     _pages = List<Widget?>.filled(_pageCount, null);
     _subscribeToTopics();
-    _loadQrScannerAvailability();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!kIsWeb || !selectedPageWasRestored) {
         saveSelectedPage(0);
       }
     });
-  }
-
-  Future<void> _loadQrScannerAvailability() async {
-    await loadAffiliateCodeUsage();
-    await loadAffiliateType();
-    if (!mounted) return;
-
-    final storedValidated = affiliateCodeValidatedNotifier.value;
-    final storedType = affiliateTypeNotifier.value.trim().toUpperCase();
-    var allowQr = storedValidated && storedType == 'RULETA';
-
-    if (!allowQr) {
-      allowQr = await _resolveRuletaAffiliationFromUsersMe();
-      if (!mounted) return;
-    }
-
-    setState(() => _allowQrScanner = allowQr);
-  }
-
-  Future<bool> _resolveRuletaAffiliationFromUsersMe() async {
-    try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/users/me',
-        includeAuth: true,
-        cacheTtl: Duration.zero,
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return false;
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic>) return false;
-
-      bool hasRuletaType(dynamic value) {
-        if (value is String) {
-          return value.trim().toUpperCase() == 'RULETA';
-        }
-
-        if (value is List) {
-          for (final item in value) {
-            if (hasRuletaType(item)) return true;
-          }
-          return false;
-        }
-
-        if (value is Map) {
-          for (final entry in value.entries) {
-            final key = entry.key.toString().toLowerCase();
-            final entryValue = entry.value;
-
-            if (entryValue is String) {
-              final normalized = entryValue.trim().toUpperCase();
-              if (normalized == 'RULETA') {
-                if (key.contains('tipo') ||
-                    key.contains('affiliate') ||
-                    key.contains('afilia')) {
-                  return true;
-                }
-              }
-            }
-
-            if (hasRuletaType(entryValue)) {
-              return true;
-            }
-          }
-        }
-
-        return false;
-      }
-
-      return hasRuletaType(decoded);
-    } catch (_) {
-      return false;
-    }
   }
 
   @override
@@ -152,7 +71,7 @@ class _HomePageState extends State<HomePage> {
             showProfileButton: true,
             showLogoutButton: true,
             showExitButton: false,
-            showQrScannerButton: _allowQrScanner,
+            showQrScannerButton: !kIsWeb,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,

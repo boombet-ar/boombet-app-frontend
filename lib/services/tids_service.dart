@@ -92,12 +92,54 @@ class TidsService {
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
 
+  Future<TidModel> removeTidFromEvento({
+    required int id,
+    required String tidCode,
+  }) async {
+    final url = '${ApiConfig.baseUrl}/tid/$id';
+    final body = <String, dynamic>{'tid': tidCode.trim(), 'idEvento': null};
+
+    final response = await HttpClient.patch(
+      url,
+      includeAuth: true,
+      body: body,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return TidModel.fromJson(data);
+      throw Exception('Formato inesperado de respuesta');
+    }
+
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
+
   Future<void> deleteTid({required int id}) async {
     final url = '${ApiConfig.baseUrl}/tid/$id';
 
     final response = await HttpClient.delete(url, includeAuth: true);
 
     if (response.statusCode == 200 || response.statusCode == 204) return;
+
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
+
+  Future<int> fetchTidTotalJugadores({required int id}) async {
+    final url = '${ApiConfig.baseUrl}/tid/$id/afiliaciones';
+
+    final response = await HttpClient.get(
+      url,
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
+        return (data['totalJugadores'] as num?)?.toInt() ?? 0;
+      }
+      throw Exception('Formato inesperado de respuesta');
+    }
 
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }

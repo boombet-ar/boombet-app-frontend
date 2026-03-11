@@ -21,6 +21,7 @@ class AffiliatesManagementeView extends StatelessWidget {
   final ValueChanged<int> onGoToPage;
   final void Function(AfiliadorModel, bool) onToggleActive;
   final void Function(AfiliadorModel) onDelete;
+  final void Function(AfiliadorModel) onViewAffiliations;
 
   const AffiliatesManagementeView({
     super.key,
@@ -40,55 +41,12 @@ class AffiliatesManagementeView extends StatelessWidget {
     required this.onGoToPage,
     required this.onToggleActive,
     required this.onDelete,
+    required this.onViewAffiliations,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    _AffiliatorTypeVisual getTypeVisual(String type) {
-      final normalized = type.trim().toUpperCase();
-      final scheme = theme.colorScheme;
-
-      final isEvento = normalized.contains('EVENTO');
-      final isRuleta = normalized.contains('RULETA');
-
-      if (isEvento) {
-        return _AffiliatorTypeVisual(
-          icon: Icons.celebration_outlined,
-          color: scheme.error,
-        );
-      }
-
-      if (isRuleta) {
-        return _AffiliatorTypeVisual(
-          icon: Icons.casino_outlined,
-          color: AppConstants.warningOrange,
-        );
-      }
-
-      return _AffiliatorTypeVisual(
-        icon: Icons.person_outline,
-        color: scheme.primary,
-      );
-    }
-
-    final listItems = items.map((item) {
-      final typeVisual = getTypeVisual(item.tipoAfiliador);
-      final tipo = item.tipoAfiliador.trim().isEmpty
-          ? 'SIN TIPO'
-          : item.tipoAfiliador;
-
-      return _AdminListItemData(
-        title: item.nombre,
-        subtitle:
-            'Tipo: $tipo • Código: ${item.tokenAfiliador}\nAfiliaciones: ${item.cantAfiliaciones}',
-        trailing: item.activo ? 'Activo' : 'Inactivo',
-        leadingIcon: typeVisual.icon,
-        accentColor: typeVisual.color,
-      );
-    }).toList();
 
     final lastIndex = totalPages > 0 ? totalPages - 1 : page;
     final canGoBack = page > 0 && !isFirstPage;
@@ -123,52 +81,50 @@ class AffiliatesManagementeView extends StatelessWidget {
                 )
               else if (errorMessage != null)
                 _AdminAffiliatorsError(message: errorMessage!, onRetry: onRetry)
-              else if (listItems.isEmpty)
+              else if (items.isEmpty)
                 _AdminAffiliatorsEmpty(onRetry: onRetry)
               else ...[
-                ...items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final afiliador = entry.value;
-                  final item = listItems[index];
-                  final itemAccentColor = item.accentColor;
+                ...items.map((afiliador) {
+                  final accent = theme.colorScheme.primary;
                   final isUpdating = updatingIds.contains(afiliador.id);
                   final isDeleting = deletingIds.contains(afiliador.id);
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _AdminListTile(
-                      item: item,
-                      accentColor: itemAccentColor,
+                      item: _AdminListItemData(
+                        title: afiliador.nombre,
+                        leadingIcon: Icons.person_outline,
+                        accentColor: accent,
+                      ),
+                      accentColor: accent,
+                      subtitleWidget: TextButton.icon(
+                        onPressed: () => onViewAffiliations(afiliador),
+                        icon: Icon(
+                          Icons.people_outline,
+                          size: 14,
+                          color: accent,
+                        ),
+                        label: Text(
+                          'Ver cantidad de afiliaciones',
+                          style: TextStyle(color: accent, fontSize: 12),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                       trailingWidget: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: itemAccentColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              afiliador.activo ? 'Activo' : 'Inactivo',
-                              style: TextStyle(
-                                color: itemAccentColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           Switch.adaptive(
                             value: afiliador.activo,
                             onChanged: isUpdating || isDeleting
                                 ? null
                                 : (value) => onToggleActive(afiliador, value),
-                            activeColor: itemAccentColor,
+                            activeColor: accent,
                           ),
-                          const SizedBox(width: 4),
                           IconButton(
                             tooltip: 'Eliminar afiliador',
                             onPressed: isDeleting || isUpdating
@@ -403,25 +359,14 @@ class _AdminAffiliatorsEmpty extends StatelessWidget {
   }
 }
 
-class _AffiliatorTypeVisual {
-  final IconData icon;
-  final Color color;
-
-  const _AffiliatorTypeVisual({required this.icon, required this.color});
-}
-
 class _AdminListItemData {
   final String title;
-  final String subtitle;
-  final String trailing;
   final IconData leadingIcon;
   final Color accentColor;
 
   const _AdminListItemData({
     required this.title,
-    required this.subtitle,
-    required this.trailing,
-    this.leadingIcon = Icons.folder_shared,
+    this.leadingIcon = Icons.person_outline,
     this.accentColor = AppConstants.primaryGreen,
   });
 }
@@ -430,11 +375,13 @@ class _AdminListTile extends StatelessWidget {
   final _AdminListItemData item;
   final Color accentColor;
   final Widget? trailingWidget;
+  final Widget? subtitleWidget;
 
   const _AdminListTile({
     required this.item,
     required this.accentColor,
     this.trailingWidget,
+    this.subtitleWidget,
   });
 
   @override
@@ -442,7 +389,7 @@ class _AdminListTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
@@ -470,36 +417,14 @@ class _AdminListTile extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.subtitle,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
+                if (subtitleWidget != null) ...[
+                  const SizedBox(height: 2),
+                  subtitleWidget!,
+                ],
               ],
             ),
           ),
-          trailingWidget ??
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  item.trailing,
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+          if (trailingWidget != null) trailingWidget!,
         ],
       ),
     );

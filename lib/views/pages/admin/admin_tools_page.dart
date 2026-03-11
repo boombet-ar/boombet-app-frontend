@@ -5,7 +5,7 @@ import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/services/affiliates_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/create_affiliate.dart';
-import 'package:boombet_app/views/pages/admin/affiliates/affiliates_managemente_view.dart';
+import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_view.dart';
 import 'package:boombet_app/views/pages/admin/ads/ad_management_view.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -248,6 +248,70 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
       );
     }
 
+    void showAffiliationsCount(AfiliadorModel afiliador) {
+      final isDark = theme.brightness == Brightness.dark;
+      final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+      final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+      showDialog<void>(
+        context: context,
+        builder: (ctx) {
+          bool isFetching = false;
+          int? totalJugadores;
+          String? fetchError;
+
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              if (!isFetching && totalJugadores == null && fetchError == null) {
+                isFetching = true;
+                _afiliadoresService
+                    .fetchAfiliadorTotalJugadores(id: afiliador.id)
+                    .then((count) {
+                  setDialogState(() {
+                    totalJugadores = count;
+                    isFetching = false;
+                  });
+                }).catchError((e) {
+                  setDialogState(() {
+                    fetchError = 'No se pudo obtener la cantidad.';
+                    isFetching = false;
+                  });
+                });
+              }
+
+              return AlertDialog(
+                backgroundColor: dialogBg,
+                title: Text(afiliador.nombre, style: TextStyle(color: textColor)),
+                content: totalJugadores != null
+                    ? Text(
+                        'Cantidad de afiliaciones: $totalJugadores',
+                        style: TextStyle(color: textColor),
+                      )
+                    : fetchError != null
+                        ? Text(
+                            fetchError!,
+                            style: const TextStyle(color: AppConstants.errorRed),
+                          )
+                        : const SizedBox(
+                            height: 40,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      'Cerrar',
+                      style: TextStyle(color: AppConstants.primaryGreen),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+
     return FutureBuilder<bool>(
       future: TokenService.isAdmin(),
       builder: (context, snapshot) {
@@ -348,6 +412,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               onGoToAffiliatorsPage: handleGoToAffiliatorsPage,
               onToggleAffiliatorActive: _toggleAffiliatorActive,
               onDeleteAffiliator: _deleteAffiliator,
+              onViewAffiliationsCount: showAffiliationsCount,
             ),
           ),
         );
@@ -377,6 +442,7 @@ class _AdminSectionBody extends StatelessWidget {
   final ValueChanged<int> onGoToAffiliatorsPage;
   final void Function(AfiliadorModel, bool) onToggleAffiliatorActive;
   final void Function(AfiliadorModel) onDeleteAffiliator;
+  final void Function(AfiliadorModel) onViewAffiliationsCount;
 
   const _AdminSectionBody({
     super.key,
@@ -400,6 +466,7 @@ class _AdminSectionBody extends StatelessWidget {
     required this.onGoToAffiliatorsPage,
     required this.onToggleAffiliatorActive,
     required this.onDeleteAffiliator,
+    required this.onViewAffiliationsCount,
   });
 
   @override
@@ -456,6 +523,7 @@ class _AdminSectionBody extends StatelessWidget {
             onGoToPage: onGoToAffiliatorsPage,
             onToggleActive: onToggleAffiliatorActive,
             onDelete: onDeleteAffiliator,
+            onViewAffiliations: onViewAffiliationsCount,
           ),
         if (section == _AdminSection.ads) const AdManagementView(),
       ],

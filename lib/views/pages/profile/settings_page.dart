@@ -244,37 +244,151 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 12),
 
               // Biometría
-              Card(
-                color: surfaceColor,
-                child: ListTile(
-                  leading: Icon(
-                    Icons.fingerprint,
-                    color: AppConstants.primaryGreen,
-                  ),
-                  title: const Text('Biometría'),
-                  subtitle: Text(
-                    _bioAvailable
-                        ? (_bioEnabled ? 'Activada' : 'Desactivada')
-                        : 'No disponible en este dispositivo',
-                  ),
-                  trailing: _bioLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Switch(
-                          value: _bioEnabled,
-                          activeColor: AppConstants.primaryGreen,
-                          onChanged: _bioToggling || !_bioAvailable
-                              ? null
-                              : (value) {
-                                  _toggleBiometric(value);
-                                },
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              _bioAvailable
+                                  ? AppConstants.primaryGreen
+                                  : AppConstants.primaryGreen.withValues(
+                                      alpha: 0.3,
+                                    ),
+                              AppConstants.primaryGreen.withValues(alpha: 0.15),
+                            ],
+                          ),
                         ),
-                  onTap: _bioToggling || !_bioAvailable
-                      ? null
-                      : () => _toggleBiometric(!_bioEnabled),
+                      ),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _bioToggling || !_bioAvailable
+                                ? null
+                                : () => _toggleBiometric(!_bioEnabled),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF141414),
+                                border: Border(
+                                  top: BorderSide(
+                                    color: AppConstants.primaryGreen.withValues(
+                                      alpha: _bioAvailable ? 0.12 : 0.06,
+                                    ),
+                                    width: 1,
+                                  ),
+                                  right: BorderSide(
+                                    color: AppConstants.primaryGreen.withValues(
+                                      alpha: _bioAvailable ? 0.12 : 0.06,
+                                    ),
+                                    width: 1,
+                                  ),
+                                  bottom: BorderSide(
+                                    color: AppConstants.primaryGreen.withValues(
+                                      alpha: _bioAvailable ? 0.12 : 0.06,
+                                    ),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppConstants.primaryGreen.withValues(
+                                        alpha: _bioAvailable ? 0.12 : 0.05,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: AppConstants.primaryGreen.withValues(
+                                          alpha: _bioAvailable ? 0.22 : 0.08,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.fingerprint,
+                                      color: _bioAvailable
+                                          ? AppConstants.primaryGreen
+                                          : AppConstants.primaryGreen.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Biometría',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: _bioAvailable
+                                                ? AppConstants.textDark
+                                                : AppConstants.textDark.withValues(
+                                                    alpha: 0.5,
+                                                  ),
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _bioAvailable
+                                              ? (_bioEnabled
+                                                    ? 'Activada'
+                                                    : 'Desactivada')
+                                              : 'No disponible en este dispositivo',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppConstants.textDark.withValues(
+                                              alpha: _bioAvailable ? 0.55 : 0.35,
+                                            ),
+                                            letterSpacing: 0.1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _bioLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Switch(
+                                          value: _bioEnabled,
+                                          activeColor: AppConstants.primaryGreen,
+                                          onChanged: _bioToggling || !_bioAvailable
+                                              ? null
+                                              : _toggleBiometric,
+                                        ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -282,15 +396,21 @@ class _SettingsPageState extends State<SettingsPage> {
               // Sección: Notificaciones
               _buildSectionTitle('Notificaciones', Icons.notifications),
               const SizedBox(height: 12),
-              Card(
-                color: surfaceColor,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141414),
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: AppConstants.primaryGreen.withValues(alpha: 0.1),
-                    width: 1.5,
+                  border: Border.all(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.14),
+                    width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.05),
+                      blurRadius: 14,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -661,8 +781,15 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 28),
 
               // Accesibilidad - Tamaño de letra
-              Card(
-                color: surfaceColor,
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141414),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.14),
+                    width: 1,
+                  ),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -673,16 +800,34 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            Icons.text_fields,
-                            color: AppConstants.primaryGreen,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppConstants.primaryGreen.withValues(
+                                alpha: 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.22,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.text_fields,
+                              color: AppConstants.primaryGreen,
+                              size: 18,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Text(
                             'Tamaño de Letra',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppConstants.textDark,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ],
@@ -691,8 +836,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ValueListenableBuilder<double>(
                         valueListenable: fontSizeMultiplierNotifier,
                         builder: (context, multiplier, _) {
-                          final sliderLabelColor = Colors.grey.shade600;
-                          final sliderInactiveColor = Colors.grey.shade300;
+                          final sliderLabelColor = AppConstants.textDark.withValues(alpha: 0.45);
+                          final sliderInactiveColor = AppConstants.textDark.withValues(alpha: 0.15);
                           return Row(
                             children: [
                               Text(
@@ -846,19 +991,54 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSectionTitle(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppConstants.primaryGreen),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppConstants.primaryGreen,
-          ),
+    const accent = AppConstants.primaryGreen;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [accent, accent.withValues(alpha: 0.15)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 9, 12, 9),
+                color: accent.withValues(alpha: 0.05),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 17, color: accent),
+                    const SizedBox(width: 10),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: accent,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -871,91 +1051,148 @@ class _SettingsPageState extends State<SettingsPage> {
     required Color? surfaceColor,
     bool enabled = true,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppConstants.primaryGreen.withValues(alpha: 0.1),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppConstants.primaryGreen.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    const accent = AppConstants.primaryGreen;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    enabled ? accent : accent.withValues(alpha: 0.3),
+                    enabled
+                        ? accent.withValues(alpha: 0.15)
+                        : accent.withValues(alpha: 0.05),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: enabled ? 0.4 : 0.12),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                // Icono en círculo
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryGreen.withValues(
-                      alpha: enabled ? 0.15 : 0.06,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: enabled
-                        ? AppConstants.primaryGreen
-                        : AppConstants.primaryGreen.withValues(alpha: 0.4),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Contenido
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: enabled
-                              ? AppConstants.textDark
-                              : AppConstants.textDark.withValues(alpha: 0.5),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: enabled
-                              ? AppConstants.textDark.withValues(alpha: 0.65)
-                              : AppConstants.textDark.withValues(alpha: 0.35),
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Flecha
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: enabled
-                      ? AppConstants.primaryGreen.withValues(alpha: 0.6)
-                      : AppConstants.primaryGreen.withValues(alpha: 0.2),
-                ),
-              ],
             ),
-          ),
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: enabled ? onTap : null,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      border: Border(
+                        top: BorderSide(
+                          color: accent.withValues(alpha: enabled ? 0.12 : 0.06),
+                          width: 1,
+                        ),
+                        right: BorderSide(
+                          color: accent.withValues(alpha: enabled ? 0.12 : 0.06),
+                          width: 1,
+                        ),
+                        bottom: BorderSide(
+                          color: accent.withValues(alpha: enabled ? 0.12 : 0.06),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(
+                                alpha: enabled ? 0.12 : 0.05,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: accent.withValues(
+                                  alpha: enabled ? 0.22 : 0.08,
+                                ),
+                                width: 1,
+                              ),
+                              boxShadow: enabled
+                                  ? [
+                                      BoxShadow(
+                                        color: accent.withValues(alpha: 0.15),
+                                        blurRadius: 8,
+                                        spreadRadius: 0,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              icon,
+                              color: enabled
+                                  ? accent
+                                  : accent.withValues(alpha: 0.4),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: enabled
+                                        ? AppConstants.textDark
+                                        : AppConstants.textDark.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: enabled
+                                        ? AppConstants.textDark.withValues(
+                                            alpha: 0.55,
+                                          )
+                                        : AppConstants.textDark.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: enabled
+                                ? accent.withValues(alpha: 0.55)
+                                : accent.withValues(alpha: 0.2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

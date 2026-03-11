@@ -1,5 +1,4 @@
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/material.dart';
 
 class NavbarWidget extends StatelessWidget {
@@ -26,9 +25,9 @@ class NavbarWidget extends StatelessWidget {
     final media = MediaQuery.of(context);
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = AppConstants.darkBg;
+    const bgColor = Color(0xFF080808);
     final selectedColor = primaryGreen;
-    final unselectedColor = const Color(0xFF808080);
+    const unselectedColor = Color(0xFF5A5A5A);
     final destinationCount = showCasinos ? 6 : 5;
     final perItemWidth = media.size.width / destinationCount;
     final isUltraCompact = perItemWidth < 62;
@@ -162,41 +161,64 @@ class NavbarWidget extends StatelessWidget {
             data: MediaQuery.of(
               context,
             ).copyWith(textScaler: TextScaler.linear(1.0)),
-            child: Container(
-              decoration: BoxDecoration(
-                color: bgColor,
-                border: Border(
-                  top: BorderSide(
-                    color: AppConstants.borderDark.withValues(alpha: 0.6),
-                    width: 1,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Línea separadora neon (espejo del appbar)
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        primaryGreen.withValues(alpha: 0.25),
+                        primaryGreen.withValues(alpha: 0.50),
+                        primaryGreen.withValues(alpha: 0.25),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              child: NavigationBarTheme(
-                data: NavigationBarThemeData(
-                  labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
-                    states,
-                  ) {
-                    if (states.contains(WidgetState.selected)) {
-                      return compactLabelStyle;
-                    }
-                    return regularLabelStyle;
-                  }),
+                NavigationBarTheme(
+                  data: NavigationBarThemeData(
+                    labelTextStyle:
+                        WidgetStateProperty.resolveWith<TextStyle>((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return compactLabelStyle.copyWith(
+                          color: primaryGreen,
+                        );
+                      }
+                      return regularLabelStyle.copyWith(
+                        color: unselectedColor,
+                      );
+                    }),
+                    indicatorColor: primaryGreen.withValues(alpha: 0.14),
+                    indicatorShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: primaryGreen.withValues(alpha: 0.22),
+                        width: 1,
+                      ),
+                    ),
+                    overlayColor: WidgetStateProperty.all(
+                      primaryGreen.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: NavigationBar(
+                    height: barHeight,
+                    backgroundColor: bgColor,
+                    elevation: 0,
+                    labelBehavior: isUltraCompact
+                        ? NavigationDestinationLabelBehavior.onlyShowSelected
+                        : NavigationDestinationLabelBehavior.alwaysShow,
+                    destinations: destinations,
+                    onDestinationSelected: (int value) {
+                      saveSelectedPage(value);
+                    },
+                    selectedIndex: safeIndex,
+                  ),
                 ),
-                child: NavigationBar(
-                  height: barHeight,
-                  backgroundColor: bgColor,
-                  indicatorColor: primaryGreen.withValues(alpha: 0.15),
-                  labelBehavior: isUltraCompact
-                      ? NavigationDestinationLabelBehavior.onlyShowSelected
-                      : NavigationDestinationLabelBehavior.alwaysShow,
-                  destinations: destinations,
-                  onDestinationSelected: (int value) {
-                    saveSelectedPage(value);
-                  },
-                  selectedIndex: safeIndex,
-                ),
-              ),
+              ],
             ),
           );
         },

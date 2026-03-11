@@ -523,7 +523,7 @@ class _HomeContentState extends State<HomeContent> {
             : resolvedUrl;
         return CachedNetworkImage(
           imageUrl: displayUrl,
-          fit: BoxFit.contain,
+          fit: BoxFit.cover,
           placeholder: (context, url) =>
               const Center(child: CircularProgressIndicator()),
           errorWidget: (context, url, error) {
@@ -594,36 +594,60 @@ class _HomeContentState extends State<HomeContent> {
     return AnimatedContainer(
       duration: AppConstants.shortDelay,
       curve: Curves.easeInOut,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryGreen.withValues(alpha: 0.08),
-            primaryGreen.withValues(alpha: 0.02),
-          ],
-        ),
-        border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.16),
-          width: 1.1,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(18),
         child: Stack(
           fit: StackFit.expand,
           children: [
             _buildMedia(ad, index),
-            // Simplify: keep media clean without overlays or counters.
+            if (ad.description != null && ad.description!.trim().isNotEmpty)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 52),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.72),
+                      ],
+                    ),
+                  ),
+                  child: Text(
+                    ad.description!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -641,7 +665,7 @@ class _HomeContentState extends State<HomeContent> {
       children: [
         SectionHeaderWidget(
           title: 'Inicio',
-          subtitle: 'Anuncios y novedades personalizadas',
+          subtitle: 'Los ultimos anuncios de tus casinos afiliados',
           icon: Icons.campaign,
         ),
         const SizedBox(height: 12),
@@ -1035,102 +1059,18 @@ class _HomeContentState extends State<HomeContent> {
         margin: margin,
         child: Column(
           children: [
-            if (_ads.isNotEmpty && !_adsLoading)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth:
-                          maxPanelWidth ?? (kIsWeb ? 520 : double.infinity),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            primaryGreen.withValues(alpha: 0.14),
-                            primaryGreen.withValues(alpha: 0.04),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: primaryGreen.withValues(alpha: 0.25),
-                          width: 1.1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryGreen.withValues(alpha: 0.08),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: primaryGreen.withValues(alpha: 0.16),
-                            ),
-                            child: Icon(
-                              Icons.campaign,
-                              color: textColor,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Publicidad destacada',
-                                  style: TextStyle(
-                                    color: textColor.withValues(alpha: 0.8),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _ads[_currentCarouselPage].description ??
-                                      'Publicidad',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: textColor,
-                                    height: 1.35,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             Expanded(
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: maxAdWidth ?? double.infinity,
                   ),
-                  child: AspectRatio(
-                    aspectRatio: adAspectRatio,
-                    child: PageView.builder(
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      AspectRatio(
+                        aspectRatio: adAspectRatio,
+                        child: PageView.builder(
                       controller: _carouselController,
                       scrollBehavior: kIsWeb
                           ? MaterialScrollBehavior().copyWith(
@@ -1254,57 +1194,59 @@ class _HomeContentState extends State<HomeContent> {
                         );
                       },
                     ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _ads.isNotEmpty ? _ads.length : 1,
-                (index) => GestureDetector(
-                  onTap: () {
-                    if (_carouselController.hasClients && _ads.isNotEmpty) {
-                      _carouselController.animateToPage(
-                        index,
-                        duration: AppConstants.mediumDelay,
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: AnimatedContainer(
-                      duration: AppConstants.shortDelay,
-                      curve: Curves.easeInOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      width: _currentCarouselPage == index ? 34 : 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          colors: _currentCarouselPage == index
-                              ? [
-                                  primaryGreen,
-                                  primaryGreen.withValues(alpha: 0.7),
-                                ]
-                              : [
-                                  primaryGreen.withValues(alpha: 0.25),
-                                  primaryGreen.withValues(alpha: 0.18),
-                                ],
-                        ),
-                        boxShadow: _currentCarouselPage == index
-                            ? [
-                                BoxShadow(
-                                  color: primaryGreen.withValues(alpha: 0.4),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
                       ),
-                    ),
+                      Positioned(
+                        bottom: 14,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _ads.isNotEmpty ? _ads.length : 1,
+                            (index) => GestureDetector(
+                              onTap: () {
+                                if (_carouselController.hasClients &&
+                                    _ads.isNotEmpty) {
+                                  _carouselController.animateToPage(
+                                    index,
+                                    duration: AppConstants.mediumDelay,
+                                    curve: Curves.easeInOut,
+                                  );
+                                }
+                              },
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: AnimatedContainer(
+                                  duration: AppConstants.shortDelay,
+                                  curve: Curves.easeInOut,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  width:
+                                      _currentCarouselPage == index ? 24 : 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: _currentCarouselPage == index
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.5),
+                                    boxShadow: _currentCarouselPage == index
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.35,
+                                              ),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

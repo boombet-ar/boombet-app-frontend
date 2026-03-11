@@ -1,6 +1,5 @@
 ﻿import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -588,7 +587,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withValues(alpha: 0.12),
+                color: primaryGreen.withValues(alpha: 0.12),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -596,10 +595,8 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
-              child: Container(
-                color: Colors.grey[900],
+            child: Container(
+                color: const Color(0xFF111111),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -608,7 +605,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                         Container(
                           height: heroHeight,
                           width: double.infinity,
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: const Color(0xFF1A1A1A),
                           child: cupon.fotoUrl.isNotEmpty
                               ? Image.network(
                                   _imageUrlForPlatform(cupon.fotoUrl),
@@ -618,7 +615,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                       child: Icon(
                                         Icons.local_offer,
                                         size: 64,
-                                        color: Colors.green.withValues(
+                                        color: primaryGreen.withValues(
                                           alpha: 0.3,
                                         ),
                                       ),
@@ -629,7 +626,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                   child: Icon(
                                     Icons.local_offer,
                                     size: 64,
-                                    color: Colors.green.withValues(alpha: 0.3),
+                                    color: primaryGreen.withValues(alpha: 0.3),
                                   ),
                                 ),
                         ),
@@ -657,23 +654,27 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.green.shade600, Colors.green],
+                                colors: [
+                                  primaryGreen,
+                                  primaryGreen.withValues(alpha: 0.75),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.green.withValues(alpha: 0.4),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                                  color: primaryGreen.withValues(alpha: 0.45),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 3),
+                                  spreadRadius: 1,
                                 ),
                               ],
                             ),
                             child: Text(
                               cupon.descuento,
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppConstants.textLight,
+                              style: const TextStyle(
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 letterSpacing: 0.5,
@@ -690,31 +691,35 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              gradient: LinearGradient(
+                                colors: [
+                                  primaryGreen.withValues(alpha: 0.9),
+                                  primaryGreen,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.green.withValues(alpha: 0.4),
-                                  blurRadius: 6,
+                                  color: primaryGreen.withValues(alpha: 0.45),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.check_circle,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppConstants.textLight,
+                                  color: Colors.black,
                                   size: 14,
                                 ),
-                                SizedBox(width: 4),
-                                Text(
+                                const SizedBox(width: 4),
+                                const Text(
                                   'Reclamado',
                                   style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppConstants.textLight,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
                                   ),
@@ -749,7 +754,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                   Icon(
                                     Icons.storefront,
                                     size: 14,
-                                    color: Colors.green.withValues(alpha: 0.7),
+                                    color: primaryGreen.withValues(alpha: 0.7),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
@@ -773,15 +778,22 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Colors.green.withValues(alpha: 0.08),
-                                      Colors.green.withValues(alpha: 0.04),
+                                      primaryGreen.withValues(alpha: 0.10),
+                                      primaryGreen.withValues(alpha: 0.05),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.green.withValues(alpha: 0.2),
+                                    color: primaryGreen.withValues(alpha: 0.28),
                                     width: 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryGreen.withValues(alpha: 0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Row(
                                   children: [
@@ -803,10 +815,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                           const SizedBox(height: 6),
                                           Text(
                                             cupon.displayCode,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.green,
+                                              color: primaryGreen,
                                               fontFamily: 'monospace',
                                               letterSpacing: 1,
                                             ),
@@ -835,7 +847,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                             duration: const Duration(
                                               seconds: 2,
                                             ),
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: primaryGreen,
                                           ),
                                         );
                                       },
@@ -843,16 +855,21 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Colors.green.withValues(
-                                            alpha: 0.1,
+                                          color: primaryGreen.withValues(
+                                            alpha: 0.12,
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
+                                          border: Border.all(
+                                            color: primaryGreen.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                          ),
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.content_copy,
-                                          color: Colors.green,
+                                          color: primaryGreen,
                                           size: 20,
                                         ),
                                       ),
@@ -910,7 +927,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 Icon(
                                   Icons.storefront,
                                   size: 14,
-                                  color: Colors.green.withValues(alpha: 0.7),
+                                  color: primaryGreen.withValues(alpha: 0.7),
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
@@ -933,15 +950,22 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.green.withValues(alpha: 0.08),
-                                    Colors.green.withValues(alpha: 0.04),
+                                    primaryGreen.withValues(alpha: 0.10),
+                                    primaryGreen.withValues(alpha: 0.05),
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.green.withValues(alpha: 0.2),
+                                  color: primaryGreen.withValues(alpha: 0.28),
                                   width: 1,
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryGreen.withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 children: [
@@ -966,7 +990,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.green,
+                                            color: primaryGreen,
                                             fontFamily: 'monospace',
                                             letterSpacing: 1,
                                           ),
@@ -991,7 +1015,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                             'Código copiado: ${cupon.displayCode}',
                                           ),
                                           duration: const Duration(seconds: 2),
-                                          backgroundColor: Colors.green,
+                                          backgroundColor: primaryGreen,
                                         ),
                                       );
                                     },
@@ -999,14 +1023,19 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withValues(
-                                          alpha: 0.1,
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.12,
                                         ),
                                         borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: primaryGreen.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                        ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.content_copy,
-                                        color: Colors.green,
+                                        color: primaryGreen,
                                         size: 20,
                                       ),
                                     ),
@@ -1056,7 +1085,6 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                   ],
                 ),
               ),
-            ),
           ),
         ),
       ),
@@ -1116,7 +1144,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                             end: Alignment.bottomRight,
                             colors: [
                               primaryGreen.withValues(alpha: 0.15),
-                              Colors.red.withValues(alpha: 0.1),
+                              primaryGreen.withValues(alpha: 0.05),
                             ],
                           ),
                         ),
@@ -1130,8 +1158,8 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.red.shade500,
-                                    Colors.red.shade600,
+                                    primaryGreen,
+                                    primaryGreen.withValues(alpha: 0.75),
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -1139,7 +1167,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.red.withValues(alpha: 0.5),
+                                    color: primaryGreen.withValues(alpha: 0.50),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                   ),
@@ -1147,8 +1175,8 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               ),
                               child: Text(
                                 cupon.descuento,
-                                style: TextStyle(
-                                  color: Colors.white,
+                                style: const TextStyle(
+                                  color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 36,
                                   height: 1.0,
@@ -1263,12 +1291,24 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.08),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primaryGreen.withValues(alpha: 0.10),
+                                    primaryGreen.withValues(alpha: 0.05),
+                                  ],
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.green.withValues(alpha: 0.2),
+                                  color: primaryGreen.withValues(alpha: 0.30),
                                   width: 1,
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryGreen.withValues(alpha: 0.10),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 children: [
@@ -1290,10 +1330,10 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                         const SizedBox(height: 6),
                                         Text(
                                           cupon.displayCode,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.green,
+                                            color: primaryGreen,
                                             fontFamily: 'monospace',
                                             letterSpacing: 1,
                                           ),
@@ -1318,7 +1358,7 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                             duration: const Duration(
                                               seconds: 2,
                                             ),
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: primaryGreen,
                                           ),
                                         );
                                       }
@@ -1327,14 +1367,19 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withValues(
-                                          alpha: 0.1,
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.12,
                                         ),
                                         borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: primaryGreen.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                        ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.content_copy,
-                                        color: Colors.green,
+                                        color: primaryGreen,
                                         size: 20,
                                       ),
                                     ),

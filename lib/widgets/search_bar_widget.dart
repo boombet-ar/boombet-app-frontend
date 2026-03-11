@@ -73,21 +73,35 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final greenColor = theme.colorScheme.primary;
-    final surfaceColor = AppConstants.darkCardBg;
     final textColor = AppConstants.textDark;
     final hintColor = AppConstants.textDark.withValues(alpha: 0.65);
 
     return Container(
       decoration: BoxDecoration(
-        color: surfaceColor,
+        color: const Color(0xFF0F0F0F),
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: AppConstants.borderDark.withValues(alpha: 0.6),
-          width: 1,
+          color: greenColor.withValues(alpha: 0.20),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: greenColor.withValues(alpha: 0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 14),
+            child: Icon(
+              Icons.search_rounded,
+              color: greenColor.withValues(alpha: 0.50),
+              size: 19,
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: _controller,
@@ -96,14 +110,18 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               enableInteractiveSelection: true,
               onChanged: widget.onChanged,
               onSubmitted: widget.onSearch,
-              style: TextStyle(color: textColor),
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              ),
               decoration: InputDecoration(
                 hintText: widget.placeholder,
-                hintStyle: TextStyle(color: hintColor),
+                hintStyle: TextStyle(color: hintColor, fontSize: 13),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
+                  horizontal: 12,
+                  vertical: 13,
                 ),
               ),
             ),
@@ -114,37 +132,44 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               children: [
                 if (_hasText)
                   InkWell(
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(0),
-                      bottomRight: Radius.circular(0),
-                      topLeft: Radius.circular(0),
-                      bottomLeft: Radius.circular(0),
-                    ),
+                    borderRadius: BorderRadius.circular(20),
                     onTap: _handleClearTap,
-                    child: Container(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 12,
                       ),
                       child: Icon(
-                        Icons.clear,
-                        color: AppConstants.textDark.withValues(alpha: 0.75),
-                        size: 20,
+                        Icons.close_rounded,
+                        color: hintColor,
+                        size: 17,
                       ),
                     ),
                   ),
-                InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(25),
-                    bottomRight: Radius.circular(25),
-                  ),
-                  onTap: _handleSearchTap,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: _handleSearchTap,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: greenColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: greenColor.withValues(alpha: 0.28),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        color: greenColor,
+                        size: 17,
+                      ),
                     ),
-                    child: Icon(Icons.search, color: greenColor, size: 24),
                   ),
                 ),
               ],

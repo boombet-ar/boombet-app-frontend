@@ -368,11 +368,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   Text(
                     "Editar Información",
                     style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
                       color: primaryGreen,
+                      letterSpacing: 0.3,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Divider neon
+                  Center(
+                    child: Container(
+                      width: 48,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(2),
+                        gradient: LinearGradient(
+                          colors: [
+                            primaryGreen,
+                            primaryGreen.withValues(alpha: 0.2),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.45),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 8),
@@ -380,13 +407,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   Text(
                     "Modificá tus datos personales",
                     style: TextStyle(
-                      color: onSurface.withValues(alpha: 0.7),
-                      fontSize: 14,
+                      color: onSurface.withValues(alpha: 0.5),
+                      fontSize: 13,
+                      letterSpacing: 0.1,
                     ),
                     textAlign: TextAlign.center,
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
                   _avatarSection(theme, onSurface, primaryGreen),
 
@@ -502,18 +530,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       Text(
                         "Editar Información",
                         style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
                           color: primaryGreen,
+                          letterSpacing: 0.3,
                         ),
                         textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Container(
+                          width: 48,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            gradient: LinearGradient(
+                              colors: [
+                                primaryGreen,
+                                primaryGreen.withValues(alpha: 0.2),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryGreen.withValues(alpha: 0.45),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "Modificá tus datos personales",
                         style: TextStyle(
-                          color: onSurface.withValues(alpha: 0.7),
-                          fontSize: 14,
+                          color: onSurface.withValues(alpha: 0.5),
+                          fontSize: 13,
+                          letterSpacing: 0.1,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -653,18 +706,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     Text(
                       "Editar Información",
                       style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
                         color: primaryGreen,
+                        letterSpacing: 0.3,
                       ),
                       textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Container(
+                        width: 48,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(2),
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryGreen,
+                              primaryGreen.withValues(alpha: 0.2),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryGreen.withValues(alpha: 0.45),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Modificá tus datos personales",
                       style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.7),
-                        fontSize: 15,
+                        color: onSurface.withValues(alpha: 0.5),
+                        fontSize: 13,
+                        letterSpacing: 0.1,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -836,18 +914,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required IconData icon,
     required List<Widget> children,
   }) {
-    const cardColor = Color(0xFF1A1A1A);
-
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.18)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 18,
+            spreadRadius: 0,
             offset: const Offset(0, 4),
           ),
         ],
@@ -855,22 +931,94 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: primaryGreen),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryGreen,
-                ),
+          // Header con strip
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(15),
+              topRight: Radius.circular(15),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          primaryGreen,
+                          primaryGreen.withValues(alpha: 0.15),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withValues(alpha: 0.45),
+                          blurRadius: 7,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.05),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.10),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryGreen.withValues(alpha: 0.20),
+                                  blurRadius: 10,
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
+                            child: Icon(icon, color: primaryGreen, size: 16),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: primaryGreen,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 14),
-          ...children,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
         ],
       ),
     );
@@ -881,92 +1029,199 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // ------------------------
 
   Widget _avatarSection(ThemeData theme, Color onSurface, Color primaryGreen) {
-    const cardColor = Color(0xFF1A1A1A);
-
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.18)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 18,
+            spreadRadius: 0,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Icon(Icons.photo_camera_back_outlined, color: primaryGreen),
-              const SizedBox(width: 8),
-              Text(
-                'Foto de perfil',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              CircleAvatar(
-                radius: 64,
-                backgroundColor: primaryGreen.withValues(alpha: 0.12),
-                child: ClipOval(
-                  child: _avatarUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: _avatarUrl,
-                          key: ValueKey(_avatarUrl),
-                          width: 116,
-                          height: 116,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => const SizedBox.shrink(),
-                          errorWidget: (_, __, ___) => Icon(
-                            Icons.person,
-                            size: 70,
-                            color: onSurface.withValues(alpha: 0.7),
-                          ),
-                        )
-                      : Icon(
-                          Icons.person,
-                          size: 70,
-                          color: onSurface.withValues(alpha: 0.7),
-                        ),
-                ),
-              ),
-              if (_uploadingAvatar)
-                Positioned.fill(
-                  child: Container(
+          // Header con strip
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(15),
+              topRight: Radius.circular(15),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 3,
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [primaryGreen, primaryGreen.withValues(alpha: 0.15)],
+                      ),
                     ),
-                    child: const Center(
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.05),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.08),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.photo_camera_back_outlined,
+                              color: primaryGreen,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Foto de perfil',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: onSurface,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Contenido
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 132,
+                      height: 132,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: primaryGreen, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.28),
+                            blurRadius: 18,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: _avatarUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: _avatarUrl,
+                                key: ValueKey(_avatarUrl),
+                                width: 126,
+                                height: 126,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => const SizedBox.shrink(),
+                                errorWidget: (_, __, ___) => Icon(
+                                  Icons.person,
+                                  size: 70,
+                                  color: onSurface.withValues(alpha: 0.7),
+                                ),
+                              )
+                            : Icon(
+                                Icons.person,
+                                size: 70,
+                                color: onSurface.withValues(alpha: 0.7),
+                              ),
+                      ),
+                    ),
+                    if (_uploadingAvatar)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: CircularProgressIndicator(strokeWidth: 3),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: primaryGreen.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                          color: primaryGreen.withValues(alpha: 0.07),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.cloud_upload_outlined,
+                              color: primaryGreen,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Cambiar foto',
+                              style: TextStyle(
+                                color: primaryGreen,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
-          TextButton.icon(
-            onPressed: _uploadingAvatar ? null : _pickAndUploadAvatar,
-            icon: const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Cambiar foto'),
-          ),
-          const SizedBox(height: 0),
         ],
       ),
     );
@@ -977,12 +1232,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: primaryGreen,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      primaryGreen,
+                      primaryGreen.withValues(alpha: 0.15),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withValues(alpha: 0.45),
+                      blurRadius: 7,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  color: primaryGreen.withValues(alpha: 0.05),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: primaryGreen,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -993,18 +1285,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
     Color onSurface,
     Color primaryGreen,
   ) {
-    const cardColor = Color(0xFF1A1A1A);
-
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.25)),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.18)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 18,
+            spreadRadius: 0,
             offset: const Offset(0, 4),
           ),
         ],
@@ -1012,22 +1302,80 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.alternate_email, color: primaryGreen),
-              const SizedBox(width: 8),
-              Text(
-                'Nombre de usuario',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: onSurface,
-                ),
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(15),
+              topRight: Radius.circular(15),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          primaryGreen,
+                          primaryGreen.withValues(alpha: 0.15),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.05),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.08),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.alternate_email,
+                              color: primaryGreen,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Nombre de usuario',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: onSurface,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 14),
-          _field('Usuario', _c["username"]!),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+            child: _field('Usuario', _c["username"]!),
+          ),
         ],
       ),
     );
@@ -1042,8 +1390,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
-    final borderColor = primaryGreen.withValues(alpha: readOnly ? 0.35 : 0.8);
-    final textColor = onSurface.withValues(alpha: readOnly ? 0.8 : 1.0);
+    final borderColor = primaryGreen.withValues(alpha: readOnly ? 0.20 : 0.55);
+    final textColor = onSurface.withValues(alpha: readOnly ? 0.7 : 1.0);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -1053,12 +1401,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
         readOnly: readOnly,
         enableInteractiveSelection: !readOnly,
         enabled: !readOnly,
-        style: TextStyle(color: textColor),
+        style: TextStyle(color: textColor, fontSize: 14),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: onSurface.withValues(alpha: 0.7)),
+          labelStyle: TextStyle(
+            color: onSurface.withValues(alpha: readOnly ? 0.4 : 0.6),
+            fontSize: 13,
+          ),
           filled: true,
-          fillColor: const Color(0xFF1A1A1A),
+          fillColor: readOnly
+              ? const Color(0xFF0E0E0E)
+              : const Color(0xFF131313),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: borderColor),
@@ -1069,11 +1422,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: borderColor, width: 1.2),
+            borderSide: BorderSide(color: borderColor, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: primaryGreen, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
           ),
         ),
       ),

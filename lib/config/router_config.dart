@@ -7,7 +7,9 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
+import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
+import 'package:boombet_app/views/pages/affiliates/events/event_detail_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
@@ -249,6 +251,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/affiliates-tools/eventos',
       builder: (context, state) => const EventosPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/eventos/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        final evento = state.extra is EventoModel ? state.extra as EventoModel : null;
+        return EventDetailPage(eventoId: id, evento: evento);
+      },
     ),
 
     // Deeplink: detalle de publicación del foro

@@ -2,10 +2,14 @@ import 'dart:developer';
 import 'dart:math' show max;
 
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/models/evento_model.dart';
+import 'package:boombet_app/services/eventos_service.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/tids_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/create_tid.dart';
+import 'package:boombet_app/views/pages/affiliates/events/create_event.dart';
+import 'package:boombet_app/views/pages/affiliates/events/event_management_view.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
@@ -141,9 +145,11 @@ class _TidsPageState extends State<TidsPage> {
   static const int _pageSize = 10;
 
   final TidsService _tidsService = TidsService();
+  final EventosService _eventosService = EventosService();
   bool _isLoading = false;
   String? _error;
   List<TidModel> _tids = [];
+  List<EventoOption> _eventoOptions = kDefaultEventoOptions;
   final Set<int> _editingIds = {};
   final Set<int> _deletingIds = {};
   int _currentPage = 1;
@@ -159,6 +165,27 @@ class _TidsPageState extends State<TidsPage> {
   void initState() {
     super.initState();
     _loadTids();
+    _loadEventoOptions();
+  }
+
+  Future<void> _loadEventoOptions() async {
+    try {
+      final eventos = await _eventosService.fetchEventos();
+      if (!mounted) return;
+      setState(() {
+        _eventoOptions = [
+          const EventoOption(id: null, label: 'Sin evento'),
+          ...eventos.map(
+            (e) => EventoOption(
+              id: e.id,
+              label: e.nombre.isNotEmpty ? e.nombre : 'Evento #${e.id}',
+            ),
+          ),
+        ];
+      });
+    } catch (_) {
+      // Si falla, el dropdown queda con "Sin evento" como fallback
+    }
   }
 
   Future<void> _loadTids({bool force = false}) async {
@@ -228,7 +255,7 @@ class _TidsPageState extends State<TidsPage> {
               ),
               const SizedBox(height: 16),
               EventoDropdown(
-                options: kDefaultEventoOptions,
+                options: _eventoOptions,
                 selectedId: selectedEventoId,
                 accent: theme.colorScheme.primary,
                 textColor: textColor,
@@ -359,6 +386,71 @@ class _TidsPageState extends State<TidsPage> {
     }
   }
 
+  void _showTidAffiliationsCount(TidModel tid) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+    final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        bool isFetching = false;
+        int? totalJugadores;
+        String? fetchError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            if (!isFetching && totalJugadores == null && fetchError == null) {
+              isFetching = true;
+              _tidsService
+                  .fetchTidTotalJugadores(id: tid.id)
+                  .then((count) {
+                setDialogState(() {
+                  totalJugadores = count;
+                  isFetching = false;
+                });
+              }).catchError((e) {
+                setDialogState(() {
+                  fetchError = 'No se pudo obtener la cantidad.';
+                  isFetching = false;
+                });
+              });
+            }
+
+            return AlertDialog(
+              backgroundColor: dialogBg,
+              title: Text(tid.tid, style: TextStyle(color: textColor)),
+              content: totalJugadores != null
+                  ? Text(
+                      'Cantidad de afiliaciones: $totalJugadores',
+                      style: TextStyle(color: textColor),
+                    )
+                  : fetchError != null
+                      ? Text(
+                          fetchError!,
+                          style: const TextStyle(color: AppConstants.errorRed),
+                        )
+                      : const SizedBox(
+                          height: 40,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Cerrar',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -383,6 +475,7 @@ class _TidsPageState extends State<TidsPage> {
             onCreate: () => showCreateTidDialog(
               context: context,
               tidsService: _tidsService,
+              eventoOptions: _eventoOptions,
               onCreated: () => _loadTids(force: true),
             ),
             items: _pagedTids,
@@ -394,6 +487,11 @@ class _TidsPageState extends State<TidsPage> {
             onRetry: () => _loadTids(force: true),
             onEdit: _edit,
             onDelete: _delete,
+            onViewAffiliations: _showTidAffiliationsCount,
+            eventoNames: {
+              for (final opt in _eventoOptions)
+                if (opt.id != null) opt.id!: opt.label,
+            },
           ),
           if (!_isLoading && _error == null && _totalPages > 1)
             Padding(
@@ -416,11 +514,174 @@ class _TidsPageState extends State<TidsPage> {
   }
 }
 
-class EventosPage extends StatelessWidget {
+class EventosPage extends StatefulWidget {
   const EventosPage({super.key});
 
   @override
+  State<EventosPage> createState() => _EventosPageState();
+}
+
+class _EventosPageState extends State<EventosPage> {
+  static const int _pageSize = 10;
+
+  final EventosService _eventosService = EventosService();
+  bool _isLoading = false;
+  String? _error;
+  List<EventoModel> _eventos = [];
+  final Set<int> _updatingIds = {};
+  final Set<int> _deletingIds = {};
+  int _currentPage = 1;
+
+  int get _totalPages => max(1, (_eventos.length / _pageSize).ceil());
+  List<EventoModel> get _pagedEventos {
+    final start = (_currentPage - 1) * _pageSize;
+    final end = (start + _pageSize).clamp(0, _eventos.length);
+    return _eventos.sublist(start, end);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEventos();
+  }
+
+  Future<void> _loadEventos({bool force = false}) async {
+    if (_isLoading) return;
+    if (!force && _eventos.isNotEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final eventos = await _eventosService.fetchEventos();
+      if (!mounted) return;
+      setState(() {
+        _eventos = eventos;
+        _currentPage = 1;
+        _isLoading = false;
+      });
+    } catch (e) {
+      log('[EventosPage] load error: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error al cargar eventos: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleGoToPage(int targetPage) {
+    if (targetPage < 1 || targetPage > _totalPages) return;
+    setState(() => _currentPage = targetPage);
+  }
+
+  void _replaceEventoInList(EventoModel updated) {
+    _eventos = _eventos.map((e) => e.id == updated.id ? updated : e).toList();
+  }
+
+  Future<void> _toggleActive(EventoModel evento, bool isActive) async {
+    if (_updatingIds.contains(evento.id)) return;
+
+    setState(() {
+      _updatingIds.add(evento.id);
+      _replaceEventoInList(EventoModel(
+        id: evento.id,
+        nombre: evento.nombre,
+        activo: isActive,
+        fechaFin: evento.fechaFin,
+        idAfiliador: evento.idAfiliador,
+      ));
+    });
+
+    try {
+      final updated = await _eventosService.toggleEventoActivo(id: evento.id);
+      if (!mounted) return;
+      setState(() {
+        _replaceEventoInList(updated);
+        _updatingIds.remove(evento.id);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _replaceEventoInList(evento);
+        _updatingIds.remove(evento.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo actualizar el estado del evento.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _delete(EventoModel evento) async {
+    if (_deletingIds.contains(evento.id)) return;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+    final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('Eliminar evento', style: TextStyle(color: textColor)),
+        content: Text(
+          '¿Querés eliminar "${evento.nombre}"? Esta acción no se puede deshacer.',
+          style: TextStyle(color: textColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: AppConstants.primaryGreen)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: AppConstants.errorRed)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deletingIds.add(evento.id));
+
+    try {
+      await _eventosService.deleteEvento(id: evento.id);
+      if (!mounted) return;
+
+      setState(() {
+        _eventos = _eventos.where((e) => e.id != evento.id).toList();
+        _deletingIds.remove(evento.id);
+        if (_currentPage > 1 && (_currentPage - 1) * _pageSize >= _eventos.length) {
+          _currentPage--;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingIds.remove(evento.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar el evento.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showAffiliationsCount(EventoModel evento) {
+    context.go('/affiliates-tools/eventos/${evento.id}', extra: evento);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: MainAppBar(
         title: 'Eventos',
@@ -436,11 +697,48 @@ class EventosPage extends StatelessWidget {
         showAffiliatesTools: false,
       ),
       backgroundColor: AppConstants.darkBg,
-      body: const Center(
-        child: Text(
-          'Vista Eventos pendiente de implementación.',
-          style: TextStyle(color: AppConstants.textDark),
-        ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          EventManagementView(
+            onCreate: () => showCreateEventoDialog(
+              context: context,
+              eventosService: _eventosService,
+              onCreated: () => _loadEventos(force: true),
+            ),
+            items: _pagedEventos,
+            totalItems: _eventos.length,
+            isLoading: _isLoading,
+            errorMessage: _error,
+            page: _currentPage - 1,
+            totalPages: _totalPages,
+            pageSize: _pageSize,
+            isFirstPage: _currentPage == 1,
+            isLastPage: _currentPage == _totalPages,
+            updatingIds: _updatingIds,
+            deletingIds: _deletingIds,
+            onRetry: () => _loadEventos(force: true),
+            onGoToPage: _handleGoToPage,
+            onToggleActive: _toggleActive,
+            onDelete: _delete,
+            onViewAffiliations: _showAffiliationsCount,
+          ),
+          if (!_isLoading && _error == null && _totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: Center(
+                child: PaginationBar(
+                  currentPage: _currentPage,
+                  canGoPrevious: _currentPage > 1,
+                  canGoNext: _currentPage < _totalPages,
+                  onPrev: () => _handleGoToPage(_currentPage - 1),
+                  onNext: () => _handleGoToPage(_currentPage + 1),
+                  primaryColor: theme.colorScheme.primary,
+                  textColor: AppConstants.textDark,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

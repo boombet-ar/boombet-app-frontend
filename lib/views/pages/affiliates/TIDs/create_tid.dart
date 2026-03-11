@@ -7,6 +7,7 @@ Future<void> showCreateTidDialog({
   required BuildContext context,
   required TidsService tidsService,
   required VoidCallback onCreated,
+  List<EventoOption> eventoOptions = kDefaultEventoOptions,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   final tidController = TextEditingController();
@@ -16,6 +17,7 @@ Future<void> showCreateTidDialog({
     builder: (dialogContext) => _CreateTidDialogBody(
       tidController: tidController,
       tidsService: tidsService,
+      eventoOptions: eventoOptions,
       onCreated: () {
         onCreated();
         messenger.showSnackBar(
@@ -40,12 +42,14 @@ class _CreateTidDialogBody extends StatefulWidget {
   final TidsService tidsService;
   final VoidCallback onCreated;
   final void Function(String) onError;
+  final List<EventoOption> eventoOptions;
 
   const _CreateTidDialogBody({
     required this.tidController,
     required this.tidsService,
     required this.onCreated,
     required this.onError,
+    required this.eventoOptions,
   });
 
   @override
@@ -209,7 +213,7 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                   ),
                   const SizedBox(height: 16),
                   EventoDropdown(
-                    options: kDefaultEventoOptions,
+                    options: widget.eventoOptions,
                     selectedId: _selectedEventoId,
                     accent: accent,
                     onChanged: (value) =>

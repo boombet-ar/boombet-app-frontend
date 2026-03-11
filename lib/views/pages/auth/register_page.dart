@@ -533,6 +533,29 @@ class _RegisterPageState extends State<RegisterPage> {
 
       LoadingOverlay.hide(context);
 
+      if (AppConstants.debugRegisterEnabled) {
+        final debugEntries = [
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[INPUT]',
+          'Username : ${_usernameController.text.trim()}',
+          'Email    : ${_emailController.text.trim()}',
+          'DNI      : ${_dniController.text.trim()}',
+          'Teléfono : ${_phoneController.text.trim()}',
+          'Género   : $_selectedGender',
+          'AffToken : ${_hasAffiliateCode ? _affiliateCodeController.text.trim() : "(ninguno)"}',
+          '',
+          '[REQUEST → POST /users/auth/userData]',
+          'Body: ${jsonEncode(body)}',
+          '',
+          '[RESPONSE]',
+          'Status : ${response.statusCode}',
+          'Body   : ${response.body.isEmpty ? "(vacío)" : response.body}',
+        ];
+        await _showDebugLogDialog(debugEntries);
+        if (!mounted) return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
@@ -716,6 +739,17 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+
+      if (AppConstants.debugRegisterEnabled) {
+        await _showDebugLogDialog([
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[EXCEPTION]',
+          '$e',
+        ]);
+        if (!mounted) return;
+      }
+
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final dialogBg = isDark
@@ -747,6 +781,49 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     }
+  }
+
+  Future<void> _showDebugLogDialog(List<String> entries) async {
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+    final labelColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Row(
+          children: [
+            const Icon(Icons.bug_report_outlined, color: AppConstants.primaryGreen, size: 20),
+            const SizedBox(width: 8),
+            Text('Debug — Crear cuenta', style: TextStyle(color: labelColor, fontSize: 15)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 340,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              entries.join('\n'),
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: AppConstants.primaryGreen,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar', style: TextStyle(color: AppConstants.primaryGreen)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleAffiliateCodeValidation() async {
@@ -1736,6 +1813,29 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
       LoadingOverlay.hide(context);
 
+      if (AppConstants.debugRegisterEnabled) {
+        final debugEntries = [
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[INPUT]',
+          'Username : ${_usernameController.text.trim()}',
+          'Email    : ${_emailController.text.trim()}',
+          'DNI      : ${_dniController.text.trim()}',
+          'Teléfono : ${_phoneController.text.trim()}',
+          'Género   : $_selectedGender',
+          'AffToken : ${_hasAffiliateCode ? _affiliateCodeController.text.trim() : "(ninguno)"}',
+          '',
+          '[REQUEST → POST /users/auth/userData]',
+          'Body: ${jsonEncode(body)}',
+          '',
+          '[RESPONSE]',
+          'Status : ${response.statusCode}',
+          'Body   : ${response.body.isEmpty ? "(vacío)" : response.body}',
+        ];
+        await _showDebugLogDialog(debugEntries);
+        if (!mounted) return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
@@ -1919,6 +2019,17 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+
+      if (AppConstants.debugRegisterEnabled) {
+        await _showDebugLogDialog([
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[EXCEPTION]',
+          '$e',
+        ]);
+        if (!mounted) return;
+      }
+
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final dialogBg = isDark

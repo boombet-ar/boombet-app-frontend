@@ -101,6 +101,16 @@ class AppConstants {
   static const double maxWidthLarge = 1000.0;
   static const double maxWidthXLarge = 1200.0;
 
+  // ==================== FEATURE FLAGS ====================
+  /// Controla si se afilia al usuario a cupones durante el registro.
+  /// Poner en false para saltear el POST /api/cupones/afiliado
+  /// al confirmar el email (útil para cuentas de test en producción).
+  static const bool couponAffiliationOnRegisterEnabled = false;
+
+  /// Muestra un pop-up de debug con el request/response completo
+  /// al presionar "Crear cuenta". Desactivar en producción estable.
+  static const bool debugRegisterEnabled = false;
+
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =
       'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
