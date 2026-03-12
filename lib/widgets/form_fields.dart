@@ -1,8 +1,127 @@
 import 'package:flutter/material.dart';
 import 'package:boombet_app/config/app_constants.dart';
 
-/// Reusable text form field for registration forms
-class AppTextFormField extends StatelessWidget {
+// ─── Shared constants ────────────────────────────────────────────────────────
+const _kFieldFill = Color(0xFF141414);
+const _kFieldBorder = Color(0xFF272727);
+
+// ─── Glow wrapper ─────────────────────────────────────────────────────────────
+Widget _buildGlowField({
+  required Widget child,
+  required bool isFocused,
+  required bool hasError,
+  required Color primaryGreen,
+}) {
+  return AnimatedContainer(
+    duration: const Duration(milliseconds: 220),
+    curve: Curves.easeOut,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      boxShadow: hasError
+          ? [
+              BoxShadow(
+                color: Colors.red.withValues(alpha: 0.18),
+                blurRadius: 12,
+                spreadRadius: 0,
+              ),
+            ]
+          : isFocused
+          ? [
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.16),
+                blurRadius: 16,
+                spreadRadius: 0,
+              ),
+            ]
+          : [],
+    ),
+    child: child,
+  );
+}
+
+// ─── Prefix icon builder ──────────────────────────────────────────────────────
+Widget _buildPrefixIcon({
+  required IconData icon,
+  required bool hasError,
+  required Color primaryGreen,
+}) {
+  return Container(
+    margin: const EdgeInsets.all(9),
+    padding: const EdgeInsets.all(6),
+    decoration: BoxDecoration(
+      color: hasError
+          ? Colors.red.withValues(alpha: 0.1)
+          : primaryGreen.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: hasError
+            ? Colors.red.withValues(alpha: 0.28)
+            : primaryGreen.withValues(alpha: 0.2),
+        width: 1,
+      ),
+    ),
+    child: Icon(
+      icon,
+      color: hasError ? Colors.red : primaryGreen,
+      size: 17,
+    ),
+  );
+}
+
+// ─── Shared InputDecoration builder ──────────────────────────────────────────
+InputDecoration _buildDecoration({
+  required String hint,
+  required Color textColor,
+  required Color primaryGreen,
+  required bool hasError,
+  Widget? prefixIconWidget,
+  Widget? suffixIconWidget,
+}) {
+  final borderColor =
+      hasError ? Colors.red.withValues(alpha: 0.6) : _kFieldBorder;
+  final focusedBorderColor =
+      hasError ? Colors.red : primaryGreen.withValues(alpha: 0.75);
+
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(
+      color: textColor.withValues(alpha: 0.28),
+      fontSize: 14,
+    ),
+    prefixIcon: prefixIconWidget,
+    suffixIcon: suffixIconWidget,
+    filled: true,
+    fillColor: _kFieldFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      borderSide: BorderSide(color: borderColor, width: 1.5),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      borderSide: BorderSide(color: borderColor, width: 1.5),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      borderSide: BorderSide(color: focusedBorderColor, width: 1.5),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      borderSide: BorderSide(
+        color: Colors.red.withValues(alpha: 0.6),
+        width: 1.5,
+      ),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      borderSide: const BorderSide(color: Colors.red, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+  );
+}
+
+// ─── AppTextFormField ─────────────────────────────────────────────────────────
+
+class AppTextFormField extends StatefulWidget {
   final String label;
   final String hint;
   final TextEditingController controller;
@@ -17,6 +136,7 @@ class AppTextFormField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final FocusNode? focusNode;
   final Widget? suffix;
+  final IconData? icon;
 
   const AppTextFormField({
     super.key,
@@ -34,99 +154,104 @@ class AppTextFormField extends StatelessWidget {
     this.textInputAction,
     this.focusNode,
     this.suffix,
+    this.icon,
   });
+
+  @override
+  State<AppTextFormField> createState() => _AppTextFormFieldState();
+}
+
+class _AppTextFormFieldState extends State<AppTextFormField> {
+  late FocusNode _internalFocusNode;
+  bool _isFocused = false;
+
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? _internalFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalFocusNode = FocusNode();
+    _effectiveFocusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() => _isFocused = _effectiveFocusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _internalFocusNode.removeListener(_onFocusChanged);
+    _internalFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final primaryGreen = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
 
-    // Colors adaptativos según tema
-    final labelColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final hintColor = isDark ? Colors.grey[500] : AppConstants.lightHintText;
-    final borderColor = hasError
-        ? Colors.red
-        : (isDark ? Colors.grey[700] : AppConstants.lightInputBorder);
-    final focusedBorderColor = hasError
-        ? Colors.red
-        : (isDark
-              ? AppConstants.primaryGreen
-              : AppConstants.lightInputBorderFocus);
-    final fillColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : AppConstants.lightInputBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    final prefixWidget = widget.icon != null
+        ? _buildPrefixIcon(
+            icon: widget.icon!,
+            hasError: widget.hasError,
+            primaryGreen: primaryGreen,
+          )
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Label
         Text(
-          label,
+          widget.label,
           style: TextStyle(
-            color: labelColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            color: widget.hasError
+                ? Colors.red.withValues(alpha: 0.85)
+                : textColor.withValues(alpha: 0.55),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
           ),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          maxLines: maxLines,
-          minLines: minLines,
-          onChanged: onChanged,
-          validator: validator,
-          textInputAction: textInputAction,
-          focusNode: focusNode,
-          style: TextStyle(color: textColor),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: hintColor, fontSize: 13),
-            filled: true,
-            fillColor: fillColor,
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: borderColor ?? Colors.grey,
-                width: 1.5,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: borderColor ?? Colors.grey,
-                width: 1.5,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: focusedBorderColor, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+        const SizedBox(height: 6),
+        // Glow + Field
+        _buildGlowField(
+          isFocused: _isFocused,
+          hasError: widget.hasError,
+          primaryGreen: primaryGreen,
+          child: TextFormField(
+            controller: widget.controller,
+            keyboardType: widget.keyboardType,
+            obscureText: widget.obscureText,
+            maxLines: widget.maxLines,
+            minLines: widget.minLines,
+            onChanged: widget.onChanged,
+            validator: widget.validator,
+            textInputAction: widget.textInputAction,
+            focusNode: _effectiveFocusNode,
+            style: TextStyle(color: textColor, fontSize: 15),
+            decoration: _buildDecoration(
+              hint: widget.hint,
+              textColor: textColor,
+              primaryGreen: primaryGreen,
+              hasError: widget.hasError,
+              prefixIconWidget: prefixWidget,
+              suffixIconWidget: widget.suffix,
             ),
           ),
         ),
-        if (hasError && errorText != null) ...[
+        // Error text
+        if (widget.hasError && widget.errorText != null) ...[
           const SizedBox(height: 4),
           Text(
-            errorText!,
-            style: const TextStyle(color: Colors.red, fontSize: 12),
+            widget.errorText!,
+            style: TextStyle(
+              color: Colors.red.withValues(alpha: 0.85),
+              fontSize: 11.5,
+              letterSpacing: 0.1,
+            ),
           ),
         ],
       ],
@@ -134,7 +259,8 @@ class AppTextFormField extends StatelessWidget {
   }
 }
 
-/// Reusable password field with visibility toggle
+// ─── AppPasswordField ─────────────────────────────────────────────────────────
+
 class AppPasswordField extends StatefulWidget {
   final String label;
   final String hint;
@@ -163,108 +289,100 @@ class AppPasswordField extends StatefulWidget {
 
 class _AppPasswordFieldState extends State<AppPasswordField> {
   bool _obscureText = true;
+  late FocusNode _internalFocusNode;
+  bool _isFocused = false;
+
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? _internalFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalFocusNode = FocusNode();
+    _effectiveFocusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() => _isFocused = _effectiveFocusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _internalFocusNode.removeListener(_onFocusChanged);
+    _internalFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Colors adaptativos según tema
-    final labelColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final hintColor = isDark ? Colors.grey[500] : AppConstants.lightHintText;
-    final borderColor = widget.hasError
-        ? Colors.red
-        : (isDark ? Colors.grey[700] : AppConstants.lightInputBorder);
-    final focusedBorderColor = widget.hasError
-        ? Colors.red
-        : (isDark
-              ? AppConstants.primaryGreen
-              : AppConstants.lightInputBorderFocus);
-    final fillColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : AppConstants.lightInputBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final suffixIconColor = isDark
-        ? Colors.grey[400]
-        : AppConstants.lightLabelText;
+    final primaryGreen = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Label
         Text(
           widget.label,
           style: TextStyle(
-            color: labelColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            color: widget.hasError
+                ? Colors.red.withValues(alpha: 0.85)
+                : textColor.withValues(alpha: 0.55),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
           ),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: widget.controller,
-          obscureText: _obscureText,
-          enableInteractiveSelection: false,
-          onChanged: widget.onChanged,
-          textInputAction: widget.textInputAction,
-          focusNode: widget.focusNode,
-          style: TextStyle(color: textColor),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(color: hintColor, fontSize: 13),
-            filled: true,
-            fillColor: fillColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: borderColor ?? Colors.grey,
-                width: 1.5,
+        const SizedBox(height: 6),
+        // Glow + Field
+        _buildGlowField(
+          isFocused: _isFocused,
+          hasError: widget.hasError,
+          primaryGreen: primaryGreen,
+          child: TextFormField(
+            controller: widget.controller,
+            obscureText: _obscureText,
+            enableInteractiveSelection: false,
+            onChanged: widget.onChanged,
+            textInputAction: widget.textInputAction,
+            focusNode: _effectiveFocusNode,
+            style: TextStyle(color: textColor, fontSize: 15),
+            decoration: _buildDecoration(
+              hint: widget.hint,
+              textColor: textColor,
+              primaryGreen: primaryGreen,
+              hasError: widget.hasError,
+              prefixIconWidget: _buildPrefixIcon(
+                icon: Icons.lock_outline,
+                hasError: widget.hasError,
+                primaryGreen: primaryGreen,
               ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: borderColor ?? Colors.grey,
-                width: 1.5,
+              suffixIconWidget: IconButton(
+                icon: Icon(
+                  _obscureText
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: textColor.withValues(alpha: 0.38),
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() => _obscureText = !_obscureText);
+                },
               ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: focusedBorderColor, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility_off : Icons.visibility,
-                color: suffixIconColor,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
             ),
           ),
         ),
+        // Error text
         if (widget.hasError && widget.errorText != null) ...[
           const SizedBox(height: 4),
           Text(
             widget.errorText!,
-            style: const TextStyle(color: Colors.red, fontSize: 12),
+            style: TextStyle(
+              color: Colors.red.withValues(alpha: 0.85),
+              fontSize: 11.5,
+              letterSpacing: 0.1,
+            ),
           ),
         ],
       ],
@@ -272,7 +390,8 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
   }
 }
 
-/// Reusable gender selector with modern design
+// ─── GenderSelector ───────────────────────────────────────────────────────────
+
 class GenderSelector extends StatelessWidget {
   final String selectedGender;
   final Function(String) onGenderChanged;
@@ -290,16 +409,7 @@ class GenderSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final labelColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-    final unselectedBgColor = isDark
-        ? const Color(0xFF2A2A2A).withValues(alpha: 0.6)
-        : AppConstants.lightSurfaceVariant;
+    final textColor = theme.colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,46 +417,36 @@ class GenderSelector extends StatelessWidget {
         Text(
           'Género',
           style: TextStyle(
-            color: labelColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            color: textColor.withValues(alpha: 0.55),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Flexible(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 120),
-                child: _GenderButton(
-                  label: 'Masculino',
-                  icon: Icons.male,
-                  value: 'M',
-                  isSelected: selectedGender == 'M',
-                  onTap: () => onGenderChanged('M'),
-                  primaryColor: primaryColor,
-                  isDark: isDark,
-                  unselectedBgColor: unselectedBgColor,
-                  textColor: textColor,
-                ),
+            Expanded(
+              child: _GenderButton(
+                label: 'Masculino',
+                icon: Icons.male_rounded,
+                value: 'M',
+                isSelected: selectedGender == 'M',
+                onTap: () => onGenderChanged('M'),
+                primaryColor: primaryColor,
+                textColor: textColor,
               ),
             ),
-            const SizedBox(width: 20),
-            Flexible(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 120),
-                child: _GenderButton(
-                  label: 'Femenino',
-                  icon: Icons.female,
-                  value: 'F',
-                  isSelected: selectedGender == 'F',
-                  onTap: () => onGenderChanged('F'),
-                  primaryColor: primaryColor,
-                  isDark: isDark,
-                  unselectedBgColor: unselectedBgColor,
-                  textColor: textColor,
-                ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _GenderButton(
+                label: 'Femenino',
+                icon: Icons.female_rounded,
+                value: 'F',
+                isSelected: selectedGender == 'F',
+                onTap: () => onGenderChanged('F'),
+                primaryColor: primaryColor,
+                textColor: textColor,
               ),
             ),
           ],
@@ -356,16 +456,14 @@ class GenderSelector extends StatelessWidget {
   }
 }
 
-/// Individual gender button with animation
-class _GenderButton extends StatefulWidget {
+/// Individual gender button
+class _GenderButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final String value;
   final bool isSelected;
-  final Function() onTap;
+  final VoidCallback onTap;
   final Color primaryColor;
-  final bool isDark;
-  final Color unselectedBgColor;
   final Color textColor;
 
   const _GenderButton({
@@ -375,83 +473,77 @@ class _GenderButton extends StatefulWidget {
     required this.isSelected,
     required this.onTap,
     required this.primaryColor,
-    required this.isDark,
-    required this.unselectedBgColor,
     required this.textColor,
   });
 
   @override
-  State<_GenderButton> createState() => _GenderButtonState();
-}
-
-class _GenderButtonState extends State<_GenderButton> {
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
         decoration: BoxDecoration(
-          gradient: widget.isSelected
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    widget.primaryColor,
-                    widget.primaryColor.withValues(alpha: 0.85),
-                  ],
-                )
-              : null,
-          color: widget.isSelected ? null : widget.unselectedBgColor,
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected
+              ? primaryColor.withValues(alpha: 0.12)
+              : _kFieldFill,
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           border: Border.all(
-            color: widget.isSelected
-                ? widget.primaryColor
-                : Colors.grey.withValues(alpha: 0.3),
-            width: 1.5,
+            color: isSelected
+                ? primaryColor.withValues(alpha: 0.75)
+                : _kFieldBorder,
+            width: isSelected ? 1.5 : 1.5,
           ),
-          boxShadow: widget.isSelected
+          boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: widget.primaryColor.withValues(alpha: 0.2),
-                    blurRadius: 6,
+                    color: primaryColor.withValues(alpha: 0.18),
+                    blurRadius: 14,
                     spreadRadius: 0,
-                    offset: const Offset(0, 2),
                   ),
                 ]
               : [],
         ),
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              widget.icon,
-              size: 22,
-              color: widget.isSelected
-                  ? (Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : AppConstants.textLight)
-                  : Colors.grey[500],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.label,
-              style: TextStyle(
-                color: widget.isSelected
-                    ? (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : AppConstants.textLight)
-                    : widget.textColor,
-                fontSize: 12,
-                fontWeight: widget.isSelected
-                    ? FontWeight.w600
-                    : FontWeight.w500,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? primaryColor.withValues(alpha: 0.15)
+                    : primaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: isSelected
+                      ? primaryColor.withValues(alpha: 0.4)
+                      : primaryColor.withValues(alpha: 0.12),
+                  width: 1,
+                ),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              child: Icon(
+                icon,
+                size: 16,
+                color: isSelected
+                    ? primaryColor
+                    : textColor.withValues(alpha: 0.35),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? primaryColor
+                    : textColor.withValues(alpha: 0.45),
+                fontSize: 13,
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.2,
+              ),
             ),
           ],
         ),
@@ -460,7 +552,8 @@ class _GenderButtonState extends State<_GenderButton> {
   }
 }
 
-/// Reusable button with loading state and animations
+// ─── AppButton ────────────────────────────────────────────────────────────────
+
 class AppButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -482,7 +575,7 @@ class AppButton extends StatelessWidget {
     this.backgroundColor,
     this.textColor,
     this.width,
-    this.height = 56.0,
+    this.height = 52.0,
     this.borderRadius = 14.0,
     this.icon,
   });
@@ -490,14 +583,13 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.colorScheme.primary;
 
     final bgColor = backgroundColor ?? primaryColor;
-    final txtColor =
-        textColor ?? (isDark ? Colors.white : AppConstants.textLight);
-    final effectiveBgColor = disabled || isLoading
-        ? bgColor.withValues(alpha: 0.5)
+    final txtColor = textColor ?? Colors.black;
+    final isDisabledOrLoading = disabled || isLoading;
+    final effectiveBg = isDisabledOrLoading
+        ? bgColor.withValues(alpha: 0.45)
         : bgColor;
 
     return SizedBox(
@@ -506,26 +598,25 @@ class AppButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: disabled || isLoading ? null : onPressed,
+          onTap: isDisabledOrLoading ? null : onPressed,
           borderRadius: BorderRadius.circular(borderRadius),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              gradient: !disabled && !isLoading
+              color: isDisabledOrLoading ? effectiveBg : null,
+              gradient: !isDisabledOrLoading
                   ? LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [bgColor, bgColor.withValues(alpha: 0.85)],
                     )
                   : null,
-              color: disabled || isLoading ? effectiveBgColor : null,
               borderRadius: BorderRadius.circular(borderRadius),
-              boxShadow: !disabled && !isLoading
+              boxShadow: !isDisabledOrLoading
                   ? [
                       BoxShadow(
-                        color: primaryColor.withValues(
-                          alpha: isDark ? 0.4 : 0.3,
-                        ),
-                        blurRadius: 12,
+                        color: primaryColor.withValues(alpha: 0.38),
+                        blurRadius: 16,
                         spreadRadius: 0,
                         offset: const Offset(0, 4),
                       ),
@@ -538,19 +629,19 @@ class AppButton extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 18,
+                          height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
                             valueColor: AlwaysStoppedAnimation<Color>(txtColor),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Text(
-                          'Cargando...',
+                          label,
                           style: TextStyle(
                             color: txtColor,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -558,18 +649,19 @@ class AppButton extends StatelessWidget {
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (icon != null) ...[
-                          Icon(icon, color: txtColor, size: 20),
+                          Icon(icon, color: txtColor, size: 18),
                           const SizedBox(width: 8),
                         ],
                         Text(
                           label,
                           style: TextStyle(
                             color: txtColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
                           ),
                         ),
                       ],

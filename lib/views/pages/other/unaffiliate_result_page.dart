@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:flutter/material.dart';
 
 class UnaffiliateResultPage extends StatelessWidget {
@@ -9,13 +10,12 @@ class UnaffiliateResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bgColor = theme.scaffoldBackgroundColor;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
+    const scaffoldBg = Color(0xFF0E0E0E);
+    const green = AppConstants.primaryGreen;
+    const red = Color(0xFFFF4D4D);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: scaffoldBg,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -25,69 +25,104 @@ class UnaffiliateResultPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Ícono de desafiliación
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50.withOpacity(isDark ? 0.15 : 1),
+                    color: red.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: red.withValues(alpha: 0.25),
+                      width: 1.5,
+                    ),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.logout_rounded,
-                    color: Colors.red.shade600,
-                    size: 48,
+                    color: red,
+                    size: 38,
                   ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'Fuiste desafiliado de Boombet',
+                const SizedBox(height: 20),
+
+                // Línea decorativa separadora
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 1,
+                      color: red.withValues(alpha: 0.20),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: red.withValues(alpha: 0.50),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 28,
+                      height: 1,
+                      color: red.withValues(alpha: 0.20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Título
+                const Text(
+                  'Fuiste desafiliado de BoomBet',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+                    color: Colors.white,
+                    letterSpacing: -0.3,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Lamentamos que te vayas. Te desafiliamos de nuestra plataforma. Esto no te desafilia de los casinos asociados.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: isDark ? Colors.white70 : AppConstants.lightHintText,
+                const SizedBox(height: 16),
+
+                // Mensaje
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111111),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: red.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: Text(
+                    'Lamentamos que te vayas. Te desafiliamos de nuestra plataforma.\n\nEsto no te desafilia de los casinos asociados.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.55,
+                      color: Colors.white.withValues(alpha: 0.60),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: preview
-                        ? null
-                        : () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginPage(),
-                              ),
-                              (route) => false,
-                            );
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryGreen,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Volver al login',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: 28),
+
+                AppButton(
+                  label: 'Volver al login',
+                  onPressed: preview
+                      ? () {}
+                      : () => Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          ),
+                  disabled: preview,
+                  icon: Icons.arrow_back_rounded,
+                  borderRadius: AppConstants.borderRadius,
+                  backgroundColor: green,
                 ),
               ],
             ),

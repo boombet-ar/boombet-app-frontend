@@ -27,7 +27,9 @@ class TidsService {
       throw Exception('Formato inesperado de respuesta');
     }
 
-    log('[TidsService] fetchTids error ${response.statusCode}: ${response.body}');
+    log(
+      '[TidsService] fetchTids error ${response.statusCode}: ${response.body}',
+    );
     throw Exception(ErrorParser.parseResponse(response));
   }
 
@@ -52,10 +54,12 @@ class TidsService {
   Future<TidModel> createTid({
     required String tid,
     int? idEvento,
+    int? idStand,
   }) async {
     final url = '${ApiConfig.baseUrl}/tid';
     final body = <String, dynamic>{'tid': tid.trim()};
     if (idEvento != null) body['idEvento'] = idEvento;
+    if (idStand != null) body['idStand'] = idStand;
 
     final response = await HttpClient.post(url, includeAuth: true, body: body);
 
@@ -72,16 +76,15 @@ class TidsService {
     required int id,
     required String tid,
     int? idEvento,
+    int? idStand,
+    bool sendIdStand = false,
   }) async {
     final url = '${ApiConfig.baseUrl}/tid/$id';
     final body = <String, dynamic>{'tid': tid.trim()};
     if (idEvento != null) body['idEvento'] = idEvento;
+    if (sendIdStand) body['idStand'] = idStand;
 
-    final response = await HttpClient.patch(
-      url,
-      includeAuth: true,
-      body: body,
-    );
+    final response = await HttpClient.patch(url, includeAuth: true, body: body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final data = jsonDecode(response.body);
@@ -99,11 +102,7 @@ class TidsService {
     final url = '${ApiConfig.baseUrl}/tid/$id';
     final body = <String, dynamic>{'tid': tidCode.trim(), 'idEvento': null};
 
-    final response = await HttpClient.patch(
-      url,
-      includeAuth: true,
-      body: body,
-    );
+    final response = await HttpClient.patch(url, includeAuth: true, body: body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final data = jsonDecode(response.body);
@@ -143,5 +142,4 @@ class TidsService {
 
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
-
 }

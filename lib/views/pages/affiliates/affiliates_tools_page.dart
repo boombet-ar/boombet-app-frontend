@@ -3,6 +3,8 @@ import 'dart:math' show max;
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/evento_model.dart';
+import 'package:boombet_app/models/stand_model.dart';
+import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/services/eventos_service.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/tids_service.dart';
@@ -10,12 +12,14 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/create_tid.dart';
 import 'package:boombet_app/views/pages/affiliates/events/create_event.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_management_view.dart';
+import 'package:boombet_app/views/pages/affiliates/stands/stand_management_view.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 
 class AffiliatesToolsPage extends StatefulWidget {
@@ -123,6 +127,14 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       accentColor: Theme.of(context).colorScheme.primary,
                       onTap: () => context.go('/affiliates-tools/eventos'),
                     ),
+                    const SizedBox(height: 12),
+                    _AffiliatorPrimaryActionButton(
+                      title: 'Stands / Puestos',
+                      subtitle: 'Configurar y administrar puestos',
+                      icon: Icons.storefront_outlined,
+                      accentColor: Theme.of(context).colorScheme.primary,
+                      onTap: () => context.go('/affiliates-tools/stands'),
+                    ),
                   ],
                 ),
               ),
@@ -146,10 +158,13 @@ class _TidsPageState extends State<TidsPage> {
 
   final TidsService _tidsService = TidsService();
   final EventosService _eventosService = EventosService();
+  final StandsService _standsService = StandsService();
   bool _isLoading = false;
   String? _error;
   List<TidModel> _tids = [];
   List<EventoOption> _eventoOptions = kDefaultEventoOptions;
+  List<StandOption> _standOptions = kDefaultStandOptions;
+  List<StandModel> _stands = [];
   final Set<int> _editingIds = {};
   final Set<int> _deletingIds = {};
   int _currentPage = 1;
@@ -166,6 +181,7 @@ class _TidsPageState extends State<TidsPage> {
     super.initState();
     _loadTids();
     _loadEventoOptions();
+    _loadStandOptions();
   }
 
   Future<void> _loadEventoOptions() async {
@@ -185,6 +201,27 @@ class _TidsPageState extends State<TidsPage> {
       });
     } catch (_) {
       // Si falla, el dropdown queda con "Sin evento" como fallback
+    }
+  }
+
+  Future<void> _loadStandOptions() async {
+    try {
+      final stands = await _standsService.fetchStands();
+      if (!mounted) return;
+      setState(() {
+        _stands = stands;
+        _standOptions = [
+          const StandOption(id: null, label: 'Sin stand'),
+          ...stands.map(
+            (s) => StandOption(
+              id: s.id,
+              label: s.nombre.isNotEmpty ? s.nombre : 'Stand #${s.id}',
+            ),
+          ),
+        ];
+      });
+    } catch (_) {
+      // Si falla, el dropdown queda con "Sin stand" como fallback
     }
   }
 
@@ -224,17 +261,19 @@ class _TidsPageState extends State<TidsPage> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg =
-        isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-    final textColor =
-        isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
 
     final tidController = TextEditingController(text: tid.tid);
     // Tratar idEvento == 0 como "sin evento"
     int? selectedEventoId = tid.idEvento == 0 ? null : tid.idEvento;
+    int? selectedStandId = tid.idStand;
 
-    final result = await showDialog<(String, int?)>(
-
+    final result = await showDialog<(String, int?, int?)>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
@@ -260,8 +299,16 @@ class _TidsPageState extends State<TidsPage> {
                 accent: theme.colorScheme.primary,
                 textColor: textColor,
                 bgColor: dialogBg,
-                onChanged: (v) =>
-                    setDialogState(() => selectedEventoId = v),
+                onChanged: (v) => setDialogState(() => selectedEventoId = v),
+              ),
+              const SizedBox(height: 16),
+              StandDropdown(
+                options: _standOptions,
+                selectedId: selectedStandId,
+                accent: theme.colorScheme.primary,
+                textColor: textColor,
+                bgColor: dialogBg,
+                onChanged: (v) => setDialogState(() => selectedStandId = v),
               ),
             ],
           ),
@@ -274,10 +321,11 @@ class _TidsPageState extends State<TidsPage> {
               ),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                (tidController.text.trim(), selectedEventoId),
-              ),
+              onPressed: () => Navigator.pop(dialogContext, (
+                tidController.text.trim(),
+                selectedEventoId,
+                selectedStandId,
+              )),
               child: const Text(
                 'Guardar',
                 style: TextStyle(color: AppConstants.primaryGreen),
@@ -294,6 +342,7 @@ class _TidsPageState extends State<TidsPage> {
 
     final newTid = result.$1;
     final newIdEvento = result.$2;
+    final newIdStand = result.$3;
 
     if (newTid.isEmpty) return;
 
@@ -304,6 +353,8 @@ class _TidsPageState extends State<TidsPage> {
         id: tid.id,
         tid: newTid,
         idEvento: newIdEvento,
+        idStand: newIdStand,
+        sendIdStand: true,
       );
       if (!mounted) return;
       setState(() {
@@ -327,10 +378,12 @@ class _TidsPageState extends State<TidsPage> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg =
-        isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-    final textColor =
-        isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -370,7 +423,8 @@ class _TidsPageState extends State<TidsPage> {
       setState(() {
         _tids = _tids.where((t) => t.id != tid.id).toList();
         _deletingIds.remove(tid.id);
-        if (_currentPage > 1 && (_currentPage - 1) * _pageSize >= _tids.length) {
+        if (_currentPage > 1 &&
+            (_currentPage - 1) * _pageSize >= _tids.length) {
           _currentPage--;
         }
       });
@@ -389,8 +443,12 @@ class _TidsPageState extends State<TidsPage> {
   void _showTidAffiliationsCount(TidModel tid) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
 
     showDialog<void>(
       context: context,
@@ -406,16 +464,17 @@ class _TidsPageState extends State<TidsPage> {
               _tidsService
                   .fetchTidTotalJugadores(id: tid.id)
                   .then((count) {
-                setDialogState(() {
-                  totalJugadores = count;
-                  isFetching = false;
-                });
-              }).catchError((e) {
-                setDialogState(() {
-                  fetchError = 'No se pudo obtener la cantidad.';
-                  isFetching = false;
-                });
-              });
+                    setDialogState(() {
+                      totalJugadores = count;
+                      isFetching = false;
+                    });
+                  })
+                  .catchError((e) {
+                    setDialogState(() {
+                      fetchError = 'No se pudo obtener la cantidad.';
+                      isFetching = false;
+                    });
+                  });
             }
 
             return AlertDialog(
@@ -427,14 +486,14 @@ class _TidsPageState extends State<TidsPage> {
                       style: TextStyle(color: textColor),
                     )
                   : fetchError != null
-                      ? Text(
-                          fetchError!,
-                          style: const TextStyle(color: AppConstants.errorRed),
-                        )
-                      : const SizedBox(
-                          height: 40,
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+                  ? Text(
+                      fetchError!,
+                      style: const TextStyle(color: AppConstants.errorRed),
+                    )
+                  : const SizedBox(
+                      height: 40,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
@@ -476,6 +535,7 @@ class _TidsPageState extends State<TidsPage> {
               context: context,
               tidsService: _tidsService,
               eventoOptions: _eventoOptions,
+              standOptions: _standOptions,
               onCreated: () => _loadTids(force: true),
             ),
             items: _pagedTids,
@@ -492,6 +552,7 @@ class _TidsPageState extends State<TidsPage> {
               for (final opt in _eventoOptions)
                 if (opt.id != null) opt.id!: opt.label,
             },
+            standNames: {for (final s in _stands) s.id: s.nombre},
           ),
           if (!_isLoading && _error == null && _totalPages > 1)
             Padding(
@@ -586,13 +647,15 @@ class _EventosPageState extends State<EventosPage> {
 
     setState(() {
       _updatingIds.add(evento.id);
-      _replaceEventoInList(EventoModel(
-        id: evento.id,
-        nombre: evento.nombre,
-        activo: isActive,
-        fechaFin: evento.fechaFin,
-        idAfiliador: evento.idAfiliador,
-      ));
+      _replaceEventoInList(
+        EventoModel(
+          id: evento.id,
+          nombre: evento.nombre,
+          activo: isActive,
+          fechaFin: evento.fechaFin,
+          idAfiliador: evento.idAfiliador,
+        ),
+      );
     });
 
     try {
@@ -622,8 +685,12 @@ class _EventosPageState extends State<EventosPage> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-    final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -637,11 +704,17 @@ class _EventosPageState extends State<EventosPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar', style: TextStyle(color: AppConstants.primaryGreen)),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar', style: TextStyle(color: AppConstants.errorRed)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppConstants.errorRed),
+            ),
           ),
         ],
       ),
@@ -658,7 +731,8 @@ class _EventosPageState extends State<EventosPage> {
       setState(() {
         _eventos = _eventos.where((e) => e.id != evento.id).toList();
         _deletingIds.remove(evento.id);
-        if (_currentPage > 1 && (_currentPage - 1) * _pageSize >= _eventos.length) {
+        if (_currentPage > 1 &&
+            (_currentPage - 1) * _pageSize >= _eventos.length) {
           _currentPage--;
         }
       });
@@ -722,6 +796,588 @@ class _EventosPageState extends State<EventosPage> {
             onToggleActive: _toggleActive,
             onDelete: _delete,
             onViewAffiliations: _showAffiliationsCount,
+          ),
+          if (!_isLoading && _error == null && _totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: Center(
+                child: PaginationBar(
+                  currentPage: _currentPage,
+                  canGoPrevious: _currentPage > 1,
+                  canGoNext: _currentPage < _totalPages,
+                  onPrev: () => _handleGoToPage(_currentPage - 1),
+                  onNext: () => _handleGoToPage(_currentPage + 1),
+                  primaryColor: theme.colorScheme.primary,
+                  textColor: AppConstants.textDark,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class StandsPage extends StatefulWidget {
+  const StandsPage({super.key});
+
+  @override
+  State<StandsPage> createState() => _StandsPageState();
+}
+
+class _StandsPageState extends State<StandsPage> {
+  static const int _pageSize = 10;
+
+  final StandsService _standsService = StandsService();
+
+  bool _isLoading = false;
+  String? _error;
+  int _currentPage = 1;
+  List<StandModel> _stands = [];
+
+  final Set<int> _editingIds = {};
+  final Set<int> _deletingIds = {};
+  final Set<int> _togglingIds = {};
+
+  int get _totalPages => max(1, (_stands.length / _pageSize).ceil());
+
+  List<StandModel> get _pagedStands {
+    final start = (_currentPage - 1) * _pageSize;
+    final end = (start + _pageSize).clamp(0, _stands.length);
+    return _stands.sublist(start, end);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStands();
+  }
+
+  Future<void> _loadStands({bool force = false}) async {
+    if (_isLoading) return;
+    if (!force && _stands.isNotEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final stands = await _standsService.fetchStands();
+      if (!mounted) return;
+      setState(() {
+        _stands = stands;
+        _currentPage = 1;
+        _isLoading = false;
+      });
+    } catch (e, stack) {
+      log('[StandsPage] load error: $e', stackTrace: stack);
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error al cargar los puestos: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleGoToPage(int page) {
+    if (page < 1 || page > _totalPages) return;
+    setState(() => _currentPage = page);
+  }
+
+  void _replaceStandInList(StandModel updated) {
+    _stands = _stands.map((s) => s.id == updated.id ? updated : s).toList();
+  }
+
+  Future<void> _createStand() async {
+    final data = await _showStandCreateDialog();
+    if (data == null || !mounted) return;
+
+    try {
+      final result = await _standsService.createStand(
+        nombre: data.$1,
+        username: data.$2,
+        password: data.$3,
+        email: data.$4,
+      );
+      if (!mounted) return;
+      setState(() {
+        _stands = [..._stands, result.stand];
+        _currentPage = _totalPages;
+      });
+      _showStandCredentialsDialog(result);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo crear el puesto: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _editStand(StandModel stand) async {
+    if (_editingIds.contains(stand.id)) return;
+
+    final nombre = await _showStandRenameDialog(initialNombre: stand.nombre);
+    if (nombre == null || !mounted) return;
+
+    setState(() => _editingIds.add(stand.id));
+
+    try {
+      final updated = await _standsService.updateStand(
+        id: stand.id,
+        nombre: nombre,
+      );
+      if (!mounted) return;
+      setState(() {
+        _replaceStandInList(updated);
+        _editingIds.remove(stand.id);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _editingIds.remove(stand.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo actualizar el puesto.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleActive(StandModel stand, bool value) async {
+    if (_togglingIds.contains(stand.id)) return;
+
+    setState(() {
+      _togglingIds.add(stand.id);
+      _replaceStandInList(stand.copyWith(activo: value));
+    });
+
+    try {
+      final updated = await _standsService.toggleStandActivo(
+        id: stand.id,
+        activo: value,
+      );
+      if (!mounted) return;
+      setState(() {
+        _replaceStandInList(updated);
+        _togglingIds.remove(stand.id);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _replaceStandInList(stand);
+        _togglingIds.remove(stand.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo cambiar el estado del puesto.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteStand(StandModel stand) async {
+    if (_deletingIds.contains(stand.id)) return;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('Eliminar puesto', style: TextStyle(color: textColor)),
+        content: Text(
+          '¿Querés eliminar "${stand.nombre}"? Esta acción no se puede deshacer.',
+          style: TextStyle(color: textColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppConstants.errorRed),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingIds.add(stand.id));
+
+    try {
+      await _standsService.deleteStand(id: stand.id);
+      if (!mounted) return;
+      setState(() {
+        _stands = _stands.where((s) => s.id != stand.id).toList();
+        _deletingIds.remove(stand.id);
+        if (_currentPage > 1 &&
+            (_currentPage - 1) * _pageSize >= _stands.length) {
+          _currentPage--;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingIds.remove(stand.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar el puesto.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // Formulario de creación: nombre, username, password, email
+  Future<(String, String, String, String)?> _showStandCreateDialog() async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    final nombreController = TextEditingController();
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    final emailController = TextEditingController();
+    bool obscurePassword = true;
+
+    final result = await showDialog<(String, String, String, String)>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (_, setDialogState) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text('Crear puesto', style: TextStyle(color: textColor)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreController,
+                  autofocus: true,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Nombre del puesto',
+                    hintText: 'Stand Central',
+                    labelStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.7),
+                    ),
+                    hintStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: usernameController,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Usuario operador',
+                    hintText: 'stand_central',
+                    labelStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.7),
+                    ),
+                    hintStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    hintText: 'password123',
+                    labelStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.7),
+                    ),
+                    hintStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.35),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: textColor.withValues(alpha: 0.6),
+                      ),
+                      onPressed: () => setDialogState(
+                        () => obscurePassword = !obscurePassword,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Email del operador',
+                    hintText: 'stand@boombet.com',
+                    labelStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.7),
+                    ),
+                    hintStyle: TextStyle(
+                      color: textColor.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final nombre = nombreController.text.trim();
+                final username = usernameController.text.trim();
+                final password = passwordController.text;
+                final email = emailController.text.trim();
+                if (nombre.isEmpty ||
+                    username.isEmpty ||
+                    password.isEmpty ||
+                    email.isEmpty) {
+                  return;
+                }
+                Navigator.pop(ctx, (nombre, username, password, email));
+              },
+              child: const Text(
+                'Crear',
+                style: TextStyle(color: AppConstants.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      nombreController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+      emailController.dispose();
+    });
+
+    return result;
+  }
+
+  void _showStandCredentialsDialog(StandCreationResult result) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Row(
+          children: [
+            const Icon(Icons.key_outlined, color: AppConstants.primaryGreen),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Credenciales del operador',
+                style: TextStyle(color: textColor),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppConstants.errorRed.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                border: Border.all(
+                  color: AppConstants.errorRed.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_outlined,
+                    color: AppConstants.errorRed,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Guardá estas credenciales ahora. No se volverán a mostrar.',
+                      style: TextStyle(
+                        color: AppConstants.errorRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _CredentialRow(
+              label: 'Puesto',
+              value: result.stand.nombre,
+              textColor: textColor,
+            ),
+            const SizedBox(height: 10),
+            _CredentialRow(
+              label: 'Usuario',
+              value: result.username,
+              textColor: textColor,
+            ),
+            const SizedBox(height: 10),
+            _CredentialRow(
+              label: 'Contraseña',
+              value: result.password,
+              textColor: textColor,
+              obscure: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Entendido',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Diálogo solo para renombrar un puesto existente
+  Future<String?> _showStandRenameDialog({
+    required String initialNombre,
+  }) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark
+        ? AppConstants.darkAccent
+        : AppConstants.lightDialogBg;
+    final textColor = isDark
+        ? AppConstants.textDark
+        : AppConstants.lightLabelText;
+
+    final nombreController = TextEditingController(text: initialNombre);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Text('Editar puesto', style: TextStyle(color: textColor)),
+        content: TextField(
+          controller: nombreController,
+          autofocus: true,
+          style: TextStyle(color: textColor),
+          decoration: InputDecoration(
+            labelText: 'Nombre',
+            labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final nombre = nombreController.text.trim();
+              if (nombre.isEmpty) return;
+              Navigator.pop(ctx, nombre);
+            },
+            child: const Text(
+              'Guardar',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 200), nombreController.dispose);
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: MainAppBar(
+        title: 'Stands / Puestos',
+        showBackButton: true,
+        onBackPressed: () => context.go('/affiliates-tools'),
+        showLogo: true,
+        showSettings: false,
+        showProfileButton: false,
+        showLogoutButton: false,
+        showFaqButton: false,
+        showExitButton: false,
+        showAdminTools: false,
+        showAffiliatesTools: false,
+      ),
+      backgroundColor: AppConstants.darkBg,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          StandManagementView(
+            onCreate: _createStand,
+            items: _pagedStands,
+            totalItems: _stands.length,
+            isLoading: _isLoading,
+            errorMessage: _error,
+            editingIds: _editingIds,
+            deletingIds: _deletingIds,
+            togglingIds: _togglingIds,
+            onRetry: () => _loadStands(force: true),
+            onEdit: _editStand,
+            onDelete: _deleteStand,
+            onToggleActive: _toggleActive,
           ),
           if (!_isLoading && _error == null && _totalPages > 1)
             Padding(
@@ -829,6 +1485,102 @@ class _AffiliatorPrimaryActionButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CredentialRow extends StatefulWidget {
+  final String label;
+  final String value;
+  final Color textColor;
+  final bool obscure;
+
+  const _CredentialRow({
+    required this.label,
+    required this.value,
+    required this.textColor,
+    this.obscure = false,
+  });
+
+  @override
+  State<_CredentialRow> createState() => _CredentialRowState();
+}
+
+class _CredentialRowState extends State<_CredentialRow> {
+  bool _revealed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = widget.obscure && !_revealed
+        ? '•' * widget.value.length.clamp(6, 20)
+        : widget.value;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppConstants.primaryGreen.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        border: Border.all(
+          color: AppConstants.primaryGreen.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: widget.textColor.withValues(alpha: 0.6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  displayValue,
+                  style: TextStyle(
+                    color: widget.textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (widget.obscure)
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                _revealed
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 18,
+                color: AppConstants.primaryGreen,
+              ),
+              onPressed: () => setState(() => _revealed = !_revealed),
+            ),
+          const SizedBox(width: 4),
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Copiar',
+            icon: const Icon(
+              Icons.copy_outlined,
+              size: 18,
+              color: AppConstants.primaryGreen,
+            ),
+            onPressed: () {
+              // ignore: deprecated_member_use
+              Clipboard.setData(ClipboardData(text: widget.value));
+            },
+          ),
+        ],
       ),
     );
   }

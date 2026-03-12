@@ -4,6 +4,10 @@ import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
+const _green = AppConstants.primaryGreen;
+const _cardBg = Color(0xFF141414);
+const _errorRed = AppConstants.errorRed;
+
 class AffiliatesManagementeView extends StatelessWidget {
   final VoidCallback onCreate;
   final List<AfiliadorModel> items;
@@ -46,8 +50,6 @@ class AffiliatesManagementeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     final lastIndex = totalPages > 0 ? totalPages - 1 : page;
     final canGoBack = page > 0 && !isFirstPage;
     final canGoForward = totalPages > 0 ? page < lastIndex : !isLastPage;
@@ -65,17 +67,17 @@ class AffiliatesManagementeView extends StatelessWidget {
             children: [
               _AdminCreateButton(
                 label: 'Crear afiliador',
-                icon: Icons.person_add_alt_1,
+                icon: Icons.person_add_alt_1_outlined,
                 onTap: onCreate,
               ),
               const SizedBox(height: 16),
               if (isLoading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: CircularProgressIndicator(
-                      color: theme.colorScheme.primary,
-                      strokeWidth: 3,
+                      color: _green,
+                      strokeWidth: 2.5,
                     ),
                   ),
                 )
@@ -85,29 +87,23 @@ class AffiliatesManagementeView extends StatelessWidget {
                 _AdminAffiliatorsEmpty(onRetry: onRetry)
               else ...[
                 ...items.map((afiliador) {
-                  final accent = theme.colorScheme.primary;
                   final isUpdating = updatingIds.contains(afiliador.id);
                   final isDeleting = deletingIds.contains(afiliador.id);
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _AdminListTile(
-                      item: _AdminListItemData(
-                        title: afiliador.nombre,
-                        leadingIcon: Icons.person_outline,
-                        accentColor: accent,
-                      ),
-                      accentColor: accent,
+                      item: _AdminListItemData(title: afiliador.nombre),
                       subtitleWidget: TextButton.icon(
                         onPressed: () => onViewAffiliations(afiliador),
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.people_outline,
-                          size: 14,
-                          color: accent,
+                          size: 13,
+                          color: _green,
                         ),
-                        label: Text(
-                          'Ver cantidad de afiliaciones',
-                          style: TextStyle(color: accent, fontSize: 12),
+                        label: const Text(
+                          'Ver afiliaciones',
+                          style: TextStyle(color: _green, fontSize: 11.5),
                         ),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
@@ -123,26 +119,12 @@ class AffiliatesManagementeView extends StatelessWidget {
                             onChanged: isUpdating || isDeleting
                                 ? null
                                 : (value) => onToggleActive(afiliador, value),
-                            activeColor: accent,
+                            activeColor: _green,
                           ),
-                          IconButton(
-                            tooltip: 'Eliminar afiliador',
-                            onPressed: isDeleting || isUpdating
-                                ? null
-                                : () => onDelete(afiliador),
-                            icon: isDeleting
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppConstants.errorRed,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.delete_outline,
-                                    color: AppConstants.errorRed,
-                                  ),
+                          _DeleteIconButton(
+                            isDeleting: isDeleting,
+                            isDisabled: isDeleting || isUpdating,
+                            onPressed: () => onDelete(afiliador),
                           ),
                         ],
                       ),
@@ -150,31 +132,33 @@ class AffiliatesManagementeView extends StatelessWidget {
                   );
                 }),
                 const SizedBox(height: 10),
+
+                // Info bar
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppConstants.darkAccent,
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
-                    ),
+                    color: _cardBg,
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                     border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      color: _green.withValues(alpha: 0.12),
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
-                        color: theme.colorScheme.primary,
+                        Icons.info_outline_rounded,
+                        color: _green.withValues(alpha: 0.70),
+                        size: 16,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Mostrando $totalElements afiliadores · Página ${page + 1}${totalPages > 0 ? " de $totalPages" : ""}${pageSize > 0 ? " · $pageSize por página" : ""}',
+                          '$totalElements afiliadores · Pág. ${page + 1}${totalPages > 0 ? " / $totalPages" : ""}${pageSize > 0 ? " · $pageSize por pág." : ""}',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: Colors.white.withValues(alpha: 0.50),
                             fontSize: 12,
                           ),
                         ),
@@ -182,8 +166,10 @@ class AffiliatesManagementeView extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // Pagination
                 if (totalPages > 1 || (!isLastPage && totalElements > 0)) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -191,14 +177,10 @@ class AffiliatesManagementeView extends StatelessWidget {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.borderRadius,
-                      ),
+                      color: _cardBg,
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.12,
-                        ),
+                        color: _green.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Center(
@@ -208,8 +190,8 @@ class AffiliatesManagementeView extends StatelessWidget {
                         canGoNext: canGoForward,
                         onPrev: () => onGoToPage(page - 1),
                         onNext: () => onGoToPage(page + 1),
-                        primaryColor: theme.colorScheme.primary,
-                        textColor: theme.colorScheme.onSurface,
+                        primaryColor: _green,
+                        textColor: Colors.white,
                       ),
                     ),
                   ),
@@ -222,6 +204,8 @@ class AffiliatesManagementeView extends StatelessWidget {
     );
   }
 }
+
+// ── Botón crear ────────────────────────────────────────────────────────────────
 
 class _AdminCreateButton extends StatelessWidget {
   final String label;
@@ -236,40 +220,59 @@ class _AdminCreateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppConstants.darkAccent,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        splashColor: _green.withValues(alpha: 0.08),
+        highlightColor: _green.withValues(alpha: 0.04),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: _cardBg,
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(color: _green.withValues(alpha: 0.22)),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: theme.colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _green.withValues(alpha: 0.22)),
+                ),
+                child: Icon(icon, color: _green, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
-            Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
-          ],
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.add_rounded, color: _green, size: 16),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ── Estado de error ────────────────────────────────────────────────────────────
 
 class _AdminAffiliatorsError extends StatelessWidget {
   final String message;
@@ -279,40 +282,75 @@ class _AdminAffiliatorsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(color: AppConstants.errorRed.withValues(alpha: 0.3)),
+        border: Border.all(color: _errorRed.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'No se pudieron cargar los afiliadores.',
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: _errorRed, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                'No se pudieron cargar los afiliadores',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
             message,
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.50),
               fontSize: 12,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reintentar'),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onRetry,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: _errorRed.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _errorRed.withValues(alpha: 0.30)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.refresh_rounded,
+                      color: _errorRed,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Reintentar',
+                      style: TextStyle(
+                        color: _errorRed,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -320,6 +358,8 @@ class _AdminAffiliatorsError extends StatelessWidget {
     );
   }
 }
+
+// ── Estado vacío ───────────────────────────────────────────────────────────────
 
 class _AdminAffiliatorsEmpty extends StatelessWidget {
   final VoidCallback onRetry;
@@ -328,82 +368,104 @@ class _AdminAffiliatorsEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: _green.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
-          Icon(Icons.inbox_outlined, color: theme.colorScheme.primary),
+          Icon(
+            Icons.inbox_outlined,
+            color: _green.withValues(alpha: 0.55),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'No hay afiliadores para mostrar.',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.50),
+                fontSize: 12.5,
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Refrescar')),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onRetry,
+              borderRadius: BorderRadius.circular(7),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: _green.withValues(alpha: 0.20)),
+                ),
+                child: const Text(
+                  'Refrescar',
+                  style: TextStyle(
+                    color: _green,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+// ── Tile de afiliador ──────────────────────────────────────────────────────────
+
 class _AdminListItemData {
   final String title;
   final IconData leadingIcon;
-  final Color accentColor;
 
   const _AdminListItemData({
     required this.title,
-    this.leadingIcon = Icons.person_outline,
-    this.accentColor = AppConstants.primaryGreen,
+    this.leadingIcon = Icons.person_outline_rounded,
   });
 }
 
 class _AdminListTile extends StatelessWidget {
   final _AdminListItemData item;
-  final Color accentColor;
   final Widget? trailingWidget;
   final Widget? subtitleWidget;
 
   const _AdminListTile({
     required this.item,
-    required this.accentColor,
     this.trailingWidget,
     this.subtitleWidget,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+        border: Border.all(color: _green.withValues(alpha: 0.14)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+              color: _green.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _green.withValues(alpha: 0.20)),
             ),
-            child: Icon(item.leadingIcon, color: accentColor, size: 20),
+            child: Icon(item.leadingIcon, color: _green, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -412,9 +474,10 @@ class _AdminListTile extends StatelessWidget {
               children: [
                 Text(
                   item.title,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
                   ),
                 ),
                 if (subtitleWidget != null) ...[
@@ -427,6 +490,44 @@ class _AdminListTile extends StatelessWidget {
           if (trailingWidget != null) trailingWidget!,
         ],
       ),
+    );
+  }
+}
+
+// ── Botón de borrar ────────────────────────────────────────────────────────────
+
+class _DeleteIconButton extends StatelessWidget {
+  final bool isDeleting;
+  final bool isDisabled;
+  final VoidCallback onPressed;
+
+  const _DeleteIconButton({
+    required this.isDeleting,
+    required this.isDisabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Eliminar afiliador',
+      onPressed: isDisabled ? null : onPressed,
+      icon: isDeleting
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: _errorRed,
+              ),
+            )
+          : Icon(
+              Icons.delete_outline_rounded,
+              color: isDisabled
+                  ? _errorRed.withValues(alpha: 0.30)
+                  : _errorRed,
+              size: 20,
+            ),
     );
   }
 }

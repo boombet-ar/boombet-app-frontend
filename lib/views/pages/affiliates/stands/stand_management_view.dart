@@ -1,24 +1,23 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/models/tid_model.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/models/stand_model.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
-class TidsManagementView extends StatelessWidget {
+class StandManagementView extends StatelessWidget {
   final VoidCallback onCreate;
-  final List<TidModel> items;
+  final List<StandModel> items;
   final int totalItems;
   final bool isLoading;
   final String? errorMessage;
   final Set<int> editingIds;
   final Set<int> deletingIds;
+  final Set<int> togglingIds;
   final VoidCallback onRetry;
-  final void Function(TidModel) onEdit;
-  final void Function(TidModel) onDelete;
-  final void Function(TidModel) onViewAffiliations;
-  final Map<int, String> eventoNames;
-  final Map<int, String> standNames;
+  final void Function(StandModel) onEdit;
+  final void Function(StandModel) onDelete;
+  final void Function(StandModel stand, bool value) onToggleActive;
 
-  const TidsManagementView({
+  const StandManagementView({
     super.key,
     required this.onCreate,
     required this.items,
@@ -27,12 +26,11 @@ class TidsManagementView extends StatelessWidget {
     required this.errorMessage,
     required this.editingIds,
     required this.deletingIds,
+    required this.togglingIds,
     required this.onRetry,
     required this.onEdit,
     required this.onDelete,
-    required this.onViewAffiliations,
-    this.eventoNames = const {},
-    this.standNames = const {},
+    required this.onToggleActive,
   });
 
   @override
@@ -41,18 +39,18 @@ class TidsManagementView extends StatelessWidget {
 
     return Column(
       children: [
-        SectionHeaderWidget(
-          title: 'Tracking IDs',
-          subtitle: 'Listado de TIDs registrados.',
-          icon: Icons.track_changes_outlined,
+        const SectionHeaderWidget(
+          title: 'Stands / Puestos',
+          subtitle: 'Listado de puestos registrados.',
+          icon: Icons.storefront_outlined,
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(
             children: [
-              _TidCreateButton(
-                label: 'Crear TID',
-                icon: Icons.add_link,
+              _StandCreateButton(
+                label: 'Crear puesto',
+                icon: Icons.add_business_outlined,
                 onTap: onCreate,
               ),
               const SizedBox(height: 16),
@@ -67,65 +65,28 @@ class TidsManagementView extends StatelessWidget {
                   ),
                 )
               else if (errorMessage != null)
-                _TidsError(message: errorMessage!, onRetry: onRetry)
+                _StandsError(message: errorMessage!, onRetry: onRetry)
               else if (items.isEmpty)
-                _TidsEmpty(onRetry: onRetry)
+                _StandsEmpty(onRetry: onRetry)
               else ...[
-                ...items.map((tid) {
-                  final isEditing = editingIds.contains(tid.id);
-                  final isDeleting = deletingIds.contains(tid.id);
+                ...items.map((stand) {
+                  final isEditing = editingIds.contains(stand.id);
+                  final isDeleting = deletingIds.contains(stand.id);
+                  final isToggling = togglingIds.contains(stand.id);
+                  final isBusy = isEditing || isDeleting || isToggling;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _TidListTile(
-                      tid: tid,
+                    child: _StandListTile(
+                      stand: stand,
                       accentColor: theme.colorScheme.primary,
-                      eventoNames: eventoNames,
-                      standNames: standNames,
-                      onViewAffiliations: () => onViewAffiliations(tid),
-                      trailingWidget: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Editar TID',
-                            onPressed: isEditing || isDeleting
-                                ? null
-                                : () => onEdit(tid),
-                            icon: isEditing
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.edit_outlined,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                          ),
-                          IconButton(
-                            tooltip: 'Eliminar TID',
-                            onPressed: isDeleting || isEditing
-                                ? null
-                                : () => onDelete(tid),
-                            icon: isDeleting
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppConstants.errorRed,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.delete_outline,
-                                    color: AppConstants.errorRed,
-                                  ),
-                          ),
-                        ],
-                      ),
+                      isEditing: isEditing,
+                      isDeleting: isDeleting,
+                      isToggling: isToggling,
+                      isBusy: isBusy,
+                      onEdit: () => onEdit(stand),
+                      onDelete: () => onDelete(stand),
+                      onToggleActive: (value) => onToggleActive(stand, value),
                     ),
                   );
                 }),
@@ -150,7 +111,7 @@ class TidsManagementView extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '${totalItems} TID${totalItems == 1 ? '' : 's'} registrado${totalItems == 1 ? '' : 's'}',
+                          '$totalItems puesto${totalItems == 1 ? '' : 's'} registrado${totalItems == 1 ? '' : 's'}',
                           style: TextStyle(
                             color: theme.colorScheme.onSurface.withValues(
                               alpha: 0.7,
@@ -171,12 +132,12 @@ class TidsManagementView extends StatelessWidget {
   }
 }
 
-class _TidCreateButton extends StatelessWidget {
+class _StandCreateButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _TidCreateButton({
+  const _StandCreateButton({
     required this.label,
     required this.icon,
     required this.onTap,
@@ -219,11 +180,11 @@ class _TidCreateButton extends StatelessWidget {
   }
 }
 
-class _TidsError extends StatelessWidget {
+class _StandsError extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _TidsError({required this.message, required this.onRetry});
+  const _StandsError({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +201,7 @@ class _TidsError extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'No se pudieron cargar los TIDs.',
+            'No se pudieron cargar los puestos.',
             style: TextStyle(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w600,
@@ -269,10 +230,10 @@ class _TidsError extends StatelessWidget {
   }
 }
 
-class _TidsEmpty extends StatelessWidget {
+class _StandsEmpty extends StatelessWidget {
   final VoidCallback onRetry;
 
-  const _TidsEmpty({required this.onRetry});
+  const _StandsEmpty({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -289,11 +250,11 @@ class _TidsEmpty extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.inbox_outlined, color: theme.colorScheme.primary),
+          Icon(Icons.storefront_outlined, color: theme.colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'No hay TIDs para mostrar.',
+              'No hay puestos para mostrar.',
               style: TextStyle(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontSize: 12,
@@ -307,38 +268,27 @@ class _TidsEmpty extends StatelessWidget {
   }
 }
 
-String _eventoLabel(TidModel tid, Map<int, String> eventoNames) {
-  if (tid.idEvento == 0) return 'Sin evento';
-  if (tid.eventoNombre != null && tid.eventoNombre!.trim().isNotEmpty) {
-    return 'Evento: ${tid.eventoNombre}';
-  }
-  final nombre = eventoNames[tid.idEvento];
-  if (nombre != null && nombre.trim().isNotEmpty) return 'Evento: $nombre';
-  return 'Evento #${tid.idEvento}';
-}
-
-String? _standLabel(TidModel tid, Map<int, String> standNames) {
-  if (tid.idStand == null) return null;
-  final nombre = standNames[tid.idStand];
-  if (nombre != null && nombre.trim().isNotEmpty) return 'Stand: $nombre';
-  return null; // hide while loading / unknown
-}
-
-class _TidListTile extends StatelessWidget {
-  final TidModel tid;
+class _StandListTile extends StatelessWidget {
+  final StandModel stand;
   final Color accentColor;
-  final Map<int, String> eventoNames;
-  final Map<int, String> standNames;
-  final Widget? trailingWidget;
-  final VoidCallback? onViewAffiliations;
+  final bool isEditing;
+  final bool isDeleting;
+  final bool isToggling;
+  final bool isBusy;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final void Function(bool) onToggleActive;
 
-  const _TidListTile({
-    required this.tid,
+  const _StandListTile({
+    required this.stand,
     required this.accentColor,
-    this.eventoNames = const {},
-    this.standNames = const {},
-    this.trailingWidget,
-    this.onViewAffiliations,
+    required this.isEditing,
+    required this.isDeleting,
+    required this.isToggling,
+    required this.isBusy,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleActive,
   });
 
   @override
@@ -346,7 +296,7 @@ class _TidListTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppConstants.darkAccent,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
@@ -361,63 +311,65 @@ class _TidListTile extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.track_changes_outlined,
+              Icons.storefront_outlined,
               color: accentColor,
               size: 20,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tid.tid.isNotEmpty ? tid.tid : 'Sin TID',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _eventoLabel(tid, eventoNames),
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                if (_standLabel(tid, standNames) case final standLbl?) ...[
-                  Text(
-                    standLbl,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                ],
-                TextButton.icon(
-                  onPressed: onViewAffiliations,
-                  icon: Icon(
-                    Icons.people_outline,
-                    size: 14,
-                    color: accentColor,
-                  ),
-                  label: Text(
-                    'Ver cantidad de afiliaciones',
-                    style: TextStyle(color: accentColor, fontSize: 12),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
+            child: Text(
+              stand.nombre,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          if (trailingWidget != null) trailingWidget!,
+          if (isToggling)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Switch.adaptive(
+              value: stand.activo,
+              activeTrackColor: AppConstants.primaryGreen,
+              onChanged: isBusy ? null : onToggleActive,
+            ),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Editar puesto',
+            onPressed: isBusy ? null : onEdit,
+            icon: isEditing
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: accentColor,
+                    ),
+                  )
+                : Icon(Icons.edit_outlined, color: accentColor),
+          ),
+          IconButton(
+            tooltip: 'Eliminar puesto',
+            onPressed: isBusy ? null : onDelete,
+            icon: isDeleting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppConstants.errorRed,
+                    ),
+                  )
+                : const Icon(
+                    Icons.delete_outline,
+                    color: AppConstants.errorRed,
+                  ),
+          ),
         ],
       ),
     );

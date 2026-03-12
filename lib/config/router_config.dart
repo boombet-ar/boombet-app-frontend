@@ -9,6 +9,9 @@ import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
+import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
+import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
+import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_detail_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
@@ -95,6 +98,10 @@ bool _isAffiliatesRoute(String path) {
   return path == '/affiliates-tools' || path.startsWith('/affiliates-tools/');
 }
 
+bool _isStandRoute(String path) {
+  return path == '/stand-tools' || path.startsWith('/stand-tools/');
+}
+
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   debugPrint('­ƒöÇ ===== REDIRECT CALLBACK =====');
@@ -174,8 +181,19 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   // AFILIADOR: acceso exclusivo al panel de afiliador
   if (roleUpper == 'AFILIADOR') {
     if (_isAffiliatesRoute(path)) return null;
-    debugPrint('🔒 Afiliador intentando acceder a ruta no permitida: $path → /affiliates-tools');
+    debugPrint(
+      '🔒 Afiliador intentando acceder a ruta no permitida: $path → /affiliates-tools',
+    );
     return '/affiliates-tools';
+  }
+
+  // STAND: acceso exclusivo al panel del stand
+  if (roleUpper == 'STAND') {
+    if (_isStandRoute(path)) return null;
+    debugPrint(
+      '🔒 Stand intentando acceder a ruta no permitida: $path → /stand-tools',
+    );
+    return '/stand-tools';
   }
 
   final isVerified = await _fetchIsVerified();
@@ -200,6 +218,10 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   }
 
   if (_isAffiliatesRoute(path)) {
+    return '/home';
+  }
+
+  if (_isStandRoute(path)) {
     return '/home';
   }
 
@@ -253,12 +275,30 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const EventosPage(),
     ),
     GoRoute(
+      path: '/affiliates-tools/stands',
+      builder: (context, state) => const StandsPage(),
+    ),
+    GoRoute(
       path: '/affiliates-tools/eventos/:id',
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
-        final evento = state.extra is EventoModel ? state.extra as EventoModel : null;
+        final evento = state.extra is EventoModel
+            ? state.extra as EventoModel
+            : null;
         return EventDetailPage(eventoId: id, evento: evento);
       },
+    ),
+    GoRoute(
+      path: '/stand-tools',
+      builder: (context, state) => const StandsToolsPage(),
+    ),
+    GoRoute(
+      path: '/stand-tools/prizes',
+      builder: (context, state) => const StandPrizesPage(),
+    ),
+    GoRoute(
+      path: '/stand-tools/roulettes',
+      builder: (context, state) => const StandRoulettesPage(),
     ),
 
     // Deeplink: detalle de publicación del foro

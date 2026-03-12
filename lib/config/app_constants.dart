@@ -111,6 +111,10 @@ class AppConstants {
   /// al presionar "Crear cuenta". Desactivar en producción estable.
   static const bool debugRegisterEnabled = false;
 
+  /// Habilita la opción "Debug Views" en Settings para navegar
+  /// rápidamente por vistas de lib/views/pages con datos mock.
+  static const bool debugViewsMenuEnabled = true;
+
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =
       'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';

@@ -127,9 +127,18 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         _affiliatorsUpdating.remove(affiliator.id);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo actualizar el estado del afiliador.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: const Text(
+            'No se pudo actualizar el estado del afiliador.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.40)),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -138,30 +147,31 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
   Future<void> _deleteAffiliator(AfiliadorModel affiliator) async {
     if (_affiliatorsDeleting.contains(affiliator.id)) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Eliminar afiliador', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.30)),
+        ),
+        title: const Text(
+          'Eliminar afiliador',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Text(
           '¿Querés eliminar a ${affiliator.nombre}? Esta acción no se puede deshacer.',
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.65), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text(
               'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
+              style: TextStyle(color: green),
             ),
           ),
           TextButton(
@@ -207,9 +217,18 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         _affiliatorsDeleting.remove(affiliator.id);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo eliminar el afiliador.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: const Text(
+            'No se pudo eliminar el afiliador.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.40)),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -217,9 +236,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = AppConstants.textDark;
-    final bgColor = AppConstants.darkBg;
+    const scaffoldBg = Color(0xFF0E0E0E);
 
     void handleAppBarBack() {
       if (_activeSection != _AdminSection.home) {
@@ -249,9 +266,8 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
     }
 
     void showAffiliationsCount(AfiliadorModel afiliador) {
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
-      final textColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+      const dialogBg = Color(0xFF1A1A1A);
+      const green = AppConstants.primaryGreen;
 
       showDialog<void>(
         context: context,
@@ -279,32 +295,200 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
                 });
               }
 
-              return AlertDialog(
+              return Dialog(
                 backgroundColor: dialogBg,
-                title: Text(afiliador.nombre, style: TextStyle(color: textColor)),
-                content: totalJugadores != null
-                    ? Text(
-                        'Cantidad de afiliaciones: $totalJugadores',
-                        style: TextStyle(color: textColor),
-                      )
-                    : fetchError != null
-                        ? Text(
-                            fetchError!,
-                            style: const TextStyle(color: AppConstants.errorRed),
-                          )
-                        : const SizedBox(
-                            height: 40,
-                            child: Center(child: CircularProgressIndicator()),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(color: green.withValues(alpha: 0.20)),
+                ),
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 24,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Header ────────────────────────────────────────
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                        decoration: BoxDecoration(
+                          color: green.withValues(alpha: 0.06),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(18),
+                            topRight: Radius.circular(18),
                           ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(
-                      'Cerrar',
-                      style: TextStyle(color: AppConstants.primaryGreen),
-                    ),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: green.withValues(alpha: 0.12),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(
+                                  color: green.withValues(alpha: 0.22),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.person_outline_rounded,
+                                color: green,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    afiliador.nombre,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Afiliador registrado',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.38),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── Contenido ─────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                        child: totalJugadores != null
+                            ? Column(
+                                children: [
+                                  Text(
+                                    'Total de afiliaciones',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.45),
+                                      fontSize: 12,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: green.withValues(alpha: 0.06),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: green.withValues(alpha: 0.18),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                          '$totalJugadores',
+                                          style: const TextStyle(
+                                            color: green,
+                                            fontSize: 42,
+                                            fontWeight: FontWeight.w800,
+                                            height: 1,
+                                            letterSpacing: -1,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          totalJugadores == 1
+                                              ? 'jugador afiliado'
+                                              : 'jugadores afiliados',
+                                          style: TextStyle(
+                                            color: green.withValues(alpha: 0.60),
+                                            fontSize: 11.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : fetchError != null
+                                ? Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        color: AppConstants.errorRed,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          fetchError!,
+                                          style: const TextStyle(
+                                            color: AppConstants.errorRed,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const SizedBox(
+                                    height: 56,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: green,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    ),
+                                  ),
+                      ),
+
+                      // ── Acción ────────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              backgroundColor: green.withValues(alpha: 0.08),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: green.withValues(alpha: 0.18),
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cerrar',
+                              style: TextStyle(
+                                color: green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               );
             },
           );
@@ -318,7 +502,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         final isAdmin = snapshot.data == true;
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            backgroundColor: bgColor,
+            backgroundColor: scaffoldBg,
             appBar: const MainAppBar(
               title: 'Herramientas Admin',
               showBackButton: true,
@@ -336,7 +520,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
 
         if (!isAdmin) {
           return Scaffold(
-            backgroundColor: bgColor,
+            backgroundColor: scaffoldBg,
             appBar: MainAppBar(
               title: 'Herramientas Admin',
               showBackButton: true,
@@ -350,16 +534,54 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               showAdminTools: false,
             ),
             body: Center(
-              child: Text(
-                'Acceso restringido. Solo administradores.',
-                style: TextStyle(color: textColor, fontSize: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppConstants.errorRed.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppConstants.errorRed.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.gpp_bad_outlined,
+                        color: AppConstants.errorRed,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Acceso restringido',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Solo administradores pueden acceder a esta sección.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.50),
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
         return Scaffold(
-          backgroundColor: bgColor,
+          backgroundColor: scaffoldBg,
           appBar: MainAppBar(
             title: 'Herramientas Admin',
             showBackButton: true,
@@ -471,8 +693,6 @@ class _AdminSectionBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -490,7 +710,6 @@ class _AdminSectionBody extends StatelessWidget {
                   title: 'Afiliadores',
                   subtitle: 'Gestión de afiliadores',
                   icon: Icons.group_outlined,
-                  accentColor: theme.colorScheme.primary,
                   onTap: onSelectAffiliators,
                 ),
                 const SizedBox(height: 12),
@@ -498,7 +717,6 @@ class _AdminSectionBody extends StatelessWidget {
                   title: 'Publicidades',
                   subtitle: 'Gestión de banners publicitarios',
                   icon: Icons.campaign_outlined,
-                  accentColor: theme.colorScheme.primary,
                   onTap: onSelectAds,
                 ),
               ],
@@ -537,86 +755,76 @@ class _AdminPrimaryActionButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color accentColor;
   final VoidCallback onTap;
 
   const _AdminPrimaryActionButton({
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.accentColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    const green = AppConstants.primaryGreen;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              accentColor.withValues(alpha: 0.2),
-              accentColor.withValues(alpha: 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        splashColor: green.withValues(alpha: 0.08),
+        highlightColor: green.withValues(alpha: 0.04),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(color: green.withValues(alpha: 0.14)),
           ),
-          color: AppConstants.darkAccent,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.2),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: green.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: green.withValues(alpha: 0.20)),
+                ),
+                child: Icon(icon, color: green, size: 20),
               ),
-              child: Icon(icon, color: accentColor, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontSize: 12,
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ],
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: green.withValues(alpha: 0.50),
+              ),
+            ],
+          ),
         ),
       ),
     );

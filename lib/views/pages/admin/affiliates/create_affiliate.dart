@@ -18,14 +18,36 @@ Future<void> showCreateAffiliateDialog({
       onCreated: () {
         onCreated();
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Afiliador creado correctamente.'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Text(
+              'Afiliador creado correctamente.',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppConstants.primaryGreen,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
           ),
         );
       },
       onError: (message) => messenger.showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: AppConstants.errorRed.withValues(alpha: 0.40),
+            ),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
       ),
     ),
   );
@@ -186,18 +208,50 @@ class _CreateAffiliateDialogBodyState
     }
   }
 
+  InputDecoration _fieldDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) {
+    const green = AppConstants.primaryGreen;
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.50), fontSize: 13),
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.22), fontSize: 13),
+      filled: true,
+      fillColor: const Color(0xFF141414),
+      prefixIcon: Icon(icon, color: green.withValues(alpha: 0.65), size: 18),
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: green.withValues(alpha: 0.14)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: green.withValues(alpha: 0.14)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: green),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    const textColor = AppConstants.textDark;
-    const dialogBg = AppConstants.darkAccent;
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+    const fieldStyle = TextStyle(color: Colors.white, fontSize: 14);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       backgroundColor: dialogBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius + 6),
+        side: BorderSide(color: green.withValues(alpha: 0.20)),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -209,36 +263,29 @@ class _CreateAffiliateDialogBodyState
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    accent.withValues(alpha: 0.25),
-                    accent.withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: green.withValues(alpha: 0.06),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppConstants.borderRadius + 6),
                   topRight: Radius.circular(AppConstants.borderRadius + 6),
+                ),
+                border: Border(
+                  bottom: BorderSide(color: green.withValues(alpha: 0.12)),
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.25),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      color: green.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: green.withValues(alpha: 0.22)),
                     ),
-                    child: Icon(Icons.person_add_alt_1, color: accent, size: 22),
+                    child: const Icon(
+                      Icons.person_add_alt_1_outlined,
+                      color: green,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -248,33 +295,19 @@ class _CreateAffiliateDialogBodyState
                         const Text(
                           'Crear afiliador',
                           style: TextStyle(
-                            color: textColor,
-                            fontSize: 18,
+                            color: Colors.white,
+                            fontSize: 17,
                             fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: accent,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Completá los datos para crear una cuenta de afiliador.',
-                                style: TextStyle(
-                                  color: textColor.withValues(alpha: 0.75),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 3),
+                        Text(
+                          'Completá los datos para crear la cuenta.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.45),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -292,50 +325,67 @@ class _CreateAffiliateDialogBodyState
                   children: [
                     TextField(
                       controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Usuario',
-                        hintText: 'Ej: juan_perez',
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Usuario',
+                        hint: 'Ej: juan_perez',
+                        icon: Icons.person_outline_rounded,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'Ej: juan@email.com',
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Email',
+                        hint: 'Ej: juan@email.com',
+                        icon: Icons.email_outlined,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _dniController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'DNI',
-                        hintText: 'Ej: 12345678',
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'DNI',
+                        hint: 'Ej: 12345678',
+                        icon: Icons.badge_outlined,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _telefonoController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Teléfono',
-                        hintText: 'Ej: 1123456789',
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Teléfono',
+                        hint: 'Ej: 1123456789',
+                        icon: Icons.phone_outlined,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        hintText: 'Mínimo 8 caracteres',
-                        suffixIcon: IconButton(
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Contraseña',
+                        hint: 'Mínimo 8 caracteres',
+                        icon: Icons.lock_outline_rounded,
+                        suffix: IconButton(
                           icon: Icon(
                             _showPassword
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
+                            color: Colors.white.withValues(alpha: 0.40),
+                            size: 18,
                           ),
                           onPressed: () =>
                               setState(() => _showPassword = !_showPassword),
@@ -343,22 +393,24 @@ class _CreateAffiliateDialogBodyState
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _PasswordRulesPanel(
-                      rules: _passwordRules,
-                      accent: accent,
-                    ),
-                    const SizedBox(height: 12),
+                    _PasswordRulesPanel(rules: _passwordRules),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _confirmPasswordController,
                       obscureText: !_showConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Confirmar contraseña',
-                        hintText: 'Repetí la contraseña',
-                        suffixIcon: IconButton(
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Confirmar contraseña',
+                        hint: 'Repetí la contraseña',
+                        icon: Icons.lock_outline_rounded,
+                        suffix: IconButton(
                           icon: Icon(
                             _showConfirmPassword
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
+                            color: Colors.white.withValues(alpha: 0.40),
+                            size: 18,
                           ),
                           onPressed: () => setState(
                             () => _showConfirmPassword = !_showConfirmPassword,
@@ -366,6 +418,7 @@ class _CreateAffiliateDialogBodyState
                         ),
                       ),
                     ),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),
@@ -373,16 +426,16 @@ class _CreateAffiliateDialogBodyState
 
             // ── Acciones ────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: accent,
+                        foregroundColor: Colors.white,
                         side: BorderSide(
-                          color: accent.withValues(alpha: 0.4),
+                          color: Colors.white.withValues(alpha: 0.15),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -391,7 +444,13 @@ class _CreateAffiliateDialogBodyState
                           ),
                         ),
                       ),
-                      child: const Text('Cancelar'),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -399,8 +458,8 @@ class _CreateAffiliateDialogBodyState
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: AppConstants.textLight,
+                        backgroundColor: green,
+                        foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
@@ -414,10 +473,13 @@ class _CreateAffiliateDialogBodyState
                               width: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppConstants.textLight,
+                                color: Colors.black,
                               ),
                             )
-                          : const Text('Crear afiliador'),
+                          : const Text(
+                              'Crear afiliador',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                 ],
@@ -432,9 +494,8 @@ class _CreateAffiliateDialogBodyState
 
 class _PasswordRulesPanel extends StatelessWidget {
   final Map<String, bool> rules;
-  final Color accent;
 
-  const _PasswordRulesPanel({required this.rules, required this.accent});
+  const _PasswordRulesPanel({required this.rules});
 
   static const _labels = {
     'minimum_length': '8+ caracteres',
@@ -447,32 +508,44 @@ class _PasswordRulesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 6,
-      children: rules.entries.map((entry) {
-        final ok = entry.value;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              ok ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-              size: 14,
-              color: ok ? accent : AppConstants.textDark.withValues(alpha: 0.4),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              _labels[entry.key] ?? entry.key,
-              style: TextStyle(
-                fontSize: 11,
-                color: ok
-                    ? accent
-                    : AppConstants.textDark.withValues(alpha: 0.4),
+    const green = AppConstants.primaryGreen;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: green.withValues(alpha: 0.12)),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: rules.entries.map((entry) {
+          final ok = entry.value;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                ok
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 13,
+                color: ok ? green : Colors.white.withValues(alpha: 0.28),
               ),
-            ),
-          ],
-        );
-      }).toList(),
+              const SizedBox(width: 4),
+              Text(
+                _labels[entry.key] ?? entry.key,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: ok ? FontWeight.w600 : FontWeight.normal,
+                  color: ok ? green : Colors.white.withValues(alpha: 0.35),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
     );
   }
 }

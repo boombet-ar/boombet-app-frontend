@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -20,9 +21,12 @@ class QrScannerPage extends StatefulWidget {
 
 class _QrScannerPageState extends State<QrScannerPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const int _maxLogEntries = 80;
+
   late final AnimationController _scanController;
   late final MobileScannerController _scannerController;
   final TextEditingController _manualCodeController = TextEditingController();
+  final List<String> _scanLogs = <String>[];
   bool _flashOn = false;
   String? _lastCode;
   DateTime? _lastScanAt;
@@ -40,6 +44,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     )..repeat(reverse: true);
     _scannerController = MobileScannerController();
     _scannerActive = true;
+    _appendLog('Scanner initialized');
   }
 
   @override
@@ -85,7 +90,9 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     try {
       await _scannerController.start();
+      _appendLog('Scanner started');
     } catch (_) {
+      _appendLog('Scanner start failed');
       return;
     }
 
@@ -99,7 +106,9 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     try {
       await _scannerController.stop();
+      _appendLog('Scanner stopped');
     } catch (_) {
+      _appendLog('Scanner stop failed');
       return;
     }
 
@@ -114,20 +123,43 @@ class _QrScannerPageState extends State<QrScannerPage>
     );
   }
 
+  void _appendLog(String message) {
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
+    final ss = now.second.toString().padLeft(2, '0');
+    final mmm = now.millisecond.toString().padLeft(3, '0');
+    final line = '[$hh:$mm:$ss.$mmm] $message';
+
+    setState(() {
+      _scanLogs.insert(0, line);
+      if (_scanLogs.length > _maxLogEntries) {
+        _scanLogs.removeRange(_maxLogEntries, _scanLogs.length);
+      }
+    });
+  }
+
   void _submitManualCode() {
     final value = _manualCodeController.text.trim();
     if (value.isEmpty) {
+      _appendLog('Manual code is empty');
       _showSnack('Ingresa un codigo valido');
       return;
     }
     setState(() {
       _lastCode = value;
     });
+    _appendLog('Manual code received: $value');
     _showSnack('Codigo registrado');
   }
 
   Future<void> _handleDetection(BarcodeCapture capture) async {
-    if (_handlingRouletteFlow) return;
+    if (_handlingRouletteFlow) {
+      _appendLog('Detection ignored: roulette flow in progress');
+      return;
+    }
 
     String? value;
     for (final barcode in capture.barcodes) {
@@ -138,7 +170,12 @@ class _QrScannerPageState extends State<QrScannerPage>
       }
     }
 
-    if (value == null) return;
+    if (value == null) {
+      _appendLog('Detection ignored: empty raw value');
+      return;
+    }
+
+    _appendLog('QR detected: $value');
 
     final now = DateTime.now();
     final isDuplicate =
@@ -146,7 +183,10 @@ class _QrScannerPageState extends State<QrScannerPage>
         _lastScanAt != null &&
         now.difference(_lastScanAt!) < const Duration(seconds: 2);
 
-    if (isDuplicate) return;
+    if (isDuplicate) {
+      _appendLog('Detection ignored: duplicate within debounce window');
+      return;
+    }
 
     setState(() {
       _lastCode = value;
@@ -155,16 +195,23 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     final uri = _normalizeUri(value);
     if (uri == null) {
+      _appendLog('QR rejected: could not normalize to URI');
       return;
     }
 
+    _appendLog('Normalized URI: $uri');
+
     if (_isRouletteDeepLink(uri)) {
+      _appendLog('Roulette deeplink detected');
       if (!mounted) return;
       final codigo = _extractRouletteCode(uri);
       if (codigo == null || codigo.trim().isEmpty) {
+        _appendLog('Roulette code missing/invalid');
         _showSnack('Codigo de ruleta invalido');
         return;
       }
+
+      _appendLog('Roulette code extracted: $codigo');
 
       _handlingRouletteFlow = true;
 
@@ -172,11 +219,14 @@ class _QrScannerPageState extends State<QrScannerPage>
       final rouletteWsUrl = await _joinRoulette(codigo.trim());
       if (!mounted) return;
       if (rouletteWsUrl == null || rouletteWsUrl.trim().isEmpty) {
+        _appendLog('Roulette join failed: no wsUrl returned');
         _showSnack('No se pudo habilitar la ruleta');
         _handlingRouletteFlow = false;
         await _activateScanner();
         return;
       }
+
+      _appendLog('Roulette wsUrl resolved: $rouletteWsUrl');
 
       final spinFinished = await Navigator.push<bool>(
         context,
@@ -192,29 +242,36 @@ class _QrScannerPageState extends State<QrScannerPage>
       if (!mounted) return;
 
       if (spinFinished == true) {
+        _appendLog('Roulette finished: closing scanner view');
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
         return;
       }
 
+      _appendLog('Roulette page closed without spinFinished=true');
       _handlingRouletteFlow = false;
       await _activateScanner();
       return;
     }
+
+    _appendLog('Non-roulette URI, opening external app');
 
     if (_isLaunching) return;
     _isLaunching = true;
     try {
       final ok = await canLaunchUrl(uri);
       if (!ok) {
+        _appendLog('Launch blocked: canLaunchUrl returned false');
         if (mounted) {
           _showSnack('No se pudo abrir el enlace');
         }
         return;
       }
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _appendLog('URI launched successfully');
     } catch (_) {
+      _appendLog('Launch failed: exception thrown');
       if (mounted) {
         _showSnack('No se pudo abrir el enlace');
       }
@@ -280,13 +337,27 @@ class _QrScannerPageState extends State<QrScannerPage>
 
   Future<String?> _joinRoulette(String codigo) async {
     final encoded = Uri.encodeComponent(codigo);
-    final url = '${ApiConfig.baseUrl}/ruleta/jugar?codigoRuleta=$encoded';
+    final url =
+        '${ApiConfig.baseUrl}/ruleta/usuario/jugar?codigoRuleta=$encoded';
+    _appendLog('Joining roulette via POST: $url');
     try {
+      final role = await TokenService.getUserRole();
+      final token = await TokenService.getToken();
+      _appendLog(
+        'Auth context -> role=${role ?? 'unknown'} | accessToken=${token == null || token.isEmpty ? 'missing' : 'present(len:${token.length})'}',
+      );
+
       final response = await HttpClient.post(
         url,
         body: const {},
         includeAuth: true,
+        expireSessionOnAuthFailure: false,
       );
+
+      _appendLog('Join response status: ${response.statusCode}');
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        _appendLog('Auth rejected by backend for roulette join');
+      }
 
       if (response.statusCode != 200) {
         return null;
@@ -299,6 +370,7 @@ class _QrScannerPageState extends State<QrScannerPage>
 
       return _buildRouletteWsUrl(roomId.trim());
     } catch (e) {
+      _appendLog('Join request failed with exception');
       return null;
     }
   }
@@ -341,127 +413,258 @@ class _QrScannerPageState extends State<QrScannerPage>
     return '${ApiConfig.wsBaseUrl}/ruleta/$safeRoomId';
   }
 
+  // ─── BUILD ───────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accent = theme.colorScheme.primary;
-    final bgColor = isDark ? AppConstants.darkBg : AppConstants.lightBg;
-    final surfaceColor = isDark
-        ? AppConstants.darkCardBg
-        : AppConstants.lightCardBg;
-    final appBarColor = isDark
-        ? Colors.black38
-        : AppConstants.lightSurfaceVariant;
+    const primaryGreen = AppConstants.primaryGreen;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: const Color(0xFF0E0E0E),
       appBar: AppBar(
-        backgroundColor: appBarColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: accent),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppConstants.primaryGreen,
+            size: 20,
+          ),
           tooltip: 'Volver',
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           children: [
-            Icon(Icons.qr_code_scanner, color: accent),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.22),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.qr_code_scanner_rounded,
+                color: AppConstants.primaryGreen,
+                size: 16,
+              ),
+            ),
             const SizedBox(width: 10),
-            Text(
+            const Text(
               'Escanear QR',
               style: TextStyle(
-                color: isDark ? AppConstants.textDark : AppConstants.textLight,
+                color: Colors.white,
                 fontWeight: FontWeight.w700,
+                fontSize: 17,
+                letterSpacing: 0.1,
               ),
             ),
           ],
         ),
       ),
-      body: ResponsiveWrapper(
-        maxWidth: 900,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.paddingLarge),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Apunta al codigo QR dentro del marco',
-                style: TextStyle(
-                  fontSize: AppConstants.bodyLarge,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppConstants.textDark
-                      : AppConstants.textLight,
+      body: Stack(
+        children: [
+          // Radial glow — top left
+          Positioned(
+            top: -80,
+            left: -60,
+            child: Container(
+              width: 340,
+              height: 340,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.055),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Mantiene la camara estable para una lectura rapida.',
-                style: TextStyle(
-                  fontSize: AppConstants.bodySmall,
-                  color: isDark
-                      ? AppConstants.textDark.withValues(alpha: 0.7)
-                      : AppConstants.textLight.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildScannerCard(isDark, accent, surfaceColor),
-              const SizedBox(height: 18),
-              _buildControls(isDark, accent, surfaceColor),
-            ],
+            ),
           ),
-        ),
+          // Radial glow — bottom right
+          Positioned(
+            bottom: -60,
+            right: -40,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.038),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          ResponsiveWrapper(
+            maxWidth: 900,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppConstants.paddingLarge,
+                8,
+                AppConstants.paddingLarge,
+                AppConstants.paddingLarge,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 20),
+                  _buildScannerCard(),
+                  const SizedBox(height: 14),
+                  _buildControls(),
+                  const SizedBox(height: 14),
+                  _buildLogsPanel(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildScannerCard(bool isDark, Color accent, Color surfaceColor) {
-    final frameBorder = Border.all(
-      color: accent.withValues(alpha: 0.75),
-      width: 2,
+  Widget _buildHeader() {
+    const primaryGreen = AppConstants.primaryGreen;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Accent decoration
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      primaryGreen.withValues(alpha: 0.50),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryGreen,
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.80),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      primaryGreen.withValues(alpha: 0.50),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Apunta al codigo QR dentro del marco',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 0.1,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Mantiene la camara estable para una lectura rapida.',
+          style: TextStyle(
+            fontSize: AppConstants.bodySmall,
+            color: Colors.white.withValues(alpha: 0.45),
+          ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildScannerCard() {
+    const primaryGreen = AppConstants.primaryGreen;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: 0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
+            color: primaryGreen.withValues(alpha: 0.08),
+            blurRadius: 28,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(19),
+        child: AspectRatio(
+          aspectRatio: 1,
           child: Stack(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? const [Color(0xFF0C0C0C), Color(0xFF151515)]
-                        : const [Color(0xFFE6E6E6), Color(0xFFD9D9D9)],
-                  ),
+              // Camera feed
+              Positioned.fill(
+                child: MobileScanner(
+                  controller: _scannerController,
+                  onDetect: _handleDetection,
                 ),
               ),
+              // Vignette
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: frameBorder,
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 0.85,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.28),
+                      ],
+                    ),
                   ),
                 ),
               ),
+              // Corner brackets
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _CornerFramePainter(color: primaryGreen),
+                ),
+              ),
+              // Scan line
               AnimatedBuilder(
                 animation: _scanController,
                 builder: (context, child) {
@@ -473,18 +676,25 @@ class _QrScannerPageState extends State<QrScannerPage>
                         children: [
                           Positioned(
                             top: lineY,
-                            left: 12,
-                            right: 12,
+                            left: 0,
+                            right: 0,
                             child: Container(
                               height: 2,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    accent.withValues(alpha: 0.0),
-                                    accent.withValues(alpha: 0.9),
-                                    accent.withValues(alpha: 0.0),
+                                    primaryGreen.withValues(alpha: 0.0),
+                                    primaryGreen.withValues(alpha: 0.95),
+                                    primaryGreen.withValues(alpha: 0.0),
                                   ],
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryGreen.withValues(alpha: 0.55),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -494,10 +704,104 @@ class _QrScannerPageState extends State<QrScannerPage>
                   );
                 },
               ),
-              Center(
-                child: MobileScanner(
-                  controller: _scannerController,
-                  onDetect: _handleDetection,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControls() {
+    const primaryGreen = AppConstants.primaryGreen;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildTorchButton()),
+          const SizedBox(width: 10),
+          Expanded(child: _buildSwitchCameraButton()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTorchButton() {
+    const primaryGreen = AppConstants.primaryGreen;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 48,
+      decoration: BoxDecoration(
+        color: _flashOn
+            ? primaryGreen.withValues(alpha: 0.12)
+            : const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _flashOn
+              ? primaryGreen.withValues(alpha: 0.45)
+              : const Color(0xFF272727),
+          width: 1,
+        ),
+        boxShadow: _flashOn
+            ? [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.20),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          splashColor: primaryGreen.withValues(alpha: 0.12),
+          onTap: () async {
+            try {
+              await _scannerController.toggleTorch();
+              if (!mounted) return;
+              setState(() => _flashOn = !_flashOn);
+            } catch (_) {
+              if (mounted) _showSnack('No se pudo activar la linterna');
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _flashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                size: 16,
+                color: _flashOn
+                    ? primaryGreen
+                    : Colors.white.withValues(alpha: 0.50),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                _flashOn ? 'Linterna activa' : 'Linterna apagada',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: _flashOn
+                      ? primaryGreen
+                      : Colors.white.withValues(alpha: 0.50),
                 ),
               ),
             ],
@@ -507,67 +811,204 @@ class _QrScannerPageState extends State<QrScannerPage>
     );
   }
 
-  Widget _buildControls(bool isDark, Color accent, Color surfaceColor) {
+  Widget _buildSwitchCameraButton() {
+    const primaryGreen = AppConstants.primaryGreen;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      height: 48,
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              icon: Icon(
-                _flashOn ? Icons.flash_on : Icons.flash_off,
-                color: accent,
-              ),
-              label: Text(
-                _flashOn ? 'Linterna activa' : 'Linterna apagada',
-                style: TextStyle(color: accent, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: accent.withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onPressed: () async {
-                try {
-                  await _scannerController.toggleTorch();
-                  if (!mounted) return;
-                  setState(() {
-                    _flashOn = !_flashOn;
-                  });
-                } catch (_) {
-                  if (mounted) {
-                    _showSnack('No se pudo activar la linterna');
-                  }
-                }
-              },
-            ),
+        color: primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.38),
+            blurRadius: 16,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 12),
-          FilledButton.icon(
-            icon: const Icon(Icons.sync),
-            label: const Text('Cambiar camara'),
-            style: FilledButton.styleFrom(
-              backgroundColor: accent,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          splashColor: Colors.black.withValues(alpha: 0.12),
+          onTap: () async {
+            try {
+              await _scannerController.switchCamera();
+              _appendLog('Camera switched');
+              if (mounted) _showSnack('Camara alternada');
+            } catch (_) {
+              _appendLog('Camera switch failed');
+              if (mounted) _showSnack('No se pudo alternar la camara');
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cameraswitch_rounded,
+                size: 16,
+                color: Colors.black.withValues(alpha: 0.80),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                'Cambiar camara',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black.withValues(alpha: 0.85),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogsPanel() {
+    const primaryGreen = AppConstants.primaryGreen;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.terminal_rounded,
+                size: 16,
+                color: primaryGreen.withValues(alpha: 0.9),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Logs del escaner',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _scanLogs.clear();
+                  });
+                },
+                child: const Text('Limpiar'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 190,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B0B0B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
-            onPressed: () async {
-              try {
-                await _scannerController.switchCamera();
-                if (mounted) {
-                  _showSnack('Camara alternada');
-                }
-              } catch (_) {
-                if (mounted) {
-                  _showSnack('No se pudo alternar la camara');
-                }
-              }
-            },
+            child: _scanLogs.isEmpty
+                ? Center(
+                    child: Text(
+                      'Sin eventos todavia',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(10),
+                    reverse: true,
+                    itemCount: _scanLogs.length,
+                    separatorBuilder: (_, __) => Divider(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      height: 8,
+                    ),
+                    itemBuilder: (context, index) {
+                      final line = _scanLogs[_scanLogs.length - 1 - index];
+                      return Text(
+                        line,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          fontSize: 11.5,
+                          height: 1.25,
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
+}
+
+// ─── CORNER FRAME PAINTER ────────────────────────────────────────────────────
+
+class _CornerFramePainter extends CustomPainter {
+  final Color color;
+
+  const _CornerFramePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.45)
+      ..strokeWidth = 5.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.square
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+
+    final solidPaint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.square;
+
+    const margin = 22.0;
+    const arm = 32.0;
+
+    void drawCorner(double x, double y, double hDir, double vDir) {
+      final path = Path()
+        ..moveTo(x + hDir * arm, y)
+        ..lineTo(x, y)
+        ..lineTo(x, y + vDir * arm);
+      canvas.drawPath(path, glowPaint);
+      canvas.drawPath(path, solidPaint);
+    }
+
+    // Top-left
+    drawCorner(margin, margin, 1, 1);
+    // Top-right
+    drawCorner(size.width - margin, margin, -1, 1);
+    // Bottom-right
+    drawCorner(size.width - margin, size.height - margin, -1, -1);
+    // Bottom-left
+    drawCorner(margin, size.height - margin, 1, -1);
+  }
+
+  @override
+  bool shouldRepaint(_CornerFramePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

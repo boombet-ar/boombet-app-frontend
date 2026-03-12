@@ -10,6 +10,7 @@ import 'package:boombet_app/utils/error_parser.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart';
@@ -107,21 +108,24 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   void _showErrorDialog({required String title, required String message}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dialogBg,
-        title: Text(title, style: TextStyle(color: textColor)),
-        content: Text(message, style: TextStyle(color: textColor)),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppConstants.primaryGreen.withValues(alpha: 0.18),
+          ),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -136,21 +140,24 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   }
 
   void _showSuccessDialog({required String message, VoidCallback? onOk}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dialogBg,
-        title: Text('¡Éxito!', style: TextStyle(color: textColor)),
-        content: Text(message, style: TextStyle(color: textColor)),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+          ),
+        ),
+        title: const Text(
+          '¡Éxito!',
+          style: TextStyle(color: AppConstants.primaryGreen, fontSize: 17),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -565,39 +572,412 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     }
   }
 
+  // ─── Helpers de estilo ──────────────────────────────────────────────────────
+
+  static const _green = AppConstants.primaryGreen;
+  static const _scaffoldBg = Color(0xFF0E0E0E);
+  static const _cardBg = Color(0xFF111111);
+  static const _tileBg = Color(0xFF141414);
+
+  /// Sub-header con barra verde izquierda (igual que en settings_page)
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            // Barra izquierda degradada
+            Container(
+              width: 3,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_green, Color(0xFF1ADB4E)],
+                ),
+              ),
+            ),
+            // Contenido
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  color: _cardBg,
+                  border: Border.all(
+                    color: _green.withValues(alpha: 0.10),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: _green.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _green.withValues(alpha: 0.20),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(icon, color: _green, size: 15),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _green,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Campo de solo lectura — tile con lock icon y badge verde
+  Widget _buildReadOnlyField(
+    BuildContext context,
+    String label,
+    String value, {
+    IconData icon = Icons.info_outline_rounded,
+  }) {
+    if (value.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _tileBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _green.withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white.withValues(alpha: 0.35),
+                size: 15,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 11,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: _green.withValues(alpha: 0.18),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: _green.withValues(alpha: 0.55),
+                    size: 10,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    'fijo',
+                    style: TextStyle(
+                      color: _green.withValues(alpha: 0.55),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Campo editable con estilo dark neon
+  Widget _buildEditableField(
+    BuildContext context,
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboardType = TextInputType.text,
+    IconData? icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Semantics(
+        label: 'Campo de $label',
+        hint: 'Puedes editar este campo',
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          cursorColor: _green,
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
+            prefixIcon: icon != null
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    child: Icon(icon, color: _green.withValues(alpha: 0.6), size: 18),
+                  )
+                : null,
+            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            filled: true,
+            fillColor: _tileBg,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _green.withValues(alpha: 0.14)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _green.withValues(alpha: 0.14), width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _green, width: 1.5),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dropdown de género con estilo dark neon
+  Widget _buildGeneroDropdown(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Semantics(
+        label: 'Campo de Sexo',
+        hint: 'Puedes seleccionar tu sexo',
+        child: Container(
+          decoration: BoxDecoration(
+            color: _tileBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _green.withValues(alpha: 0.14),
+              width: 1,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: DropdownButton<String>(
+            value: _selectedGenero,
+            hint: Text(
+              'Selecciona tu sexo',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 13,
+              ),
+            ),
+            isExpanded: true,
+            underline: const SizedBox(),
+            dropdownColor: const Color(0xFF1C1C1C),
+            icon: Icon(
+              Icons.expand_more_rounded,
+              color: _green.withValues(alpha: 0.6),
+              size: 20,
+            ),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            items: _generOptions.map((String genero) {
+              return DropdownMenuItem<String>(
+                value: genero,
+                child: Text(genero),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedGenero = newValue;
+                });
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Card de sección para el layout web
+  Widget _buildWebSectionCard({
+    required BuildContext context,
+    required String title,
+    required IconData sectionIcon,
+    required EdgeInsets padding,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _green.withValues(alpha: 0.12),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: _green.withValues(alpha: 0.22),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(sectionIcon, color: _green, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _green,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(height: 1, color: _green.withValues(alpha: 0.08)),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // ─── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final data = widget.playerData;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
 
     final header = Column(
       children: [
-        Text(
+        // Ícono decorativo
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _green.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _green.withValues(alpha: 0.22),
+              width: 1.5,
+            ),
+          ),
+          child: const Icon(
+            Icons.assignment_turned_in_outlined,
+            color: _green,
+            size: 28,
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
           'Confirmá tus datos',
           style: TextStyle(
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: primaryGreen,
+            color: _green,
+            letterSpacing: -0.3,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           'Verificá que todos tus datos sean correctos',
           style: TextStyle(
-            fontSize: 14,
-            color: isDark ? Colors.white70 : AppConstants.lightHintText,
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.5),
           ),
           textAlign: TextAlign.center,
         ),
       ],
     );
 
+    // Botón de confirmar reutilizable
+    Widget confirmButton({double height = 52}) => AppButton(
+      label: 'Confirmar datos',
+      onPressed: _onConfirmarDatos,
+      isLoading: _isLoading,
+      icon: Icons.check_circle_outline_rounded,
+      borderRadius: AppConstants.borderRadius,
+      height: height,
+    );
+
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: _scaffoldBg,
       appBar: const MainAppBar(
         showSettings: false,
         showProfileButton: false,
@@ -611,7 +991,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                 child: Column(
                   children: [
                     header,
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final columns = constraints.maxWidth >= 920 ? 2 : 1;
@@ -632,6 +1012,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                 return _buildWebSectionCard(
                                   context: context,
                                   title: 'Datos editables',
+                                  sectionIcon: Icons.edit_outlined,
                                   padding: cardPadding,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -640,17 +1021,20 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                         context,
                                         'Nombre',
                                         _nombreController,
+                                        icon: Icons.person_outline_rounded,
                                       ),
                                       _buildEditableField(
                                         context,
                                         'Apellido',
                                         _apellidoController,
+                                        icon: Icons.person_outline_rounded,
                                       ),
                                       _buildGeneroDropdown(context),
                                       _buildEditableField(
                                         context,
                                         'Estado Civil',
                                         _estadoCivilController,
+                                        icon: Icons.favorite_border_rounded,
                                       ),
                                     ],
                                   ),
@@ -659,6 +1043,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                 return _buildWebSectionCard(
                                   context: context,
                                   title: 'Contacto',
+                                  sectionIcon: Icons.contact_mail_outlined,
                                   padding: cardPadding,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -667,14 +1052,15 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                         context,
                                         'Correo Electrónico',
                                         _correoController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
+                                        keyboardType: TextInputType.emailAddress,
+                                        icon: Icons.mail_outline_rounded,
                                       ),
                                       _buildEditableField(
                                         context,
                                         'Teléfono',
                                         _telefonoController,
                                         keyboardType: TextInputType.phone,
+                                        icon: Icons.phone_outlined,
                                       ),
                                     ],
                                   ),
@@ -683,35 +1069,37 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                 return _buildWebSectionCard(
                                   context: context,
                                   title: 'Datos personales',
+                                  sectionIcon: Icons.badge_outlined,
                                   padding: cardPadding,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       _buildReadOnlyField(
-                                        context,
-                                        'DNI',
-                                        data.dni,
+                                        context, 'DNI', data.dni,
+                                        icon: Icons.credit_card_outlined,
                                       ),
                                       _buildReadOnlyField(
-                                        context,
-                                        'CUIL',
-                                        data.cuil,
+                                        context, 'CUIL', data.cuil,
+                                        icon: Icons.numbers_rounded,
                                       ),
                                       _buildReadOnlyField(
                                         context,
                                         'Fecha de Nacimiento',
                                         data.fechaNacimiento,
+                                        icon: Icons.calendar_today_outlined,
                                       ),
                                       _buildReadOnlyField(
                                         context,
                                         'Año de Nacimiento',
                                         data.anioNacimiento,
+                                        icon: Icons.event_outlined,
                                       ),
                                       if (data.edad != null)
                                         _buildReadOnlyField(
                                           context,
                                           'Edad',
                                           data.edad.toString(),
+                                          icon: Icons.cake_outlined,
                                         ),
                                     ],
                                   ),
@@ -721,35 +1109,33 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                 return _buildWebSectionCard(
                                   context: context,
                                   title: 'Dirección',
+                                  sectionIcon: Icons.home_outlined,
                                   padding: cardPadding,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       _buildReadOnlyField(
-                                        context,
-                                        'Calle',
-                                        data.calle,
+                                        context, 'Calle', data.calle,
+                                        icon: Icons.signpost_outlined,
                                       ),
                                       _buildReadOnlyField(
-                                        context,
-                                        'Número',
-                                        data.numCalle,
+                                        context, 'Número', data.numCalle,
+                                        icon: Icons.pin_outlined,
                                       ),
                                       _buildReadOnlyField(
-                                        context,
-                                        'Localidad',
-                                        data.localidad,
+                                        context, 'Localidad', data.localidad,
+                                        icon: Icons.location_city_outlined,
                                       ),
                                       _buildReadOnlyField(
-                                        context,
-                                        'Provincia',
-                                        data.provincia,
+                                        context, 'Provincia', data.provincia,
+                                        icon: Icons.map_outlined,
                                       ),
                                       if (data.cp != null)
                                         _buildReadOnlyField(
                                           context,
                                           'Código Postal',
                                           data.cp.toString(),
+                                          icon: Icons.markunread_mailbox_outlined,
                                         ),
                                     ],
                                   ),
@@ -763,43 +1149,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                     Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 360),
-                        child: SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _onConfirmarDatos,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 3,
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.black,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.check_circle, size: 20),
-                                      SizedBox(width: 10),
-                                      Text(
-                                        'Confirmar datos',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
+                        child: confirmButton(height: 48),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -807,337 +1157,119 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                 ),
               )
             : ListView(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                 children: [
                   header,
                   const SizedBox(height: 32),
 
-                  // --------- DATOS PERSONALES ---------
-                  const Text(
-                    'Datos Personales',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // ── DATOS PERSONALES ─────────────────────────────────────
+                  _buildSectionTitle('Datos Personales', Icons.badge_outlined),
+                  const SizedBox(height: 12),
 
-                  _buildReadOnlyField(context, 'DNI', data.dni),
-                  _buildReadOnlyField(context, 'CUIL', data.cuil),
+                  _buildReadOnlyField(
+                    context, 'DNI', data.dni,
+                    icon: Icons.credit_card_outlined,
+                  ),
+                  _buildReadOnlyField(
+                    context, 'CUIL', data.cuil,
+                    icon: Icons.numbers_rounded,
+                  ),
                   _buildReadOnlyField(
                     context,
                     'Fecha de Nacimiento',
                     data.fechaNacimiento,
+                    icon: Icons.calendar_today_outlined,
                   ),
                   _buildReadOnlyField(
                     context,
                     'Año de Nacimiento',
                     data.anioNacimiento,
+                    icon: Icons.event_outlined,
                   ),
                   if (data.edad != null)
-                    _buildReadOnlyField(context, 'Edad', data.edad.toString()),
-                  const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      context, 'Edad', data.edad.toString(),
+                      icon: Icons.cake_outlined,
+                    ),
 
-                  _buildEditableField(context, 'Nombre', _nombreController),
-                  _buildEditableField(context, 'Apellido', _apellidoController),
+                  const SizedBox(height: 20),
+
+                  // ── DATOS EDITABLES ──────────────────────────────────────
+                  _buildSectionTitle('Datos Editables', Icons.edit_outlined),
+                  const SizedBox(height: 12),
+
+                  _buildEditableField(
+                    context, 'Nombre', _nombreController,
+                    icon: Icons.person_outline_rounded,
+                  ),
+                  _buildEditableField(
+                    context, 'Apellido', _apellidoController,
+                    icon: Icons.person_outline_rounded,
+                  ),
                   _buildGeneroDropdown(context),
                   _buildEditableField(
-                    context,
-                    'Estado Civil',
-                    _estadoCivilController,
+                    context, 'Estado Civil', _estadoCivilController,
+                    icon: Icons.favorite_border_rounded,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // --------- CONTACTO ---------
-                  const Text(
-                    'Contacto',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // ── CONTACTO ─────────────────────────────────────────────
+                  _buildSectionTitle('Contacto', Icons.contact_mail_outlined),
+                  const SizedBox(height: 12),
 
                   _buildEditableField(
                     context,
                     'Correo Electrónico',
                     _correoController,
                     keyboardType: TextInputType.emailAddress,
+                    icon: Icons.mail_outline_rounded,
                   ),
                   _buildEditableField(
                     context,
                     'Teléfono',
                     _telefonoController,
                     keyboardType: TextInputType.phone,
+                    icon: Icons.phone_outlined,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // --------- DIRECCIÓN ---------
-                  Text(
-                    'Dirección',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                    ),
+                  // ── DIRECCIÓN ────────────────────────────────────────────
+                  _buildSectionTitle('Dirección', Icons.home_outlined),
+                  const SizedBox(height: 12),
+
+                  _buildReadOnlyField(
+                    context, 'Calle', data.calle,
+                    icon: Icons.signpost_outlined,
                   ),
-                  const SizedBox(height: 16),
-
-                  _buildReadOnlyField(context, 'Calle', data.calle),
-                  _buildReadOnlyField(context, 'Número', data.numCalle),
-                  _buildReadOnlyField(context, 'Localidad', data.localidad),
-                  _buildReadOnlyField(context, 'Provincia', data.provincia),
+                  _buildReadOnlyField(
+                    context, 'Número', data.numCalle,
+                    icon: Icons.pin_outlined,
+                  ),
+                  _buildReadOnlyField(
+                    context, 'Localidad', data.localidad,
+                    icon: Icons.location_city_outlined,
+                  ),
+                  _buildReadOnlyField(
+                    context, 'Provincia', data.provincia,
+                    icon: Icons.map_outlined,
+                  ),
                   if (data.cp != null)
                     _buildReadOnlyField(
                       context,
                       'Código Postal',
                       data.cp.toString(),
+                      icon: Icons.markunread_mailbox_outlined,
                     ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
-                  // --------- BOTÓN CONFIRMAR ---------
-                  SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _onConfirmarDatos,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 3,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.black,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle, size: 24),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Confirmar datos',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  // ── BOTÓN CONFIRMAR ──────────────────────────────────────
+                  confirmButton(height: 52),
+                  const SizedBox(height: 8),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildWebSectionCard({
-    required BuildContext context,
-    required String title,
-    required EdgeInsets padding,
-    required Widget child,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
-
-    final borderColor = primaryGreen.withValues(alpha: 0.35);
-    final cardBg = isDark ? const Color(0xFF111111) : Colors.white;
-    final titleColor = primaryGreen;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: titleColor,
-            ),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReadOnlyField(BuildContext context, String label, String value) {
-    if (value.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white60 : AppConstants.lightLabelText;
-    final labelColor = isDark ? Colors.white54 : AppConstants.lightHintText;
-    final fillColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : AppConstants.lightInputBg;
-    final borderColor = isDark ? Colors.white24 : AppConstants.lightInputBorder;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
-        readOnly: true,
-        enabled: false,
-        controller: TextEditingController(text: value),
-        style: TextStyle(color: textColor),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: labelColor),
-          filled: true,
-          fillColor: fillColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: borderColor),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: borderColor),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditableField(
-    BuildContext context,
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
-    final fillColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : AppConstants.lightInputBg;
-    final textColor = isDark ? Colors.white : AppConstants.lightLabelText;
-    final labelColor = isDark ? Colors.white70 : AppConstants.lightLabelText;
-    final borderColor = isDark ? primaryGreen : AppConstants.lightInputBorder;
-    final focusedBorderColor = isDark
-        ? primaryGreen
-        : AppConstants.lightInputBorderFocus;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Semantics(
-        label: 'Campo de $label',
-        hint: 'Puedes editar este campo',
-        child: TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: TextStyle(color: textColor),
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: TextStyle(color: labelColor),
-            filled: true,
-            fillColor: fillColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: focusedBorderColor, width: 2),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Construir dropdown de género
-  Widget _buildGeneroDropdown(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    const primaryGreen = Color.fromARGB(255, 41, 255, 94);
-    final fillColor = isDark
-        ? const Color(0xFF1A1A1A)
-        : AppConstants.lightInputBg;
-    final textColor = isDark ? Colors.white : AppConstants.lightLabelText;
-    final labelColor = isDark ? Colors.white70 : AppConstants.lightLabelText;
-    final borderColor = isDark ? primaryGreen : AppConstants.lightInputBorder;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Semantics(
-        label: 'Campo de Sexo',
-        hint: 'Puedes seleccionar tu sexo',
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: 'Sexo',
-            labelStyle: TextStyle(color: labelColor),
-            filled: true,
-            fillColor: fillColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 6,
-            ),
-          ),
-          child: DropdownButton<String>(
-            value: _selectedGenero,
-            hint: Text(
-              'Selecciona tu sexo',
-              style: TextStyle(color: labelColor),
-            ),
-            isExpanded: true,
-            underline: const SizedBox(),
-            dropdownColor: fillColor,
-            style: TextStyle(color: textColor, fontSize: 16),
-            items: _generOptions.map((String genero) {
-              return DropdownMenuItem<String>(
-                value: genero,
-                child: Text(genero),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  _selectedGenero = newValue;
-                });
-              }
-            },
-          ),
-        ),
       ),
     );
   }

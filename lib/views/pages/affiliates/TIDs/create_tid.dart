@@ -8,6 +8,7 @@ Future<void> showCreateTidDialog({
   required TidsService tidsService,
   required VoidCallback onCreated,
   List<EventoOption> eventoOptions = kDefaultEventoOptions,
+  List<StandOption> standOptions = kDefaultStandOptions,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   final tidController = TextEditingController();
@@ -18,6 +19,7 @@ Future<void> showCreateTidDialog({
       tidController: tidController,
       tidsService: tidsService,
       eventoOptions: eventoOptions,
+      standOptions: standOptions,
       onCreated: () {
         onCreated();
         messenger.showSnackBar(
@@ -36,13 +38,13 @@ Future<void> showCreateTidDialog({
   Future.delayed(const Duration(milliseconds: 200), tidController.dispose);
 }
 
-
 class _CreateTidDialogBody extends StatefulWidget {
   final TextEditingController tidController;
   final TidsService tidsService;
   final VoidCallback onCreated;
   final void Function(String) onError;
   final List<EventoOption> eventoOptions;
+  final List<StandOption> standOptions;
 
   const _CreateTidDialogBody({
     required this.tidController,
@@ -50,6 +52,7 @@ class _CreateTidDialogBody extends StatefulWidget {
     required this.onCreated,
     required this.onError,
     required this.eventoOptions,
+    required this.standOptions,
   });
 
   @override
@@ -59,6 +62,7 @@ class _CreateTidDialogBody extends StatefulWidget {
 class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
   bool _isSubmitting = false;
   int? _selectedEventoId; // null = sin evento
+  int? _selectedStandId; // null = sin stand
 
   Future<void> _handleSubmit() async {
     if (_isSubmitting) return;
@@ -75,6 +79,7 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
       await widget.tidsService.createTid(
         tid: tid,
         idEvento: _selectedEventoId,
+        idStand: _selectedStandId,
       );
 
       if (mounted && Navigator.of(context).canPop()) {
@@ -85,7 +90,8 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
       if (mounted) setState(() => _isSubmitting = false);
 
       final raw = e.toString().toLowerCase();
-      final isDuplicate = raw.contains('409') ||
+      final isDuplicate =
+          raw.contains('409') ||
           raw.contains('duplicate') ||
           raw.contains('duplicado') ||
           raw.contains('already exists') ||
@@ -219,6 +225,14 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                     onChanged: (value) =>
                         setState(() => _selectedEventoId = value),
                   ),
+                  const SizedBox(height: 16),
+                  StandDropdown(
+                    options: widget.standOptions,
+                    selectedId: _selectedStandId,
+                    accent: accent,
+                    onChanged: (value) =>
+                        setState(() => _selectedStandId = value),
+                  ),
                 ],
               ),
             ),
@@ -233,9 +247,7 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: accent,
-                        side: BorderSide(
-                          color: accent.withValues(alpha: 0.4),
-                        ),
+                        side: BorderSide(color: accent.withValues(alpha: 0.4)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
