@@ -23,14 +23,36 @@ Future<void> showCreateTidDialog({
       onCreated: () {
         onCreated();
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('TID creado correctamente.'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Text(
+              'TID creado correctamente.',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppConstants.primaryGreen,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
           ),
         );
       },
       onError: (message) => messenger.showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: AppConstants.errorRed.withValues(alpha: 0.40),
+            ),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
       ),
     ),
   );
@@ -61,8 +83,8 @@ class _CreateTidDialogBody extends StatefulWidget {
 
 class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
   bool _isSubmitting = false;
-  int? _selectedEventoId; // null = sin evento
-  int? _selectedStandId; // null = sin stand
+  int? _selectedEventoId;
+  int? _selectedStandId;
 
   Future<void> _handleSubmit() async {
     if (_isSubmitting) return;
@@ -106,18 +128,56 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
     }
   }
 
+  InputDecoration _fieldDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) {
+    const green = AppConstants.primaryGreen;
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.50),
+        fontSize: 13,
+      ),
+      hintStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.22),
+        fontSize: 13,
+      ),
+      filled: true,
+      fillColor: const Color(0xFF141414),
+      prefixIcon: Icon(icon, color: green.withValues(alpha: 0.65), size: 18),
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: green.withValues(alpha: 0.14)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: green.withValues(alpha: 0.14)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: green),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    const textColor = AppConstants.textDark;
-    const dialogBg = AppConstants.darkAccent;
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+    const fieldStyle = TextStyle(color: Colors.white, fontSize: 14);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       backgroundColor: dialogBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.borderRadius + 6),
+        side: BorderSide(color: green.withValues(alpha: 0.20)),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -129,36 +189,25 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    accent.withValues(alpha: 0.25),
-                    accent.withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: green.withValues(alpha: 0.06),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppConstants.borderRadius + 6),
                   topRight: Radius.circular(AppConstants.borderRadius + 6),
+                ),
+                border: Border(
+                  bottom: BorderSide(color: green.withValues(alpha: 0.12)),
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.25),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      color: green.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: green.withValues(alpha: 0.22)),
                     ),
-                    child: Icon(Icons.add_link, color: accent, size: 22),
+                    child: const Icon(Icons.add_link, color: green, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -168,33 +217,19 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                         const Text(
                           'Crear TID',
                           style: TextStyle(
-                            color: textColor,
-                            fontSize: 18,
+                            color: Colors.white,
+                            fontSize: 17,
                             fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: accent,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Ingresá el código de tracking a registrar.',
-                                style: TextStyle(
-                                  color: textColor.withValues(alpha: 0.75),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 3),
+                        Text(
+                          'Ingresá el código de tracking a registrar.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.45),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -212,24 +247,27 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                   TextField(
                     controller: widget.tidController,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Código TID',
-                      hintText: 'Ej: SHOW_123',
+                    style: fieldStyle,
+                    cursorColor: green,
+                    decoration: _fieldDecoration(
+                      label: 'Código TID',
+                      hint: 'Ej: SHOW_123',
+                      icon: Icons.track_changes_outlined,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   EventoDropdown(
                     options: widget.eventoOptions,
                     selectedId: _selectedEventoId,
-                    accent: accent,
+                    accent: green,
                     onChanged: (value) =>
                         setState(() => _selectedEventoId = value),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   StandDropdown(
                     options: widget.standOptions,
                     selectedId: _selectedStandId,
-                    accent: accent,
+                    accent: green,
                     onChanged: (value) =>
                         setState(() => _selectedStandId = value),
                   ),
@@ -239,15 +277,17 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
 
             // ── Acciones ────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: accent,
-                        side: BorderSide(color: accent.withValues(alpha: 0.4)),
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
@@ -255,7 +295,13 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                           ),
                         ),
                       ),
-                      child: const Text('Cancelar'),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -263,8 +309,8 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: AppConstants.textLight,
+                        backgroundColor: green,
+                        foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
@@ -278,10 +324,13 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                               width: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppConstants.textLight,
+                                color: Colors.black,
                               ),
                             )
-                          : const Text('Crear TID'),
+                          : const Text(
+                              'Crear TID',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                 ],

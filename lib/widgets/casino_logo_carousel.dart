@@ -31,6 +31,7 @@ class CasinoLogoCarousel extends StatefulWidget {
 class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
   late final PageController _controller;
   bool _autoPlayRunning = false;
+  static const double _webReferenceViewport = 600;
 
   int get _initialPage => widget.logos.length * 1000;
   double get _viewportFraction => kIsWeb ? 0.38 : 0.55;
@@ -75,7 +76,7 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
       final currentPage = _controller.page?.round() ?? _controller.initialPage;
       await _controller.animateToPage(
         currentPage + 1,
-        duration: widget.animationDuration,
+        duration: _effectiveAnimationDuration(),
         curve: Curves.linear,
       );
       if (!mounted || !_autoPlayRunning) break;
@@ -85,6 +86,22 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
     }
 
     _autoPlayRunning = false;
+  }
+
+  Duration _effectiveAnimationDuration() {
+    // Mobile keeps existing behavior.
+    if (!kIsWeb) return widget.animationDuration;
+    if (!_controller.hasClients) return widget.animationDuration;
+
+    final baseMs = widget.animationDuration.inMilliseconds;
+    if (baseMs <= 0) return widget.animationDuration;
+
+    final viewport = _controller.position.viewportDimension;
+    if (viewport <= 0) return widget.animationDuration;
+
+    // Keep speed (px/s) constant across responsive web sizes.
+    final factor = (viewport / _webReferenceViewport).clamp(0.85, 3.0);
+    return Duration(milliseconds: (baseMs * factor).round());
   }
 
   @override

@@ -417,6 +417,7 @@ class HttpClient {
     Duration? timeout,
     bool includeAuth = true,
     Duration? cacheTtl,
+    bool expireSessionOnAuthFailure = true,
     int? maxRetries,
     int retryCount = 0,
     bool authRetry = false,
@@ -483,6 +484,7 @@ class HttpClient {
             timeout: timeout,
             includeAuth: includeAuth,
             cacheTtl: Duration.zero,
+            expireSessionOnAuthFailure: expireSessionOnAuthFailure,
             maxRetries: maxRetries,
             retryCount: retryCount,
             authRetry: true,
@@ -493,6 +495,7 @@ class HttpClient {
       // Si ya reintentamos con token refrescado y sigue dando 401/403, disparar modal.
       if (includeAuth &&
           authRetry &&
+          expireSessionOnAuthFailure &&
           (response.statusCode == 401 || response.statusCode == 403)) {
         await TokenService.clearTokens();
         _notifySessionExpired();

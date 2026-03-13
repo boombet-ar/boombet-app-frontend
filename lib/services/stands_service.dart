@@ -4,14 +4,33 @@ import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/stand_model.dart';
+import 'package:boombet_app/models/prize_canje_model.dart';
 import 'package:boombet_app/models/stand_prize_model.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/error_parser.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class StandsService {
+  Future<StandModel?> fetchStandById(int id) async {
+    final url = '${ApiConfig.baseUrl}/stands/$id';
+    try {
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        expireSessionOnAuthFailure: false,
+        cacheTtl: const Duration(minutes: 5),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) return StandModel.fromJson(data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<StandModel>> fetchStands() async {
     final url = '${ApiConfig.baseUrl}/stands';
 
@@ -128,57 +147,32 @@ class StandsService {
     required int stock,
     Uint8List? imageBytes,
     String? imageName,
+    String imageMimeType = 'image/jpeg',
   }) async {
     final url = '${ApiConfig.baseUrl}/stands/mi-stand/premios';
+    final request = await _buildMultipartRequest('POST', url);
 
-    if (imageBytes == null) {
-      // No file → plain JSON, avoids Dart's multipart charset=UTF-8 issue
-      final response = await HttpClient.post(
-        url,
-        includeAuth: true,
-        body: {'nombre': nombre.trim(), 'stock': stock},
-      );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        if (data is Map<String, dynamic>) return StandPrizeModel.fromJson(data);
-        throw Exception('Formato inesperado de respuesta');
-      }
-      log(
-        '[StandsService] createStandPrize error ${response.statusCode}: ${response.body}',
-      );
-      throw Exception(ErrorParser.parseResponse(response));
-    }
-
-    // Has file → multipart
-    final token = await TokenService.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Token no encontrado. Iniciá sesión nuevamente.');
-    }
-
-    final request = http.MultipartRequest('POST', Uri.parse(url));
-    request.headers['Authorization'] = 'Bearer $token';
-    request.headers['Accept'] = 'application/json';
-    request.fields['nombre'] = nombre.trim();
-    request.fields['stock'] = stock.toString();
     request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: imageName ?? 'premio.jpg',
+      http.MultipartFile.fromString(
+        'datos',
+        jsonEncode({'nombre': nombre.trim(), 'stock': stock}),
+        filename: 'datos.json',
+        contentType: MediaType('application', 'json'),
       ),
     );
 
-    final streamed = await request.send();
-    final body = await streamed.stream.bytesToString();
-
-    if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
-      final data = jsonDecode(body);
-      if (data is Map<String, dynamic>) return StandPrizeModel.fromJson(data);
-      throw Exception('Formato inesperado de respuesta');
+    if (imageBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'imagen',
+          imageBytes,
+          filename: imageName ?? 'premio.jpg',
+          contentType: MediaType.parse(imageMimeType),
+        ),
+      );
     }
 
-    log('[StandsService] createStandPrize error ${streamed.statusCode}: $body');
-    throw Exception('Error ${streamed.statusCode}: $body');
+    return _sendAndParsePrize(request, 'createStandPrize');
   }
 
   Future<StandPrizeModel> updateStandPrize({
@@ -187,59 +181,63 @@ class StandsService {
     int? stock,
     Uint8List? imageBytes,
     String? imageName,
+    String imageMimeType = 'image/jpeg',
   }) async {
     final url = '${ApiConfig.baseUrl}/stands/mi-stand/premios/$premioId';
+    final request = await _buildMultipartRequest('PATCH', url);
 
-    if (imageBytes == null) {
-      // No file → plain JSON, avoids Dart's multipart charset=UTF-8 issue
-      final jsonBody = <String, dynamic>{};
-      if (nombre != null) jsonBody['nombre'] = nombre.trim();
-      if (stock != null) jsonBody['stock'] = stock;
-      final response = await HttpClient.patch(
-        url,
-        includeAuth: true,
-        body: jsonBody,
+    final datosMap = <String, dynamic>{};
+    if (nombre != null) datosMap['nombre'] = nombre.trim();
+    if (stock != null) datosMap['stock'] = stock;
+    request.files.add(
+      http.MultipartFile.fromString(
+        'datos',
+        jsonEncode(datosMap),
+        filename: 'datos.json',
+        contentType: MediaType('application', 'json'),
+      ),
+    );
+
+    if (imageBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'imagen',
+          imageBytes,
+          filename: imageName ?? 'premio.jpg',
+          contentType: MediaType.parse(imageMimeType),
+        ),
       );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        if (data is Map<String, dynamic>) return StandPrizeModel.fromJson(data);
-        throw Exception('Formato inesperado de respuesta');
-      }
-      log(
-        '[StandsService] updateStandPrize error ${response.statusCode}: ${response.body}',
-      );
-      throw Exception(ErrorParser.parseResponse(response));
     }
 
-    // Has file → multipart
+    return _sendAndParsePrize(request, 'updateStandPrize');
+  }
+
+  Future<http.MultipartRequest> _buildMultipartRequest(
+    String method,
+    String url,
+  ) async {
     final token = await TokenService.getToken();
     if (token == null || token.isEmpty) {
       throw Exception('Token no encontrado. Iniciá sesión nuevamente.');
     }
-
-    final request = http.MultipartRequest('PATCH', Uri.parse(url));
+    final request = http.MultipartRequest(method, Uri.parse(url));
     request.headers['Authorization'] = 'Bearer $token';
     request.headers['Accept'] = 'application/json';
-    if (nombre != null) request.fields['nombre'] = nombre.trim();
-    if (stock != null) request.fields['stock'] = stock.toString();
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: imageName ?? 'premio.jpg',
-      ),
-    );
+    return request;
+  }
 
+  Future<StandPrizeModel> _sendAndParsePrize(
+    http.MultipartRequest request,
+    String tag,
+  ) async {
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();
-
     if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
       final data = jsonDecode(body);
       if (data is Map<String, dynamic>) return StandPrizeModel.fromJson(data);
       throw Exception('Formato inesperado de respuesta');
     }
-
-    log('[StandsService] updateStandPrize error ${streamed.statusCode}: $body');
+    log('[StandsService] $tag error ${streamed.statusCode}: $body');
     throw Exception('Error ${streamed.statusCode}: $body');
   }
 
@@ -301,6 +299,45 @@ class StandsService {
 
     log(
       '[StandsService] fetchStandRoulettes error ${response.statusCode}: ${response.body}',
+    );
+    throw Exception(ErrorParser.parseResponse(response));
+  }
+
+  /// GET /api/stands/mi-stand/canje/{idPremioUsuario}
+  /// Devuelve los datos del premio sin marcarlo como canjeado.
+  Future<PrizeCanjeModel> fetchCanjeInfo(int idPremioUsuario) async {
+    final url = '${ApiConfig.baseUrl}/stands/mi-stand/canje/$idPremioUsuario';
+
+    final response = await HttpClient.get(
+      url,
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return PrizeCanjeModel.fromJson(data);
+      throw Exception('Formato inesperado de respuesta');
+    }
+
+    log(
+      '[StandsService] fetchCanjeInfo error ${response.statusCode}: ${response.body}',
+    );
+    throw Exception(ErrorParser.parseResponse(response));
+  }
+
+  /// POST /api/stands/mi-stand/canje
+  /// Confirma la entrega del premio.
+  Future<void> confirmarCanje(int idPremioUsuario) async {
+    final url = '${ApiConfig.baseUrl}/stands/mi-stand/canje';
+    final body = <String, dynamic>{'idPremioUsuario': idPremioUsuario};
+
+    final response = await HttpClient.post(url, includeAuth: true, body: body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+
+    log(
+      '[StandsService] confirmarCanje error ${response.statusCode}: ${response.body}',
     );
     throw Exception(ErrorParser.parseResponse(response));
   }

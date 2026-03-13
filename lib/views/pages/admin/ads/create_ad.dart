@@ -6,6 +6,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/ad_service.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/widgets/custom_pickers.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -207,7 +208,7 @@ class _CreateAdSectionState extends State<CreateAdSection> {
         ? _expiryDateTime!
         : today;
 
-    final selected = await showDatePicker(
+    final selected = await showCustomDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: today,
@@ -220,7 +221,7 @@ class _CreateAdSectionState extends State<CreateAdSection> {
         ? TimeOfDay.fromDateTime(_expiryDateTime!)
         : TimeOfDay(hour: now.hour, minute: now.minute);
 
-    final selectedTime = await showTimePicker(
+    final selectedTime = await showCustomTimePicker(
       context: context,
       initialTime: initialTime,
     );

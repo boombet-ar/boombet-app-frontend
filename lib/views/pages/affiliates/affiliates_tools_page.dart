@@ -12,6 +12,7 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/create_tid.dart';
 import 'package:boombet_app/views/pages/affiliates/events/create_event.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_management_view.dart';
+import 'package:boombet_app/views/pages/affiliates/stands/create_stand.dart';
 import 'package:boombet_app/views/pages/affiliates/stands/stand_management_view.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
@@ -78,9 +79,47 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
               showAffiliatesTools: false,
             ),
             body: Center(
-              child: Text(
-                'Acceso restringido. Solo afiliadores.',
-                style: TextStyle(color: textColor, fontSize: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppConstants.errorRed.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppConstants.errorRed.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.gpp_bad_outlined,
+                        color: AppConstants.errorRed,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Acceso restringido',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Solo afiliadores pueden acceder a esta sección.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.50),
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -116,7 +155,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       title: 'TIDs (Tracking IDs)',
                       subtitle: 'Administrar y consultar tracking IDs',
                       icon: Icons.track_changes_outlined,
-                      accentColor: Theme.of(context).colorScheme.primary,
                       onTap: () => context.go('/affiliates-tools/tids'),
                     ),
                     const SizedBox(height: 12),
@@ -124,7 +162,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       title: 'Eventos',
                       subtitle: 'Gestionar eventos y estadísticas',
                       icon: Icons.event_note_outlined,
-                      accentColor: Theme.of(context).colorScheme.primary,
                       onTap: () => context.go('/affiliates-tools/eventos'),
                     ),
                     const SizedBox(height: 12),
@@ -132,7 +169,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       title: 'Stands / Puestos',
                       subtitle: 'Configurar y administrar puestos',
                       icon: Icons.storefront_outlined,
-                      accentColor: Theme.of(context).colorScheme.primary,
                       onTap: () => context.go('/affiliates-tools/stands'),
                     ),
                   ],
@@ -259,14 +295,9 @@ class _TidsPageState extends State<TidsPage> {
   Future<void> _edit(TidModel tid) async {
     if (_editingIds.contains(tid.id)) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
+    const textColor = Colors.white;
 
     final tidController = TextEditingController(text: tid.tid);
     // Tratar idEvento == 0 como "sin evento"
@@ -278,17 +309,24 @@ class _TidsPageState extends State<TidsPage> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
           backgroundColor: dialogBg,
-          title: Text('Editar TID', style: TextStyle(color: textColor)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: green.withValues(alpha: 0.22)),
+          ),
+          title: const Text(
+            'Editar TID',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: tidController,
-                style: TextStyle(color: textColor),
+                style: const TextStyle(color: textColor),
                 decoration: InputDecoration(
                   labelText: 'TID',
                   labelStyle: TextStyle(
-                    color: textColor.withValues(alpha: 0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -296,7 +334,7 @@ class _TidsPageState extends State<TidsPage> {
               EventoDropdown(
                 options: _eventoOptions,
                 selectedId: selectedEventoId,
-                accent: theme.colorScheme.primary,
+                accent: green,
                 textColor: textColor,
                 bgColor: dialogBg,
                 onChanged: (v) => setDialogState(() => selectedEventoId = v),
@@ -305,7 +343,7 @@ class _TidsPageState extends State<TidsPage> {
               StandDropdown(
                 options: _standOptions,
                 selectedId: selectedStandId,
-                accent: theme.colorScheme.primary,
+                accent: green,
                 textColor: textColor,
                 bgColor: dialogBg,
                 onChanged: (v) => setDialogState(() => selectedStandId = v),
@@ -317,7 +355,7 @@ class _TidsPageState extends State<TidsPage> {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Cancelar',
-                style: TextStyle(color: AppConstants.primaryGreen),
+                style: TextStyle(color: green),
               ),
             ),
             TextButton(
@@ -328,7 +366,7 @@ class _TidsPageState extends State<TidsPage> {
               )),
               child: const Text(
                 'Guardar',
-                style: TextStyle(color: AppConstants.primaryGreen),
+                style: TextStyle(color: green),
               ),
             ),
           ],
@@ -376,31 +414,29 @@ class _TidsPageState extends State<TidsPage> {
   Future<void> _delete(TidModel tid) async {
     if (_deletingIds.contains(tid.id)) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Eliminar TID', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.30)),
+        ),
+        title: const Text(
+          'Eliminar TID',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Text(
           '¿Querés eliminar el TID "${tid.tid}"? Esta acción no se puede deshacer.',
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.65), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: green)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
@@ -441,14 +477,8 @@ class _TidsPageState extends State<TidsPage> {
   }
 
   void _showTidAffiliationsCount(TidModel tid) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
 
     showDialog<void>(
       context: context,
@@ -477,32 +507,200 @@ class _TidsPageState extends State<TidsPage> {
                   });
             }
 
-            return AlertDialog(
+            return Dialog(
               backgroundColor: dialogBg,
-              title: Text(tid.tid, style: TextStyle(color: textColor)),
-              content: totalJugadores != null
-                  ? Text(
-                      'Cantidad de afiliaciones: $totalJugadores',
-                      style: TextStyle(color: textColor),
-                    )
-                  : fetchError != null
-                  ? Text(
-                      fetchError!,
-                      style: const TextStyle(color: AppConstants.errorRed),
-                    )
-                  : const SizedBox(
-                      height: 40,
-                      child: Center(child: CircularProgressIndicator()),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: green.withValues(alpha: 0.20)),
+              ),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 24,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Header ──────────────────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                      decoration: BoxDecoration(
+                        color: green.withValues(alpha: 0.06),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(18),
+                          topRight: Radius.circular(18),
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: green.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: green.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: green.withValues(alpha: 0.22),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.track_changes_outlined,
+                              color: green,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tid.tid,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Tracking ID',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.38),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Cerrar',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
+
+                    // ── Contenido ────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                      child: totalJugadores != null
+                          ? Column(
+                              children: [
+                                Text(
+                                  'Total de afiliaciones',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 12,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: green.withValues(alpha: 0.06),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: green.withValues(alpha: 0.18),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '$totalJugadores',
+                                        style: const TextStyle(
+                                          color: green,
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1,
+                                          letterSpacing: -1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        totalJugadores == 1
+                                            ? 'jugador afiliado'
+                                            : 'jugadores afiliados',
+                                        style: TextStyle(
+                                          color: green.withValues(alpha: 0.60),
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          : fetchError != null
+                          ? Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppConstants.errorRed,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    fetchError!,
+                                    style: const TextStyle(
+                                      color: AppConstants.errorRed,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox(
+                              height: 56,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: green,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            ),
+                    ),
+
+                    // ── Acción ────────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            backgroundColor: green.withValues(alpha: 0.08),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: green.withValues(alpha: 0.18),
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cerrar',
+                            style: TextStyle(
+                              color: green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -683,31 +881,29 @@ class _EventosPageState extends State<EventosPage> {
   Future<void> _delete(EventoModel evento) async {
     if (_deletingIds.contains(evento.id)) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Eliminar evento', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.30)),
+        ),
+        title: const Text(
+          'Eliminar evento',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Text(
           '¿Querés eliminar "${evento.nombre}"? Esta acción no se puede deshacer.',
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.65), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: green)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -890,31 +1086,18 @@ class _StandsPageState extends State<StandsPage> {
   }
 
   Future<void> _createStand() async {
-    final data = await _showStandCreateDialog();
-    if (data == null || !mounted) return;
-
-    try {
-      final result = await _standsService.createStand(
-        nombre: data.$1,
-        username: data.$2,
-        password: data.$3,
-        email: data.$4,
-      );
-      if (!mounted) return;
-      setState(() {
-        _stands = [..._stands, result.stand];
-        _currentPage = _totalPages;
-      });
-      _showStandCredentialsDialog(result);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo crear el puesto: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
+    await showCreateStandDialog(
+      context: context,
+      standsService: _standsService,
+      onCreated: (result) {
+        if (!mounted) return;
+        setState(() {
+          _stands = [..._stands, result.stand];
+          _currentPage = _totalPages;
+        });
+        _showStandCredentialsDialog(result);
+      },
+    );
   }
 
   Future<void> _editStand(StandModel stand) async {
@@ -983,31 +1166,29 @@ class _StandsPageState extends State<StandsPage> {
   Future<void> _deleteStand(StandModel stand) async {
     if (_deletingIds.contains(stand.id)) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Eliminar puesto', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppConstants.errorRed.withValues(alpha: 0.30)),
+        ),
+        title: const Text(
+          'Eliminar puesto',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Text(
           '¿Querés eliminar "${stand.nombre}"? Esta acción no se puede deshacer.',
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.65), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: green)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1047,174 +1228,27 @@ class _StandsPageState extends State<StandsPage> {
     }
   }
 
-  // Formulario de creación: nombre, username, password, email
-  Future<(String, String, String, String)?> _showStandCreateDialog() async {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
-
-    final nombreController = TextEditingController();
-    final usernameController = TextEditingController();
-    final passwordController = TextEditingController();
-    final emailController = TextEditingController();
-    bool obscurePassword = true;
-
-    final result = await showDialog<(String, String, String, String)>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (_, setDialogState) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Crear puesto', style: TextStyle(color: textColor)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nombreController,
-                  autofocus: true,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    labelText: 'Nombre del puesto',
-                    hintText: 'Stand Central',
-                    labelStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                    hintStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: usernameController,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    labelText: 'Usuario operador',
-                    hintText: 'stand_central',
-                    labelStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                    hintStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
-                  obscureText: obscurePassword,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    hintText: 'password123',
-                    labelStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                    hintStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.35),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: textColor.withValues(alpha: 0.6),
-                      ),
-                      onPressed: () => setDialogState(
-                        () => obscurePassword = !obscurePassword,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    labelText: 'Email del operador',
-                    hintText: 'stand@boombet.com',
-                    labelStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                    ),
-                    hintStyle: TextStyle(
-                      color: textColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                final nombre = nombreController.text.trim();
-                final username = usernameController.text.trim();
-                final password = passwordController.text;
-                final email = emailController.text.trim();
-                if (nombre.isEmpty ||
-                    username.isEmpty ||
-                    password.isEmpty ||
-                    email.isEmpty) {
-                  return;
-                }
-                Navigator.pop(ctx, (nombre, username, password, email));
-              },
-              child: const Text(
-                'Crear',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    Future.delayed(const Duration(milliseconds: 200), () {
-      nombreController.dispose();
-      usernameController.dispose();
-      passwordController.dispose();
-      emailController.dispose();
-    });
-
-    return result;
-  }
-
   void _showStandCredentialsDialog(StandCreationResult result) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Row(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: green.withValues(alpha: 0.22)),
+        ),
+        title: const Row(
           children: [
-            const Icon(Icons.key_outlined, color: AppConstants.primaryGreen),
-            const SizedBox(width: 8),
+            Icon(Icons.key_outlined, color: green),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Credenciales del operador',
-                style: TextStyle(color: textColor),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -1233,14 +1267,14 @@ class _StandsPageState extends State<StandsPage> {
                   color: AppConstants.errorRed.withValues(alpha: 0.3),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.warning_amber_outlined,
                     color: AppConstants.errorRed,
                     size: 16,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Guardá estas credenciales ahora. No se volverán a mostrar.',
@@ -1257,19 +1291,19 @@ class _StandsPageState extends State<StandsPage> {
             _CredentialRow(
               label: 'Puesto',
               value: result.stand.nombre,
-              textColor: textColor,
+              textColor: Colors.white,
             ),
             const SizedBox(height: 10),
             _CredentialRow(
               label: 'Usuario',
               value: result.username,
-              textColor: textColor,
+              textColor: Colors.white,
             ),
             const SizedBox(height: 10),
             _CredentialRow(
               label: 'Contraseña',
               value: result.password,
-              textColor: textColor,
+              textColor: Colors.white,
               obscure: true,
             ),
           ],
@@ -1279,7 +1313,7 @@ class _StandsPageState extends State<StandsPage> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
               'Entendido',
-              style: TextStyle(color: AppConstants.primaryGreen),
+              style: TextStyle(color: green),
             ),
           ),
         ],
@@ -1291,14 +1325,8 @@ class _StandsPageState extends State<StandsPage> {
   Future<String?> _showStandRenameDialog({
     required String initialNombre,
   }) async {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark
-        ? AppConstants.darkAccent
-        : AppConstants.lightDialogBg;
-    final textColor = isDark
-        ? AppConstants.textDark
-        : AppConstants.lightLabelText;
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
 
     final nombreController = TextEditingController(text: initialNombre);
 
@@ -1306,23 +1334,27 @@ class _StandsPageState extends State<StandsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: dialogBg,
-        title: Text('Editar puesto', style: TextStyle(color: textColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: green.withValues(alpha: 0.22)),
+        ),
+        title: const Text(
+          'Editar puesto',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: TextField(
           controller: nombreController,
           autofocus: true,
-          style: TextStyle(color: textColor),
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: 'Nombre',
-            labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
+            labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: green)),
           ),
           TextButton(
             onPressed: () {
@@ -1330,10 +1362,7 @@ class _StandsPageState extends State<StandsPage> {
               if (nombre.isEmpty) return;
               Navigator.pop(ctx, nombre);
             },
-            child: const Text(
-              'Guardar',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
+            child: const Text('Guardar', style: TextStyle(color: green)),
           ),
         ],
       ),
@@ -1404,86 +1433,76 @@ class _AffiliatorPrimaryActionButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color accentColor;
   final VoidCallback onTap;
 
   const _AffiliatorPrimaryActionButton({
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.accentColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    const green = AppConstants.primaryGreen;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              accentColor.withValues(alpha: 0.2),
-              accentColor.withValues(alpha: 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        splashColor: green.withValues(alpha: 0.08),
+        highlightColor: green.withValues(alpha: 0.04),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(color: green.withValues(alpha: 0.14)),
           ),
-          color: AppConstants.darkAccent,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.2),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: green.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: green.withValues(alpha: 0.20)),
+                ),
+                child: Icon(icon, color: green, size: 20),
               ),
-              child: Icon(icon, color: accentColor, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontSize: 12,
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ],
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: green.withValues(alpha: 0.50),
+              ),
+            ],
+          ),
         ),
       ),
     );

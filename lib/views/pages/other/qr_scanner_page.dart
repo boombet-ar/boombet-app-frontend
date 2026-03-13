@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/models/prize_canje_model.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
@@ -33,6 +35,8 @@ class _QrScannerPageState extends State<QrScannerPage>
   bool _isLaunching = false;
   bool _scannerActive = false;
   bool _handlingRouletteFlow = false;
+  bool _handlingCanjeFlow = false;
+  String? _userRole;
 
   @override
   void initState() {
@@ -45,6 +49,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     _scannerController = MobileScannerController();
     _scannerActive = true;
     _appendLog('Scanner initialized');
+    _loadUserRole();
   }
 
   @override
@@ -115,6 +120,13 @@ class _QrScannerPageState extends State<QrScannerPage>
     if (!mounted) return;
     _scanController.stop();
     _scannerActive = false;
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await TokenService.getUserRole();
+    if (!mounted) return;
+    setState(() => _userRole = role);
+    _appendLog('User role loaded: ${role ?? 'unknown'}');
   }
 
   void _showSnack(String message) {
@@ -192,6 +204,23 @@ class _QrScannerPageState extends State<QrScannerPage>
       _lastCode = value;
       _lastScanAt = now;
     });
+
+    // STAND role: intercept every QR for prize canje
+    if (_userRole == 'STAND') {
+      if (_handlingCanjeFlow) {
+        _appendLog('Detection ignored: canje flow in progress');
+        return;
+      }
+      final canjeId = _extractStandCanjeId(value);
+      if (canjeId == null) {
+        _appendLog('STAND: no valid canje ID in QR value');
+        _showSnack('QR inválido para canje de premios');
+        return;
+      }
+      _appendLog('STAND: canje ID extracted: $canjeId');
+      await _handleStandCanje(canjeId);
+      return;
+    }
 
     final uri = _normalizeUri(value);
     if (uri == null) {
@@ -411,6 +440,92 @@ class _QrScannerPageState extends State<QrScannerPage>
   String _buildRouletteWsUrl(String roomId) {
     final safeRoomId = Uri.encodeComponent(roomId);
     return '${ApiConfig.wsBaseUrl}/ruleta/$safeRoomId';
+  }
+
+  // ─── STAND CANJE ─────────────────────────────────────────────────────────
+
+  /// Extracts the prize user ID from the raw QR value.
+  /// Accepts: plain integer, boombet://...?idPremioUsuario=N, or last path segment.
+  int? _extractStandCanjeId(String rawValue) {
+    final trimmed = rawValue.trim();
+    final asInt = int.tryParse(trimmed);
+    if (asInt != null) return asInt;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return null;
+
+    final qp =
+        uri.queryParameters['idPremioUsuario'] ??
+        uri.queryParameters['id_premio_usuario'] ??
+        uri.queryParameters['id'];
+    if (qp != null) {
+      final parsed = int.tryParse(qp.trim());
+      if (parsed != null) return parsed;
+    }
+
+    if (uri.pathSegments.isNotEmpty) {
+      final last = int.tryParse(uri.pathSegments.last.trim());
+      if (last != null) return last;
+    }
+
+    return null;
+  }
+
+  Future<void> _handleStandCanje(int idPremioUsuario) async {
+    _handlingCanjeFlow = true;
+    await _deactivateScanner();
+    if (!mounted) return;
+
+    _appendLog('Fetching canje info for idPremioUsuario: $idPremioUsuario');
+    PrizeCanjeModel? info;
+    try {
+      info = await StandsService().fetchCanjeInfo(idPremioUsuario);
+    } catch (e) {
+      _appendLog('fetchCanjeInfo failed: $e');
+      if (mounted) _showSnack('No se pudo obtener el premio');
+      _handlingCanjeFlow = false;
+      await _activateScanner();
+      return;
+    }
+
+    if (!mounted) return;
+    _appendLog(
+      'Canje info: ${info.nombrePremio} / @${info.usernameUsuario} / reclamado=${info.reclamado}',
+    );
+
+    await _showCanjeBottomSheet(info);
+
+    if (!mounted) return;
+    _handlingCanjeFlow = false;
+    await _activateScanner();
+  }
+
+  Future<void> _showCanjeBottomSheet(PrizeCanjeModel info) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _CanjeBottomSheet(
+        info: info,
+        onConfirm: () async {
+          Navigator.pop(ctx);
+          await _doConfirmarCanje(info.idPremioUsuario);
+        },
+        onCancel: () => Navigator.pop(ctx),
+      ),
+    );
+  }
+
+  Future<void> _doConfirmarCanje(int idPremioUsuario) async {
+    _appendLog('Confirming canje for idPremioUsuario: $idPremioUsuario');
+    try {
+      await StandsService().confirmarCanje(idPremioUsuario);
+      _appendLog('Canje confirmed successfully');
+      if (mounted) _showSnack('¡Premio canjeado correctamente!');
+    } catch (e) {
+      _appendLog('confirmarCanje failed: $e');
+      if (mounted) _showSnack('Error al canjear el premio');
+    }
   }
 
   // ─── BUILD ───────────────────────────────────────────────────────────────
@@ -959,6 +1074,222 @@ class _QrScannerPageState extends State<QrScannerPage>
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── CANJE BOTTOM SHEET ──────────────────────────────────────────────────────
+
+class _CanjeBottomSheet extends StatelessWidget {
+  final PrizeCanjeModel info;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _CanjeBottomSheet({
+    required this.info,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const primaryGreen = AppConstants.primaryGreen;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppConstants.darkAccent,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.card_giftcard_outlined,
+                  color: primaryGreen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Canje de Premio',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Prize image
+          _buildImage(info.imgUrl, primaryGreen),
+          const SizedBox(height: 16),
+
+          // Prize name
+          Text(
+            info.nombrePremio,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+
+          // Username
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.person_outline_rounded,
+                color: primaryGreen.withValues(alpha: 0.85),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                info.usernameUsuario,
+                style: TextStyle(
+                  color: primaryGreen.withValues(alpha: 0.9),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          // Already claimed warning
+          if (info.reclamado) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.40),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Este premio ya fue reclamado anteriormente.',
+                      style: TextStyle(color: Colors.orange, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 28),
+
+          // Canjear button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: info.reclamado ? null : onConfirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                disabledBackgroundColor: Colors.white12,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.borderRadius,
+                  ),
+                ),
+              ),
+              child: const Text(
+                'Canjear Premio',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Cancel button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onCancel,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white70,
+                side: const BorderSide(color: Colors.white24),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.borderRadius,
+                  ),
+                ),
+              ),
+              child: const Text('Cancelar', style: TextStyle(fontSize: 15)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage(String imgUrl, Color primaryGreen) {
+    final hasImage = imgUrl.trim().isNotEmpty;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: hasImage
+          ? Image.network(
+              imgUrl,
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _placeholder(primaryGreen),
+            )
+          : _placeholder(primaryGreen),
+    );
+  }
+
+  Widget _placeholder(Color primaryGreen) {
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        color: primaryGreen.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.20)),
+      ),
+      child: Icon(
+        Icons.card_giftcard_rounded,
+        color: primaryGreen.withValues(alpha: 0.45),
+        size: 48,
       ),
     );
   }

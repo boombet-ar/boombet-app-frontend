@@ -1,7 +1,11 @@
-﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/stand_model.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
+
+const _green = AppConstants.primaryGreen;
+const _cardBg = Color(0xFF141414);
+const _errorRed = AppConstants.errorRed;
 
 class StandManagementView extends StatelessWidget {
   final VoidCallback onCreate;
@@ -35,8 +39,6 @@ class StandManagementView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       children: [
         const SectionHeaderWidget(
@@ -55,12 +57,12 @@ class StandManagementView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (isLoading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: CircularProgressIndicator(
-                      color: theme.colorScheme.primary,
-                      strokeWidth: 3,
+                      color: _green,
+                      strokeWidth: 2.5,
                     ),
                   ),
                 )
@@ -79,7 +81,6 @@ class StandManagementView extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _StandListTile(
                       stand: stand,
-                      accentColor: theme.colorScheme.primary,
                       isEditing: isEditing,
                       isDeleting: isDeleting,
                       isToggling: isToggling,
@@ -91,31 +92,33 @@ class StandManagementView extends StatelessWidget {
                   );
                 }),
                 const SizedBox(height: 10),
+
+                // Info bar
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppConstants.darkAccent,
+                    color: _cardBg,
                     borderRadius: BorderRadius.circular(
                       AppConstants.borderRadius,
                     ),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    ),
+                    border: Border.all(color: _green.withValues(alpha: 0.12)),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
-                        color: theme.colorScheme.primary,
+                        Icons.info_outline_rounded,
+                        color: _green.withValues(alpha: 0.70),
+                        size: 16,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           '$totalItems puesto${totalItems == 1 ? '' : 's'} registrado${totalItems == 1 ? '' : 's'}',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: Colors.white.withValues(alpha: 0.50),
                             fontSize: 12,
                           ),
                         ),
@@ -132,6 +135,8 @@ class StandManagementView extends StatelessWidget {
   }
 }
 
+// ── Botón crear ────────────────────────────────────────────────────────────────
+
 class _StandCreateButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -145,40 +150,59 @@ class _StandCreateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppConstants.darkAccent,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        splashColor: _green.withValues(alpha: 0.08),
+        highlightColor: _green.withValues(alpha: 0.04),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: _cardBg,
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(color: _green.withValues(alpha: 0.22)),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: theme.colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _green.withValues(alpha: 0.22)),
+                ),
+                child: Icon(icon, color: _green, size: 18),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Crear puesto',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
-            Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
-          ],
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.add_rounded, color: _green, size: 16),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ── Estado de error ────────────────────────────────────────────────────────────
 
 class _StandsError extends StatelessWidget {
   final String message;
@@ -188,40 +212,77 @@ class _StandsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(color: AppConstants.errorRed.withValues(alpha: 0.3)),
+        border: Border.all(color: _errorRed.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'No se pudieron cargar los puestos.',
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: _errorRed,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'No se pudieron cargar los puestos',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
             message,
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.50),
               fontSize: 12,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reintentar'),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onRetry,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: _errorRed.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _errorRed.withValues(alpha: 0.30),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh_rounded, color: _errorRed, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'Reintentar',
+                      style: TextStyle(
+                        color: _errorRed,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -229,6 +290,8 @@ class _StandsError extends StatelessWidget {
     );
   }
 }
+
+// ── Estado vacío ───────────────────────────────────────────────────────────────
 
 class _StandsEmpty extends StatelessWidget {
   final VoidCallback onRetry;
@@ -237,40 +300,66 @@ class _StandsEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: _green.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
-          Icon(Icons.storefront_outlined, color: theme.colorScheme.primary),
+          Icon(
+            Icons.inbox_outlined,
+            color: _green.withValues(alpha: 0.55),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'No hay puestos para mostrar.',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.50),
+                fontSize: 12.5,
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Refrescar')),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onRetry,
+              borderRadius: BorderRadius.circular(7),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: _green.withValues(alpha: 0.20)),
+                ),
+                child: const Text(
+                  'Refrescar',
+                  style: TextStyle(
+                    color: _green,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+// ── Tile de stand ──────────────────────────────────────────────────────────────
+
 class _StandListTile extends StatelessWidget {
   final StandModel stand;
-  final Color accentColor;
   final bool isEditing;
   final bool isDeleting;
   final bool isToggling;
@@ -281,7 +370,6 @@ class _StandListTile extends StatelessWidget {
 
   const _StandListTile({
     required this.stand,
-    required this.accentColor,
     required this.isEditing,
     required this.isDeleting,
     required this.isToggling,
@@ -293,36 +381,36 @@ class _StandListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: AppConstants.darkAccent,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+        border: Border.all(color: _green.withValues(alpha: 0.14)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+              color: _green.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _green.withValues(alpha: 0.20)),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.storefront_outlined,
-              color: accentColor,
-              size: 20,
+              color: _green,
+              size: 18,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               stand.nombre,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface,
+              style: const TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
+                fontSize: 13.5,
               ),
             ),
           ),
@@ -330,44 +418,54 @@ class _StandListTile extends StatelessWidget {
             const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: _green,
+              ),
             )
           else
             Switch.adaptive(
               value: stand.activo,
-              activeTrackColor: AppConstants.primaryGreen,
+              activeColor: _green,
               onChanged: isBusy ? null : onToggleActive,
             ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           IconButton(
             tooltip: 'Editar puesto',
             onPressed: isBusy ? null : onEdit,
             icon: isEditing
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: accentColor,
+                      color: _green,
                     ),
                   )
-                : Icon(Icons.edit_outlined, color: accentColor),
+                : Icon(
+                    Icons.edit_outlined,
+                    color: isBusy ? _green.withValues(alpha: 0.30) : _green,
+                    size: 20,
+                  ),
           ),
           IconButton(
             tooltip: 'Eliminar puesto',
             onPressed: isBusy ? null : onDelete,
             icon: isDeleting
                 ? const SizedBox(
-                    width: 18,
-                    height: 18,
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppConstants.errorRed,
+                      color: _errorRed,
                     ),
                   )
-                : const Icon(
-                    Icons.delete_outline,
-                    color: AppConstants.errorRed,
+                : Icon(
+                    Icons.delete_outline_rounded,
+                    color: isBusy
+                        ? _errorRed.withValues(alpha: 0.30)
+                        : _errorRed,
+                    size: 20,
                   ),
           ),
         ],

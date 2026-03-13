@@ -802,138 +802,148 @@ class _HomeContentState extends State<HomeContent> {
     required Color textColor,
     bool compact = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
-      padding: compact
-          ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
-          : const EdgeInsets.fromLTRB(28, 32, 28, 28),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(compact ? 16 : 24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryGreen.withValues(alpha: isDark ? 0.22 : 0.18),
-            primaryGreen.withValues(alpha: isDark ? 0.08 : 0.06),
-          ],
-        ),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: isDark ? 0.35 : 0.32),
-          width: 1.5,
+          color: primaryGreen.withValues(alpha: 0.14),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryGreen.withValues(alpha: isDark ? 0.15 : 0.12),
+            color: primaryGreen.withValues(alpha: 0.06),
             blurRadius: 24,
-            offset: const Offset(0, 10),
-            spreadRadius: 1,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: compact
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: primaryGreen.withValues(
-                          alpha: isDark ? 0.22 : 0.14,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryGreen.withValues(alpha: 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.phone_android,
-                        color: primaryGreen,
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        'Descarga nuestra app oficial',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          height: 1.15,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildStoreButtonsRow(compact: true, textColor: textColor),
-              ],
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17),
+        child: Stack(
+          children: [
+            // — Radial glow accent (centered top) —
+            Positioned(
+              top: -40,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  width: 160,
+                  height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: primaryGreen.withValues(alpha: isDark ? 0.25 : 0.16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryGreen.withValues(alpha: 0.25),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.phone_android,
-                    color: primaryGreen,
-                    size: 32,
+                    gradient: RadialGradient(
+                      colors: [
+                        primaryGreen.withValues(alpha: 0.13),
+                        primaryGreen.withValues(alpha: 0.04),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  'Descarga nuestra app oficial',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    height: 1.2,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Disfruta de todas las funciones desde tu móvil',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor.withValues(alpha: 0.75),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildStoreButtonsRow(compact: false, textColor: textColor),
-              ],
+              ),
             ),
+            // — Contenido principal centrado —
+            Padding(
+              padding: compact
+                  ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
+                  : const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Icon-box centrado
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: primaryGreen.withValues(alpha: 0.22),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withValues(alpha: 0.12),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.phone_android_rounded,
+                      color: primaryGreen,
+                      size: compact ? 17 : 19,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Pill label "APP OFICIAL"
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: primaryGreen.withValues(alpha: 0.18),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'APP OFICIAL',
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Título
+                  Text(
+                    'Descargá nuestra app',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: compact ? 14 : 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  if (!compact)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        'Todas las funciones en tu móvil',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.38),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: compact ? 10 : 12),
+                  // Store buttons centrados
+                  _buildStoreButtonsRow(compact: compact, textColor: textColor),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -979,18 +989,18 @@ class _HomeContentState extends State<HomeContent> {
     required bool compact,
     required Color textColor,
   }) {
-    final badgeFontSize = compact ? 11.0 : 12.0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
       alignment: Alignment.center,
       children: [
+        // Logo más visible: mayor opacidad, menor blur
         Opacity(
-          opacity: 0.4,
+          opacity: 0.55,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 1.8, sigmaY: 1.8),
+              imageFilter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
               child: SvgPicture.asset(
                 'assets/images/appstore_logo.svg',
                 height: compact ? 40 : 52,
@@ -999,46 +1009,36 @@ class _HomeContentState extends State<HomeContent> {
             ),
           ),
         ),
+        // Badge "Proximamente" — más compacto y sutil
         IgnorePointer(
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? 10 : 12,
-              vertical: compact ? 5 : 6,
+              horizontal: compact ? 8 : 10,
+              vertical: compact ? 3.5 : 4.5,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.black.withValues(alpha: isDark ? 0.65 : 0.6),
+              color: Colors.black.withValues(alpha: isDark ? 0.58 : 0.55),
               border: Border.all(
-                color: textColor.withValues(alpha: 0.35),
-                width: 1.2,
+                color: textColor.withValues(alpha: 0.28),
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.lock_outline,
-                  size: compact ? 13 : 14,
-                  color: textColor.withValues(alpha: 0.95),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Proximamente',
-                  style: TextStyle(
-                    color: textColor.withValues(alpha: 0.95),
-                    fontSize: badgeFontSize,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Próximamente',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.90),
+                fontSize: compact ? 9.5 : 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+              ),
             ),
           ),
         ),

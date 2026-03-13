@@ -41,11 +41,13 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
               required int stock,
               Uint8List? imageBytes,
               String? imageName,
+              String imageMimeType = 'image/jpeg',
             }) => _service.createStandPrize(
               nombre: nombre,
               stock: stock,
               imageBytes: imageBytes,
               imageName: imageName,
+              imageMimeType: imageMimeType,
             ),
       ),
     );
@@ -64,12 +66,14 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
               int? stock,
               Uint8List? imageBytes,
               String? imageName,
+              String imageMimeType = 'image/jpeg',
             }) => _service.updateStandPrize(
               premioId: prize.id,
               nombre: nombre,
               stock: stock,
               imageBytes: imageBytes,
               imageName: imageName,
+              imageMimeType: imageMimeType,
             ),
       ),
     );
@@ -583,6 +587,7 @@ class _CreatePrizeDialog extends StatefulWidget {
     required int stock,
     Uint8List? imageBytes,
     String? imageName,
+    String imageMimeType,
   })
   onCreate;
 
@@ -599,6 +604,7 @@ class _CreatePrizeDialogState extends State<_CreatePrizeDialog> {
   final _imagePicker = ImagePicker();
   Uint8List? _imageBytes;
   String? _imageName;
+  String _imageMimeType = 'image/jpeg';
   bool _isSubmitting = false;
   String? _submitError;
 
@@ -621,6 +627,7 @@ class _CreatePrizeDialogState extends State<_CreatePrizeDialog> {
       setState(() {
         _imageBytes = bytes;
         _imageName = file.name;
+        _imageMimeType = file.mimeType ?? 'image/jpeg';
       });
     } catch (e) {
       if (!mounted) return;
@@ -656,6 +663,7 @@ class _CreatePrizeDialogState extends State<_CreatePrizeDialog> {
         stock: int.parse(_stockCtrl.text.trim()),
         imageBytes: _imageBytes,
         imageName: _imageName,
+        imageMimeType: _imageMimeType,
       );
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -883,6 +891,7 @@ class _EditPrizeDialog extends StatefulWidget {
     int? stock,
     Uint8List? imageBytes,
     String? imageName,
+    String imageMimeType,
   })
   onUpdate;
 
@@ -899,6 +908,7 @@ class _EditPrizeDialogState extends State<_EditPrizeDialog> {
   final _imagePicker = ImagePicker();
   Uint8List? _imageBytes;
   String? _imageName;
+  String _imageMimeType = 'image/jpeg';
   bool _isSubmitting = false;
   String? _submitError;
 
@@ -928,6 +938,7 @@ class _EditPrizeDialogState extends State<_EditPrizeDialog> {
       setState(() {
         _imageBytes = bytes;
         _imageName = file.name;
+        _imageMimeType = file.mimeType ?? 'image/jpeg';
       });
     } catch (e) {
       if (!mounted) return;
@@ -963,6 +974,7 @@ class _EditPrizeDialogState extends State<_EditPrizeDialog> {
         stock: int.parse(_stockCtrl.text.trim()),
         imageBytes: _imageBytes,
         imageName: _imageName,
+        imageMimeType: _imageMimeType,
       );
       if (mounted) Navigator.pop(context);
     } catch (e) {
