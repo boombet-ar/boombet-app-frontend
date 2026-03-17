@@ -4,6 +4,8 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FaqPage extends StatefulWidget {
@@ -173,6 +175,44 @@ class _FaqPageState extends State<FaqPage> {
     }
   }
 
+  Future<void> _openWhatsAppSupport() async {
+    final rawPhone = AppConstants.supportWhatsappNumber.trim();
+    final phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Configura AppConstants.supportWhatsappNumber para habilitar WhatsApp.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return;
+    }
+
+    final message = Uri.encodeComponent(AppConstants.supportWhatsappMessage);
+    final uri = Uri.parse('https://wa.me/$phone?text=$message');
+
+    final ok = await launchUrl(
+      uri,
+      mode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo abrir WhatsApp.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+  }
+
   List<InlineSpan> _buildAnswerSpans(String text, Color textColor) {
     final replacements = <String, Widget>{
       '(icono de perfil)': Icon(
@@ -232,61 +272,83 @@ class _FaqPageState extends State<FaqPage> {
     return spans.isEmpty ? [TextSpan(text: text)] : spans;
   }
 
+  // ─── BUILD ───────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bgColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.colorScheme.surface;
-    final textColor = theme.colorScheme.onSurface;
-
+    const primaryGreen = AppConstants.primaryGreen;
+    const textMuted = Colors.white;
     final maxWidth = kIsWeb ? 1400.0 : 800.0;
 
     Widget buildSingleColumnBody() {
-      return ListView(
-        padding: const EdgeInsets.all(16.0),
+      return Stack(
         children: [
-          Text(
-            'Ayuda',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: textColor,
+          // Radial glow — top left
+          Positioned(
+            top: -60,
+            left: -50,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.055),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-          _buildFaqSection(
-            context,
-            icon: Icons.home,
-            title: 'Plataforma',
-            cardColor: cardColor,
-            textColor: textColor,
-            items: _platformFaqs,
+          // Radial glow — bottom right
+          Positioned(
+            bottom: -40,
+            right: -50,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.038),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildFaqSection(
-            context,
-            icon: Icons.local_offer,
-            title: 'Beneficios',
-            cardColor: cardColor,
-            textColor: textColor,
-            items: _benefitsFaqs,
-          ),
-          const SizedBox(height: 12),
-          _buildFaqSection(
-            context,
-            icon: Icons.forum,
-            title: 'Foro',
-            cardColor: cardColor,
-            textColor: textColor,
-            items: _forumFaqs,
-          ),
-          const SizedBox(height: 32),
-          _buildPoweredByPanel(
-            context,
-            cardColor: cardColor,
-            textColor: textColor,
-            isDark: isDark,
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              _buildPageHeader(),
+              const SizedBox(height: 14),
+              _buildWhatsAppContactButton(),
+              const SizedBox(height: 20),
+              _buildFaqSection(
+                context,
+                icon: Icons.home_outlined,
+                title: 'Plataforma',
+                items: _platformFaqs,
+              ),
+              const SizedBox(height: 10),
+              _buildFaqSection(
+                context,
+                icon: Icons.local_offer_outlined,
+                title: 'Beneficios',
+                items: _benefitsFaqs,
+              ),
+              const SizedBox(height: 10),
+              _buildFaqSection(
+                context,
+                icon: Icons.forum_outlined,
+                title: 'Foro',
+                items: _forumFaqs,
+              ),
+              const SizedBox(height: 24),
+              _buildPoweredByPanel(context),
+            ],
           ),
         ],
       );
@@ -300,29 +362,55 @@ class _FaqPageState extends State<FaqPage> {
             return buildSingleColumnBody();
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildFaqListWeb(
-                    context,
-                    cardColor: cardColor,
-                    textColor: textColor,
+          return Stack(
+            children: [
+              // Radial glow — top left
+              Positioned(
+                top: -60,
+                left: -50,
+                child: Container(
+                  width: 420,
+                  height: 420,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        primaryGreen.withValues(alpha: 0.055),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildPoweredByPanel(
-                    context,
-                    cardColor: cardColor,
-                    textColor: textColor,
-                    isDark: isDark,
+              ),
+              Positioned(
+                bottom: -40,
+                right: -50,
+                child: Container(
+                  width: 320,
+                  height: 320,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        primaryGreen.withValues(alpha: 0.038),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildFaqListWeb(context)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildPoweredByPanel(context)),
+                  ],
+                ),
+              ),
+            ],
           );
         },
       );
@@ -334,7 +422,7 @@ class _FaqPageState extends State<FaqPage> {
         showLogo: true,
         showFaqButton: false,
       ),
-      backgroundColor: bgColor,
+      backgroundColor: const Color(0xFF0E0E0E),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ResponsiveWrapper(
@@ -345,51 +433,240 @@ class _FaqPageState extends State<FaqPage> {
     );
   }
 
-  Widget _buildFaqListWeb(
-    BuildContext context, {
-    required Color cardColor,
-    required Color textColor,
-  }) {
+  // ─── PAGE HEADER ─────────────────────────────────────────────────────────
+
+  Widget _buildPageHeader() {
+    const primaryGreen = AppConstants.primaryGreen;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Icon-box
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.22),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.16),
+                    blurRadius: 14,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.help_outline_rounded,
+                color: primaryGreen,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Pill "SOPORTE"
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.18),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    'SOPORTE',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Ayuda',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -1.2,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Accent divider
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryGreen,
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.75),
+                    blurRadius: 5,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      primaryGreen.withValues(alpha: 0.38),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Todo lo que necesitas saber sobre BoomBet.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.40),
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWhatsAppContactButton() {
+    const primaryGreen = AppConstants.primaryGreen;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: _openWhatsAppSupport,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.black.withValues(alpha: 0.10),
+        highlightColor: Colors.black.withValues(alpha: 0.05),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 18),
+          decoration: BoxDecoration(
+            color: primaryGreen,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.42),
+                blurRadius: 22,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.16),
+                blurRadius: 44,
+                spreadRadius: 0,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const FaIcon(
+                FontAwesomeIcons.whatsapp,
+                size: 22,
+                color: Colors.black,
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                width: 1,
+                height: 18,
+                color: Colors.black.withValues(alpha: 0.18),
+              ),
+              const Text(
+                'Comunicate con nosotros',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Colors.black,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.black.withValues(alpha: 0.65),
+                  size: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── WEB FAQ LIST ─────────────────────────────────────────────────────────
+
+  Widget _buildFaqListWeb(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Ayuda',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-        const SizedBox(height: 16),
+        _buildPageHeader(),
+        const SizedBox(height: 14),
+        _buildWhatsAppContactButton(),
+        const SizedBox(height: 20),
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               _buildFaqCategoryWeb(
                 context,
-                icon: Icons.home,
+                icon: Icons.home_outlined,
                 title: 'Plataforma',
-                cardColor: cardColor,
-                textColor: textColor,
                 items: _platformFaqs,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _buildFaqCategoryWeb(
                 context,
-                icon: Icons.local_offer,
+                icon: Icons.local_offer_outlined,
                 title: 'Beneficios',
-                cardColor: cardColor,
-                textColor: textColor,
                 items: _benefitsFaqs,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _buildFaqCategoryWeb(
                 context,
-                icon: Icons.forum,
+                icon: Icons.forum_outlined,
                 title: 'Foro',
-                cardColor: cardColor,
-                textColor: textColor,
                 items: _forumFaqs,
               ),
             ],
@@ -399,96 +676,316 @@ class _FaqPageState extends State<FaqPage> {
     );
   }
 
+  // ─── FAQ SECTION (mobile) ─────────────────────────────────────────────────
+
+  Widget _buildFaqSection(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    List<Map<String, String>> items = const [],
+    bool disabled = false,
+  }) {
+    const primaryGreen = AppConstants.primaryGreen;
+    final hasItems = items.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.40),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: hasItems
+          ? Theme(
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+                splashColor: primaryGreen.withValues(alpha: 0.06),
+                highlightColor: Colors.transparent,
+              ),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
+                childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                leading: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.22),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(icon, color: primaryGreen, size: 16),
+                ),
+                title: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                iconColor: primaryGreen,
+                collapsedIconColor: primaryGreen.withValues(alpha: 0.55),
+                children: _buildMobileFaqItems(items),
+              ),
+            )
+          : ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: primaryGreen.withValues(alpha: 0.22),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(icon, color: primaryGreen, size: 16),
+              ),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              trailing: Icon(
+                disabled ? Icons.lock_outline : Icons.chevron_right,
+                color: disabled
+                    ? Colors.white.withValues(alpha: 0.20)
+                    : Colors.white.withValues(alpha: 0.35),
+              ),
+              subtitle: disabled
+                  ? Text(
+                      'Próximamente',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 12,
+                      ),
+                    )
+                  : null,
+              onTap: disabled
+                  ? null
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Abriendo sección: $title'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+            ),
+    );
+  }
+
+  List<Widget> _buildMobileFaqItems(List<Map<String, String>> items) {
+    const primaryGreen = AppConstants.primaryGreen;
+    final result = <Widget>[];
+
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      final isLast = i == items.length - 1;
+
+      result.add(
+        Container(
+          margin: EdgeInsets.only(bottom: isLast ? 0 : 10),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: primaryGreen.withValues(alpha: 0.12),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    margin: const EdgeInsets.only(top: 5, right: 9),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primaryGreen,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withValues(alpha: 0.70),
+                          blurRadius: 4,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      item['question'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 14),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Colors.white.withValues(alpha: 0.50),
+                    ),
+                    children: _buildAnswerSpans(
+                      item['answer'] ?? '',
+                      Colors.white.withValues(alpha: 0.50),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  // ─── FAQ CATEGORY (web) ───────────────────────────────────────────────────
+
   Widget _buildFaqCategoryWeb(
     BuildContext context, {
     required IconData icon,
     required String title,
-    required Color cardColor,
-    required Color textColor,
     required List<Map<String, String>> items,
   }) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primaryGreen = AppConstants.primaryGreen;
 
     return Container(
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.40),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
-          splashColor: Colors.transparent,
-          hoverColor: Colors.transparent,
+          splashColor: primaryGreen.withValues(alpha: 0.06),
           highlightColor: Colors.transparent,
         ),
         child: ExpansionTile(
           initiallyExpanded: true,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          leading: Icon(icon, color: primary),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          leading: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: primaryGreen.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.22),
+                width: 1,
+              ),
+            ),
+            child: Icon(icon, color: primaryGreen, size: 16),
+          ),
           title: Text(
             title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: textColor,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: 0.1,
             ),
           ),
-          iconColor: primary,
-          collapsedIconColor: primary,
+          iconColor: primaryGreen,
+          collapsedIconColor: primaryGreen.withValues(alpha: 0.55),
           children: [
-            for (final item in items)
+            for (int i = 0; i < items.length; i++)
               Container(
-                margin: const EdgeInsets.only(top: 10),
+                margin: EdgeInsets.only(bottom: i == items.length - 1 ? 0 : 10),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.03)
-                      : AppConstants.lightSurfaceVariant,
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFF141414),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: primary.withValues(alpha: isDark ? 0.18 : 0.10),
+                    color: primaryGreen.withValues(alpha: 0.14),
+                    width: 1,
                   ),
                 ),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
-                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                  title: Text(
-                    item['question'] ?? '',
-                    softWrap: true,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                      height: 1.25,
-                    ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                    splashColor: primaryGreen.withValues(alpha: 0.06),
+                    highlightColor: Colors.transparent,
                   ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.55,
-                            color: textColor,
-                          ),
-                          children: _buildAnswerSpans(
-                            item['answer'] ?? '',
-                            textColor,
-                          ),
-                        ),
-                        softWrap: true,
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
+                    childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    iconColor: primaryGreen,
+                    collapsedIconColor: primaryGreen.withValues(alpha: 0.40),
+                    title: Text(
+                      items[i]['question'] ?? '',
+                      softWrap: true,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.3,
                       ),
                     ),
-                  ],
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text.rich(
+                          TextSpan(
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.55,
+                              color: Colors.white.withValues(alpha: 0.50),
+                            ),
+                            children: _buildAnswerSpans(
+                              items[i]['answer'] ?? '',
+                              Colors.white.withValues(alpha: 0.50),
+                            ),
+                          ),
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -497,22 +994,33 @@ class _FaqPageState extends State<FaqPage> {
     );
   }
 
-  Widget _buildPoweredByPanel(
-    BuildContext context, {
-    required Color cardColor,
-    required Color textColor,
-    required bool isDark,
-  }) {
+  // ─── POWERED BY PANEL ─────────────────────────────────────────────────────
+
+  Widget _buildPoweredByPanel(BuildContext context) {
+    const primaryGreen = AppConstants.primaryGreen;
+    final isAndroid =
+        !kIsWeb && Theme.of(context).platform == TargetPlatform.android;
+    final logoHeight = isAndroid ? 48.0 : 54.0;
+
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.10),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 24,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -520,30 +1028,63 @@ class _FaqPageState extends State<FaqPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'POWERED BY',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-              color: textColor,
-            ),
+          // "POWERED BY" with accent decoration
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        primaryGreen.withValues(alpha: 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'POWERED BY',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.5,
+                  color: Colors.white.withValues(alpha: 0.45),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        primaryGreen.withValues(alpha: 0.40),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
+          // Casino logos
           LayoutBuilder(
             builder: (context, constraints) {
               final horizontalPadding = constraints.maxWidth > 1200
-                  ? 24.0
-                  : 12.0;
+                  ? 20.0
+                  : 8.0;
               return Row(
                 children: [
                   Expanded(
                     child: _buildPoweredByLogoTile(
                       assetPath: 'assets/images/bplay_logo.webp',
                       url: _bplayPoweredByUrl,
-                      logoHeight: 58,
-                      isDark: isDark,
+                      logoHeight: logoHeight,
                       horizontalPadding: horizontalPadding,
                     ),
                   ),
@@ -551,17 +1092,15 @@ class _FaqPageState extends State<FaqPage> {
                     child: _buildPoweredByLogoTile(
                       assetPath: 'assets/images/sportsbet_logo.webp',
                       url: _sportsbetPoweredByUrl,
-                      logoHeight: 52,
-                      isDark: isDark,
+                      logoHeight: logoHeight,
                       horizontalPadding: horizontalPadding,
                     ),
                   ),
                   Expanded(
                     child: _buildPoweredByLogoTile(
-                      assetPath: 'assets/images/betsson_logo.png',
+                      assetPath: 'assets/images/betsson_logo.svg',
                       url: _betssonPoweredByUrl,
-                      logoHeight: 50,
-                      isDark: isDark,
+                      logoHeight: logoHeight,
                       horizontalPadding: horizontalPadding,
                     ),
                   ),
@@ -569,27 +1108,77 @@ class _FaqPageState extends State<FaqPage> {
               );
             },
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
+          // Section divider
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: primaryGreen.withValues(alpha: 0.08),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: primaryGreen.withValues(alpha: 0.40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryGreen.withValues(alpha: 0.50),
+                        blurRadius: 4,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: primaryGreen.withValues(alpha: 0.08),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           Text(
-            'Accede a nuestra pagina web!',
+            'Accede a nuestra pagina web',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: textColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.45),
+              letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          // BoomBet logo tap
           Material(
             color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: _openBoomBetSite,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(0),
+              borderRadius: BorderRadius.circular(12),
+              splashColor: primaryGreen.withValues(alpha: 0.10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: primaryGreen.withValues(alpha: 0.14),
+                    width: 1,
+                  ),
+                ),
                 child: Image.asset(
                   'assets/images/boombetlogo.png',
-                  height: 140,
+                  height: 120,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -604,152 +1193,45 @@ class _FaqPageState extends State<FaqPage> {
     required String assetPath,
     required String url,
     required double logoHeight,
-    required bool isDark,
     required double horizontalPadding,
   }) {
+    const primaryGreen = AppConstants.primaryGreen;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding / 2),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: () => _openPoweredBySite(url),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
+          splashColor: primaryGreen.withValues(alpha: 0.10),
           child: Container(
-            height: 94,
+            height: 84,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.transparent
-                  : AppConstants.lightSurfaceVariant,
-              borderRadius: BorderRadius.circular(10),
+              color: const Color(0xFF141414),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.12),
+                width: 1,
+              ),
             ),
-            child: Image.asset(
-              assetPath,
-              height: logoHeight,
-              fit: BoxFit.contain,
-            ),
+            child: assetPath.toLowerCase().endsWith('.svg')
+                ? SvgPicture.asset(
+                    assetPath,
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  )
+                : Image.asset(
+                    assetPath,
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildFaqSection(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required Color cardColor,
-    required Color textColor,
-    List<Map<String, String>> items = const [],
-    bool disabled = false,
-  }) {
-    final hasItems = items.isNotEmpty;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: hasItems
-          ? Theme(
-              data: Theme.of(context).copyWith(
-                dividerColor: Colors.transparent,
-                splashColor: Colors.transparent,
-                hoverColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-              ),
-              child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                leading: Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-                iconColor: Theme.of(context).colorScheme.primary,
-                collapsedIconColor: Theme.of(context).colorScheme.primary,
-                children: items
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['question'] ?? '',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  height: 1.45,
-                                  color: textColor,
-                                ),
-                                children: _buildAnswerSpans(
-                                  item['answer'] ?? '',
-                                  textColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            )
-          : ListTile(
-              leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-              title: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-              trailing: Icon(
-                disabled ? Icons.lock_outline : Icons.chevron_right,
-                color: textColor.withValues(alpha: disabled ? 0.3 : 0.5),
-              ),
-              subtitle: disabled
-                  ? Text(
-                      'Próximamente',
-                      style: TextStyle(color: textColor, fontSize: 13),
-                    )
-                  : null,
-              onTap: disabled
-                  ? null
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Abriendo sección: $title'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-            ),
     );
   }
 }

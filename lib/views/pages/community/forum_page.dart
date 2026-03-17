@@ -4,10 +4,12 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -619,6 +621,13 @@ class _ForumPageState extends State<ForumPage> {
             return;
           }
 
+          final blocked =
+              await InappropriateContentGuard.blockIfContainsInappropriateContent(
+                context: context,
+                text: content,
+              );
+          if (blocked) return;
+
           try {
             // BoomBet (foro general) = casino_gral_id null.
             // Casino = requiere id válido desde /users/casinos_afiliados.
@@ -709,169 +718,173 @@ class _ForumPageState extends State<ForumPage> {
 
   Widget _buildHeader(Color accent, bool isDark, Color textColor) {
     final selectedForum = _selectedForum;
+    final title = selectedForum.label.isNotEmpty
+        ? 'Foro ${selectedForum.label}'
+        : 'Foro';
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withOpacity(0.15),
-            accent.withOpacity(0.05),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+    return SafeArea(
+      bottom: false,
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          SectionHeaderWidget(
+            title: title,
+            subtitle: 'Conecta con la comunidad',
+            icon: Icons.forum_rounded,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Botón: crear publicación
+                Container(
+                  key: widget.tutorialAddPostButtonKey,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.28),
+                      width: 1,
                     ),
-                  ],
-                ),
-                child: Icon(Icons.forum_rounded, color: accent, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selectedForum.label.isNotEmpty
-                          ? 'Foro ${selectedForum.label}'
-                          : 'Foro',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                key: widget.tutorialAddPostButtonKey,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : AppConstants.lightSurfaceVariant,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: _showCreatePostDialog,
-                  color: accent,
-                  tooltip: 'Nueva publicación',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                key: widget.tutorialMyPostsButtonKey,
-                decoration: BoxDecoration(
-                  color: _showMine
-                      ? accent.withOpacity(0.15)
-                      : isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : AppConstants.lightSurfaceVariant,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: accent.withOpacity(_showMine ? 0.6 : 0.15),
-                    width: 1,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.add_rounded),
+                    onPressed: _showCreatePostDialog,
+                    color: accent,
+                    tooltip: 'Nueva publicación',
+                    iconSize: 17,
+                    padding: const EdgeInsets.all(7),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
-                child: IconButton(
-                  icon: Icon(_showMine ? Icons.person : Icons.person_outline),
-                  onPressed: () {
-                    setState(() {
-                      _showMine = !_showMine;
-                      _currentPage = 0;
-                    });
-                    _loadPosts(refresh: true);
-                  },
-                  color: accent,
-                  tooltip: _showMine
-                      ? 'Ver todas las publicaciones'
-                      : 'Ver mis publicaciones',
+                const SizedBox(width: 6),
+                // Botón: mis publicaciones
+                Container(
+                  key: widget.tutorialMyPostsButtonKey,
+                  decoration: BoxDecoration(
+                    color: _showMine
+                        ? accent.withValues(alpha: 0.12)
+                        : null,
+                    border: Border.all(
+                      color: accent.withValues(
+                        alpha: _showMine ? 0.50 : 0.28,
+                      ),
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _showMine ? Icons.person : Icons.person_outline,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showMine = !_showMine;
+                        _currentPage = 0;
+                      });
+                      _loadPosts(refresh: true);
+                    },
+                    color: accent,
+                    tooltip: _showMine
+                        ? 'Ver todas las publicaciones'
+                        : 'Ver mis publicaciones',
+                    iconSize: 17,
+                    padding: const EdgeInsets.all(7),
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildForumSelector(bool isDark, Color accent) {
     return SizedBox(
-      height: 94,
+      height: 110,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         scrollDirection: Axis.horizontal,
         itemCount: _forums.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final forum = _forums[index];
           final selected = forum.id == _selectedForumId;
-
           final bgColor = selected
-              ? accent.withOpacity(isDark ? 0.18 : 0.14)
+              ? accent.withValues(alpha: isDark ? 0.14 : 0.10)
               : (isDark
-                    ? Colors.white.withOpacity(0.05)
+                    ? Colors.white.withValues(alpha: 0.04)
                     : AppConstants.lightSurfaceVariant);
           final borderColor = selected
-              ? accent.withOpacity(0.7)
-              : accent.withOpacity(0.18);
+              ? accent
+              : accent.withValues(alpha: 0.18);
+          final labelColor = selected
+              ? accent
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.50)
+                    : AppConstants.textLight.withValues(alpha: 0.50));
+
           return Material(
             color: Colors.transparent,
             child: InkWell(
               key: forum.id == _boomBetForumId
                   ? widget.tutorialBoomBetForumTargetKey
                   : null,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               onTap: () => _selectForum(forum),
               child: Ink(
-                width: 92,
+                width: 82,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 10,
+                  horizontal: 8,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor, width: 1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: borderColor,
+                    width: selected ? 1.4 : 1,
+                  ),
                   boxShadow: selected
                       ? [
                           BoxShadow(
-                            color: accent.withOpacity(0.22),
+                            color: accent.withValues(alpha: 0.32),
                             blurRadius: 16,
-                            offset: const Offset(0, 6),
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
                           ),
                         ]
                       : null,
                 ),
-                child: Center(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: _buildForumLogo(forum, accent),
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: _buildForumLogo(forum, accent),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      forum.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: labelColor,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1261,173 +1274,218 @@ class _PostCard extends StatelessWidget {
     final textColor = theme.colorScheme.onSurface;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF121212), const Color(0xFF161616)]
-              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
-        ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: accent.withOpacity(0.15),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
-        border: Border.all(
-          color: accent.withOpacity(isDark ? 0.2 : 0.15),
-          width: 1,
-        ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ForumPostDetailPage(postId: post.id),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _AvatarBubble(
-                      radius: 20,
-                      borderGradient: [accent, accent.withOpacity(0.6)],
-                      background: isDark
-                          ? const Color(0xFF1A1A1A)
-                          : AppConstants.lightSurfaceVariant,
-                      avatarUrl: post.avatarUrl,
-                      fallbackLetter: post.username.isNotEmpty
-                          ? post.username[0].toUpperCase()
-                          : '?',
-                      textColor: accent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Barra de acento izquierda ──────────────────────────
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [accent, accent.withValues(alpha: 0.15)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      spreadRadius: 1,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (post.parentId != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: accent.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Respuesta a #${post.parentId}',
-                                style: TextStyle(
-                                  color: accent,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                  ],
+                ),
+              ),
+              // ── Cuerpo de la card ──────────────────────────────────
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF141414)
+                        : AppConstants.lightCardBg,
+                    border: Border(
+                      top: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
+                      ),
+                      right: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
+                      ),
+                      bottom: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ForumPostDetailPage(postId: post.id),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                _AvatarBubble(
+                                  radius: 18,
+                                  borderGradient: [
+                                    accent,
+                                    accent.withValues(alpha: 0.5),
+                                  ],
+                                  background: isDark
+                                      ? const Color(0xFF1A1A1A)
+                                      : AppConstants.lightSurfaceVariant,
+                                  avatarUrl: post.avatarUrl,
+                                  fallbackLetter: post.username.isNotEmpty
+                                      ? post.username[0].toUpperCase()
+                                      : '?',
+                                  textColor: accent,
                                 ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (post.parentId != null) ...[
+                                        Text(
+                                          '↩ Respuesta a #${post.parentId}',
+                                          style: TextStyle(
+                                            color: accent.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                      ],
+                                      Text(
+                                        post.username,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.schedule_rounded,
+                                            size: 11,
+                                            color: textColor.withValues(
+                                              alpha: 0.38,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _formatDate(post.createdAt),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: textColor.withValues(
+                                                alpha: 0.45,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (showDelete)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.red.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        width: 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 17,
+                                      ),
+                                      onPressed: () => onDelete(post.id),
+                                      padding: const EdgeInsets.all(6),
+                                      color: Colors.red.shade400,
+                                      tooltip: 'Eliminar',
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 13,
+                                  color: accent.withValues(alpha: 0.4),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              post.content,
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.55,
+                                color: textColor.withValues(alpha: 0.88),
+                                letterSpacing: 0.1,
                               ),
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 6),
-                          ],
-                          Text(
-                            post.username,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accent.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            const SizedBox(height: 10),
+                            Row(
                               children: [
                                 Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 12,
-                                  color: accent,
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 13,
+                                  color: accent.withValues(alpha: 0.55),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 5),
                                 Text(
-                                  _formatDate(post.createdAt),
+                                  'Ver publicación',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: textColor,
+                                    color: accent.withValues(alpha: 0.65),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (showDelete)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            size: 20,
-                          ),
-                          onPressed: () => onDelete(post.id),
-                          padding: const EdgeInsets.all(6),
-                          color: Colors.red.shade400,
-                          tooltip: 'Eliminar',
-                          constraints: const BoxConstraints(),
+                          ],
                         ),
                       ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 16,
-                      color: accent.withOpacity(0.5),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  post.content,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: textColor,
-                    letterSpacing: 0.2,
                   ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1470,38 +1528,59 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
     final surface = theme.colorScheme.surface;
     final textColor = theme.colorScheme.onSurface;
 
+    final accent = theme.colorScheme.primary;
+
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       backgroundColor: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightDialogBg,
-          borderRadius: BorderRadius.circular(24),
+          color: isDark ? const Color(0xFF111111) : AppConstants.lightDialogBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: accent.withValues(alpha: 0.20),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.40),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
+            ),
+            BoxShadow(
+              color: accent.withValues(alpha: 0.08),
               blurRadius: 30,
-              offset: const Offset(0, 10),
+              spreadRadius: 2,
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ── Header ────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    theme.colorScheme.primary.withOpacity(0.15),
+                    accent.withValues(alpha: 0.18),
+                    accent.withValues(alpha: 0.04),
                     Colors.transparent,
                   ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.5, 1.0],
                 ),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: accent.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
                 ),
               ),
               child: Row(
@@ -1509,49 +1588,90 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      color: accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: accent.withValues(alpha: 0.32),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.22),
+                          blurRadius: 14,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       Icons.create_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 24,
+                      color: accent,
+                      size: 20,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Nueva Publicación',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nueva Publicación',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Compartí algo con la comunidad',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: textColor.withValues(alpha: 0.40),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+
+            // ── TextField ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
               child: TextField(
                 controller: widget.contentController,
                 decoration: InputDecoration(
-                  labelText: 'Contenido',
-                  hintText: '¿Qué quieres compartir con la comunidad?',
+                  hintText: '¿Qué querés compartir?',
+                  hintStyle: TextStyle(
+                    color: textColor.withValues(alpha: 0.30),
+                    fontSize: 14,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: accent.withValues(alpha: 0.18),
+                      width: 1,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: accent.withValues(alpha: 0.18),
+                      width: 1,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.primary,
-                      width: 2,
-                    ),
+                    borderSide: BorderSide(color: accent, width: 1.5),
                   ),
                   alignLabelWithHint: true,
                   filled: true,
                   fillColor: isDark
-                      ? Colors.white.withOpacity(0.03)
+                      ? Colors.white.withValues(alpha: 0.03)
                       : AppConstants.lightInputBg,
+                  contentPadding: const EdgeInsets.all(14),
                 ),
                 maxLines: 6,
                 maxLength: 500,
@@ -1559,49 +1679,71 @@ class _CreatePostDialogState extends State<_CreatePostDialog> {
                 enabled: !_isSubmitting,
               ),
             ),
+
+            // ── Acciones ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: accent,
+                        side: BorderSide(
+                          color: accent.withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(fontSize: 15),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _isSubmitting ? null : _handleSubmit,
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send_rounded, size: 18),
-                    label: Text(
-                      _isSubmitting ? 'Publicando...' : 'Publicar',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isSubmitting ? null : _handleSubmit,
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              size: 16,
+                              color: Colors.black,
+                            ),
+                      label: Text(
+                        _isSubmitting ? 'Publicando...' : 'Publicar',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
                       ),
-                      backgroundColor: theme.colorScheme.primary,
                     ),
                   ),
                 ],

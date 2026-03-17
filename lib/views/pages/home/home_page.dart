@@ -1,8 +1,4 @@
-import 'dart:convert';
-
-import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
@@ -51,7 +47,6 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey _forumBoomBetSelectorTutorialKey = GlobalKey();
   final GlobalKey _forumAddPostTutorialKey = GlobalKey();
   final GlobalKey _forumMyPostsTutorialKey = GlobalKey();
-  bool _allowQrScanner = false;
   bool _tutorialInteractionLocked = false;
   late List<Widget?> _pages;
 
@@ -77,7 +72,6 @@ class _HomePageState extends State<HomePage> {
         !widget.showLoginTutorial || kIsWeb;
     _pages = List<Widget?>.filled(_pageCount, null);
     _subscribeToTopics();
-    _loadQrScannerAvailability();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!kIsWeb || !selectedPageWasRestored) {
         saveSelectedPage(0);
@@ -219,81 +213,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadQrScannerAvailability() async {
-    await loadAffiliateCodeUsage();
-    await loadAffiliateType();
-    if (!mounted) return;
-
-    final storedValidated = affiliateCodeValidatedNotifier.value;
-    final storedType = affiliateTypeNotifier.value.trim().toUpperCase();
-    var allowQr = storedValidated && storedType == 'RULETA';
-
-    if (!allowQr) {
-      allowQr = await _resolveRuletaAffiliationFromUsersMe();
-      if (!mounted) return;
-    }
-
-    setState(() => _allowQrScanner = allowQr);
-  }
-
-  Future<bool> _resolveRuletaAffiliationFromUsersMe() async {
-    try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/users/me',
-        includeAuth: true,
-        cacheTtl: Duration.zero,
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return false;
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic>) return false;
-
-      bool hasRuletaType(dynamic value) {
-        if (value is String) {
-          return value.trim().toUpperCase() == 'RULETA';
-        }
-
-        if (value is List) {
-          for (final item in value) {
-            if (hasRuletaType(item)) return true;
-          }
-          return false;
-        }
-
-        if (value is Map) {
-          for (final entry in value.entries) {
-            final key = entry.key.toString().toLowerCase();
-            final entryValue = entry.value;
-
-            if (entryValue is String) {
-              final normalized = entryValue.trim().toUpperCase();
-              if (normalized == 'RULETA') {
-                if (key.contains('tipo') ||
-                    key.contains('affiliate') ||
-                    key.contains('afilia')) {
-                  return true;
-                }
-              }
-            }
-
-            if (hasRuletaType(entryValue)) {
-              return true;
-            }
-          }
-        }
-
-        return false;
-      }
-
-      return hasRuletaType(decoded);
-    } catch (_) {
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
@@ -315,7 +234,7 @@ class _HomePageState extends State<HomePage> {
               showProfileButton: true,
               showLogoutButton: true,
               showExitButton: false,
-              showQrScannerButton: _allowQrScanner,
+              showQrScannerButton: !kIsWeb,
               faqTutorialTargetKey: _faqAppbarTutorialKey,
               profileTutorialTargetKey: _profileAppbarTutorialKey,
               settingsTutorialTargetKey: _settingsAppbarTutorialKey,

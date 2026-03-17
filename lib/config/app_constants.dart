@@ -95,11 +95,39 @@ class AppConstants {
   static const String endpointProfile = '/api/jugadores';
   static const String endpointUpdateProfile = '/api/jugadores/update';
 
+  // ==================== SOPORTE ====================
+  /// Numero de WhatsApp de soporte en formato internacional solo digitos.
+  /// EJEMPLO: 5491122334455
+  /// TODO: Configurar aca el numero real de contacto.
+  static const String supportWhatsappNumber = '+5491122697694';
+
+  /// Mensaje inicial opcional al abrir el chat de soporte.
+  static const String supportWhatsappMessage =
+      'Hola! Necesito ayuda con BoomBet.';
+
   // ==================== RESPONSIVE DESIGN ====================
   static const double maxWidthSmall = 600.0;
   static const double maxWidthMedium = 800.0;
   static const double maxWidthLarge = 1000.0;
   static const double maxWidthXLarge = 1200.0;
+
+  // ==================== FEATURE FLAGS ====================
+  /// Controla si se afilia al usuario a cupones durante el registro.
+  /// Poner en false para saltear el POST /api/cupones/afiliado
+  /// al confirmar el email (útil para cuentas de test en producción).
+  static const bool couponAffiliationOnRegisterEnabled = false;
+
+  /// Muestra un pop-up de debug con el request/response completo
+  /// al presionar "Crear cuenta". Desactivar en producción estable.
+  static const bool debugRegisterEnabled = false;
+
+  /// Habilita la opción "Debug Views" en Settings para navegar
+  /// rápidamente por vistas de lib/views/pages con datos mock.
+  static const bool debugViewsMenuEnabled = true;
+
+  /// Muestra la consola de logs en la vista de escaneo QR.
+  /// Poner en false para ocultarla completamente.
+  static const bool qrScannerDebugConsoleEnabled = false;
 
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =

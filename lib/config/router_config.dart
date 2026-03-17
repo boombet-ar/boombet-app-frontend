@@ -7,6 +7,12 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
+import 'package:boombet_app/models/evento_model.dart';
+import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
+import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
+import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
+import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
+import 'package:boombet_app/views/pages/affiliates/events/event_detail_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
@@ -25,12 +31,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _affiliationFlowRouteKey = 'affiliation_flow_route';
 const Duration _isVerifiedTtl = Duration(seconds: 20);
+// Toggle temporal para QA: si está en true, siempre abre onboarding.
+// Dejar en false para volver al flujo normal.
+const bool _forceShowOnboardingAlways = false;
 bool? _cachedIsVerified;
 DateTime? _cachedIsVerifiedAt;
 
 bool _parseIsVerified(dynamic data) {
   if (data is Map<String, dynamic>) {
-    final direct = data['is_verified'] ?? data['isVerified'] ?? data['verified'];
+    final direct =
+        data['is_verified'] ?? data['isVerified'] ?? data['verified'];
     if (_parseIsVerified(direct)) return true;
 
     final nested = data['data'];
@@ -84,6 +94,14 @@ bool _isAffiliationRoute(String path) {
       path == '/affiliation-results';
 }
 
+bool _isAffiliatesRoute(String path) {
+  return path == '/affiliates-tools' || path.startsWith('/affiliates-tools/');
+}
+
+bool _isStandRoute(String path) {
+  return path == '/stand-tools' || path.startsWith('/stand-tools/');
+}
+
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   debugPrint('­ƒöÇ ===== REDIRECT CALLBACK =====');
@@ -103,6 +121,11 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   final hasSeenOnboarding = kIsWeb
       ? true
       : (prefs.getBool('hasSeenOnboarding') ?? false);
+
+  if (_forceShowOnboardingAlways) {
+    if (state.uri.path == '/onboarding') return null;
+    return '/onboarding';
+  }
 
   // En Web no mostramos onboarding nunca (ni siquiera entrando directo a /onboarding)
   if (kIsWeb && state.uri.path == '/onboarding') {
@@ -152,6 +175,27 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     return '/';
   }
 
+  final role = await TokenService.getUserRole();
+  final roleUpper = role?.trim().toUpperCase();
+
+  // AFILIADOR: acceso exclusivo al panel de afiliador
+  if (roleUpper == 'AFILIADOR') {
+    if (_isAffiliatesRoute(path)) return null;
+    debugPrint(
+      '🔒 Afiliador intentando acceder a ruta no permitida: $path → /affiliates-tools',
+    );
+    return '/affiliates-tools';
+  }
+
+  // STAND: acceso exclusivo al panel del stand
+  if (roleUpper == 'STAND') {
+    if (_isStandRoute(path)) return null;
+    debugPrint(
+      '🔒 Stand intentando acceder a ruta no permitida: $path → /stand-tools',
+    );
+    return '/stand-tools';
+  }
+
   final isVerified = await _fetchIsVerified();
   final flowRoute = await _loadAffiliationFlowRoute();
 
@@ -170,10 +214,15 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   }
 
   if (path == '/admin-tools') {
-    final role = await TokenService.getUserRole();
-    if (role == null || role.toUpperCase() != 'ADMIN') {
-      return '/home';
-    }
+    if (roleUpper != 'ADMIN') return '/home';
+  }
+
+  if (_isAffiliatesRoute(path)) {
+    return '/home';
+  }
+
+  if (_isStandRoute(path)) {
+    return '/home';
   }
 
   debugPrint('­ƒöÇ No redirigir');
@@ -212,6 +261,44 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/admin-tools',
       builder: (context, state) => const AdminToolsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools',
+      builder: (context, state) => const AffiliatesToolsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/tids',
+      builder: (context, state) => const TidsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/eventos',
+      builder: (context, state) => const EventosPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/stands',
+      builder: (context, state) => const StandsPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/eventos/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        final evento = state.extra is EventoModel
+            ? state.extra as EventoModel
+            : null;
+        return EventDetailPage(eventoId: id, evento: evento);
+      },
+    ),
+    GoRoute(
+      path: '/stand-tools',
+      builder: (context, state) => const StandsToolsPage(),
+    ),
+    GoRoute(
+      path: '/stand-tools/prizes',
+      builder: (context, state) => const StandPrizesPage(),
+    ),
+    GoRoute(
+      path: '/stand-tools/roulettes',
+      builder: (context, state) => const StandRoulettesPage(),
     ),
 
     // Deeplink: detalle de publicación del foro

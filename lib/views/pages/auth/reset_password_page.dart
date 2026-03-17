@@ -260,11 +260,21 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   void _showSnackbar(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        content: Text(
+          message,
+          style: TextStyle(
+            color: isError ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+        backgroundColor: isError
+            ? const Color(0xFFB00020)
+            : AppConstants.primaryGreen,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -275,38 +285,64 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       // Si el token está vacío, mostrar error
       if (_currentToken.isEmpty) {
         return Scaffold(
+          backgroundColor: const Color(0xFF0E0E0E),
           body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text(
-                  'Error: Token inválido',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'El link de recuperación no es válido o ha expirado.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => context.go('/'),
-                  child: const Text('Volver al Login'),
-                ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.redAccent.withValues(alpha: 0.30),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.link_off_rounded,
+                      size: 42,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Token inválido',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'El link de recuperación no es válido o ha expirado.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.55),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  AppButton(
+                    label: 'Volver al Login',
+                    onPressed: () => context.go('/'),
+                    icon: Icons.arrow_back_rounded,
+                    borderRadius: AppConstants.borderRadius,
+                  ),
               ],
             ),
           ),
-        );
+        ));
       }
 
-      final theme = Theme.of(context);
-      final primaryGreen = theme.colorScheme.primary;
-      final textColor = theme.colorScheme.onSurface;
-      final accentColor = AppConstants.borderDark;
-      final borderColor = AppConstants.borderDark;
-      final borderRadius = AppConstants.borderRadius;
+      const scaffoldBg = Color(0xFF0E0E0E);
+      const green = AppConstants.primaryGreen;
+      const borderRadius = AppConstants.borderRadius;
       final isWeb = kIsWeb;
 
       Widget buildLogo({required double width}) {
@@ -320,24 +356,39 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       final header = Column(
         children: [
-          Text(
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: green.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: green.withValues(alpha: 0.22),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(Icons.lock_reset_rounded, color: green, size: 28),
+          ),
+          const SizedBox(height: 16),
+          const Text(
             'Restablecer Contraseña',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: textColor,
-              letterSpacing: 0.5,
+              color: green,
+              letterSpacing: -0.3,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             'Ingresa tu nueva contraseña',
             style: TextStyle(
-              fontSize: 15,
-              color: textColor.withValues(alpha: 0.7),
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.50),
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
         ],
       );
 
@@ -349,7 +400,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               controller: _passwordController,
               obscureText: true,
               enableInteractiveSelection: false,
-              style: TextStyle(color: textColor),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              cursorColor: green,
               onChanged: (value) {
                 if (_passwordError && value.isNotEmpty) {
                   setState(() => _passwordError = false);
@@ -357,72 +409,92 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               },
               decoration: InputDecoration(
                 hintText: 'Nueva contraseña',
-                hintStyle: TextStyle(color: Colors.grey[500]),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  fontSize: 14,
+                ),
                 prefixIcon: Icon(
                   Icons.lock_outline,
-                  color: _passwordError ? Colors.red : primaryGreen,
+                  color: _passwordError
+                      ? Colors.redAccent
+                      : green.withValues(alpha: 0.7),
+                  size: 20,
+                ),
+                filled: true,
+                fillColor: const Color(0xFF141414),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _passwordError ? Colors.red : borderColor,
-                    width: 1.5,
+                    color: _passwordError
+                        ? Colors.redAccent
+                        : green.withValues(alpha: 0.14),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _passwordError ? Colors.red : borderColor,
-                    width: 1.5,
+                    color: _passwordError
+                        ? Colors.redAccent
+                        : green.withValues(alpha: 0.14),
+                    width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _passwordError ? Colors.red : primaryGreen,
-                    width: 2,
+                    color: _passwordError ? Colors.redAccent : green,
+                    width: 1.5,
                   ),
-                ),
-                filled: true,
-                fillColor: accentColor,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 16,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             if (_passwordController.text.isNotEmpty)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: BorderRadius.circular(borderRadius),
-                  border: Border.all(color: borderColor),
+                  color: const Color(0xFF111111),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: green.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: _passwordRules.entries.map((e) {
                     final isValid = e.value;
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(
                         children: [
                           Icon(
-                            isValid ? Icons.check_circle : Icons.cancel,
+                            isValid
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.radio_button_unchecked_rounded,
                             color: isValid
-                                ? AppConstants.primaryGreen
-                                : Colors.red,
-                            size: 18,
+                                ? green
+                                : Colors.white.withValues(alpha: 0.25),
+                            size: 15,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             e.key,
                             style: TextStyle(
                               color: isValid
-                                  ? AppConstants.primaryGreen
-                                  : textColor.withValues(alpha: 0.6),
+                                  ? green
+                                  : Colors.white.withValues(alpha: 0.45),
                               fontSize: 12,
+                              fontWeight: isValid
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -431,12 +503,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   }).toList(),
                 ),
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             TextField(
               controller: _confirmPasswordController,
               obscureText: true,
               enableInteractiveSelection: false,
-              style: TextStyle(color: textColor),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              cursorColor: green,
               onChanged: (value) {
                 if (_confirmPasswordError && value.isNotEmpty) {
                   setState(() => _confirmPasswordError = false);
@@ -444,41 +517,50 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               },
               decoration: InputDecoration(
                 hintText: 'Confirma tu contraseña',
-                hintStyle: TextStyle(color: Colors.grey[500]),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  fontSize: 14,
+                ),
                 prefixIcon: Icon(
                   Icons.lock_outline,
-                  color: _confirmPasswordError ? Colors.red : primaryGreen,
+                  color: _confirmPasswordError
+                      ? Colors.redAccent
+                      : green.withValues(alpha: 0.7),
+                  size: 20,
+                ),
+                filled: true,
+                fillColor: const Color(0xFF141414),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _confirmPasswordError ? Colors.red : borderColor,
-                    width: 1.5,
+                    color: _confirmPasswordError
+                        ? Colors.redAccent
+                        : green.withValues(alpha: 0.14),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _confirmPasswordError ? Colors.red : borderColor,
-                    width: 1.5,
+                    color: _confirmPasswordError
+                        ? Colors.redAccent
+                        : green.withValues(alpha: 0.14),
+                    width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                   borderSide: BorderSide(
-                    color: _confirmPasswordError ? Colors.red : primaryGreen,
-                    width: 2,
+                    color: _confirmPasswordError ? Colors.redAccent : green,
+                    width: 1.5,
                   ),
-                ),
-                filled: true,
-                fillColor: accentColor,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 16,
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             AppButton(
               label: 'Restablecer Contraseña',
               onPressed: _validateAndResetPassword,
@@ -493,7 +575,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       final mobileBody = ResponsiveWrapper(
         maxWidth: 600,
         child: Container(
-          color: theme.scaffoldBackgroundColor,
+          color: scaffoldBg,
           height: double.infinity,
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -504,7 +586,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   padding: const EdgeInsets.only(top: 20.0),
                   child: buildLogo(width: 200),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 header,
                 buildForm(),
                 const SizedBox(height: 20),
@@ -525,7 +607,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               maxWidth: 600,
               constrainOnWeb: true,
               child: Container(
-                color: theme.scaffoldBackgroundColor,
+                color: scaffoldBg,
                 width: double.infinity,
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -535,7 +617,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   child: Column(
                     children: [
                       buildLogo(width: 180),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 28),
                       header,
                       buildForm(),
                       const SizedBox(height: 20),
@@ -548,7 +630,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
           // Desktop web: mantener 2 columnas.
           return Container(
-            color: theme.scaffoldBackgroundColor,
+            color: scaffoldBg,
             height: double.infinity,
             width: double.infinity,
             child: Row(
@@ -603,6 +685,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       );
 
       return Scaffold(
+        backgroundColor: const Color(0xFF0E0E0E),
         appBar: const MainAppBar(
           showSettings: false,
           showProfileButton: false,
@@ -617,24 +700,57 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       );
     } catch (e) {
       return Scaffold(
+        backgroundColor: const Color(0xFF0E0E0E),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text(
-                'Error: No se pudo cargar la página',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('Detalles: $e', textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => context.go('/'),
-                child: const Text('Volver'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.redAccent.withValues(alpha: 0.30),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    size: 42,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Error al cargar la página',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Detalles: $e',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.45),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                AppButton(
+                  label: 'Volver',
+                  onPressed: () => context.go('/'),
+                  icon: Icons.arrow_back_rounded,
+                  borderRadius: AppConstants.borderRadius,
+                ),
+              ],
+            ),
           ),
         ),
       );

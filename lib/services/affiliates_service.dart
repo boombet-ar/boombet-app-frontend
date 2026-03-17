@@ -57,21 +57,20 @@ class AfiliadoresService {
   }
 
   Future<void> createAfiliador({
-    required String nombre,
-    required String tipoAfiliador,
-    String? email,
-    String? dni,
-    String? telefono,
-    String? tokenAfiliador,
+    required String username,
+    required String password,
+    required String dni,
+    required String email,
+    required String telefono,
   }) async {
     final url = '${ApiConfig.baseUrl}/afiliadores';
     final body = <String, dynamic>{
-      'nombre': nombre.trim(),
-      'email': email,
-      'dni': dni,
-      'telefono': telefono,
-      'token_afiliador': tokenAfiliador,
-      'tipo_afiliador': tipoAfiliador,
+      'username': username.trim(),
+      'password': password,
+      'role': 'AFILIADOR',
+      'dni': dni.trim(),
+      'email': email.trim(),
+      'telefono': telefono.trim(),
     };
 
     final response = await HttpClient.post(url, includeAuth: true, body: body);
@@ -106,6 +105,26 @@ class AfiliadoresService {
 
     if (response.statusCode == 200 || response.statusCode == 204) {
       return;
+    }
+
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
+
+  Future<int> fetchAfiliadorTotalJugadores({required int id}) async {
+    final url = '${ApiConfig.baseUrl}/afiliadores/$id';
+
+    final response = await HttpClient.get(
+      url,
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
+        return (data['totalJugadores'] as num?)?.toInt() ?? 0;
+      }
+      throw Exception('Formato inesperado de respuesta');
     }
 
     throw Exception('Error ${response.statusCode}: ${response.body}');

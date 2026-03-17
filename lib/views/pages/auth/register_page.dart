@@ -4,6 +4,7 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
@@ -24,7 +25,8 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends State<RegisterPage>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _usernameController;
   late TextEditingController _emailController;
   late TextEditingController _dniController;
@@ -47,6 +49,10 @@ class _RegisterPageState extends State<RegisterPage> {
   String _affiliateCodeValidatedToken = '';
   bool _isValidatingAffiliateCode = false;
   String? _affiliateType;
+
+  // Animation
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   // Terms and conditions acceptance flags
   bool _termsAccepted = false;
@@ -78,6 +84,16 @@ class _RegisterPageState extends State<RegisterPage> {
     _affiliateCodeController = TextEditingController();
     _selectedGender = null;
     _passwordController.addListener(_validatePasswordLive);
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
   }
 
   @override
@@ -89,6 +105,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _affiliateCodeController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -189,6 +206,21 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
+
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: [
+            _usernameController.text.trim(),
+            _emailController.text.trim(),
+            _dniController.text.trim(),
+            _phoneController.text.trim(),
+            _passwordController.text.trim(),
+            _confirmPasswordController.text.trim(),
+            _affiliateCodeController.text.trim(),
+          ],
+        );
+    if (blocked) return;
 
     // Validar formato de email usando PasswordValidationService
     final email = _emailController.text.trim();
@@ -517,6 +549,29 @@ class _RegisterPageState extends State<RegisterPage> {
 
       LoadingOverlay.hide(context);
 
+      if (AppConstants.debugRegisterEnabled) {
+        final debugEntries = [
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[INPUT]',
+          'Username : ${_usernameController.text.trim()}',
+          'Email    : ${_emailController.text.trim()}',
+          'DNI      : ${_dniController.text.trim()}',
+          'Teléfono : ${_phoneController.text.trim()}',
+          'Género   : $_selectedGender',
+          'AffToken : ${_hasAffiliateCode ? _affiliateCodeController.text.trim() : "(ninguno)"}',
+          '',
+          '[REQUEST → POST /users/auth/userData]',
+          'Body: ${jsonEncode(body)}',
+          '',
+          '[RESPONSE]',
+          'Status : ${response.statusCode}',
+          'Body   : ${response.body.isEmpty ? "(vacío)" : response.body}',
+        ];
+        await _showDebugLogDialog(debugEntries);
+        if (!mounted) return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
@@ -700,6 +755,17 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+
+      if (AppConstants.debugRegisterEnabled) {
+        await _showDebugLogDialog([
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[EXCEPTION]',
+          '$e',
+        ]);
+        if (!mounted) return;
+      }
+
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final dialogBg = isDark
@@ -731,6 +797,49 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     }
+  }
+
+  Future<void> _showDebugLogDialog(List<String> entries) async {
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? AppConstants.darkAccent : AppConstants.lightDialogBg;
+    final labelColor = isDark ? AppConstants.textDark : AppConstants.lightLabelText;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        title: Row(
+          children: [
+            const Icon(Icons.bug_report_outlined, color: AppConstants.primaryGreen, size: 20),
+            const SizedBox(width: 8),
+            Text('Debug — Crear cuenta', style: TextStyle(color: labelColor, fontSize: 15)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 340,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              entries.join('\n'),
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: AppConstants.primaryGreen,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar', style: TextStyle(color: AppConstants.primaryGreen)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleAffiliateCodeValidation() async {
@@ -1720,6 +1829,29 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
       LoadingOverlay.hide(context);
 
+      if (AppConstants.debugRegisterEnabled) {
+        final debugEntries = [
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[INPUT]',
+          'Username : ${_usernameController.text.trim()}',
+          'Email    : ${_emailController.text.trim()}',
+          'DNI      : ${_dniController.text.trim()}',
+          'Teléfono : ${_phoneController.text.trim()}',
+          'Género   : $_selectedGender',
+          'AffToken : ${_hasAffiliateCode ? _affiliateCodeController.text.trim() : "(ninguno)"}',
+          '',
+          '[REQUEST → POST /users/auth/userData]',
+          'Body: ${jsonEncode(body)}',
+          '',
+          '[RESPONSE]',
+          'Status : ${response.statusCode}',
+          'Body   : ${response.body.isEmpty ? "(vacío)" : response.body}',
+        ];
+        await _showDebugLogDialog(debugEntries);
+        if (!mounted) return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         // DNI válido - parsear datos del jugador
         final fullResponse = jsonDecode(response.body);
@@ -1903,6 +2035,17 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
+
+      if (AppConstants.debugRegisterEnabled) {
+        await _showDebugLogDialog([
+          '=== ${DateTime.now().toIso8601String()} ===',
+          '',
+          '[EXCEPTION]',
+          '$e',
+        ]);
+        if (!mounted) return;
+      }
+
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
       final dialogBg = isDark
@@ -2093,15 +2236,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isWeb = kIsWeb;
 
     final primaryGreen = theme.colorScheme.primary;
-    final bgColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
-    final accentColor = isDark
-        ? AppConstants.borderDark
-        : AppConstants.lightAccent;
     final borderRadius = AppConstants.borderRadius;
 
     Widget buildLogo({required double width}) {
@@ -2112,24 +2250,75 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
     final registerHeader = Column(
       children: [
+        // Decoración de acento
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32,
+              height: 1.5,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    primaryGreen.withValues(alpha: 0.65),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: primaryGreen,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.75),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 32,
+              height: 1.5,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.65),
+                    Colors.transparent,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Text(
           'Crear cuenta',
           style: TextStyle(
-            fontSize: 28,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: textColor,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           'Completa los datos para registrarte',
           style: TextStyle(
-            fontSize: 15,
-            color: textColor.withValues(alpha: 0.7),
+            fontSize: 13,
+            color: textColor.withValues(alpha: 0.45),
+            letterSpacing: 0.2,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 14),
       ],
     );
 
@@ -2144,13 +2333,14 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             controller: _usernameController,
             hasError: _usernameError,
             errorText: _usernameError ? 'Nombre de usuario requerido' : null,
+            icon: Icons.person_outline,
             onChanged: (value) {
               if (_usernameError && value.isNotEmpty) {
                 setState(() => _usernameError = false);
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // TextField Email
           AppTextFormField(
@@ -2160,13 +2350,14 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             keyboardType: TextInputType.emailAddress,
             hasError: _emailError,
             errorText: _emailError ? 'Email no válido' : null,
+            icon: Icons.email_outlined,
             onChanged: (value) {
               if (_emailError && value.isNotEmpty) {
                 setState(() => _emailError = false);
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // TextField DNI
           AppTextFormField(
@@ -2176,13 +2367,14 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             keyboardType: TextInputType.number,
             hasError: _dniError,
             errorText: _dniError ? 'DNI requerido' : null,
+            icon: Icons.badge_outlined,
             onChanged: (value) {
               if (_dniError && value.isNotEmpty) {
                 setState(() => _dniError = false);
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // TextField Teléfono
           AppTextFormField(
@@ -2192,13 +2384,14 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             keyboardType: TextInputType.phone,
             hasError: _phoneError,
             errorText: _phoneError ? 'Teléfono requerido' : null,
+            icon: Icons.phone_outlined,
             onChanged: (value) {
               if (_phoneError && value.isNotEmpty) {
                 setState(() => _phoneError = false);
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // TextField Contraseña
           AppPasswordField(
@@ -2214,31 +2407,44 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               _validatePasswordLive();
             },
           ),
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 10),
+
+          // Indicador de reglas de contraseña
+          Wrap(
+            spacing: 10,
+            runSpacing: 4,
             children: _passwordRules.entries.map((e) {
               final ok = e.value;
               return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    ok ? Icons.check_circle : Icons.cancel,
-                    size: 18,
-                    color: ok ? Colors.greenAccent : Colors.redAccent,
+                    ok
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    size: 14,
+                    color: ok
+                        ? primaryGreen
+                        : textColor.withValues(alpha: 0.28),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Text(
                     e.key,
                     style: TextStyle(
-                      color: ok ? Colors.greenAccent : Colors.redAccent,
-                      fontWeight: FontWeight.w500,
+                      color: ok
+                          ? primaryGreen
+                          : textColor.withValues(alpha: 0.35),
+                      fontSize: 11.5,
+                      fontWeight:
+                          ok ? FontWeight.w600 : FontWeight.w400,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ],
               );
             }).toList(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Botón para generar contraseña sugerida
           SizedBox(
@@ -2287,28 +2493,33 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                   ),
                 );
               },
-              icon: Icon(Icons.auto_awesome, size: 18, color: primaryGreen),
+              icon: Icon(
+                Icons.auto_awesome,
+                size: 16,
+                color: primaryGreen.withValues(alpha: 0.8),
+              ),
               label: Text(
                 'Generar contraseña sugerida',
                 style: TextStyle(
-                  fontSize: 13,
-                  color: primaryGreen,
+                  fontSize: 12,
+                  color: primaryGreen.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w500,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
-                  color: primaryGreen.withValues(alpha: 0.5),
+                  color: primaryGreen.withValues(alpha: 0.3),
                   width: 1,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                overlayColor: primaryGreen.withValues(alpha: 0.06),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // TextField Repetir Contraseña
           AppPasswordField(
@@ -2325,7 +2536,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Selector de Género
           GenderSelector(
@@ -2337,10 +2548,10 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               });
             },
             primaryColor: primaryGreen,
-            backgroundColor: accentColor,
+            backgroundColor: const Color(0xFF1A1A1A),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
 
           // Botón Registrarse
           AppButton(
@@ -2349,7 +2560,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             isLoading: _isLoading,
             icon: Icons.person_add,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 4),
         ],
       );
     }
@@ -2374,42 +2585,58 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
-                color: accentColor,
+                color: const Color(0xFF0F1A0F),
                 borderRadius: BorderRadius.circular(borderRadius),
                 border: Border.all(
-                  color: primaryGreen.withValues(alpha: 0.3),
+                  color: primaryGreen.withValues(
+                    alpha: _hasAffiliateCode ? 0.45 : 0.18,
+                  ),
                   width: 1,
                 ),
               ),
               child: Row(
                 children: [
-                  Checkbox(
-                    value: _hasAffiliateCode,
-                    onChanged: (value) {
-                      setState(() {
-                        _hasAffiliateCode = value ?? false;
-                        _affiliateCodeValidated = false;
-                        _affiliateCodeValidatedToken = '';
-                        _isValidatingAffiliateCode = false;
-                        _affiliateType = null;
-                      });
-                      if (_hasAffiliateCode == false) {
-                        clearAffiliateType();
-                        clearAffiliateCodeUsage();
-                      }
-                    },
-                    activeColor: primaryGreen,
-                    checkColor: AppConstants.textLight,
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Checkbox(
+                      value: _hasAffiliateCode,
+                      onChanged: (value) {
+                        setState(() {
+                          _hasAffiliateCode = value ?? false;
+                          _affiliateCodeValidated = false;
+                          _affiliateCodeValidatedToken = '';
+                          _isValidatingAffiliateCode = false;
+                          _affiliateType = null;
+                        });
+                        if (_hasAffiliateCode == false) {
+                          clearAffiliateType();
+                          clearAffiliateCodeUsage();
+                        }
+                      },
+                      activeColor: primaryGreen,
+                      checkColor: Colors.black,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 10),
+                  Icon(
+                    Icons.discount_outlined,
+                    size: 16,
+                    color: primaryGreen.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Tengo un código promocional',
                       style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w600,
+                        color: textColor.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13.5,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
@@ -2420,10 +2647,11 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           if (_hasAffiliateCode) ...[
             const SizedBox(height: 12),
             AppTextFormField(
-              label: 'Codigo de promocional',
-              hint: 'Ingresa tu codigo',
+              label: 'Código promocional',
+              hint: 'Ingresa tu código',
               controller: _affiliateCodeController,
               keyboardType: TextInputType.text,
+              icon: Icons.discount_outlined,
               onChanged: (value) {
                 final trimmed = value.trim();
                 if (trimmed != _affiliateCodeValidatedToken &&
@@ -2458,7 +2686,16 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_affiliateCodeValidated ? 'Validado' : 'Validar'),
+                      : Text(
+                          _affiliateCodeValidated ? '✓ Validado' : 'Validar',
+                          style: TextStyle(
+                            color: _affiliateCodeValidated
+                                ? primaryGreen
+                                : primaryGreen.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -2467,27 +2704,164 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       );
     }
 
+    // ─── Separador de secciones ───────────────────────────────────────────
+    Widget buildSectionDivider() {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      primaryGreen.withValues(alpha: 0.22),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: primaryGreen.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      primaryGreen.withValues(alpha: 0.22),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ─── Form card ────────────────────────────────────────────────────────
+    Widget buildFormCard(Widget child) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: primaryGreen.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.55),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+            BoxShadow(
+              color: primaryGreen.withValues(alpha: 0.03),
+              blurRadius: 48,
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: child,
+      );
+    }
+
+    // ─── Background con glow ──────────────────────────────────────────────
+    Widget buildBackground() {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: Container(color: const Color(0xFF0E0E0E)),
+          ),
+          Positioned(
+            top: -130,
+            left: -130,
+            child: Container(
+              width: 420,
+              height: 420,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.055),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -110,
+            right: -110,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.038),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // ─── Mobile body ──────────────────────────────────────────────────────
     final mobileBody = ResponsiveWrapper(
-      maxWidth: 700,
-      child: Container(
-        color: bgColor,
+      maxWidth: 600,
+      child: SizedBox(
         height: double.infinity,
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20.0),
-                child: buildLogo(width: 200),
-              ),
-              const SizedBox(height: 14),
-              buildAffiliateCodeSection(),
-              const SizedBox(height: 24),
-              registerHeader,
-              buildRegisterFields(),
-              const SizedBox(height: 20),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 22.0),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 14.0, bottom: 12.0),
+                  child: buildLogo(width: 140),
+                ),
+                buildFormCard(
+                  Column(
+                    children: [
+                      registerHeader,
+                      buildAffiliateCodeSection(),
+                      buildSectionDivider(),
+                      buildRegisterFields(),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -2499,29 +2873,37 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           final isNarrowWeb = constraints.maxWidth < 900;
 
           if (isNarrowWeb) {
-            return Container(
-              color: bgColor,
-              height: double.infinity,
-              width: double.infinity,
-              child: SafeArea(
-                child: Center(
-                  child: ResponsiveWrapper(
-                    maxWidth: 520,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 18,
-                      ),
+            return SafeArea(
+              child: ResponsiveWrapper(
+                maxWidth: 520,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 22.0),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
                       child: Column(
                         children: [
-                          const SizedBox(height: 6),
-                          buildLogo(width: 190),
-                          const SizedBox(height: 14),
-                          buildAffiliateCodeSection(),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: 14.0,
+                              bottom: 12.0,
+                            ),
+                            child: buildLogo(width: 140),
+                          ),
+                          buildFormCard(
+                            Column(
+                              children: [
+                                registerHeader,
+                                buildAffiliateCodeSection(),
+                                buildSectionDivider(),
+                                buildRegisterFields(),
+                                const SizedBox(height: 4),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 20),
-                          registerHeader,
-                          buildRegisterFields(),
-                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
@@ -2532,62 +2914,79 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           }
 
           // Desktop web layout (2-column)
-          return Container(
-            color: bgColor,
-            height: double.infinity,
-            width: double.infinity,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final double logoWidth = (constraints.maxWidth * 0.8)
-                            .clamp(260.0, 520.0)
-                            .toDouble();
-                        return Center(child: buildLogo(width: logoWidth));
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 560),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 28,
-                                ),
+          return Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: LayoutBuilder(
+                          builder: (context, inner) {
+                            final double logoWidth = (inner.maxWidth * 0.8)
+                                .clamp(260.0, 520.0)
+                                .toDouble();
+                            return Center(
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 460),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    buildAffiliateCodeSection(),
-                                    const SizedBox(height: 20),
-                                    registerHeader,
-                                    buildRegisterFields(),
-                                  ],
+                                  children: [buildLogo(width: logoWidth)],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, inner) {
+                          return SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: inner.maxHeight,
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 560),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 32,
+                                      vertical: 28,
+                                    ),
+                                    child: FadeTransition(
+                                      opacity: _fadeAnimation,
+                                      child: buildFormCard(
+                                        Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            registerHeader,
+                                            buildAffiliateCodeSection(),
+                                            buildSectionDivider(),
+                                            buildRegisterFields(),
+                                            const SizedBox(height: 12),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       );
@@ -2600,10 +2999,13 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         showBackButton: true,
       ),
       body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: isWeb ? buildWebBody() : mobileBody,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
+          children: [
+            buildBackground(),
+            isWeb ? buildWebBody() : mobileBody,
+          ],
+        ),
       ),
     );
   }

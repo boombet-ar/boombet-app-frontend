@@ -11,8 +11,10 @@ class GamesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: const Color(0xFF0A0A0A),
-      child: GamesContent(
-        firstGameTutorialTargetKey: firstGameTutorialTargetKey,
+      child: SizedBox.expand(
+        child: GamesContent(
+          firstGameTutorialTargetKey: firstGameTutorialTargetKey,
+        ),
       ),
     );
   }

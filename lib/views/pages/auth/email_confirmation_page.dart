@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
@@ -11,6 +12,7 @@ import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -484,6 +486,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
     if (_isProcessing) return;
 
+    final blocked =
+        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
+          context: context,
+          values: [
+            _nombreController.text.trim(),
+            _apellidoController.text.trim(),
+          ],
+        );
+    if (blocked) return;
+
     // Validar que tenemos los datos necesarios
     final playerData = _resolvedPlayerData;
     if (playerData == null) {
@@ -503,7 +515,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     LoadingOverlay.show(context, message: 'Completando tu afiliación...');
 
     try {
-      final bondaError = await _afiliarBonda();
+      final bondaError = AppConstants.couponAffiliationOnRegisterEnabled
+          ? await _afiliarBonda()
+          : null;
       if (bondaError != null) {
         LoadingOverlay.hide(context);
         if (!mounted) return;
@@ -750,14 +764,12 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? Colors.black87 : AppConstants.lightBg;
-    const primaryGreen = AppConstants.primaryGreen;
+    const scaffoldBg = Color(0xFF0E0E0E);
+    const green = AppConstants.primaryGreen;
     final resolvedEmail = _resolvedEmail;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scaffoldBg,
       appBar: const MainAppBar(
         showSettings: false,
         showProfileButton: false,
@@ -778,40 +790,42 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                   children: [
                     // Icono de email
                     Container(
-                      width: 120,
-                      height: 120,
+                      padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: primaryGreen.withValues(alpha: 0.2),
+                        color: green.withValues(alpha: 0.10),
+                        border: Border.all(
+                          color: green.withValues(alpha: 0.22),
+                          width: 1.5,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.mail_outline,
-                        size: 60,
-                        color: primaryGreen.withValues(alpha: 0.7),
+                      child: const Icon(
+                        Icons.mark_email_unread_outlined,
+                        size: 42,
+                        color: green,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // Título
-                    Text(
-                      'Confirmación de email',
+                    const Text(
+                      'Confirmación de Email',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
+                        color: green,
+                        letterSpacing: -0.3,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     // Subtítulo
                     Text(
                       'Te enviamos un enlace de confirmación a:',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: isDark
-                            ? Colors.white70
-                            : AppConstants.lightHintText,
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.50),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -821,9 +835,9 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                       Text(
                         resolvedEmail,
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: green,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -833,19 +847,17 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: primaryGreen.withValues(alpha: 0.1),
+                        color: const Color(0xFF111111),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: primaryGreen.withValues(alpha: 0.3),
+                          color: green.withValues(alpha: 0.18),
                         ),
                       ),
                       child: Text(
-                        'Haz click en el enlace que recibiste para verificar tu email. Una vez verificado, podés continuar con tu afiliación haciendo click en el botón de abajo.',
+                        'Hacé click en el enlace que recibiste para verificar tu email. Una vez verificado, podés continuar con tu afiliación haciendo click en el botón de abajo.',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDark
-                              ? Colors.white70
-                              : AppConstants.lightHintText,
+                          color: Colors.white.withValues(alpha: 0.65),
                           height: 1.6,
                         ),
                         textAlign: TextAlign.center,
@@ -861,7 +873,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                             width: 40,
                             height: 40,
                             child: CircularProgressIndicator(
-                              color: primaryGreen,
+                              color: green,
                               strokeWidth: 2,
                             ),
                           ),
@@ -870,9 +882,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                             'Procesando tu afiliación...',
                             style: TextStyle(
                               fontSize: 14,
-                              color: isDark
-                                  ? Colors.white70
-                                  : AppConstants.lightHintText,
+                              color: Colors.white.withValues(alpha: 0.65),
                             ),
                           ),
                         ],
@@ -880,67 +890,25 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                     else
                       Column(
                         children: [
-                          SizedBox(
-                            height: 56,
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed:
-                                  _isProcessing || _isCheckingVerification
-                                  ? null
-                                  : () async {
-                                      await _checkIsVerified(
-                                        showFeedback: true,
-                                      );
-                                      if (_isVerified && mounted) {
-                                        await _processAfiliation();
-                                      }
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryGreen,
-                                foregroundColor: Colors.black,
-                                disabledBackgroundColor: Colors.grey.withValues(
-                                  alpha: 0.3,
-                                ),
-                                disabledForegroundColor: Colors.grey.withValues(
-                                  alpha: 0.5,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 3,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (_isCheckingVerification)
-                                    const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.grey,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  else
-                                    Icon(
-                                      _isVerified
-                                          ? Icons.check_circle
-                                          : Icons.lock,
-                                      size: 24,
-                                    ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _isCheckingVerification
-                                        ? 'Verificando...'
-                                        : 'Reintentar',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          AppButton(
+                            label: _isCheckingVerification
+                                ? 'Verificando...'
+                                : (_isVerified
+                                    ? 'Continuar'
+                                    : 'Ya verifiqué mi email'),
+                            onPressed: () async {
+                              await _checkIsVerified(showFeedback: true);
+                              if (_isVerified && mounted) {
+                                await _processAfiliation();
+                              }
+                            },
+                            isLoading: _isCheckingVerification,
+                            disabled: _isProcessing,
+                            icon: _isVerified
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.mark_email_read_outlined,
+                            borderRadius: AppConstants.borderRadius,
+                            height: 52,
                           ),
                           if (!_isVerified && !_isCheckingVerification)
                             const SizedBox(height: 16),
@@ -948,9 +916,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                             'Esperando verificación de email...',
                             style: TextStyle(
                               fontSize: 14,
-                              color: isDark
-                                  ? Colors.white70
-                                  : AppConstants.lightHintText,
+                              color: Colors.white.withValues(alpha: 0.50),
                             ),
                             textAlign: TextAlign.center,
                           ),

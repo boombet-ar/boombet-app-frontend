@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -9,7 +8,6 @@ import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -47,7 +45,6 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
   String _statusMessage = 'Iniciando proceso de afiliación...';
   bool _isGameOpen = false;
   bool _wsRestored = false;
-  bool _allowQrScanner = false;
 
   static const _limitedGameRouteName = '/limited/game';
 
@@ -64,8 +61,6 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     if (!widget.preview) {
       saveAffiliationFlowRoute('/limited-home');
     }
-
-    _loadAffiliateType();
 
     // // Timer de 15 segundos para mostrar resultados
     // Future.delayed(const Duration(seconds: 15), () {
@@ -130,81 +125,6 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     if (wsUrl == null || wsUrl.trim().isEmpty) return;
 
     await widget.affiliationService.connectToWebSocket(wsUrl: wsUrl, token: '');
-  }
-
-  Future<void> _loadAffiliateType() async {
-    await loadAffiliateCodeUsage();
-    await loadAffiliateType();
-    if (!mounted) return;
-
-    final storedValidated = affiliateCodeValidatedNotifier.value;
-    final storedType = affiliateTypeNotifier.value.trim().toUpperCase();
-    var allowQr = storedValidated && storedType == 'RULETA';
-
-    if (!allowQr) {
-      allowQr = await _resolveRuletaAffiliationFromUsersMe();
-      if (!mounted) return;
-    }
-
-    setState(() => _allowQrScanner = allowQr);
-  }
-
-  Future<bool> _resolveRuletaAffiliationFromUsersMe() async {
-    try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/users/me',
-        includeAuth: true,
-        cacheTtl: Duration.zero,
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return false;
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic>) return false;
-
-      bool hasRuletaType(dynamic value) {
-        if (value is String) {
-          return value.trim().toUpperCase() == 'RULETA';
-        }
-
-        if (value is List) {
-          for (final item in value) {
-            if (hasRuletaType(item)) return true;
-          }
-          return false;
-        }
-
-        if (value is Map) {
-          for (final entry in value.entries) {
-            final key = entry.key.toString().toLowerCase();
-            final entryValue = entry.value;
-
-            if (entryValue is String) {
-              final normalized = entryValue.trim().toUpperCase();
-              if (normalized == 'RULETA') {
-                if (key.contains('tipo') ||
-                    key.contains('affiliate') ||
-                    key.contains('afilia')) {
-                  return true;
-                }
-              }
-            }
-
-            if (hasRuletaType(entryValue)) {
-              return true;
-            }
-          }
-        }
-
-        return false;
-      }
-
-      return hasRuletaType(decoded);
-    } catch (_) {
-      return false;
-    }
   }
 
   Future<void> _closeGameIfOpen() async {
@@ -281,7 +201,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             showProfileButton: false,
             showLogoutButton: true,
             showExitButton: false,
-            showQrScannerButton: _allowQrScanner,
+            showQrScannerButton: !kIsWeb,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,
@@ -518,24 +438,47 @@ class LimitedHomeContent extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '¡Bienvenido a BoomBet!',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.20),
+                  width: 0.8,
+                ),
+              ),
+              child: Text(
+                'BIENVENIDO',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  color: primaryGreen,
+                  letterSpacing: 1.5,
+                ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Estamos preparando todo para que disfrutes de la mejor experiencia.',
+              '¡Bienvenido a BoomBet!',
               style: TextStyle(
-                fontSize: 16,
-                color: textColor.withValues(alpha: 0.7),
-                height: 1.4,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+                height: 1.15,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Text(
+              'Estamos preparando todo para que disfrutes de la mejor experiencia.',
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.52),
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 18),
             Wrap(
               spacing: gap,
               runSpacing: gap,
@@ -566,7 +509,7 @@ class LimitedHomeContent extends StatelessWidget {
     required Color primaryGreen,
     required Color textColor,
   }) {
-    final muted = textColor.withValues(alpha: 0.70);
+    final muted = textColor.withValues(alpha: 0.58);
 
     Widget benefitRow({
       required IconData icon,
@@ -576,24 +519,28 @@ class LimitedHomeContent extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.06),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: primaryGreen.withValues(alpha: 0.16),
-            width: 1,
+            color: primaryGreen.withValues(alpha: 0.12),
+            width: 0.8,
           ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: primaryGreen.withValues(alpha: 0.12),
+                color: primaryGreen.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.20),
+                  width: 0.8,
+                ),
               ),
-              child: Icon(icon, color: primaryGreen, size: 20),
+              child: Icon(icon, color: primaryGreen, size: 18),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -604,7 +551,7 @@ class LimitedHomeContent extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: textColor,
                       height: 1.2,
                     ),
@@ -623,56 +570,105 @@ class LimitedHomeContent extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            primaryGreen.withValues(alpha: 0.22),
-            primaryGreen.withValues(alpha: 0.10),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.35),
-          width: 2,
+          color: primaryGreen.withValues(alpha: 0.20),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.06),
+            blurRadius: 20,
+            spreadRadius: 0,
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            '¡Bienvenido a BoomBet!',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Mientras se completa tu afiliación, conocé lo que vas a poder hacer:',
-            style: TextStyle(fontSize: 13, color: muted, height: 1.35),
-          ),
-          const SizedBox(height: 14),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    for (int i = 0; i < _benefits.length; i++) ...[
-                      benefitRow(
-                        icon: _benefits[i].icon,
-                        title: _benefits[i].title,
-                        description: _benefits[i].description,
-                      ),
-                      if (i != _benefits.length - 1) const SizedBox(height: 10),
-                    ],
+          Positioned(
+            top: -20,
+            left: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.08),
+                    Colors.transparent,
                   ],
                 ),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.20),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    'BIENVENIDO',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: primaryGreen,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '¡Bienvenido a BoomBet!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: textColor,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Mientras se completa tu afiliación, conocé lo que vas a poder hacer:',
+                  style: TextStyle(fontSize: 12, color: muted, height: 1.35),
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _benefits.length; i++) ...[
+                            benefitRow(
+                              icon: _benefits[i].icon,
+                              title: _benefits[i].title,
+                              description: _benefits[i].description,
+                            ),
+                            if (i != _benefits.length - 1)
+                              const SizedBox(height: 8),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -689,58 +685,130 @@ class LimitedHomeContent extends StatelessWidget {
   }) {
     return Container(
       margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            primaryGreen.withValues(alpha: 0.18),
-            primaryGreen.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.30),
-          width: 2,
+          color: primaryGreen.withValues(alpha: 0.26),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.09),
+            blurRadius: 22,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Icon(Icons.hourglass_empty, color: primaryGreen, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Afiliación en proceso',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
+          Positioned(
+            top: -20,
+            left: -20,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.11),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            statusMessage,
-            style: TextStyle(
-              fontSize: 14,
-              color: textColor.withValues(alpha: 0.8),
-              height: 1.4,
             ),
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              backgroundColor: isDark
-                  ? const Color(0xFF2A2A2A)
-                  : AppConstants.lightAccent,
-              valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: primaryGreen.withValues(alpha: 0.24),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.hourglass_top_rounded,
+                        color: primaryGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Afiliación en proceso',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: primaryGreen,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'EN CURSO',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: primaryGreen.withValues(alpha: 0.75),
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  statusMessage,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textColor.withValues(alpha: 0.65),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                    backgroundColor: isDark
+                        ? const Color(0xFF2A2A2A)
+                        : AppConstants.lightAccent,
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -756,57 +824,122 @@ class LimitedHomeContent extends StatelessWidget {
     required bool isDark,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            primaryGreen.withValues(alpha: 0.22),
-            primaryGreen.withValues(alpha: 0.10),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.35),
-          width: 2,
+          color: primaryGreen.withValues(alpha: 0.26),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withValues(alpha: 0.08),
+            blurRadius: 24,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Icon(Icons.hourglass_empty, color: primaryGreen, size: 42),
-          const SizedBox(height: 12),
-          Text(
-            'Afiliación en proceso',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryGreen,
+          Positioned(
+            top: -30,
+            right: -30,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    primaryGreen.withValues(alpha: 0.09),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            statusMessage,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: textColor.withValues(alpha: 0.8),
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 10,
-              backgroundColor: isDark
-                  ? const Color(0xFF2A2A2A)
-                  : AppConstants.lightAccent,
-              valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.26),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.hourglass_top_rounded,
+                    color: primaryGreen,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'EN PROCESO',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: primaryGreen.withValues(alpha: 0.75),
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Afiliación en proceso',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: primaryGreen,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  statusMessage,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textColor.withValues(alpha: 0.62),
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                    backgroundColor: isDark
+                        ? const Color(0xFF2A2A2A)
+                        : AppConstants.lightAccent,
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -824,24 +957,35 @@ class LimitedHomeContent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF111111) : AppConstants.lightCardBg,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.2),
-          width: 1,
+          color: primaryGreen.withValues(alpha: 0.14),
+          width: 0.8,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: primaryGreen.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.20),
+                width: 0.8,
+              ),
             ),
-            child: Icon(icon, color: primaryGreen, size: 24),
+            child: Icon(icon, color: primaryGreen, size: 20),
           ),
           const SizedBox(height: 8),
           Text(
@@ -850,8 +994,8 @@ class LimitedHomeContent extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
               color: textColor,
               height: 1.25,
             ),
@@ -1129,143 +1273,241 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryGreen.withValues(alpha: 0.15),
-                              Colors.red.withValues(alpha: 0.1),
-                            ],
+                      // Hero image con overlay
+                      Stack(
+                        children: [
+                          Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: const Color(0xFF1A1A1A),
+                            child: cupon.fotoUrl.isNotEmpty
+                                ? Image.network(
+                                    _imageUrlForPlatform(cupon.fotoUrl),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx, e, s) => Center(
+                                      child: Icon(
+                                        Icons.local_offer_outlined,
+                                        size: 64,
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Icon(
+                                      Icons.local_offer_outlined,
+                                      size: 64,
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                    ),
+                                  ),
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
+                          // Gradient overlay 3-stop
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.4),
+                                    Colors.black.withValues(alpha: 0.88),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Badge descuento top-right (verde)
+                          Positioned(
+                            top: 14,
+                            right: 14,
+                            child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
+                                horizontal: 14,
+                                vertical: 7,
                               ),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.red.shade500,
-                                    Colors.red.shade600,
+                                    primaryGreen,
+                                    primaryGreen.withValues(alpha: 0.75),
                                   ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.red.withValues(alpha: 0.5),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
+                                    color: primaryGreen.withValues(alpha: 0.50),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                               child: Text(
                                 cupon.descuento,
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppConstants.textLight,
+                                style: const TextStyle(
+                                  color: Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 36,
-                                  height: 1.0,
+                                  fontSize: 15,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            Text(
-                              cupon.nombre,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppConstants.textLight,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          ),
+                          // Logo + título overlaid bottom-left
+                          Positioned(
+                            bottom: 14,
+                            left: 14,
+                            right: 14,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Icon(
-                                  Icons.business,
-                                  color: primaryGreen,
-                                  size: 16,
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A1A1A),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.30,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.22,
+                                        ),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(3),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: cupon.logoUrl.isNotEmpty
+                                        ? Image.network(
+                                            _imageUrlForPlatform(cupon.logoUrl),
+                                            width: 52,
+                                            height: 52,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, e, s) =>
+                                                Container(
+                                                  width: 52,
+                                                  height: 52,
+                                                  color: const Color(0xFF2A2A2A),
+                                                  child: Center(
+                                                    child: Text(
+                                                      cupon.empresa.nombre
+                                                          .substring(
+                                                            0,
+                                                            (cupon.empresa.nombre
+                                                                    .length)
+                                                                .clamp(0, 2),
+                                                          )
+                                                          .toUpperCase(),
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: primaryGreen,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                          )
+                                        : Container(
+                                            width: 52,
+                                            height: 52,
+                                            color: const Color(0xFF2A2A2A),
+                                            child: Center(
+                                              child: Text(
+                                                cupon.empresa.nombre
+                                                    .substring(
+                                                      0,
+                                                      (cupon.empresa.nombre
+                                                              .length)
+                                                          .clamp(0, 2),
+                                                    )
+                                                    .toUpperCase(),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: primaryGreen,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  cupon.empresa.nombre,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: primaryGreen,
-                                    fontWeight: FontWeight.w600,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        cupon.nombre,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.15,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black,
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        cupon.empresa.nombre,
+                                        style: TextStyle(
+                                          color: primaryGreen,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 14),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: cupon.categorias.map((cat) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: primaryGreen.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    cat.nombre,
-                                    style: TextStyle(
-                                      color: primaryGreen,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 16),
+                          ),
+                        ],
+                      ),
+                      // Fila bonda + categorías
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
-                                vertical: 10,
+                                vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : AppConstants.lightSurfaceVariant,
-                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     'Beneficio provisto por ',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white.withValues(alpha: 0.7)
-                                          : AppConstants.textLight,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.65,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
@@ -1279,6 +1521,41 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                 ],
                               ),
                             ),
+                            if (cupon.categorias.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: cupon.categorias.map((cat) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.10,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.30,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      cat.nombre,
+                                      style: TextStyle(
+                                        color: primaryGreen,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1308,20 +1585,35 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
+                                color: const Color(0xFF0D0D0D),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.orange.withValues(alpha: 0.3),
+                                  color: primaryGreen.withValues(alpha: 0.20),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.orange.shade700,
-                                    size: 18,
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.schedule_rounded,
+                                      color: primaryGreen,
+                                      size: 16,
+                                    ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -1332,7 +1624,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.orange.shade700,
+                                            color: primaryGreen,
                                           ),
                                         ),
                                         const SizedBox(height: 2),
@@ -1584,17 +1876,21 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: primaryGreen.withValues(alpha: 0.18),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: primaryGreen.withValues(alpha: 0.10),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
                 spreadRadius: 1,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -1603,7 +1899,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 0.1, sigmaY: 0.1),
               child: Container(
-                color: isDark ? Colors.grey[900] : AppConstants.lightCardBg,
+                color: isDark ? const Color(0xFF111111) : AppConstants.lightCardBg,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1612,7 +1908,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                         Container(
                           height: kIsWeb ? 140 : 160,
                           width: double.infinity,
-                          color: primaryGreen.withValues(alpha: 0.1),
+                          color: const Color(0xFF1A1A1A),
                           child: cupon.fotoUrl.isNotEmpty
                               ? Image.network(
                                   _imageUrlForPlatform(cupon.fotoUrl),
@@ -1661,12 +1957,15 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.red.shade600, Colors.red],
+                                colors: [
+                                  primaryGreen,
+                                  primaryGreen.withValues(alpha: 0.75),
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.red.withValues(alpha: 0.4),
+                                  color: primaryGreen.withValues(alpha: 0.45),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1674,10 +1973,8 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                             ),
                             child: Text(
                               cupon.descuento,
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppConstants.textLight,
+                              style: const TextStyle(
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 letterSpacing: 0.5,
@@ -1690,14 +1987,17 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                           left: 12,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white
-                                  : AppConstants.lightCardBg,
+                              color: const Color(0xFF1A1A1A),
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: primaryGreen.withValues(alpha: 0.30),
+                                width: 1.5,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 8,
+                                  color: primaryGreen.withValues(alpha: 0.20),
+                                  blurRadius: 10,
+                                  spreadRadius: 0,
                                 ),
                               ],
                             ),
@@ -1715,8 +2015,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                             return Container(
                                               width: 56,
                                               height: 56,
-                                              color: AppConstants
-                                                  .lightSurfaceVariant,
+                                              color: const Color(0xFF2A2A2A),
                                               child: Center(
                                                 child: Text(
                                                   cupon.empresa.nombre
@@ -1743,9 +2042,7 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
                                   : Container(
                                       width: 56,
                                       height: 56,
-                                      color: isDark
-                                          ? Colors.grey[800]
-                                          : AppConstants.lightSurfaceVariant,
+                                      color: const Color(0xFF2A2A2A),
                                       child: Center(
                                         child: Text(
                                           cupon.empresa.nombre
@@ -2167,17 +2464,6 @@ class _LimitedGameGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = isDark ? Colors.white : AppConstants.textLight;
-    final fgSoft = isDark
-        ? Colors.white.withValues(alpha: 0.92)
-        : AppConstants.textLight;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : AppConstants.borderLight.withValues(alpha: 0.7);
-    final surfaceVariant = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : AppConstants.lightSurfaceVariant;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -2185,13 +2471,11 @@ class _LimitedGameGridCard extends StatelessWidget {
         final s = 1.0 + 0.22 * t;
 
         final buttonHeight = (44 * s).clamp(44.0, 56.0);
-        final chipIconSize = (18 * s).clamp(18.0, 22.0);
-        final chipTextSize = (12 * s).clamp(12.0, 14.0);
+        final chipIconSize = (13 * s).clamp(13.0, 16.0);
+        final chipTextSize = (11 * s).clamp(11.0, 13.0);
         final titleSize = (18 * s).clamp(18.0, 20.0);
-        final subtitleSize = (13 * s).clamp(13.0, 15.0);
-        final ctaIconSize = (18 * s).clamp(18.0, 22.0);
-        final ctaArrowSize = (16 * s).clamp(16.0, 20.0);
-        final ctaTextSize = (13 * s).clamp(13.0, 16.0);
+        final subtitleSize = (12 * s).clamp(12.0, 13.0);
+        final ctaTextSize = (13 * s).clamp(13.0, 15.0);
 
         return Material(
           color: Colors.transparent,
@@ -2202,22 +2486,21 @@ class _LimitedGameGridCard extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    primaryGreen.withValues(alpha: isDark ? 0.22 : 0.16),
-                    primaryGreen.withValues(alpha: isDark ? 0.1 : 0.07),
-                  ],
-                ),
+                color: const Color(0xFF111111),
                 border: Border.all(
-                  color: primaryGreen.withValues(alpha: 0.35),
-                  width: 1.2,
+                  color: primaryGreen.withValues(alpha: 0.22),
+                  width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    blurRadius: 12,
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    blurRadius: 22,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.32),
+                    blurRadius: 14,
                     offset: const Offset(0, 8),
                   ),
                 ],
@@ -2225,17 +2508,21 @@ class _LimitedGameGridCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Badge chip — neon green
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 9,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: borderColor, width: 0.8),
+                          color: primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: primaryGreen.withValues(alpha: 0.40),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2243,15 +2530,16 @@ class _LimitedGameGridCard extends StatelessWidget {
                             Icon(
                               Icons.videogame_asset,
                               size: chipIconSize,
-                              color: fg,
+                              color: primaryGreen,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             Text(
                               badge,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: chipTextSize,
-                                color: fg,
+                                color: primaryGreen,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
@@ -2259,18 +2547,32 @@ class _LimitedGameGridCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
+                  // Image container with neon glow
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        color: surfaceVariant,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: const Color(0xFF1A1A1A),
+                        border: Border.all(
+                          color: primaryGreen.withValues(alpha: 0.22),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.14),
+                            blurRadius: 16,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
                         child: Image.asset(asset, fit: BoxFit.contain),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   Text(
                     title,
                     maxLines: 1,
@@ -2278,52 +2580,78 @@ class _LimitedGameGridCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: titleSize,
-                      fontWeight: FontWeight.w800,
-                      color: fg,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: fgSoft,
+                      color: Colors.white.withValues(alpha: 0.45),
                       fontSize: subtitleSize,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.1,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Container(
+                  // CTA neon green button
+                  SizedBox(
                     height: buttonHeight,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : AppConstants.lightSurfaceVariant,
-                      border: Border.all(color: borderColor, width: 0.9),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.sports_esports,
-                          size: ctaIconSize,
-                          color: fg,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            primaryGreen,
+                            primaryGreen.withValues(alpha: 0.78),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Jugar',
-                          style: TextStyle(
-                            color: fg,
-                            fontWeight: FontWeight.w800,
-                            fontSize: ctaTextSize,
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.42),
+                            blurRadius: 16,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 6),
                           ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          width: 1,
                         ),
-                        const SizedBox(width: 10),
-                        Icon(Icons.north_east, size: ctaArrowSize, color: fg),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.sports_esports,
+                            size: 17,
+                            color: Colors.black,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Jugar',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w800,
+                              fontSize: ctaTextSize,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.north_east,
+                            size: 15,
+                            color: Colors.black,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -2361,169 +2689,260 @@ class _GameCardLimited extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentBg = isDark
-        ? Colors.black.withValues(alpha: 0.08)
-        : AppConstants.lightSurfaceVariant;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : AppConstants.borderLight.withValues(alpha: 0.7);
-    final fg = isDark ? Colors.white : AppConstants.textLight;
-    final fgSoft = isDark
-        ? Colors.white.withValues(alpha: 0.92)
-        : AppConstants.textLight;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        onTap: onPlay,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                primaryGreen.withValues(alpha: isDark ? 0.24 : 0.18),
-                primaryGreen.withValues(alpha: isDark ? 0.1 : 0.08),
-              ],
-            ),
-            border: Border.all(
-              color: primaryGreen.withValues(alpha: 0.35),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accentBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor, width: 0.8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.videogame_asset, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          badge,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+              // Neon left strip
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      primaryGreen,
+                      primaryGreen.withValues(alpha: 0.15),
+                    ],
                   ),
-                  const Spacer(),
-                  Icon(Icons.auto_awesome, color: fg, size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: fgSoft,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withValues(alpha: 0.65),
+                      blurRadius: 10,
+                      spreadRadius: 2,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w800,
-                            color: fg,
+              // Content area
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onPlay,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111111),
+                        border: Border(
+                          top: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                          right: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                          bottom: BorderSide(
+                            color: primaryGreen.withValues(alpha: 0.15),
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          description,
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.38,
-                            color: fgSoft,
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withValues(alpha: 0.05),
+                            blurRadius: 20,
+                            spreadRadius: 0,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : AppConstants.lightSurfaceVariant,
-                            border: Border.all(color: borderColor, width: 0.9),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header row: badge + subtitle pill
+                          Row(
                             children: [
-                              Icon(Icons.sports_esports, size: 18, color: fg),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Jugar ahora',
-                                style: TextStyle(
-                                  color: fg,
-                                  fontWeight: FontWeight.w700,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primaryGreen.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: primaryGreen.withValues(alpha: 0.40),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.videogame_asset,
+                                      size: 13,
+                                      color: primaryGreen,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      badge,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        color: primaryGreen,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Icon(Icons.north_east, size: 16, color: fg),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.10),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.60),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Container(
-                    height: 74,
-                    width: 74,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : AppConstants.lightSurfaceVariant,
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : AppConstants.borderLight.withValues(alpha: 0.7),
-                        width: 0.9,
+                          const SizedBox(height: 14),
+                          // Body row: text column + image
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      description,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.50,
+                                        ),
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    // CTA neon button
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            primaryGreen,
+                                            primaryGreen.withValues(alpha: 0.78),
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: primaryGreen.withValues(
+                                              alpha: 0.42,
+                                            ),
+                                            blurRadius: 16,
+                                            spreadRadius: 0,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.14,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 9,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.sports_esports,
+                                              size: 15,
+                                              color: Colors.black,
+                                            ),
+                                            SizedBox(width: 7),
+                                            Text(
+                                              'Jugar ahora',
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 13,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                            SizedBox(width: 7),
+                                            Icon(
+                                              Icons.north_east,
+                                              size: 13,
+                                              color: Colors.black,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Container(
+                                height: 74,
+                                width: 74,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  color: const Color(0xFF1A1A1A),
+                                  border: Border.all(
+                                    color: primaryGreen.withValues(alpha: 0.22),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryGreen.withValues(alpha: 0.14),
+                                      blurRadius: 12,
+                                      spreadRadius: 0,
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Image.asset(asset, fit: BoxFit.contain),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Image.asset(asset, fit: BoxFit.contain),
-                    ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -2554,68 +2973,128 @@ Widget _buildLockedContent(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDark
-                  ? Colors.grey[900]
-                  : AppConstants.lightSurfaceVariant,
+              color: isDark ? const Color(0xFF111111) : AppConstants.lightSurfaceVariant,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: primaryGreen.withValues(alpha: 0.3),
-                width: 2,
+                color: primaryGreen.withValues(alpha: 0.22),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 40,
+                  color: textColor.withValues(alpha: 0.18),
+                ),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1A1A1A) : AppConstants.lightCardBg,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: primaryGreen.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 13,
+                      color: primaryGreen,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: primaryGreen.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'BLOQUEADO',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: primaryGreen.withValues(alpha: 0.70),
+                letterSpacing: 1.5,
               ),
             ),
-            child: Icon(
-              icon,
-              size: 64,
-              color: textColor.withValues(alpha: 0.3),
-            ),
           ),
-          const SizedBox(height: 24),
-          Icon(
-            Icons.lock_outline,
-            size: 48,
-            color: primaryGreen.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Text(
             title,
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
               color: textColor,
+              letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             message,
             style: TextStyle(
-              fontSize: 15,
-              color: textColor.withValues(alpha: 0.6),
-              height: 1.4,
+              fontSize: 14,
+              color: textColor.withValues(alpha: 0.52),
+              height: 1.45,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
-              color: primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: isDark ? const Color(0xFF111111) : AppConstants.lightSurfaceVariant,
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: primaryGreen.withValues(alpha: 0.3),
+                color: primaryGreen.withValues(alpha: 0.24),
                 width: 1,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.hourglass_empty, color: primaryGreen, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.22),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.hourglass_top_rounded,
+                    color: primaryGreen,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Text(
                   'Afiliación en proceso...',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: primaryGreen,
                     fontWeight: FontWeight.w600,
                   ),
@@ -2704,126 +3183,124 @@ class _ForumHeaderLimited extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = isDark ? Colors.white : AppConstants.textLight;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withOpacity(0.15),
-            accent.withOpacity(0.05),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(Icons.forum_rounded, color: accent, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Foro BoomBet',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            '$postCount ${postCount == 1 ? 'publicación' : 'publicaciones'} • Vista previa (solo lectura)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: textColor.withOpacity(0.6),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Opacity(
-                opacity: 0.4,
-                child: Container(
+    return SafeArea(
+      bottom: false,
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          // SectionHeader-style row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 100, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : AppConstants.lightSurfaceVariant,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const IconButton(
-                    icon: Icon(Icons.add_rounded),
-                    onPressed: null,
-                    tooltip: 'Publicar (disponible tras afiliación)',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Opacity(
-                opacity: 0.35,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : AppConstants.lightSurfaceVariant,
+                    color: accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: accent.withOpacity(0.15),
+                      color: accent.withValues(alpha: 0.24),
                       width: 1,
                     ),
                   ),
-                  child: const IconButton(
-                    icon: Icon(Icons.person_outline),
-                    onPressed: null,
-                    tooltip: 'Ver mis publicaciones (tras afiliación)',
+                  child: Icon(Icons.forum_rounded, color: accent, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Foro BoomBet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              '$postCount ${postCount == 1 ? 'publicación' : 'publicaciones'} • Vista pre...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: textColor.withValues(alpha: 0.55),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          // Action buttons — locked (same style as forum_page.dart)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Opacity(
+                  opacity: 0.38,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: accent.withValues(alpha: 0.28),
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const IconButton(
+                      icon: Icon(Icons.add_rounded),
+                      onPressed: null,
+                      tooltip: 'Publicar (disponible tras afiliación)',
+                      iconSize: 17,
+                      padding: EdgeInsets.all(7),
+                      constraints: BoxConstraints(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Opacity(
+                  opacity: 0.35,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: accent.withValues(alpha: 0.28),
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const IconButton(
+                      icon: Icon(Icons.person_outline),
+                      onPressed: null,
+                      tooltip: 'Ver mis publicaciones (tras afiliación)',
+                      iconSize: 17,
+                      padding: EdgeInsets.all(7),
+                      constraints: BoxConstraints(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2847,144 +3324,174 @@ class _LimitedPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF121212), const Color(0xFF161616)]
-              : [AppConstants.lightCardBg, AppConstants.lightSurfaceVariant],
-        ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: accent.withOpacity(0.15),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
-        border: Border.all(
-          color: accent.withOpacity(isDark ? 0.2 : 0.15),
-          width: 1,
-        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _LimitedAvatarBubble(
-                  radius: 20,
-                  borderGradient: [accent, accent.withOpacity(0.6)],
-                  background: isDark
-                      ? const Color(0xFF1A1A1A)
-                      : AppConstants.lightSurfaceVariant,
-                  avatarUrl: post.avatarUrl,
-                  fallbackLetter: post.username.isNotEmpty
-                      ? post.username[0].toUpperCase()
-                      : '?',
-                  textColor: accent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left accent strip
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [accent, accent.withValues(alpha: 0.15)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (post.parentId != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: accent.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Respuesta a #${post.parentId}',
-                            style: TextStyle(
-                              color: accent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                      Text(
-                        post.username,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: isDark ? Colors.white : AppConstants.textLight,
-                        ),
+              ),
+              // Card body
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF141414)
+                        : AppConstants.lightCardBg,
+                    border: Border(
+                      top: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
                       ),
-                      const SizedBox(height: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accent.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      right: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
+                      ),
+                      bottom: BorderSide(
+                        color: accent.withValues(alpha: 0.10),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Icon(
-                              Icons.calendar_today_rounded,
-                              size: 12,
-                              color: accent,
+                            _LimitedAvatarBubble(
+                              radius: 18,
+                              borderGradient: [
+                                accent,
+                                accent.withValues(alpha: 0.5),
+                              ],
+                              background: isDark
+                                  ? const Color(0xFF1A1A1A)
+                                  : AppConstants.lightSurfaceVariant,
+                              avatarUrl: post.avatarUrl,
+                              fallbackLetter: post.username.isNotEmpty
+                                  ? post.username[0].toUpperCase()
+                                  : '?',
+                              textColor: accent,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _formatDate(post.createdAt),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.8)
-                                    : AppConstants.textLight.withOpacity(0.7),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (post.parentId != null) ...[
+                                    Text(
+                                      '↩ Respuesta a #${post.parentId}',
+                                      style: TextStyle(
+                                        color: accent.withValues(alpha: 0.7),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                  ],
+                                  Text(
+                                    post.username,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.schedule_rounded,
+                                        size: 11,
+                                        color: accent.withValues(alpha: 0.6),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accent.withValues(alpha: 0.10),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          _formatDate(post.createdAt),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: accent.withValues(alpha: 0.85),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: accent.withValues(alpha: 0.30),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Text(
+                          post.content,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.80)
+                                : AppConstants.textLight,
+                            letterSpacing: 0.1,
+                          ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: accent.withOpacity(0.35),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              post.content,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                color: isDark
-                    ? Colors.white.withOpacity(0.85)
-                    : AppConstants.textLight,
-                letterSpacing: 0.2,
               ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
