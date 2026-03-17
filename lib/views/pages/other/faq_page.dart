@@ -4,6 +4,7 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -174,6 +175,44 @@ class _FaqPageState extends State<FaqPage> {
     }
   }
 
+  Future<void> _openWhatsAppSupport() async {
+    final rawPhone = AppConstants.supportWhatsappNumber.trim();
+    final phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (phone.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Configura AppConstants.supportWhatsappNumber para habilitar WhatsApp.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return;
+    }
+
+    final message = Uri.encodeComponent(AppConstants.supportWhatsappMessage);
+    final uri = Uri.parse('https://wa.me/$phone?text=$message');
+
+    final ok = await launchUrl(
+      uri,
+      mode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo abrir WhatsApp.'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+  }
+
   List<InlineSpan> _buildAnswerSpans(String text, Color textColor) {
     final replacements = <String, Widget>{
       '(icono de perfil)': Icon(
@@ -284,6 +323,8 @@ class _FaqPageState extends State<FaqPage> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               _buildPageHeader(),
+              const SizedBox(height: 14),
+              _buildWhatsAppContactButton(),
               const SizedBox(height: 20),
               _buildFaqSection(
                 context,
@@ -363,13 +404,9 @@ class _FaqPageState extends State<FaqPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _buildFaqListWeb(context),
-                    ),
+                    Expanded(child: _buildFaqListWeb(context)),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildPoweredByPanel(context),
-                    ),
+                    Expanded(child: _buildPoweredByPanel(context)),
                   ],
                 ),
               ),
@@ -403,33 +440,92 @@ class _FaqPageState extends State<FaqPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Accent decoration
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      primaryGreen.withValues(alpha: 0.50),
-                    ],
-                  ),
+            // Icon-box
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.22),
+                  width: 1,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryGreen.withValues(alpha: 0.16),
+                    blurRadius: 14,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.help_outline_rounded,
+                color: primaryGreen,
+                size: 22,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Pill "SOPORTE"
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(
+                      color: primaryGreen.withValues(alpha: 0.18),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    'SOPORTE',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Ayuda',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -1.2,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Accent divider
+        Row(
+          children: [
             Container(
-              width: 7,
-              height: 7,
+              width: 4,
+              height: 4,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: primaryGreen,
                 boxShadow: [
                   BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.80),
-                    blurRadius: 6,
+                    color: primaryGreen.withValues(alpha: 0.75),
+                    blurRadius: 5,
                     spreadRadius: 1,
                   ),
                 ],
@@ -442,7 +538,7 @@ class _FaqPageState extends State<FaqPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      primaryGreen.withValues(alpha: 0.50),
+                      primaryGreen.withValues(alpha: 0.38),
                       Colors.transparent,
                     ],
                   ),
@@ -451,25 +547,91 @@ class _FaqPageState extends State<FaqPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        const Text(
-          'Ayuda',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: -0.3,
-          ),
-        ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           'Todo lo que necesitas saber sobre BoomBet.',
           style: TextStyle(
             fontSize: 13,
-            color: Colors.white.withValues(alpha: 0.42),
+            color: Colors.white.withValues(alpha: 0.40),
+            height: 1.4,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWhatsAppContactButton() {
+    const primaryGreen = AppConstants.primaryGreen;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: _openWhatsAppSupport,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.black.withValues(alpha: 0.10),
+        highlightColor: Colors.black.withValues(alpha: 0.05),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 18),
+          decoration: BoxDecoration(
+            color: primaryGreen,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.42),
+                blurRadius: 22,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: primaryGreen.withValues(alpha: 0.16),
+                blurRadius: 44,
+                spreadRadius: 0,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const FaIcon(
+                FontAwesomeIcons.whatsapp,
+                size: 22,
+                color: Colors.black,
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                width: 1,
+                height: 18,
+                color: Colors.black.withValues(alpha: 0.18),
+              ),
+              const Text(
+                'Comunicate con nosotros',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Colors.black,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.black.withValues(alpha: 0.65),
+                  size: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -480,6 +642,8 @@ class _FaqPageState extends State<FaqPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildPageHeader(),
+        const SizedBox(height: 14),
+        _buildWhatsAppContactButton(),
         const SizedBox(height: 20),
         Expanded(
           child: ListView(
@@ -911,8 +1075,9 @@ class _FaqPageState extends State<FaqPage> {
           // Casino logos
           LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding =
-                  constraints.maxWidth > 1200 ? 20.0 : 8.0;
+              final horizontalPadding = constraints.maxWidth > 1200
+                  ? 20.0
+                  : 8.0;
               return Row(
                 children: [
                   Expanded(

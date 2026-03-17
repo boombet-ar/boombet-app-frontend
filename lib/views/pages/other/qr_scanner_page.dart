@@ -136,6 +136,7 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   void _appendLog(String message) {
+    if (!AppConstants.qrScannerDebugConsoleEnabled) return;
     if (!mounted) return;
 
     final now = DateTime.now();
@@ -635,8 +636,10 @@ class _QrScannerPageState extends State<QrScannerPage>
                   _buildScannerCard(),
                   const SizedBox(height: 14),
                   _buildControls(),
-                  const SizedBox(height: 14),
-                  _buildLogsPanel(),
+                  if (AppConstants.qrScannerDebugConsoleEnabled) ...[
+                    const SizedBox(height: 14),
+                    _buildLogsPanel(),
+                  ],
                 ],
               ),
             ),

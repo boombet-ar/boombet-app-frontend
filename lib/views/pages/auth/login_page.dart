@@ -967,6 +967,15 @@ class _LoginPageState extends State<LoginPage>
 
           return Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: buildResponsibleGamblingBanner(),
+                  ),
+                ),
+              ),
               Expanded(
                 child: Row(
                   children: [
