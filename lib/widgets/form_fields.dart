@@ -60,11 +60,7 @@ Widget _buildPrefixIcon({
         width: 1,
       ),
     ),
-    child: Icon(
-      icon,
-      color: hasError ? Colors.red : primaryGreen,
-      size: 17,
-    ),
+    child: Icon(icon, color: hasError ? Colors.red : primaryGreen, size: 17),
   );
 }
 
@@ -77,10 +73,12 @@ InputDecoration _buildDecoration({
   Widget? prefixIconWidget,
   Widget? suffixIconWidget,
 }) {
-  final borderColor =
-      hasError ? Colors.red.withValues(alpha: 0.6) : _kFieldBorder;
-  final focusedBorderColor =
-      hasError ? Colors.red : primaryGreen.withValues(alpha: 0.75);
+  final borderColor = hasError
+      ? Colors.red.withValues(alpha: 0.6)
+      : _kFieldBorder;
+  final focusedBorderColor = hasError
+      ? Colors.red
+      : primaryGreen.withValues(alpha: 0.75);
 
   return InputDecoration(
     hintText: hint,
@@ -165,8 +163,7 @@ class _AppTextFormFieldState extends State<AppTextFormField> {
   late FocusNode _internalFocusNode;
   bool _isFocused = false;
 
-  FocusNode get _effectiveFocusNode =>
-      widget.focusNode ?? _internalFocusNode;
+  FocusNode get _effectiveFocusNode => widget.focusNode ?? _internalFocusNode;
 
   @override
   void initState() {
@@ -292,8 +289,7 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
   late FocusNode _internalFocusNode;
   bool _isFocused = false;
 
-  FocusNode get _effectiveFocusNode =>
-      widget.focusNode ?? _internalFocusNode;
+  FocusNode get _effectiveFocusNode => widget.focusNode ?? _internalFocusNode;
 
   @override
   void initState() {
@@ -343,7 +339,6 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
           child: TextFormField(
             controller: widget.controller,
             obscureText: _obscureText,
-            enableInteractiveSelection: false,
             onChanged: widget.onChanged,
             textInputAction: widget.textInputAction,
             focusNode: _effectiveFocusNode,
@@ -540,8 +535,7 @@ class _GenderButton extends StatelessWidget {
                     ? primaryColor
                     : textColor.withValues(alpha: 0.45),
                 fontSize: 13,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 letterSpacing: 0.2,
               ),
             ),

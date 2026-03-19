@@ -8,7 +8,7 @@ import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
 import 'package:boombet_app/views/pages/home/home_page.dart';
 import 'package:boombet_app/views/pages/auth/register_page.dart';
-import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -276,6 +276,61 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
+  // ─── Botón de ayuda ───────────────────────────────────────────────────
+  Widget _buildHelpButton() {
+    const primaryGreen = AppConstants.primaryGreen;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
+    return Center(
+      child: TextButton(
+        onPressed: () {
+          Navigator.push(context, FadeRoute(page: const FaqPage()));
+        },
+        style: TextButton.styleFrom(
+          overlayColor: primaryGreen.withValues(alpha: 0.07),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 17,
+              height: 17,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: primaryGreen.withValues(alpha: 0.55),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '?',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: primaryGreen.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              'Ayuda',
+              style: TextStyle(
+                fontSize: 13,
+                color: textColor.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ─── Glow wrapper para campos ──────────────────────────────────────────
   Widget _buildGlowField({
     required Widget child,
@@ -313,6 +368,10 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isWeb = kIsWeb;
+    // En web mobile, el browser achica el viewport cuando abre el teclado.
+    // Detectamos si el teclado está abierto para adaptar el layout.
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = kIsWeb && keyboardHeight > 100;
 
     const primaryGreen = AppConstants.primaryGreen;
     final textColor = theme.colorScheme.onSurface;
@@ -383,16 +442,6 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
         const SizedBox(height: 10),
-        Text(
-          'Bienvenido',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 16),
       ],
     );
 
@@ -591,7 +640,6 @@ class _LoginPageState extends State<LoginPage>
               obscureText: _obscurePassword,
               keyboardType: TextInputType.text,
               textInputAction: TextInputAction.done,
-              enableInteractiveSelection: false,
               style: TextStyle(color: textColor, fontSize: 15),
               onChanged: (value) {
                 if (_passwordError && value.isNotEmpty) {
@@ -872,42 +920,50 @@ class _LoginPageState extends State<LoginPage>
     }
 
     // ─── Body Mobile ──────────────────────────────────────────────────────
-    final mobileBody = ResponsiveWrapper(
-      maxWidth: 600,
-      child: SizedBox(
-        height: double.infinity,
-        width: double.infinity,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 22.0),
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                // Logo primero, debajo de la AppBar
-                Padding(
-                  padding: const EdgeInsets.only(top: 14.0, bottom: 14.0),
-                  child: buildLogo(width: 160),
+    final mobileBody = SafeArea(
+      child: ResponsiveWrapper(
+        maxWidth: 600,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22.0, 0, 22.0, 50.0),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Logo sin padding extra
+                          buildLogo(width: 150),
+                          // FormCard
+                          buildFormCard(
+                            Column(
+                              children: [
+                                loginHeader,
+                                loginFields,
+                                const SizedBox(height: 4),
+                              ],
+                            ),
+                          ),
+                          // Carrusel + Banner juego responsable
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CasinoLogoCarousel(height: 44),
+                              const SizedBox(height: 8),
+                              buildResponsibleGamblingBanner(),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                // FormCard con: crear cuenta → separador "o" → campos → login → olvidaste
-                buildFormCard(
-                  Column(
-                    children: [
-                      loginHeader,
-                      loginFields,
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-                // Carrusel debajo del contenedor
-                const SizedBox(height: 16),
-                const CasinoLogoCarousel(height: 48),
-                const SizedBox(height: 10),
-                // Banner juego responsable
-                buildResponsibleGamblingBanner(),
-                const SizedBox(height: 14),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -919,45 +975,42 @@ class _LoginPageState extends State<LoginPage>
           final isNarrowWeb = constraints.maxWidth < 900;
 
           if (isNarrowWeb) {
+            // SingleChildScrollView en lugar de Column+Expanded+isKeyboardOpen.
+            // El layout no cambia estructuralmente cuando el teclado abre:
+            // Flutter web reposiciona el HTML input si el widget se mueve durante
+            // la animación del teclado y Chrome interpreta eso como un cierre.
+            // Con scroll, el contenido se mantiene estático y Flutter auto-scrollea
+            // al campo enfocado via ensureVisible.
             return SafeArea(
               child: ResponsiveWrapper(
                 maxWidth: 520,
-                child: SizedBox(
-                  width: double.infinity,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 22.0),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        children: [
-                          // Logo primero
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: 14.0,
-                              bottom: 14.0,
-                            ),
-                            child: buildLogo(width: 160),
+                    padding: const EdgeInsets.fromLTRB(22.0, 16, 22.0, 80.0),
+                    child: Column(
+                      children: [
+                        buildLogo(width: 150),
+                        const SizedBox(height: 24),
+                        buildFormCard(
+                          Column(
+                            children: [
+                              loginHeader,
+                              loginFields,
+                              const SizedBox(height: 4),
+                            ],
                           ),
-                          // FormCard
-                          buildFormCard(
-                            Column(
-                              children: [
-                                loginHeader,
-                                loginFields,
-                                const SizedBox(height: 4),
-                              ],
-                            ),
-                          ),
-                          // Carrusel debajo del contenedor
-                          const SizedBox(height: 16),
-                          const CasinoLogoCarousel(height: 48),
-                          const SizedBox(height: 10),
-                          // Banner juego responsable
-                          buildResponsibleGamblingBanner(),
-                          const SizedBox(height: 14),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CasinoLogoCarousel(height: 44),
+                            const SizedBox(height: 8),
+                            buildResponsibleGamblingBanner(),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -965,108 +1018,114 @@ class _LoginPageState extends State<LoginPage>
             );
           }
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: buildResponsibleGamblingBanner(),
+          return SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: buildResponsibleGamblingBanner(),
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: LayoutBuilder(
-                          builder: (context, inner) {
-                            final double logoWidth = (inner.maxWidth * 0.8)
-                                .clamp(260.0, 520.0)
-                                .toDouble();
-                            return Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 460,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [buildLogo(width: logoWidth)],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, inner) {
-                          return SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: inner.maxHeight,
-                              ),
-                              child: Center(
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: LayoutBuilder(
+                            builder: (context, inner) {
+                              final double logoWidth = (inner.maxWidth * 0.8)
+                                  .clamp(260.0, 520.0)
+                                  .toDouble();
+                              return Center(
                                 child: ConstrainedBox(
                                   constraints: const BoxConstraints(
-                                    maxWidth: 520,
+                                    maxWidth: 460,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 32,
-                                      vertical: 28,
-                                    ),
-                                    child: FadeTransition(
-                                      opacity: _fadeAnimation,
-                                      child: buildFormCard(
-                                        Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            loginHeader,
-                                            loginFields,
-                                            const SizedBox(height: 12),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [buildLogo(width: logoWidth)],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 28,
+                              ),
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: buildFormCard(
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      loginHeader,
+                                      loginFields,
+                                      const SizedBox(height: 12),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Carrusel debajo del contenedor (layout wide)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
+                // Carrusel debajo del contenedor (layout wide)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 50),
+                  child: const CasinoLogoCarousel(height: 64),
                 ),
-                child: const CasinoLogoCarousel(height: 64),
-              ),
-            ],
+              ],
+            ),
           );
         },
       );
     }
 
     return Scaffold(
-      appBar: const MainAppBar(showSettings: false, showProfileButton: false),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Stack(
-          children: [buildBackground(), isWeb ? buildWebBody() : mobileBody],
-        ),
+      // En web: true para que el Scaffold adapte el body cuando el browser
+      // achica el viewport por el teclado. En nativo: false porque el layout
+      // de login (logo + form + carousel con spaceEvenly) no es scrolleable y
+      // si se aprieta Android cierra el teclado automáticamente al no ver el campo.
+      resizeToAvoidBottomInset: kIsWeb,
+      body: Stack(
+        children: [
+          // GestureDetector solo en la capa de fondo: captura taps en zonas
+          // vacías (para cerrar el teclado) pero NO interfiere con los campos
+          // de texto que están en capas superiores del Stack.
+          GestureDetector(
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: buildBackground(),
+          ),
+          isWeb ? buildWebBody() : mobileBody,
+          // Botón ayuda fijo. En web mobile se oculta cuando el teclado
+          // está abierto para no ocupar espacio valioso del formulario.
+          if (!isKeyboardOpen)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(top: false, child: _buildHelpButton()),
+            ),
+        ],
       ),
     );
   }

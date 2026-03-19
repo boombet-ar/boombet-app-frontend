@@ -267,7 +267,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     },
                   ),
                 ),
-              if (showQrScannerButton && !kIsWeb)
+              if (showQrScannerButton)
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: navBtn(

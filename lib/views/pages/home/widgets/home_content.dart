@@ -724,30 +724,20 @@ class _HomeContentState extends State<HomeContent> {
   }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Row(
+      child: Column(
         children: [
+          _buildWebStoreStrip(primaryGreen: primaryGreen, textColor: textColor),
+          const SizedBox(height: 10),
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: _buildWebDownloadCard(
-                  primaryGreen: primaryGreen,
-                  textColor: textColor,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
+                constraints: const BoxConstraints(maxWidth: 600),
                 child: _buildCarouselPanel(
                   primaryGreen: primaryGreen,
                   textColor: textColor,
                   margin: EdgeInsets.zero,
-                  maxPanelWidth: 460,
-                  maxAdWidth: 320,
+                  maxPanelWidth: 600,
+                  maxAdWidth: 420,
                   adAspectRatio: 9 / 16,
                 ),
               ),
@@ -763,36 +753,71 @@ class _HomeContentState extends State<HomeContent> {
     required Color textColor,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
       child: Column(
         children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: _buildWebDownloadCard(
-                primaryGreen: primaryGreen,
-                textColor: textColor,
-                compact: true,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
+          _buildWebStoreStrip(primaryGreen: primaryGreen, textColor: textColor),
+          const SizedBox(height: 8),
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
+                constraints: const BoxConstraints(maxWidth: 480),
                 child: _buildCarouselPanel(
                   primaryGreen: primaryGreen,
                   textColor: textColor,
                   margin: EdgeInsets.zero,
-                  maxPanelWidth: 420,
-                  maxAdWidth: 260,
+                  maxPanelWidth: 480,
+                  maxAdWidth: 340,
                   adAspectRatio: 9 / 15,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWebStoreStrip({
+    required Color primaryGreen,
+    required Color textColor,
+  }) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: primaryGreen.withValues(alpha: 0.14),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: primaryGreen.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Descargá la app:',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.45),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(width: 10),
+            _buildPlayStoreLogoButton(compact: true, stripMode: true),
+            const SizedBox(width: 8),
+            _buildAppStoreComingSoonButton(compact: true, textColor: textColor, stripMode: true),
+          ],
+        ),
       ),
     );
   }
@@ -854,74 +879,12 @@ class _HomeContentState extends State<HomeContent> {
             // — Contenido principal centrado —
             Padding(
               padding: compact
-                  ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
+                  ? const EdgeInsets.fromLTRB(10, 8, 10, 8)
                   : const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Icon-box centrado
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: primaryGreen.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: primaryGreen.withValues(alpha: 0.22),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryGreen.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.phone_android_rounded,
-                      color: primaryGreen,
-                      size: compact ? 17 : 19,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Pill label "APP OFICIAL"
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryGreen.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: primaryGreen.withValues(alpha: 0.18),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      'APP OFICIAL',
-                      style: TextStyle(
-                        color: primaryGreen,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.6,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Título
-                  Text(
-                    'Descargá nuestra app',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: compact ? 14 : 16,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
                   if (!compact)
                     Padding(
                       padding: const EdgeInsets.only(top: 3),
@@ -963,7 +926,8 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildPlayStoreLogoButton({required bool compact}) {
+  Widget _buildPlayStoreLogoButton({required bool compact, bool stripMode = false}) {
+    final height = stripMode ? 28.0 : (compact ? 40.0 : 52.0);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -972,12 +936,12 @@ class _HomeContentState extends State<HomeContent> {
         hoverColor: Colors.white.withValues(alpha: 0.08),
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 4 : 6,
-            vertical: compact ? 4 : 6,
+            horizontal: stripMode ? 2 : (compact ? 4 : 6),
+            vertical: stripMode ? 2 : (compact ? 4 : 6),
           ),
           child: SvgPicture.asset(
             'assets/images/playstore_logo.svg',
-            height: compact ? 40 : 52,
+            height: height,
             fit: BoxFit.contain,
           ),
         ),
@@ -988,8 +952,10 @@ class _HomeContentState extends State<HomeContent> {
   Widget _buildAppStoreComingSoonButton({
     required bool compact,
     required Color textColor,
+    bool stripMode = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final height = stripMode ? 28.0 : (compact ? 40.0 : 52.0);
 
     return Stack(
       alignment: Alignment.center,
@@ -1003,7 +969,7 @@ class _HomeContentState extends State<HomeContent> {
               imageFilter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
               child: SvgPicture.asset(
                 'assets/images/appstore_logo.svg',
-                height: compact ? 40 : 52,
+                height: height,
                 fit: BoxFit.contain,
               ),
             ),
@@ -1013,8 +979,8 @@ class _HomeContentState extends State<HomeContent> {
         IgnorePointer(
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? 8 : 10,
-              vertical: compact ? 3.5 : 4.5,
+              horizontal: stripMode ? 5 : (compact ? 8 : 10),
+              vertical: stripMode ? 2 : (compact ? 3.5 : 4.5),
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
@@ -1035,9 +1001,9 @@ class _HomeContentState extends State<HomeContent> {
               'Próximamente',
               style: TextStyle(
                 color: textColor.withValues(alpha: 0.90),
-                fontSize: compact ? 9.5 : 10.5,
+                fontSize: stripMode ? 7.5 : (compact ? 9.5 : 10.5),
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
+                letterSpacing: 0.3,
               ),
             ),
           ),

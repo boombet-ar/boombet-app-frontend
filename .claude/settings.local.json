@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(grep -E '\\\\.dart$')",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(find /c/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/home/widgets -type f -name *.dart)",
+      "Bash(find /c/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/services -type f -name *ad* -o -name *publicidad*)",
+      "Bash(find /c/Users/Usuario/Desktop/BoombetApp/boombet_app -type f -name *ad* -o -name *casino*)",
+      "Bash(grep -E \"\\\\.dart$\")",
+      "Bash(find lib/widgets -type f -name *.dart)"
     ]
   }
 }

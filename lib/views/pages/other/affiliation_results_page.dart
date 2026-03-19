@@ -47,11 +47,6 @@ class AffiliationResultsPage extends StatelessWidget {
       keys: const ['user', 'username', 'usuario'],
       fallback: affiliationUsernameNotifier.value,
     );
-    final password = _resolveCredential(
-      result!.playerData,
-      keys: const ['password', 'contrasena', 'contraseña', 'pass'],
-      fallback: affiliationPasswordNotifier.value,
-    );
 
     return Scaffold(
       backgroundColor: _scaffoldBg,
@@ -78,7 +73,6 @@ class AffiliationResultsPage extends StatelessWidget {
                       alreadyAffiliatedCount: alreadyAffiliatedCount,
                       dni: dni,
                       username: username,
-                      password: password,
                     );
                   }
                   return _buildWebLayout(
@@ -89,7 +83,6 @@ class AffiliationResultsPage extends StatelessWidget {
                     alreadyAffiliatedCount: alreadyAffiliatedCount,
                     dni: dni,
                     username: username,
-                    password: password,
                   );
                 },
               )
@@ -101,7 +94,6 @@ class AffiliationResultsPage extends StatelessWidget {
                 alreadyAffiliatedCount: alreadyAffiliatedCount,
                 dni: dni,
                 username: username,
-                password: password,
               ),
       ),
     );
@@ -117,7 +109,6 @@ class AffiliationResultsPage extends StatelessWidget {
     required int alreadyAffiliatedCount,
     required String dni,
     required String username,
-    required String password,
   }) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
@@ -176,7 +167,10 @@ class AffiliationResultsPage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          _buildCredentialsCard(dni: dni, username: username, password: password),
+          _buildCredentialsCard(dni: dni, username: username),
+          const SizedBox(height: 10),
+          if (AppConstants.affiliationPlayerDataDebugEnabled)
+            _buildDebugPlayerDataCard(result!.playerData),
           const SizedBox(height: 18),
 
           AppButton(
@@ -207,7 +201,6 @@ class AffiliationResultsPage extends StatelessWidget {
     required int alreadyAffiliatedCount,
     required String dni,
     required String username,
-    required String password,
   }) {
     final size = MediaQuery.sizeOf(context);
     final gridHeight = (size.height - 280).clamp(520.0, 760.0);
@@ -396,9 +389,11 @@ class AffiliationResultsPage extends StatelessWidget {
           _buildCredentialsCard(
             dni: dni,
             username: username,
-            password: password,
             compact: true,
           ),
+          const SizedBox(height: 12),
+          if (AppConstants.affiliationPlayerDataDebugEnabled)
+            _buildDebugPlayerDataCard(result!.playerData),
           const SizedBox(height: 20),
           Center(
             child: ConstrainedBox(
@@ -435,7 +430,6 @@ class AffiliationResultsPage extends StatelessWidget {
     required int alreadyAffiliatedCount,
     required String dni,
     required String username,
-    required String password,
   }) {
     final s = (maxWidth / 420).clamp(0.78, 1.0);
 
@@ -512,10 +506,12 @@ class AffiliationResultsPage extends StatelessWidget {
               _buildCredentialsCard(
                 dni: dni,
                 username: username,
-                password: password,
                 compact: true,
                 scale: s,
               ),
+              SizedBox(height: 10 * s),
+              if (AppConstants.affiliationPlayerDataDebugEnabled)
+            _buildDebugPlayerDataCard(result!.playerData),
               SizedBox(height: 16 * s),
               AppButton(
                 label: 'Ir a la Aplicación',
@@ -812,7 +808,6 @@ class AffiliationResultsPage extends StatelessWidget {
   Widget _buildCredentialsCard({
     required String dni,
     required String username,
-    required String password,
     bool compact = false,
     double scale = 1.0,
   }) {
@@ -922,10 +917,40 @@ class AffiliationResultsPage extends StatelessWidget {
             label: 'Usuario',
             value: username,
           ),
-          credRow(
-            icon: Icons.lock_outline_rounded,
-            label: 'Contraseña',
-            value: password,
+          Container(
+            margin: EdgeInsets.only(bottom: 8 * scale),
+            padding: EdgeInsets.symmetric(
+              horizontal: 11 * scale,
+              vertical: 9 * scale,
+            ),
+            decoration: BoxDecoration(
+              color: _green.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _green.withValues(alpha: 0.18)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _green.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Icon(Icons.lock_outline_rounded, color: _green, size: 14 * scale),
+                ),
+                SizedBox(width: 10 * scale),
+                Expanded(
+                  child: Text(
+                    'Tu contraseña es la misma que usaste para afiliarte a Boombet',
+                    style: TextStyle(
+                      fontSize: 13 * scale,
+                      height: 1.35,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -975,6 +1000,77 @@ class AffiliationResultsPage extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Debug playerData card ───────────────────────────────────────────────────
+
+  Widget _buildDebugPlayerDataCard(Map<String, dynamic> playerData) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A0A00),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.bug_report_outlined, color: Colors.orange, size: 14),
+              const SizedBox(width: 6),
+              const Text(
+                'DEBUG — playerData del backend',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (playerData.isEmpty)
+            Text(
+              '(vacío)',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            ...playerData.entries.map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 12, height: 1.3),
+                    children: [
+                      TextSpan(
+                        text: '${e.key}: ',
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextSpan(
+                        text: e.value?.toString() ?? 'null',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.80),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

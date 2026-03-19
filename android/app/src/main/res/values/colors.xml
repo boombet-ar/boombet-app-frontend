@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#000000</color>
+    <!-- Color de fondo de la app. Se usa como windowBackground para evitar el
+         cuadrado negro que aparece cuando el teclado se cierra con adjustResize. -->
+    <color name="app_background">#121212</color>
 </resources>

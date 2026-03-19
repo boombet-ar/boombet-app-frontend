@@ -279,6 +279,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const StandsPage(),
     ),
     GoRoute(
+      path: '/affiliates-tools/sub-afiliadores',
+      builder: (context, state) => const SubAfiliadoresPage(),
+    ),
+    GoRoute(
       path: '/affiliates-tools/eventos/:id',
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
