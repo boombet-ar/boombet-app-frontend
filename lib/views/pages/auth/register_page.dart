@@ -27,7 +27,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage>
     with SingleTickerProviderStateMixin {
-  late TextEditingController _usernameController;
   late TextEditingController _emailController;
   late TextEditingController _dniController;
   late TextEditingController _phoneController;
@@ -35,7 +34,6 @@ class _RegisterPageState extends State<RegisterPage>
   late TextEditingController _confirmPasswordController;
   late TextEditingController _affiliateCodeController;
 
-  bool _usernameError = false;
   bool _emailError = false;
   bool _dniError = false;
   bool _phoneError = false;
@@ -75,7 +73,6 @@ class _RegisterPageState extends State<RegisterPage>
   void initState() {
     super.initState();
     // Inicializar controllers vacíos
-    _usernameController = TextEditingController();
     _emailController = TextEditingController();
     _dniController = TextEditingController();
     _phoneController = TextEditingController();
@@ -98,7 +95,6 @@ class _RegisterPageState extends State<RegisterPage>
 
   @override
   void dispose() {
-    _usernameController.dispose();
     _emailController.dispose();
     _dniController.dispose();
     _phoneController.dispose();
@@ -159,7 +155,6 @@ class _RegisterPageState extends State<RegisterPage>
     }
 
     setState(() {
-      _usernameError = _usernameController.text.trim().isEmpty;
       _emailError = _emailController.text.trim().isEmpty;
       _dniError = _dniController.text.trim().isEmpty;
       _phoneError = _phoneController.text.trim().isEmpty;
@@ -168,8 +163,7 @@ class _RegisterPageState extends State<RegisterPage>
       _genderError = _selectedGender == null;
     });
 
-    if (_usernameError ||
-        _emailError ||
+    if (_emailError ||
         _dniError ||
         _phoneError ||
         _passwordError ||
@@ -211,7 +205,6 @@ class _RegisterPageState extends State<RegisterPage>
         await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
           context: context,
           values: [
-            _usernameController.text.trim(),
             _emailController.text.trim(),
             _dniController.text.trim(),
             _phoneController.text.trim(),
@@ -336,44 +329,6 @@ class _RegisterPageState extends State<RegisterPage>
       return;
     }
 
-    // Validar formato de username (mínimo 4 caracteres, alfanumérico, sin espacios)
-    final username = _usernameController.text.trim();
-    if (username.length < 4 || !RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
-      setState(() {
-        _usernameError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Usuario inválido', style: TextStyle(color: textColor)),
-          content: Text(
-            'El usuario debe tener mínimo 4 caracteres, solo letras, números y guión bajo (_).',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
     // Validar fortaleza de contraseña
     String? passwordError = _validatePassword(_passwordController.text);
     if (passwordError != null) {
@@ -469,7 +424,7 @@ class _RegisterPageState extends State<RegisterPage>
             backgroundColor: dialogBg,
             title: Text('Código requerido', style: TextStyle(color: textColor)),
             content: Text(
-              'Ingresa el código de afiliador para continuar.',
+              'Ingresa el código promocional para continuar.',
               style: TextStyle(color: textColor),
             ),
             actions: [
@@ -504,7 +459,7 @@ class _RegisterPageState extends State<RegisterPage>
               style: TextStyle(color: textColor),
             ),
             content: Text(
-              'Debes validar el código de afiliador antes de continuar.',
+              'Debes validar el código promocional antes de continuar.',
               style: TextStyle(color: textColor),
             ),
             actions: [
@@ -554,7 +509,7 @@ class _RegisterPageState extends State<RegisterPage>
           '=== ${DateTime.now().toIso8601String()} ===',
           '',
           '[INPUT]',
-          'Username : ${_usernameController.text.trim()}',
+          'Username : ${_emailController.text.trim().split('@').first}',
           'Email    : ${_emailController.text.trim()}',
           'DNI      : ${_dniController.text.trim()}',
           'Teléfono : ${_phoneController.text.trim()}',
@@ -672,7 +627,7 @@ class _RegisterPageState extends State<RegisterPage>
               page: ConfirmPlayerDataPage(
                 playerData: updatedPlayerData,
                 email: _emailController.text.trim(),
-                username: _usernameController.text.trim(),
+                username: _emailController.text.trim().split('@').first,
                 password: _passwordController.text,
                 dni: _dniController.text.trim(),
                 telefono: _phoneController.text.trim(),
@@ -860,7 +815,7 @@ class _RegisterPageState extends State<RegisterPage>
           backgroundColor: dialogBg,
           title: Text('Código requerido', style: TextStyle(color: textColor)),
           content: Text(
-            'Ingresa el código de afiliador para validar.',
+            'Ingresa el código promocional para validar.',
             style: TextStyle(color: textColor),
           ),
           actions: [
@@ -908,7 +863,7 @@ class _RegisterPageState extends State<RegisterPage>
           backgroundColor: dialogBg,
           title: Text('Código inválido', style: TextStyle(color: textColor)),
           content: Text(
-            'El código de afiliador no es válido. Verifícalo e inténtalo de nuevo.',
+            'El código promocional no es válido. Verifícalo e inténtalo de nuevo.',
             style: TextStyle(color: textColor),
           ),
           actions: [
@@ -929,7 +884,7 @@ class _RegisterPageState extends State<RegisterPage>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Código de afiliador validado.'),
+        content: Text('Código promocional validado.'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -1454,7 +1409,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
     }
 
     setState(() {
-      _usernameError = _usernameController.text.trim().isEmpty;
       _emailError = _emailController.text.trim().isEmpty;
       _dniError = _dniController.text.trim().isEmpty;
       _phoneError = _phoneController.text.trim().isEmpty;
@@ -1463,8 +1417,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       _genderError = _selectedGender == null;
     });
 
-    if (_usernameError ||
-        _emailError ||
+    if (_emailError ||
         _dniError ||
         _phoneError ||
         _passwordError ||
@@ -1616,44 +1569,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       return;
     }
 
-    // Validar formato de username (mínimo 4 caracteres, alfanumérico, sin espacios)
-    final username = _usernameController.text.trim();
-    if (username.length < 4 || !RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
-      setState(() {
-        _usernameError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Usuario inválido', style: TextStyle(color: textColor)),
-          content: Text(
-            'El usuario debe tener mínimo 4 caracteres, solo letras, números y guión bajo (_).',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
     // Validar fortaleza de contraseña
     String? passwordError = _validatePassword(_passwordController.text);
     if (passwordError != null) {
@@ -1749,7 +1664,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             backgroundColor: dialogBg,
             title: Text('Código requerido', style: TextStyle(color: textColor)),
             content: Text(
-              'Ingresa el código de afiliador para continuar.',
+              'Ingresa el código promocional para continuar.',
               style: TextStyle(color: textColor),
             ),
             actions: [
@@ -1784,7 +1699,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               style: TextStyle(color: textColor),
             ),
             content: Text(
-              'Debes validar el código de afiliador antes de continuar.',
+              'Debes validar el código promocional antes de continuar.',
               style: TextStyle(color: textColor),
             ),
             actions: [
@@ -1834,7 +1749,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           '=== ${DateTime.now().toIso8601String()} ===',
           '',
           '[INPUT]',
-          'Username : ${_usernameController.text.trim()}',
+          'Username : ${_emailController.text.trim().split('@').first}',
           'Email    : ${_emailController.text.trim()}',
           'DNI      : ${_dniController.text.trim()}',
           'Teléfono : ${_phoneController.text.trim()}',
@@ -1952,7 +1867,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               page: ConfirmPlayerDataPage(
                 playerData: updatedPlayerData,
                 email: _emailController.text.trim(),
-                username: _usernameController.text.trim(),
+                username: _emailController.text.trim().split('@').first,
                 password: _passwordController.text,
                 dni: _dniController.text.trim(),
                 telefono: _phoneController.text.trim(),
@@ -2326,22 +2241,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // TextField Nombre de Usuario
-          AppTextFormField(
-            label: 'Nombre de Usuario',
-            hint: 'Ingresa tu nombre de usuario',
-            controller: _usernameController,
-            hasError: _usernameError,
-            errorText: _usernameError ? 'Nombre de usuario requerido' : null,
-            icon: Icons.person_outline,
-            onChanged: (value) {
-              if (_usernameError && value.isNotEmpty) {
-                setState(() => _usernameError = false);
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-
           // TextField Email
           AppTextFormField(
             label: 'Correo Electrónico',
@@ -2998,14 +2897,15 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         showProfileButton: false,
         showBackButton: true,
       ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Stack(
-          children: [
-            buildBackground(),
-            isWeb ? buildWebBody() : mobileBody,
-          ],
-        ),
+      body: Stack(
+        children: [
+          GestureDetector(
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: buildBackground(),
+          ),
+          isWeb ? buildWebBody() : mobileBody,
+        ],
       ),
     );
   }

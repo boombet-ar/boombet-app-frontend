@@ -1,7 +1,6 @@
 import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class GamesContent extends StatelessWidget {
@@ -14,7 +13,6 @@ class GamesContent extends StatelessWidget {
     final theme = Theme.of(context);
     final primaryGreen = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
-    final isWeb = kIsWeb;
 
     final games = [
       (
@@ -53,14 +51,12 @@ class GamesContent extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: isWeb
-                ? LayoutBuilder(
+            child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final isNarrowWeb = constraints.maxWidth < 700;
+                      final isNarrow = constraints.maxWidth < 700;
 
-                      if (isNarrowWeb) {
-                        // On small web widths, use the mobile-style list so
-                        // content stays readable and buttons have space.
+                      if (isNarrow) {
+                        // Pantallas angostas (móvil y tablet pequeña): lista vertical
                         return Column(
                           children: List<Widget>.generate(games.length, (
                             index,
@@ -90,6 +86,7 @@ class GamesContent extends StatelessWidget {
                         );
                       }
 
+                      // Tablet y desktop (>= 700px): grid adaptativo
                       final maxExtent = (constraints.maxWidth * 0.33).clamp(
                         260.0,
                         420.0,
@@ -103,7 +100,7 @@ class GamesContent extends StatelessWidget {
                           maxCrossAxisExtent: maxExtent,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          childAspectRatio: 1,
+                          mainAxisExtent: 360,
                         ),
                         itemBuilder: (context, index) {
                           final g = games[index];
@@ -128,30 +125,6 @@ class GamesContent extends StatelessWidget {
                         },
                       );
                     },
-                  )
-                : Column(
-                    children: List<Widget>.generate(games.length, (index) {
-                      final g = games[index];
-                      final card = _GameCard(
-                        title: g.title,
-                        subtitle: g.subtitle,
-                        description: g.description,
-                        badge: g.badge,
-                        primaryGreen: primaryGreen,
-                        textColor: textColor,
-                        onPlay: g.onPlay,
-                        asset: g.asset,
-                      );
-
-                      if (index == 0 && firstGameTutorialTargetKey != null) {
-                        return KeyedSubtree(
-                          key: firstGameTutorialTargetKey,
-                          child: card,
-                        );
-                      }
-
-                      return card;
-                    }),
                   ),
           ),
         ],

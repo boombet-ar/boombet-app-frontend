@@ -408,11 +408,15 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
         showProfileButton: false,
         showBackButton: true,
       ),
-      body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: isWeb ? webBody : mobileBody,
+      body: Stack(
+        children: [
+          GestureDetector(
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: Container(color: scaffoldBg),
+          ),
+          isWeb ? webBody : mobileBody,
+        ],
       ),
     );
   }

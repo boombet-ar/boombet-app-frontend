@@ -1005,7 +1005,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                           physics: const NeverScrollableScrollPhysics(),
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          itemCount: 4,
+                          itemCount: 3,
                           itemBuilder: (context, index) {
                             switch (index) {
                               case 0:
@@ -1094,52 +1094,11 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                         data.anioNacimiento,
                                         icon: Icons.event_outlined,
                                       ),
-                                      if (data.edad != null)
-                                        _buildReadOnlyField(
-                                          context,
-                                          'Edad',
-                                          data.edad.toString(),
-                                          icon: Icons.cake_outlined,
-                                        ),
                                     ],
                                   ),
                                 );
-                              case 3:
                               default:
-                                return _buildWebSectionCard(
-                                  context: context,
-                                  title: 'Dirección',
-                                  sectionIcon: Icons.home_outlined,
-                                  padding: cardPadding,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _buildReadOnlyField(
-                                        context, 'Calle', data.calle,
-                                        icon: Icons.signpost_outlined,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context, 'Número', data.numCalle,
-                                        icon: Icons.pin_outlined,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context, 'Localidad', data.localidad,
-                                        icon: Icons.location_city_outlined,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context, 'Provincia', data.provincia,
-                                        icon: Icons.map_outlined,
-                                      ),
-                                      if (data.cp != null)
-                                        _buildReadOnlyField(
-                                          context,
-                                          'Código Postal',
-                                          data.cp.toString(),
-                                          icon: Icons.markunread_mailbox_outlined,
-                                        ),
-                                    ],
-                                  ),
-                                );
+                                return const SizedBox.shrink();
                             }
                           },
                         );
@@ -1186,12 +1145,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                     data.anioNacimiento,
                     icon: Icons.event_outlined,
                   ),
-                  if (data.edad != null)
-                    _buildReadOnlyField(
-                      context, 'Edad', data.edad.toString(),
-                      icon: Icons.cake_outlined,
-                    ),
-
                   const SizedBox(height: 20),
 
                   // ── DATOS EDITABLES ──────────────────────────────────────
@@ -1232,36 +1185,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                     keyboardType: TextInputType.phone,
                     icon: Icons.phone_outlined,
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // ── DIRECCIÓN ────────────────────────────────────────────
-                  _buildSectionTitle('Dirección', Icons.home_outlined),
-                  const SizedBox(height: 12),
-
-                  _buildReadOnlyField(
-                    context, 'Calle', data.calle,
-                    icon: Icons.signpost_outlined,
-                  ),
-                  _buildReadOnlyField(
-                    context, 'Número', data.numCalle,
-                    icon: Icons.pin_outlined,
-                  ),
-                  _buildReadOnlyField(
-                    context, 'Localidad', data.localidad,
-                    icon: Icons.location_city_outlined,
-                  ),
-                  _buildReadOnlyField(
-                    context, 'Provincia', data.provincia,
-                    icon: Icons.map_outlined,
-                  ),
-                  if (data.cp != null)
-                    _buildReadOnlyField(
-                      context,
-                      'Código Postal',
-                      data.cp.toString(),
-                      icon: Icons.markunread_mailbox_outlined,
-                    ),
 
                   const SizedBox(height: 28),
 

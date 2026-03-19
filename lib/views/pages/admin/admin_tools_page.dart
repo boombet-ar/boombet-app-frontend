@@ -7,6 +7,7 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/create_affiliate.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_view.dart';
 import 'package:boombet_app/views/pages/admin/ads/ad_management_view.dart';
+import 'package:boombet_app/views/pages/admin/raffles/raffles_management_view.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
@@ -617,6 +618,7 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
               section: _activeSection,
               onSelectAffiliators: () => _setSection(_AdminSection.affiliators),
               onSelectAds: () => _setSection(_AdminSection.ads),
+              onSelectRaffles: () => _setSection(_AdminSection.raffles),
               onBack: () => _setSection(_AdminSection.home),
               onCreateAffiliator: showAffiliatorForm,
               affiliators: _affiliators,
@@ -647,6 +649,7 @@ class _AdminSectionBody extends StatelessWidget {
   final _AdminSection section;
   final VoidCallback onSelectAffiliators;
   final VoidCallback onSelectAds;
+  final VoidCallback onSelectRaffles;
   final VoidCallback onBack;
   final VoidCallback onCreateAffiliator;
   final List<AfiliadorModel> affiliators;
@@ -671,6 +674,7 @@ class _AdminSectionBody extends StatelessWidget {
     required this.section,
     required this.onSelectAffiliators,
     required this.onSelectAds,
+    required this.onSelectRaffles,
     required this.onBack,
     required this.onCreateAffiliator,
     required this.affiliators,
@@ -719,6 +723,13 @@ class _AdminSectionBody extends StatelessWidget {
                   icon: Icons.campaign_outlined,
                   onTap: onSelectAds,
                 ),
+                const SizedBox(height: 12),
+                _AdminPrimaryActionButton(
+                  title: 'Sorteos',
+                  subtitle: 'Gestión de sorteos y premios',
+                  icon: Icons.emoji_events_outlined,
+                  onTap: onSelectRaffles,
+                ),
               ],
             ),
           ),
@@ -744,12 +755,13 @@ class _AdminSectionBody extends StatelessWidget {
             onViewAffiliations: onViewAffiliationsCount,
           ),
         if (section == _AdminSection.ads) const AdManagementView(),
+        if (section == _AdminSection.raffles) const RafflesManagementView(),
       ],
     );
   }
 }
 
-enum _AdminSection { home, affiliators, ads }
+enum _AdminSection { home, affiliators, ads, raffles }
 
 class _AdminPrimaryActionButton extends StatelessWidget {
   final String title;

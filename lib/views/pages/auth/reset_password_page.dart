@@ -691,11 +691,15 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           showProfileButton: false,
           showBackButton: true,
         ),
-        body: GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-          },
-          child: isWeb ? webBody : mobileBody,
+        body: Stack(
+          children: [
+            GestureDetector(
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(color: const Color(0xFF0E0E0E)),
+            ),
+            isWeb ? webBody : mobileBody,
+          ],
         ),
       );
     } catch (e) {

@@ -4,16 +4,20 @@ import 'dart:math' show max;
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/models/stand_model.dart';
+import 'package:boombet_app/models/sub_afiliado_model.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/services/eventos_service.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/tids_service.dart';
+import 'package:boombet_app/services/sub_afiliados_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/create_tid.dart';
 import 'package:boombet_app/views/pages/affiliates/events/create_event.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_management_view.dart';
 import 'package:boombet_app/views/pages/affiliates/stands/create_stand.dart';
 import 'package:boombet_app/views/pages/affiliates/stands/stand_management_view.dart';
+import 'package:boombet_app/views/pages/affiliates/sub-affiliates/create_subaffiliate.dart';
+import 'package:boombet_app/views/pages/affiliates/sub-affiliates/subaffiliates_management_view.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
@@ -170,6 +174,14 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       subtitle: 'Configurar y administrar puestos',
                       icon: Icons.storefront_outlined,
                       onTap: () => context.go('/affiliates-tools/stands'),
+                    ),
+                    const SizedBox(height: 12),
+                    _AffiliatorPrimaryActionButton(
+                      title: 'Sub-afiliadores',
+                      subtitle: 'Gestionar tu red de sub-afiliadores',
+                      icon: Icons.group_outlined,
+                      onTap: () =>
+                          context.go('/affiliates-tools/sub-afiliadores'),
                     ),
                   ],
                 ),
@@ -1598,6 +1610,457 @@ class _CredentialRowState extends State<_CredentialRow> {
               // ignore: deprecated_member_use
               Clipboard.setData(ClipboardData(text: widget.value));
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SubAfiliadoresPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+class SubAfiliadoresPage extends StatefulWidget {
+  const SubAfiliadoresPage({super.key});
+
+  @override
+  State<SubAfiliadoresPage> createState() => _SubAfiliadoresPageState();
+}
+
+class _SubAfiliadoresPageState extends State<SubAfiliadoresPage> {
+  final SubAfiliadosService _service = SubAfiliadosService();
+
+  bool _isLoading = false;
+  String? _error;
+  List<SubAfiliadoModel> _items = [];
+  final Set<int> _deletingIds = {};
+  final Set<int> _togglingIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load({bool force = false}) async {
+    if (_isLoading) return;
+    if (!force && _items.isNotEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final result = await _service.fetchSubAfiliados();
+      if (!mounted) return;
+      setState(() {
+        _items = result;
+        _isLoading = false;
+      });
+    } catch (e, stack) {
+      log('[SubAfiliadoresPage] load error: $e', stackTrace: stack);
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error al cargar los sub-afiliadores: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _replaceInList(SubAfiliadoModel updated) {
+    _items = _items.map((s) => s.id == updated.id ? updated : s).toList();
+  }
+
+  Future<void> _toggleActivo(SubAfiliadoModel item) async {
+    if (_togglingIds.contains(item.id)) return;
+
+    setState(() {
+      _togglingIds.add(item.id);
+      _replaceInList(item.copyWith(activo: !item.activo));
+    });
+
+    try {
+      final updated = await _service.toggleActivo(item.id);
+      if (!mounted) return;
+      setState(() {
+        _replaceInList(updated);
+        _togglingIds.remove(item.id);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _replaceInList(item);
+        _togglingIds.remove(item.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo cambiar el estado del sub-afiliador.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showTotalJugadores(SubAfiliadoModel item) {
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        bool isFetching = false;
+        int? total;
+        String? fetchError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            if (!isFetching && total == null && fetchError == null) {
+              isFetching = true;
+              _service
+                  .fetchTotalJugadores(item.id)
+                  .then((count) {
+                    setDialogState(() {
+                      total = count;
+                      isFetching = false;
+                    });
+                  })
+                  .catchError((_) {
+                    setDialogState(() {
+                      fetchError = 'No se pudo obtener la cantidad.';
+                      isFetching = false;
+                    });
+                  });
+            }
+
+            return Dialog(
+              backgroundColor: dialogBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: green.withValues(alpha: 0.20)),
+              ),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 24,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Header ────────────────────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                      decoration: BoxDecoration(
+                        color: green.withValues(alpha: 0.06),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(18),
+                          topRight: Radius.circular(18),
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: green.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: green.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: green.withValues(alpha: 0.22),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.person_outline_rounded,
+                              color: green,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.nombre.isNotEmpty
+                                      ? item.nombre
+                                      : 'Sub-afiliador',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Sub-afiliador',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.38),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Contenido ─────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                      child: total != null
+                          ? Column(
+                              children: [
+                                Text(
+                                  'Total de afiliaciones',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 12,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: green.withValues(alpha: 0.06),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: green.withValues(alpha: 0.18),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '$total',
+                                        style: const TextStyle(
+                                          color: green,
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1,
+                                          letterSpacing: -1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        total == 1
+                                            ? 'jugador afiliado'
+                                            : 'jugadores afiliados',
+                                        style: TextStyle(
+                                          color: green.withValues(alpha: 0.60),
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          : fetchError != null
+                          ? Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppConstants.errorRed,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    fetchError!,
+                                    style: const TextStyle(
+                                      color: AppConstants.errorRed,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox(
+                              height: 56,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: green,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            ),
+                    ),
+
+                    // ── Acción ────────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            backgroundColor: green.withValues(alpha: 0.08),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: green.withValues(alpha: 0.18),
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cerrar',
+                            style: TextStyle(
+                              color: green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _delete(SubAfiliadoModel item) async {
+    if (_deletingIds.contains(item.id)) return;
+
+    const dialogBg = Color(0xFF1A1A1A);
+    const green = AppConstants.primaryGreen;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppConstants.errorRed.withValues(alpha: 0.30),
+          ),
+        ),
+        title: const Text(
+          'Eliminar sub-afiliador',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          '¿Querés eliminar a "${item.nombre.isNotEmpty ? item.nombre : 'este sub-afiliador'}"? Esta acción no se puede deshacer.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.65),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(
+                color: AppConstants.errorRed,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingIds.add(item.id));
+
+    try {
+      await _service.deleteSubAfiliado(item.id);
+      if (!mounted) return;
+      setState(() {
+        _items = _items.where((s) => s.id != item.id).toList();
+        _deletingIds.remove(item.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Sub-afiliador eliminado.',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: green,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingIds.remove(item.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar el sub-afiliador.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: MainAppBar(
+        title: 'Sub-afiliadores',
+        showBackButton: true,
+        onBackPressed: () => context.go('/affiliates-tools'),
+        showLogo: true,
+        showSettings: false,
+        showProfileButton: false,
+        showLogoutButton: false,
+        showFaqButton: false,
+        showExitButton: false,
+        showAdminTools: false,
+        showAffiliatesTools: false,
+      ),
+      backgroundColor: AppConstants.darkBg,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          SubAfiliadosManagementView(
+            onCreate: () => showCreateSubAfiliadoDialog(
+              context: context,
+              service: _service,
+              onCreated: (created) {
+                setState(() => _items = [..._items, created]);
+              },
+            ),
+            items: _items,
+            totalItems: _items.length,
+            isLoading: _isLoading,
+            errorMessage: _error,
+            deletingIds: _deletingIds,
+            togglingIds: _togglingIds,
+            onRetry: () => _load(force: true),
+            onDelete: _delete,
+            onToggleActivo: _toggleActivo,
+            onViewTotal: _showTotalJugadores,
           ),
         ],
       ),

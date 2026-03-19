@@ -234,7 +234,7 @@ class _HomePageState extends State<HomePage> {
               showProfileButton: true,
               showLogoutButton: true,
               showExitButton: false,
-              showQrScannerButton: !kIsWeb,
+              showQrScannerButton: true,
               faqTutorialTargetKey: _faqAppbarTutorialKey,
               profileTutorialTargetKey: _profileAppbarTutorialKey,
               settingsTutorialTargetKey: _settingsAppbarTutorialKey,

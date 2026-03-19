@@ -99,7 +99,7 @@ class AppConstants {
   /// Numero de WhatsApp de soporte en formato internacional solo digitos.
   /// EJEMPLO: 5491122334455
   /// TODO: Configurar aca el numero real de contacto.
-  static const String supportWhatsappNumber = '+5491122697694';
+  static const String supportWhatsappNumber = '5491122697694';
 
   /// Mensaje inicial opcional al abrir el chat de soporte.
   static const String supportWhatsappMessage =
@@ -123,11 +123,15 @@ class AppConstants {
 
   /// Habilita la opción "Debug Views" en Settings para navegar
   /// rápidamente por vistas de lib/views/pages con datos mock.
-  static const bool debugViewsMenuEnabled = true;
+  static const bool debugViewsMenuEnabled = false;
 
   /// Muestra la consola de logs en la vista de escaneo QR.
   /// Poner en false para ocultarla completamente.
   static const bool qrScannerDebugConsoleEnabled = false;
+
+  /// Muestra el panel de debug con el playerData crudo del backend
+  /// en la página de resultados de afiliación. Desactivar en producción.
+  static const bool affiliationPlayerDataDebugEnabled = false;
 
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =

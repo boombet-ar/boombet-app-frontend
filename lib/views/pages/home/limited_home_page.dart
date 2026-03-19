@@ -201,7 +201,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             showProfileButton: false,
             showLogoutButton: true,
             showExitButton: false,
-            showQrScannerButton: !kIsWeb,
+            showQrScannerButton: true,
           ),
           body: ResponsiveWrapper(
             maxWidth: 1200,

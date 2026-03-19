@@ -3352,24 +3352,22 @@ class DiscountsContentState extends State<DiscountsContent> {
                               LayoutBuilder(
                                 builder: (context, constraints) {
                                   final width = constraints.maxWidth;
-                                  final useDesktopWebLayout =
-                                      kIsWeb && width >= 900;
+                                  // >= 600px: tablet o desktop (web o nativo)
+                                  final useWideLayout = width >= 600;
 
-                                  if (useDesktopWebLayout) {
-                                    // En web grande: cards más compactas y densidad mayor.
+                                  if (useWideLayout) {
+                                    // Tablet y desktop: grid adaptativo con MaxCrossAxisExtent
                                     final double maxExtent;
                                     if (width >= 1800) {
                                       maxExtent = 420;
                                     } else if (width >= 1400) {
                                       maxExtent = 460;
-                                    } else {
+                                    } else if (width >= 900) {
                                       maxExtent = 520;
+                                    } else {
+                                      // Tablet 600-900px: 2 columnas cómodas
+                                      maxExtent = 400;
                                     }
-
-                                    // Menor ratio => tarjetas más altas para evitar overflow.
-                                    final double aspectRatio = width >= 1400
-                                        ? 0.92
-                                        : 0.9;
 
                                     return GridView.builder(
                                       controller: _listScrollController,
@@ -3384,7 +3382,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                             maxCrossAxisExtent: maxExtent,
                                             mainAxisSpacing: 16,
                                             crossAxisSpacing: 16,
-                                            childAspectRatio: aspectRatio,
+                                            mainAxisExtent: 430,
                                           ),
                                       itemCount: pagedFilteredCupones.length,
                                       itemBuilder: (context, index) {
@@ -3411,6 +3409,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                                     );
                                   }
 
+                                  // Solo phones < 600px llegan aquí
                                   final isTwoColumnPhone = width >= 360;
                                   final hasClaimedInPage = pagedFilteredCupones
                                       .any(
