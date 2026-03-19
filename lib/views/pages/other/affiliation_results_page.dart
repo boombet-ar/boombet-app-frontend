@@ -42,11 +42,8 @@ class AffiliationResultsPage extends StatelessWidget {
       keys: const ['dni', 'documento', 'doc'],
       fallback: affiliationDniNotifier.value,
     );
-    final username = _resolveCredential(
-      result!.playerData,
-      keys: const ['user', 'username', 'usuario'],
-      fallback: affiliationUsernameNotifier.value,
-    );
+    // Solo se usa el campo "user" que manda el backend — sin fallbacks de otros lados
+    final username = result!.playerData['user']?.toString().trim() ?? '';
 
     return Scaffold(
       backgroundColor: _scaffoldBg,
