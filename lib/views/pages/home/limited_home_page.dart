@@ -1719,8 +1719,8 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
           SectionHeaderWidget(
             title: 'Descuentos Exclusivos',
             subtitle: _cupones.isNotEmpty
-                ? '${_cupones.length} ofertas en vista previa'
-                : 'Vista previa mientras completamos tu afiliación',
+                ? '${_cupones.length} ofertas disponibles'
+                : 'Descuentos exclusivos para ti',
             icon: Icons.local_offer,
           ),
           Expanded(
@@ -3146,10 +3146,67 @@ class LimitedForumContent extends StatelessWidget {
       backgroundColor: bgColor,
       body: Column(
         children: [
-          _ForumHeaderLimited(
-            accent: accent,
-            isDark: isDark,
-            postCount: posts.length,
+          SafeArea(
+            bottom: false,
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                SectionHeaderWidget(
+                  title: 'Foro BoomBet',
+                  subtitle: 'Conecta con la comunidad',
+                  icon: Icons.forum_rounded,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Opacity(
+                        opacity: 0.38,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.28),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const IconButton(
+                            icon: Icon(Icons.add_rounded),
+                            onPressed: null,
+                            tooltip: 'Publicar (disponible tras afiliación)',
+                            iconSize: 17,
+                            padding: EdgeInsets.all(7),
+                            constraints: BoxConstraints(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Opacity(
+                        opacity: 0.35,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.28),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const IconButton(
+                            icon: Icon(Icons.person_outline),
+                            onPressed: null,
+                            tooltip: 'Ver mis publicaciones (tras afiliación)',
+                            iconSize: 17,
+                            padding: EdgeInsets.all(7),
+                            constraints: BoxConstraints(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           Expanded(
             child: ListView.builder(
@@ -3168,143 +3225,6 @@ class LimitedForumContent extends StatelessWidget {
   }
 }
 
-class _ForumHeaderLimited extends StatelessWidget {
-  const _ForumHeaderLimited({
-    required this.accent,
-    required this.isDark,
-    required this.postCount,
-  });
-
-  final Color accent;
-  final bool isDark;
-  final int postCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = isDark ? Colors.white : AppConstants.textLight;
-
-    return SafeArea(
-      bottom: false,
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          // SectionHeader-style row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 100, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.24),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(Icons.forum_rounded, color: accent, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Foro BoomBet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: textColor,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            width: 5,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: accent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              '$postCount ${postCount == 1 ? 'publicación' : 'publicaciones'} • Vista pre...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: textColor.withValues(alpha: 0.55),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Action buttons — locked (same style as forum_page.dart)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Opacity(
-                  opacity: 0.38,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.28),
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const IconButton(
-                      icon: Icon(Icons.add_rounded),
-                      onPressed: null,
-                      tooltip: 'Publicar (disponible tras afiliación)',
-                      iconSize: 17,
-                      padding: EdgeInsets.all(7),
-                      constraints: BoxConstraints(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Opacity(
-                  opacity: 0.35,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.28),
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const IconButton(
-                      icon: Icon(Icons.person_outline),
-                      onPressed: null,
-                      tooltip: 'Ver mis publicaciones (tras afiliación)',
-                      iconSize: 17,
-                      padding: EdgeInsets.all(7),
-                      constraints: BoxConstraints(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _LimitedPostCard extends StatelessWidget {
   const _LimitedPostCard({
