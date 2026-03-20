@@ -10,6 +10,7 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/profile/profile_page.dart';
+import 'package:boombet_app/widgets/casino_logo_carousel.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -698,6 +699,30 @@ class _HomeContentState extends State<HomeContent> {
 
               if (isWeb) {
                 return SizedBox(height: constraints.maxHeight, child: homeBody);
+              }
+
+              if (defaultTargetPlatform == TargetPlatform.android) {
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                        child: const CasinoLogoCarousel(height: 44),
+                      ),
+                      Expanded(
+                        child: _buildCarouselPanel(
+                          primaryGreen: primaryGreen,
+                          textColor: textColor,
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               }
 
               return RefreshIndicator(
