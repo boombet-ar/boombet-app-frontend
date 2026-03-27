@@ -65,14 +65,6 @@ class _HomePageState extends State<HomePage> {
         }
         _pages[safeIndex] ??= _buildPage(safeIndex);
         return Scaffold(
-          appBar: MainAppBar(
-            showSettings: true,
-            showLogo: true,
-            showProfileButton: true,
-            showLogoutButton: true,
-            showExitButton: false,
-            showQrScannerButton: true,
-          ),
           body: ResponsiveWrapper(
             maxWidth: 1200,
             child: IndexedStack(

@@ -403,11 +403,6 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
-      ),
       body: Stack(
         children: [
           GestureDetector(

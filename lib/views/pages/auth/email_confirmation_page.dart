@@ -11,6 +11,8 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
+import 'package:boombet_app/services/email_verification_service.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -28,6 +30,7 @@ class EmailConfirmationPage extends StatefulWidget {
   final String? genero;
   final String? verificacionToken;
   final bool isFromDeepLink;
+  final bool isFromLogin;
   final bool preview;
   const EmailConfirmationPage({
     super.key,
@@ -40,6 +43,7 @@ class EmailConfirmationPage extends StatefulWidget {
     this.genero,
     this.verificacionToken,
     this.isFromDeepLink = false,
+    this.isFromLogin = false,
     this.preview = false,
   });
 
@@ -100,6 +104,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   @override
   void initState() {
     super.initState();
+    criticalFlowActive = true;
 
     final initialPlayer = _resolvedPlayerData;
     if (initialPlayer != null) {
@@ -117,10 +122,10 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
   }
 
   Future<void> _initializeAffiliationState() async {
+    affiliationPasswordNotifier.value = widget.password ?? '';
     await saveAffiliationData(
       email: widget.email,
       username: widget.username,
-      password: widget.password,
       dni: widget.dni,
       telefono: widget.telefono,
       genero: widget.genero,
@@ -132,6 +137,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
   @override
   void dispose() {
+    criticalFlowActive = false;
     _nombreController.dispose();
     _apellidoController.dispose();
     super.dispose();
@@ -770,11 +776,6 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
-      ),
       body: ResponsiveWrapper(
         // En web, limitar el ancho para que se vea como en móvil (centrado)
         // y evitar componentes full-width.
@@ -899,7 +900,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                             onPressed: () async {
                               await _checkIsVerified(showFeedback: true);
                               if (_isVerified && mounted) {
-                                await _processAfiliation();
+                                if (widget.isFromLogin) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginPage(),
+                                    ),
+                                  );
+                                } else {
+                                  await _processAfiliation();
+                                }
                               }
                             },
                             isLoading: _isCheckingVerification,
@@ -926,8 +936,102 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                 ),
               ),
             ),
+            // Footer: "No recibí mi email"
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  child: TextButton(
+                    onPressed: _onNoRecibiEmail,
+                    style: TextButton.styleFrom(
+                      overlayColor: green.withValues(alpha: 0.07),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 17,
+                          height: 17,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: green.withValues(alpha: 0.55),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '?',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: green.withValues(alpha: 0.8),
+                                fontWeight: FontWeight.bold,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          'No recibí mi email de confirmación',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.3,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _onNoRecibiEmail() async {
+    final email = _resolvedEmail;
+    if (email != null && email.isNotEmpty) {
+      LoadingOverlay.show(context, message: 'Reenviando email...');
+      await EmailVerificationService.resendVerificationEmail(email);
+      if (!mounted) return;
+      LoadingOverlay.hide(context);
+    }
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppConstants.darkAccent,
+        title: const Text(
+          'Email enviado',
+          style: TextStyle(color: AppConstants.textDark),
+        ),
+        content: const Text(
+          'Ya enviamos tu email. No te olvides de revisar la casilla de SPAM o Correo no deseado.',
+          style: TextStyle(color: AppConstants.textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Entendido',
+              style: TextStyle(color: AppConstants.primaryGreen),
+            ),
+          ),
+        ],
       ),
     );
   }

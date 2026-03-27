@@ -37,6 +37,10 @@ class AppConstants {
   static const Color lightSurfaceVariant = Color(0xFFDADADA);
   static const Color lightDialogBg = Color(0xFFE9E9E9);
 
+  // ==================== FEATURE FLAGS ====================
+  /// Poner en true para mostrar la sección de Reclamos (navbar + página).
+  static const bool showClaimsPage = false;
+
   // ==================== DURACIONES ====================
   static const Duration apiTimeout = Duration(seconds: 15);
   static const Duration affiliationTimeout = Duration(seconds: 15);
@@ -98,8 +102,7 @@ class AppConstants {
   // ==================== SOPORTE ====================
   /// Numero de WhatsApp de soporte en formato internacional solo digitos.
   /// EJEMPLO: 5491122334455
-  /// TODO: Configurar aca el numero real de contacto.
-  static const String supportWhatsappNumber = '5491122697694';
+  static const String supportWhatsappNumber = '5491162697694';
 
   /// Mensaje inicial opcional al abrir el chat de soporte.
   static const String supportWhatsappMessage =
@@ -132,6 +135,10 @@ class AppConstants {
   /// Muestra el panel de debug con el playerData crudo del backend
   /// en la página de resultados de afiliación. Desactivar en producción.
   static const bool affiliationPlayerDataDebugEnabled = false;
+
+  /// Muestra la consola de logs en IsNotAffiliatedPage para debuggear
+  /// el endpoint POST /api/users/auth/affiliate. Desactivar en producción.
+  static const bool isNotAffiliatedDebugConsoleEnabled = false;
 
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =

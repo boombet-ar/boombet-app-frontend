@@ -13,6 +13,7 @@ import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -175,22 +176,23 @@ class _SettingsPageState extends State<SettingsPage> {
     final surfaceColor = AppConstants.darkCardBg;
 
     return Scaffold(
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: true,
-        showProfileButton: false,
-        showFaqButton: false,
-      ),
       body: ResponsiveWrapper(
         maxWidth: 800,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Sección: Cuenta y Perfil
-              _buildSectionTitle('Cuenta y Perfil', Icons.person),
+        child: Column(
+          children: [
+            const SectionHeaderWidget(
+              title: 'Configuración',
+              subtitle: 'Ajustes de tu cuenta',
+              icon: Icons.settings_rounded,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sección: Cuenta y Perfil
+                    _buildSectionTitle('Cuenta y Perfil', Icons.person),
               const SizedBox(height: 8),
               _buildSettingsTile(
                 context: context,
@@ -904,6 +906,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
         ),
+      ),
+    ],
+  ),
       ),
     );
   }

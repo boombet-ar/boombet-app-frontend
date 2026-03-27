@@ -12,6 +12,7 @@ import 'package:boombet_app/utils/coupon_error_parser.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
+import 'package:boombet_app/views/pages/rewards/not_enabled_page.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
@@ -92,6 +93,7 @@ class DiscountsContentState extends State<DiscountsContent> {
   bool _authBlocked = false;
   bool _authCheckInProgress = false;
   DateTime? _lastAuthCheckAt;
+  bool? _bondaEnabled;
 
   void openClaimedFromTutorial() {
     setState(() {
@@ -467,6 +469,31 @@ class DiscountsContentState extends State<DiscountsContent> {
     return null;
   }
 
+  bool _extractBondaEnabled(Map<String, dynamic> userData) {
+    final direct = userData['bonda_enabled'];
+    if (direct is bool) return direct;
+
+    final data = userData['data'];
+    if (data is Map<String, dynamic>) {
+      final fromData = data['bonda_enabled'];
+      if (fromData is bool) return fromData;
+
+      final nestedUser = data['user'];
+      if (nestedUser is Map<String, dynamic>) {
+        final fromNested = nestedUser['bonda_enabled'];
+        if (fromNested is bool) return fromNested;
+      }
+    }
+
+    final user = userData['user'];
+    if (user is Map<String, dynamic>) {
+      final fromUser = user['bonda_enabled'];
+      if (fromUser is bool) return fromUser;
+    }
+
+    return true; // fallback: permitir acceso si el campo no está presente
+  }
+
   Duration _couponActivationRemaining() {
     final createdAt = _accountCreatedAtUtc;
     if (createdAt == null) return Duration.zero;
@@ -517,6 +544,18 @@ class DiscountsContentState extends State<DiscountsContent> {
     try {
       final userData = await PlayerService().getCurrentUser();
       _accountCreatedAtUtc = _extractCreatedAt(userData);
+      final bondaEnabled = _extractBondaEnabled(userData);
+
+      if (!mounted) return;
+
+      setState(() {
+        _bondaEnabled = bondaEnabled;
+      });
+
+      // Si bonda_enabled es false, no cargar cupones para evitar errores
+      // que puedan disparar el cierre de sesión.
+      if (!bondaEnabled) return;
+
       final canUseCoupons = _canUseCouponsNow();
 
       if (!mounted) return;
@@ -536,6 +575,7 @@ class DiscountsContentState extends State<DiscountsContent> {
       setState(() {
         // Fallback: no bloquear cupones si users/me falla.
         _isCouponActivationReady = true;
+        _bondaEnabled = true;
       });
       await _runInitialCouponLoadsWithRetry();
     } finally {
@@ -3079,7 +3119,9 @@ class DiscountsContentState extends State<DiscountsContent> {
               },
               switchIcon: Icons.check_circle_outline,
             ),
-          if (_showClaimed)
+          if (_bondaEnabled == false)
+            const Expanded(child: NotEnabledContent())
+          else if (_showClaimed)
             Expanded(
               child: ClaimedCouponsContent(
                 key: widget.claimedKey,
@@ -3243,7 +3285,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                 ],
               ),
             ),
-          if (!_showClaimed && !_isCouponActivationReady)
+          if (!_showClaimed && _bondaEnabled != false && !_isCouponActivationReady)
             Expanded(
               child: (_isBootstrapLoading || _isLoading)
                   ? Center(
@@ -3268,7 +3310,7 @@ class DiscountsContentState extends State<DiscountsContent> {
                     )
                   : _buildCouponActivationPendingCard(primaryGreen, textColor),
             ),
-          if (!_showClaimed && _isCouponActivationReady)
+          if (!_showClaimed && _bondaEnabled != false && _isCouponActivationReady)
             Expanded(
               child: (_isLoading || _isBootstrapLoading) && _cupones.isEmpty
                   ? Center(

@@ -15,10 +15,14 @@ class ForumPostDetailPage extends StatefulWidget {
   /// Útil cuando se abre desde una notificación y podría faltar la respuesta más reciente.
   final bool forceRefresh;
 
+  /// Callback para cerrar la vista embebida. Si es null se usa Navigator.pop.
+  final VoidCallback? onClose;
+
   const ForumPostDetailPage({
     super.key,
     required this.postId,
     this.forceRefresh = false,
+    this.onClose,
   });
 
   @override
@@ -221,7 +225,11 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
       try {
         await ForumService.deletePost(widget.postId);
         if (mounted) {
-          Navigator.pop(context);
+          if (widget.onClose != null) {
+            widget.onClose!();
+          } else {
+            Navigator.pop(context);
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -254,46 +262,6 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0A0A0A) : AppConstants.lightBg,
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 4,
-              height: 4,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: accent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: accent.withValues(alpha: 0.7),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            const Text(
-              'Publicación',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-            ),
-          ],
-        ),
-        backgroundColor: isDark
-            ? const Color(0xFF111111)
-            : AppConstants.lightAccent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: accent.withValues(alpha: 0.15),
-          ),
-        ),
-        actions: const [],
-      ),
       body: ResponsiveWrapper(
         maxWidth: 1200,
         child: _isLoading

@@ -317,7 +317,6 @@ final GoRouter appRouter = GoRouter(
         final id = int.tryParse(rawId);
         if (id == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Foro')),
             body: const Center(child: Text('Publicación inválida')),
           );
         }
@@ -472,7 +471,6 @@ final GoRouter appRouter = GoRouter(
           ];
 
           return Scaffold(
-            appBar: AppBar(title: const Text('Debug Previews')),
             body: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,

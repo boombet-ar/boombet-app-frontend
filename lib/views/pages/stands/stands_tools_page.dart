@@ -1,5 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
@@ -11,21 +13,42 @@ class StandsToolsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppConstants.darkBg,
-      appBar: const MainAppBar(
-        title: 'Panel del Stand',
-        showBackButton: false,
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: true,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      body: ListView(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLogout = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('¿Cerrar sesión?'),
+            content: const Text(
+              'Para volver atrás tenés que cerrar sesión. ¿Querés hacerlo?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Cerrar sesión'),
+              ),
+            ],
+          ),
+        );
+        if (shouldLogout == true && context.mounted) {
+          await AuthService().logout();
+          if (context.mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              FadeRoute(page: const LoginPage()),
+              (route) => false,
+            );
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
         padding: EdgeInsets.zero,
         children: [
           const SectionHeaderWidget(
@@ -65,6 +88,7 @@ class StandsToolsPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

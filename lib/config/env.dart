@@ -34,6 +34,62 @@ class Env {
     defaultValue: '',
   );
 
+  // Firebase - compartidas entre plataformas
+  static const String firebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+    defaultValue: '',
+  );
+  static const String firebaseMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+    defaultValue: '',
+  );
+  static const String firebaseStorageBucket = String.fromEnvironment(
+    'FIREBASE_STORAGE_BUCKET',
+    defaultValue: '',
+  );
+
+  // Firebase - Web
+  static const String firebaseWebApiKey = String.fromEnvironment(
+    'FIREBASE_WEB_API_KEY',
+    defaultValue: '',
+  );
+  static const String firebaseWebAppId = String.fromEnvironment(
+    'FIREBASE_WEB_APP_ID',
+    defaultValue: '',
+  );
+  static const String firebaseWebAuthDomain = String.fromEnvironment(
+    'FIREBASE_WEB_AUTH_DOMAIN',
+    defaultValue: '',
+  );
+  static const String firebaseWebMeasurementId = String.fromEnvironment(
+    'FIREBASE_WEB_MEASUREMENT_ID',
+    defaultValue: '',
+  );
+
+  // Firebase - Android
+  static const String firebaseAndroidApiKey = String.fromEnvironment(
+    'FIREBASE_ANDROID_API_KEY',
+    defaultValue: '',
+  );
+  static const String firebaseAndroidAppId = String.fromEnvironment(
+    'FIREBASE_ANDROID_APP_ID',
+    defaultValue: '',
+  );
+
+  // Firebase - iOS
+  static const String firebaseIosApiKey = String.fromEnvironment(
+    'FIREBASE_IOS_API_KEY',
+    defaultValue: '',
+  );
+  static const String firebaseIosAppId = String.fromEnvironment(
+    'FIREBASE_IOS_APP_ID',
+    defaultValue: '',
+  );
+  static const String firebaseIosBundleId = String.fromEnvironment(
+    'FIREBASE_IOS_BUNDLE_ID',
+    defaultValue: '',
+  );
+
   static bool _loaded = false;
 
   static Future<void> load({String fileName = '.env'}) async {

@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/prize_canje_model.dart';
+import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,6 +38,9 @@ class _QrScannerPageState extends State<QrScannerPage>
   bool _handlingRouletteFlow = false;
   bool _handlingCanjeFlow = false;
   String? _userRole;
+  final AffiliationService _affiliationService = AffiliationService();
+  StreamSubscription<Map<String, dynamic>>? _rouletteWsSubscription;
+  bool _spinResultHandled = false;
 
   @override
   void initState() {
@@ -54,6 +58,8 @@ class _QrScannerPageState extends State<QrScannerPage>
 
   @override
   void dispose() {
+    _rouletteWsSubscription?.cancel();
+    _affiliationService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _scanController.dispose();
     _scannerController.dispose();
@@ -258,30 +264,7 @@ class _QrScannerPageState extends State<QrScannerPage>
 
       _appendLog('Roulette wsUrl resolved: $rouletteWsUrl');
 
-      final spinFinished = await Navigator.push<bool>(
-        context,
-        FadeRoute<bool>(
-          page: PlayRoulettePage(
-            codigoRuleta: codigo,
-            rouletteWsUrl: rouletteWsUrl,
-            qrRawValue: value,
-            qrParsedUri: uri.toString(),
-          ),
-        ),
-      );
-      if (!mounted) return;
-
-      if (spinFinished == true) {
-        _appendLog('Roulette finished: closing scanner view');
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
-        return;
-      }
-
-      _appendLog('Roulette page closed without spinFinished=true');
-      _handlingRouletteFlow = false;
-      await _activateScanner();
+      await _connectAndSpinRoulette(rouletteWsUrl);
       return;
     }
 
@@ -307,6 +290,186 @@ class _QrScannerPageState extends State<QrScannerPage>
       }
     } finally {
       _isLaunching = false;
+    }
+  }
+
+  Future<void> _connectAndSpinRoulette(String wsUrl) async {
+    _spinResultHandled = false;
+
+    // 1. Suscribirse ANTES de conectar para no perder ningún mensaje del servidor.
+    //    El messageStream es broadcast: mensajes emitidos antes de suscribirse se pierden.
+    _rouletteWsSubscription = _affiliationService.messageStream.listen(
+      (payload) async {
+        if (_spinResultHandled) return;
+
+        final spinFinishedValue = payload['spinFinished'];
+        final isSpinFinished =
+            spinFinishedValue == true ||
+            spinFinishedValue?.toString().toLowerCase() == 'true';
+        if (!isSpinFinished) return;
+
+        _spinResultHandled = true;
+        await _rouletteWsSubscription?.cancel();
+        _rouletteWsSubscription = null;
+
+        if (!mounted) return;
+        Navigator.of(context).pop(); // dismiss spinning overlay
+
+        final premioRaw = payload['premio'];
+        if (premioRaw is Map<String, dynamic>) {
+          final nombre = premioRaw['nombre']?.toString();
+          final idStandRaw = premioRaw['idStand'];
+          if (nombre != null && nombre.isNotEmpty && idStandRaw != null) {
+            final idStand =
+                idStandRaw is int
+                    ? idStandRaw
+                    : int.tryParse(idStandRaw.toString());
+            await _handleRoulettePrize(
+              nombre: nombre,
+              imgUrl: premioRaw['imgUrl']?.toString(),
+              idStand: idStand,
+            );
+            return;
+          }
+        }
+
+        _appendLog('Spin finished without valid prize');
+        _affiliationService.closeWebSocket();
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      onError: (_) {},
+      onDone: () {},
+    );
+
+    // 2. Conectar WS (connectToWebSocket no aguarda el handshake real, pero el
+    //    canal bufferiza mensajes salientes hasta que la conexión esté lista).
+    try {
+      await _affiliationService.connectToWebSocket(wsUrl: wsUrl);
+    } catch (e) {
+      _appendLog('WS connection failed: $e');
+      await _rouletteWsSubscription?.cancel();
+      _rouletteWsSubscription = null;
+      if (mounted) _showSnack('No se pudo conectar a la ruleta');
+      _handlingRouletteFlow = false;
+      await _activateScanner();
+      return;
+    }
+
+    // 3. Resolver identidad del usuario
+    final identity = await _resolveUserIdentityFromUsersMe();
+    final username = identity['username']?.toString().trim() ?? '';
+    final userId = identity['userId'];
+
+    if (username.isEmpty || userId == null) {
+      _appendLog('Could not resolve user identity for roulette');
+      await _rouletteWsSubscription?.cancel();
+      _rouletteWsSubscription = null;
+      _affiliationService.closeWebSocket();
+      if (mounted) _showSnack('No se pudo obtener tu identidad');
+      _handlingRouletteFlow = false;
+      await _activateScanner();
+      return;
+    }
+
+    // 4. Enviar identidad
+    _affiliationService.sendMessage({'username': username, 'userId': userId});
+    _appendLog('Sent username/userId to WS');
+
+    // 5. Mostrar overlay de espera
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black87,
+      builder: (_) => const _RouletteSpinningOverlay(),
+    );
+
+    // 6. Disparar el giro
+    _affiliationService.sendMessage({'spinRoulette': true});
+    _appendLog('Sent spinRoulette: true');
+  }
+
+  Future<void> _handleRoulettePrize({
+    required String nombre,
+    String? imgUrl,
+    int? idStand,
+  }) async {
+    String? standNombre;
+    if (idStand != null && idStand > 0) {
+      final stand = await StandsService().fetchStandById(idStand);
+      standNombre = stand?.nombre;
+    }
+
+    _affiliationService.closeWebSocket();
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black87,
+      builder: (_) => _RouletteResultDialog(
+        nombre: nombre,
+        imgUrl: imgUrl,
+        standNombre: standNombre,
+      ),
+    );
+
+    if (!mounted) return;
+    _appendLog('Roulette finished: closing scanner view');
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  }
+
+  Future<Map<String, dynamic>> _resolveUserIdentityFromUsersMe() async {
+    final url = '${ApiConfig.baseUrl}/users/me';
+    try {
+      final response = await HttpClient.get(
+        url,
+        includeAuth: true,
+        cacheTtl: Duration.zero,
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return const {};
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return const {};
+
+      dynamic pickFirstId(Map<String, dynamic>? src) =>
+          src == null ? null : src['id'] ?? src['usuario_id'] ?? src['user_id'];
+
+      dynamic normalizeId(dynamic v) {
+        if (v == null) return null;
+        if (v is int) return v;
+        return int.tryParse(v.toString().trim()) ?? v;
+      }
+
+      final rootUserId = normalizeId(pickFirstId(decoded));
+      final rootData = decoded['data'];
+      final dataUserId = normalizeId(
+        rootData is Map<String, dynamic> ? pickFirstId(rootData) : null,
+      );
+
+      Map<String, dynamic>? datosJugador;
+      final direct = decoded['datos_jugador'];
+      if (direct is Map<String, dynamic>) {
+        datosJugador = direct;
+      } else if (rootData is Map<String, dynamic>) {
+        final nested = rootData['datos_jugador'];
+        if (nested is Map<String, dynamic>) datosJugador = nested;
+      }
+
+      if (datosJugador == null) return const {};
+
+      final username = datosJugador['username']?.toString().trim() ?? '';
+      final userId = rootUserId ?? dataUserId;
+      if (username.isNotEmpty && userId != null) {
+        return {'username': username, 'userId': userId};
+      }
+      return const {};
+    } catch (_) {
+      return const {};
     }
   }
 
@@ -536,50 +699,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     const primaryGreen = AppConstants.primaryGreen;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0E0E0E),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppConstants.primaryGreen,
-            size: 20,
-          ),
-          tooltip: 'Volver',
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: primaryGreen.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: primaryGreen.withValues(alpha: 0.22),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.qr_code_scanner_rounded,
-                color: AppConstants.primaryGreen,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'Escanear QR',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: AppConstants.darkBg,
       body: Stack(
         children: [
           // Radial glow — top left
@@ -619,30 +739,63 @@ class _QrScannerPageState extends State<QrScannerPage>
             ),
           ),
           // Content
-          ResponsiveWrapper(
-            maxWidth: 900,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                AppConstants.paddingLarge,
-                8,
-                AppConstants.paddingLarge,
-                AppConstants.paddingLarge,
-              ),
+          Positioned.fill(
+            child: ResponsiveWrapper(
+              maxWidth: 900,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(),
-                  const SizedBox(height: 20),
-                  _buildScannerCard(),
-                  const SizedBox(height: 14),
-                  _buildControls(),
-                  if (AppConstants.qrScannerDebugConsoleEnabled) ...[
-                    const SizedBox(height: 14),
-                    _buildLogsPanel(),
-                  ],
-                ],
-              ),
+                const SectionHeaderWidget(
+                  title: 'Escáner QR',
+                  subtitle: 'Escanear y canjear códigos',
+                  icon: Icons.qr_code_scanner_rounded,
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppConstants.paddingLarge,
+                          8,
+                          AppConstants.paddingLarge,
+                          0,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildScannerCard(),
+                            const SizedBox(height: 14),
+                            _buildControls(),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: const _SearchingAnimation(),
+                        ),
+                      ),
+                      if (AppConstants.qrScannerDebugConsoleEnabled) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppConstants.paddingLarge,
+                            0,
+                            AppConstants.paddingLarge,
+                            AppConstants.paddingLarge,
+                          ),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 14),
+                              _buildLogsPanel(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
+          ),
           ),
         ],
       ),
@@ -1345,4 +1498,819 @@ class _CornerFramePainter extends CustomPainter {
   @override
   bool shouldRepaint(_CornerFramePainter oldDelegate) =>
       oldDelegate.color != color;
+}
+
+// ─── ROULETTE UI ─────────────────────────────────────────────────────────────
+
+class _RouletteSpinningOverlay extends StatefulWidget {
+  const _RouletteSpinningOverlay();
+
+  @override
+  State<_RouletteSpinningOverlay> createState() =>
+      _RouletteSpinningOverlayState();
+}
+
+class _RouletteSpinningOverlayState extends State<_RouletteSpinningOverlay>
+    with TickerProviderStateMixin {
+  late AnimationController _spinFast;
+  late AnimationController _spinSlow;
+  late AnimationController _pulse;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _spinFast = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+    _spinSlow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(
+      begin: 0.35,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _spinFast.dispose();
+    _spinSlow.dispose();
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1C1C2E), Color(0xFF12121F), Color(0xFF0D0D18)],
+          ),
+          border: Border.all(
+            color: AppConstants.primaryGreen.withValues(alpha: 0.30),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.20),
+              blurRadius: 48,
+              spreadRadius: 4,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.70),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 36, 32, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Roulette spinning graphic
+                AnimatedBuilder(
+                  animation: Listenable.merge([_spinFast, _spinSlow, _pulse]),
+                  builder: (context, _) {
+                    return SizedBox(
+                      width: 110,
+                      height: 110,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer glow
+                          Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppConstants.primaryGreen.withValues(
+                                    alpha: _pulseAnim.value * 0.45,
+                                  ),
+                                  blurRadius: 32,
+                                  spreadRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Slow outer ring
+                          Transform.rotate(
+                            angle: _spinSlow.value * 2 * math.pi,
+                            child: CustomPaint(
+                              size: const Size(110, 110),
+                              painter: _ArcRingPainter(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.25,
+                                ),
+                                strokeWidth: 2.5,
+                                sweepFraction: 0.75,
+                              ),
+                            ),
+                          ),
+                          // Fast inner ring (reverse)
+                          Transform.rotate(
+                            angle: -_spinFast.value * 2 * math.pi,
+                            child: CustomPaint(
+                              size: const Size(80, 80),
+                              painter: _ArcRingPainter(
+                                color: AppConstants.primaryGreen.withValues(
+                                  alpha: 0.55,
+                                ),
+                                strokeWidth: 3.5,
+                                sweepFraction: 0.45,
+                              ),
+                            ),
+                          ),
+                          // Center bright ring
+                          Transform.rotate(
+                            angle: _spinFast.value * 2 * math.pi * 1.5,
+                            child: CustomPaint(
+                              size: const Size(52, 52),
+                              painter: _ArcRingPainter(
+                                color: AppConstants.primaryGreen,
+                                strokeWidth: 4,
+                                sweepFraction: 0.30,
+                              ),
+                            ),
+                          ),
+                          // Casino icon center
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppConstants.primaryGreen.withValues(
+                                alpha: _pulseAnim.value * 0.18,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.casino_outlined,
+                              color: AppConstants.primaryGreen.withValues(
+                                alpha: 0.6 + _pulseAnim.value * 0.4,
+                              ),
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  '¡GIRANDO!',
+                  style: TextStyle(
+                    color: AppConstants.primaryGreen,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArcRingPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double sweepFraction;
+
+  const _ArcRingPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.sweepFraction,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = color
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromLTWH(
+        strokeWidth / 2,
+        strokeWidth / 2,
+        size.width - strokeWidth,
+        size.height - strokeWidth,
+      ),
+      0,
+      math.pi * 2 * sweepFraction,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ArcRingPainter old) =>
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      old.sweepFraction != sweepFraction;
+}
+
+// ─── Prize dialog — migrado desde play_roulette_page.dart ────────────────────
+
+class _RouletteResultDialog extends StatefulWidget {
+  final String nombre;
+  final String? imgUrl;
+  final String? standNombre;
+
+  const _RouletteResultDialog({
+    required this.nombre,
+    this.imgUrl,
+    this.standNombre,
+  });
+
+  @override
+  State<_RouletteResultDialog> createState() => _RouletteResultDialogState();
+}
+
+class _RouletteResultDialogState extends State<_RouletteResultDialog>
+    with TickerProviderStateMixin {
+  late AnimationController _entryController;
+  late AnimationController _glowController;
+  late AnimationController _confettiController;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _fadeAnim;
+  late Animation<double> _glowAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 650),
+      vsync: this,
+    );
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 1600),
+      vsync: this,
+    )..repeat(reverse: true);
+    _confettiController = AnimationController(
+      duration: const Duration(seconds: 4),
+      vsync: this,
+    )..repeat();
+
+    _scaleAnim = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.elasticOut,
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeIn,
+    );
+    _glowAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _glowController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: ScaleTransition(
+          scale: _scaleAnim,
+          child: AnimatedBuilder(
+            animation: _glowAnim,
+            builder: (context, child) => _buildCard(child!),
+            child: _buildContent(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(Widget content) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1C1C2E), Color(0xFF16213E), Color(0xFF0D1B2A)],
+        ),
+        border: Border.all(
+          color: AppConstants.primaryGreen.withValues(alpha: _glowAnim.value),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryGreen.withValues(
+              alpha: _glowAnim.value * 0.55,
+            ),
+            blurRadius: 50,
+            spreadRadius: 4,
+          ),
+          const BoxShadow(
+            color: Colors.black87,
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _confettiController,
+                builder:
+                    (context, _) => CustomPaint(
+                      painter: _ConfettiPainter(
+                        animation: _confettiController.value,
+                      ),
+                    ),
+              ),
+            ),
+            content,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTrophyBadge(),
+          const SizedBox(height: 14),
+          _buildTitle(),
+          const SizedBox(height: 24),
+          _buildPrizeImage(),
+          const SizedBox(height: 20),
+          _buildPrizeName(),
+          if (widget.standNombre != null) ...[
+            const SizedBox(height: 14),
+            _buildStandChip(),
+          ],
+          const SizedBox(height: 30),
+          _buildDismissButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrophyBadge() {
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (context, _) {
+        return Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                const Color(0xFFFFD700).withValues(alpha: 0.95),
+                const Color(0xFFFF8C00).withValues(alpha: 0.5),
+                Colors.transparent,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withValues(
+                  alpha: _glowAnim.value * 0.75,
+                ),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.emoji_events_rounded,
+            size: 38,
+            color: Color(0xFFFFD700),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTitle() {
+    return AnimatedBuilder(
+      animation: _glowController,
+      builder: (context, _) {
+        return ShaderMask(
+          shaderCallback:
+              (bounds) => LinearGradient(
+                colors: const [
+                  AppConstants.primaryGreen,
+                  Color(0xFFFFD700),
+                  AppConstants.primaryGreen,
+                ],
+                stops: [0.0, _glowController.value, 1.0],
+              ).createShader(bounds),
+          child: const Text(
+            '¡GANASTE UN PREMIO!',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1.8,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPrizeImage() {
+    final imgUrl = widget.imgUrl;
+    final hasImage = imgUrl != null && imgUrl.isNotEmpty;
+
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: AppConstants.primaryGreen.withValues(
+                  alpha: _glowAnim.value * 0.65,
+                ),
+                blurRadius: 30,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child:
+            hasImage
+                ? Image.network(
+                  imgUrl,
+                  width: 170,
+                  height: 170,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallbackImageBox(),
+                )
+                : _fallbackImageBox(),
+      ),
+    );
+  }
+
+  Widget _fallbackImageBox() {
+    return Container(
+      width: 170,
+      height: 170,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+        border: Border.all(
+          color: AppConstants.primaryGreen.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      ),
+      child: const Icon(
+        Icons.card_giftcard_rounded,
+        size: 80,
+        color: AppConstants.primaryGreen,
+      ),
+    );
+  }
+
+  Widget _buildPrizeName() {
+    return Text(
+      widget.nombre,
+      style: const TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.w900,
+        color: Colors.white,
+        letterSpacing: 0.4,
+        height: 1.25,
+      ),
+      textAlign: TextAlign.center,
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildStandChip() {
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (context, _) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+            border: Border.all(
+              color: AppConstants.primaryGreen.withValues(
+                alpha: _glowAnim.value * 0.6,
+              ),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.storefront_rounded,
+                size: 17,
+                color: AppConstants.primaryGreen,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                'Retirá en: ${widget.standNombre}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppConstants.primaryGreen,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDismissButton() {
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              colors: [AppConstants.primaryGreen, Color(0xFF00D4FF)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppConstants.primaryGreen.withValues(
+                  alpha: _glowAnim.value * 0.65,
+                ),
+                blurRadius: 22,
+                spreadRadius: 2,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text(
+              '¡Genial!  🎉',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SearchingAnimation extends StatefulWidget {
+  const _SearchingAnimation();
+
+  @override
+  State<_SearchingAnimation> createState() => _SearchingAnimationState();
+}
+
+class _SearchingAnimationState extends State<_SearchingAnimation>
+    with TickerProviderStateMixin {
+  late final AnimationController _glowController;
+  late final AnimationController _dotsController;
+  late final AnimationController _scanLineController;
+  late final Animation<double> _glowAnim;
+  late final Animation<double> _scanLineAnim;
+
+  static const _green = AppConstants.primaryGreen;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+
+    _dotsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+
+    _scanLineController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+
+    _glowAnim = CurvedAnimation(parent: _glowController, curve: Curves.easeInOut);
+    _scanLineAnim = CurvedAnimation(parent: _scanLineController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    _dotsController.dispose();
+    _scanLineController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+      width: 300,
+      height: 150,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _green.withValues(alpha: 0.15),
+          width: 1,
+        ),
+        color: _green.withValues(alpha: 0.03),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Texto principal con glow
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _glowAnim,
+                  builder: (_, __) {
+                    final glowIntensity = 0.4 + _glowAnim.value * 0.6;
+                    return AnimatedBuilder(
+                      animation: _dotsController,
+                      builder: (_, __) {
+                        final dotsCount = (_dotsController.value * 4).floor() % 4;
+                        final dots = '.' * dotsCount + ' ' * (3 - dotsCount);
+                        return Text(
+                          'Buscando codigo$dots',
+                          style: TextStyle(
+                            fontFamily: 'ThaleahFat',
+                            fontSize: 20,
+                            color: _green.withValues(alpha: glowIntensity),
+                            letterSpacing: 1.5,
+                            shadows: [
+                              Shadow(
+                                color: _green.withValues(alpha: glowIntensity * 0.8),
+                                blurRadius: 8 + _glowAnim.value * 10,
+                              ),
+                              Shadow(
+                                color: _green.withValues(alpha: glowIntensity * 0.4),
+                                blurRadius: 20 + _glowAnim.value * 16,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                // Barrita de progreso pulsante
+                AnimatedBuilder(
+                  animation: _glowAnim,
+                  builder: (_, __) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (i) {
+                      final delay = i / 5.0;
+                      final t = ((_glowController.value - delay + 1) % 1.0);
+                      final scale = 0.4 + (math.sin(t * math.pi) * 0.6).clamp(0.0, 0.6);
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: 10,
+                        height: 4 + scale * 10,
+                        decoration: BoxDecoration(
+                          color: _green.withValues(alpha: 0.3 + scale * 0.7),
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _green.withValues(alpha: scale * 0.6),
+                              blurRadius: 4 + scale * 6,
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final double animation;
+  static const _colors = [
+    AppConstants.primaryGreen,
+    Color(0xFFFFD700),
+    Color(0xFF00D4FF),
+    Color(0xFFFF6B6B),
+    Colors.white,
+    Color(0xFFFF9EFF),
+  ];
+
+  const _ConfettiPainter({required this.animation});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(99887);
+    for (int i = 0; i < 22; i++) {
+      final x = random.nextDouble() * size.width;
+      final baseY = random.nextDouble() * size.height;
+      final speed = 0.2 + random.nextDouble() * 0.6;
+      final y = (baseY + animation * size.height * speed) % (size.height + 20);
+      final color = _colors[random.nextInt(_colors.length)];
+      final w = 4.0 + random.nextDouble() * 6;
+      final h = 5.0 + random.nextDouble() * 9;
+      final opacity = 0.15 + random.nextDouble() * 0.35;
+      final angle = animation * math.pi * 2 * (random.nextDouble() * 4 - 2);
+
+      final paint = Paint()..color = color.withValues(alpha: opacity);
+
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(angle);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset.zero, width: w, height: h),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => animation != old.animation;
 }

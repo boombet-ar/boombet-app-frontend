@@ -1,10 +1,31 @@
 import 'dart:developer';
 
 import 'package:boombet_app/config/api_config.dart';
+import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/http_client.dart';
 
 class EmailVerificationService {
+  /// Reenvía el email de verificación para una cuenta no verificada.
+  /// Requiere el header 'key' con el API key del sistema.
+  /// Retorna true si el envío fue exitoso.
+  static Future<bool> resendVerificationEmail(String email) async {
+    final apiKey = Env.getString('USERDATA_KEY', allowEmpty: true);
+    try {
+      final response = await HttpClient.post(
+        '${ApiConfig.baseUrl}/users/auth/resend-verification',
+        body: {'email': email},
+        includeAuth: false,
+        headers: apiKey.isNotEmpty ? {'key': apiKey} : null,
+      );
+      final success = response.statusCode >= 200 && response.statusCode < 300;
+      log('[EmailVerificationService] resend-verification → ${response.statusCode}');
+      return success;
+    } catch (e) {
+      log('[EmailVerificationService] resend-verification error: $e');
+      return false;
+    }
+  }
   static const _verifyPath = '/users/auth/verify';
 
   /// Verifica el email del usuario llamando a /api/users/auth/verify con el token

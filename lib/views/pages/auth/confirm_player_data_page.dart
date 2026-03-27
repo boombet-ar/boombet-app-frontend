@@ -84,6 +84,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
   @override
   void initState() {
     super.initState();
+    criticalFlowActive = true;
     final data = widget.playerData;
 
     _nombreController = TextEditingController(text: data.nombre);
@@ -99,6 +100,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
   @override
   void dispose() {
+    criticalFlowActive = false;
     _nombreController.dispose();
     _apellidoController.dispose();
     _correoController.dispose();
@@ -488,21 +490,22 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
         final playerDataFromResponse = responseData['playerData'];
 
         if (playerDataFromResponse != null) {
+          affiliationPasswordNotifier.value =
+              playerDataFromResponse['password'] ?? widget.password;
           await saveAffiliationData(
             playerData: updatedData,
             email: playerDataFromResponse['email'] ?? email,
             username: playerDataFromResponse['user'] ?? widget.username,
-            password: playerDataFromResponse['password'] ?? widget.password,
             dni: playerDataFromResponse['dni'] ?? widget.dni,
             telefono: playerDataFromResponse['telefono'] ?? telefono,
             genero: playerDataFromResponse['genero'] ?? widget.genero,
           );
         } else {
+          affiliationPasswordNotifier.value = widget.password;
           await saveAffiliationData(
             playerData: updatedData,
             email: email,
             username: widget.username,
-            password: widget.password,
             dni: widget.dni,
             telefono: telefono,
             genero: widget.genero,
@@ -978,11 +981,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
     return Scaffold(
       backgroundColor: _scaffoldBg,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
-      ),
       body: ResponsiveWrapper(
         maxWidth: kIsWeb ? 1200 : 800,
         child: kIsWeb
@@ -1005,7 +1003,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                           physics: const NeverScrollableScrollPhysics(),
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          itemCount: 3,
+                          itemCount: 2,
                           itemBuilder: (context, index) {
                             switch (index) {
                               case 0:
@@ -1028,13 +1026,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                         'Apellido',
                                         _apellidoController,
                                         icon: Icons.person_outline_rounded,
-                                      ),
-                                      _buildGeneroDropdown(context),
-                                      _buildEditableField(
-                                        context,
-                                        'Estado Civil',
-                                        _estadoCivilController,
-                                        icon: Icons.favorite_border_rounded,
                                       ),
                                     ],
                                   ),
@@ -1065,38 +1056,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                                     ],
                                   ),
                                 );
-                              case 2:
-                                return _buildWebSectionCard(
-                                  context: context,
-                                  title: 'Datos personales',
-                                  sectionIcon: Icons.badge_outlined,
-                                  padding: cardPadding,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _buildReadOnlyField(
-                                        context, 'DNI', data.dni,
-                                        icon: Icons.credit_card_outlined,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context, 'CUIL', data.cuil,
-                                        icon: Icons.numbers_rounded,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context,
-                                        'Fecha de Nacimiento',
-                                        data.fechaNacimiento,
-                                        icon: Icons.calendar_today_outlined,
-                                      ),
-                                      _buildReadOnlyField(
-                                        context,
-                                        'Año de Nacimiento',
-                                        data.anioNacimiento,
-                                        icon: Icons.event_outlined,
-                                      ),
-                                    ],
-                                  ),
-                                );
                               default:
                                 return const SizedBox.shrink();
                             }
@@ -1121,32 +1080,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                   header,
                   const SizedBox(height: 32),
 
-                  // ── DATOS PERSONALES ─────────────────────────────────────
-                  _buildSectionTitle('Datos Personales', Icons.badge_outlined),
-                  const SizedBox(height: 12),
-
-                  _buildReadOnlyField(
-                    context, 'DNI', data.dni,
-                    icon: Icons.credit_card_outlined,
-                  ),
-                  _buildReadOnlyField(
-                    context, 'CUIL', data.cuil,
-                    icon: Icons.numbers_rounded,
-                  ),
-                  _buildReadOnlyField(
-                    context,
-                    'Fecha de Nacimiento',
-                    data.fechaNacimiento,
-                    icon: Icons.calendar_today_outlined,
-                  ),
-                  _buildReadOnlyField(
-                    context,
-                    'Año de Nacimiento',
-                    data.anioNacimiento,
-                    icon: Icons.event_outlined,
-                  ),
-                  const SizedBox(height: 20),
-
                   // ── DATOS EDITABLES ──────────────────────────────────────
                   _buildSectionTitle('Datos Editables', Icons.edit_outlined),
                   const SizedBox(height: 12),
@@ -1158,11 +1091,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
                   _buildEditableField(
                     context, 'Apellido', _apellidoController,
                     icon: Icons.person_outline_rounded,
-                  ),
-                  _buildGeneroDropdown(context),
-                  _buildEditableField(
-                    context, 'Estado Civil', _estadoCivilController,
-                    icon: Icons.favorite_border_rounded,
                   ),
 
                   const SizedBox(height: 20),

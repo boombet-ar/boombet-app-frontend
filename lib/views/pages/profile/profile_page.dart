@@ -1,13 +1,13 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/profile/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
-import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
 import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
-import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -25,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _isUnaffiliating = false;
+  bool _isEditing = false;
 
   Widget _buildActionGradientButton({
     required String label,
@@ -34,12 +35,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     final enabled = onPressed != null;
     const labelColor = Colors.black;
-    final effectiveBg =
-        enabled ? accentColor : accentColor.withValues(alpha: 0.45);
+    final effectiveBg = enabled
+        ? accentColor
+        : accentColor.withValues(alpha: 0.45);
 
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 44,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -159,29 +161,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: true,
-        showProfileButton: false,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshProfile,
-        child: isWeb
-            ? (_isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                  ? _buildErrorView(textColor, primaryGreen)
-                  : _buildWebProfileContent(textColor, isDark, primaryGreen))
-            : ResponsiveWrapper(
-                maxWidth: 900,
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _errorMessage != null
-                    ? _buildErrorView(textColor, primaryGreen)
-                    : _buildProfileContent(textColor, isDark, primaryGreen),
-              ),
-      ),
+      body: isWeb
+          ? (_isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                ? _buildErrorView(textColor, primaryGreen)
+                : _buildWebProfileContent(textColor, isDark, primaryGreen))
+          : Column(
+              children: [
+                const SectionHeaderWidget(
+                  title: 'Mi Perfil',
+                  subtitle: 'Tu información personal',
+                  icon: Icons.person_rounded,
+                ),
+                Expanded(
+                  child: ResponsiveWrapper(
+                    maxWidth: 900,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _errorMessage != null
+                        ? _buildErrorView(textColor, primaryGreen)
+                        : _isEditing
+                        ? _buildEmbeddedEdit(textColor, isDark, primaryGreen)
+                        : RefreshIndicator(
+                            onRefresh: _refreshProfile,
+                            child: _buildProfileContent(
+                              textColor,
+                              isDark,
+                              primaryGreen,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -248,23 +261,45 @@ class _ProfilePageState extends State<ProfilePage> {
     bool isDark,
     Color primaryGreen,
   ) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildHeader(textColor, isDark, primaryGreen),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                _buildSectionTitle(primaryGreen, textColor),
-                const SizedBox(height: 20),
-                _buildInfoCard(isDark, textColor, primaryGreen),
-              ],
-            ),
+    return Column(
+      children: [
+        _buildHeader(textColor, isDark, primaryGreen),
+        const SectionHeaderWidget(
+          title: 'Información Personal',
+          subtitle: 'Tus datos de cuenta',
+          icon: Icons.person_outline_rounded,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: _buildInfoCard(isDark, textColor, primaryGreen),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmbeddedEdit(Color textColor, bool isDark, Color primaryGreen) {
+    final pageIndex = selectedPageNotifier.value;
+    pageBackCallbacks[pageIndex] = () {
+      setState(() => _isEditing = false);
+      pageBackCallbacks.remove(pageIndex);
+    };
+
+    return EditProfilePage(
+      player: _playerData!,
+      embedded: true,
+      onSaved: (updatedPlayer) {
+        pageBackCallbacks.remove(pageIndex);
+        setState(() {
+          _playerData = updatedPlayer;
+          _isEditing = false;
+        });
+      },
+      onCancel: () {
+        pageBackCallbacks.remove(pageIndex);
+        setState(() => _isEditing = false);
+      },
     );
   }
 
@@ -300,7 +335,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             children: [
-                              _buildSectionTitle(primaryGreen, textColor),
                               const SizedBox(height: 16),
                               _buildInfoCard(isDark, textColor, primaryGreen),
                             ],
@@ -417,7 +451,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    _buildSectionTitle(primaryGreen, textColor),
                                     const SizedBox(height: 20),
                                     _buildInfoCard(
                                       isDark,
@@ -447,17 +480,23 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildHeader(Color textColor, bool isDark, Color primaryGreen) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF0D0D0D), const Color(0xFF131313)]
-              : [primaryGreen.withValues(alpha: 0.08), primaryGreen.withValues(alpha: 0.02)],
+              : [
+                  primaryGreen.withValues(alpha: 0.08),
+                  primaryGreen.withValues(alpha: 0.02),
+                ],
         ),
         border: Border(
-          bottom: BorderSide(color: primaryGreen.withValues(alpha: 0.18), width: 1),
+          bottom: BorderSide(
+            color: primaryGreen.withValues(alpha: 0.18),
+            width: 1,
+          ),
         ),
         boxShadow: [
           BoxShadow(
@@ -473,36 +512,38 @@ class _ProfilePageState extends State<ProfilePage> {
           AnimatedContainer(
             duration: AppConstants.mediumDelay,
             curve: Curves.easeOutBack,
-            width: 130,
-            height: 130,
+            width: 82,
+            height: 82,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: primaryGreen, width: 4),
+              border: Border.all(color: primaryGreen, width: 3),
               boxShadow: [
                 BoxShadow(
                   color: primaryGreen.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+                  blurRadius: 16,
+                  spreadRadius: 4,
                 ),
               ],
               color: isDark
                   ? const Color(0xFF202020)
                   : Theme.of(context).colorScheme.surface,
             ),
-            child: ClipOval(child: _buildAvatarImage(primaryGreen, isDark)),
+            child: ClipOval(
+              child: _buildAvatarImage(primaryGreen, isDark, size: 82),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Text(
             "${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}"
                 .trim(),
             style: TextStyle(
-              fontSize: 27,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
               color: textColor,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           _buildVerifiedBadge(primaryGreen, _playerData?.username ?? ''),
         ],
       ),
@@ -548,7 +589,10 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: primaryGreen.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.35), width: 1),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.35),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: primaryGreen.withValues(alpha: 0.18),
@@ -616,7 +660,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.person_outline_rounded, color: primaryGreen, size: 20),
+                    Icon(
+                      Icons.person_outline_rounded,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       "Información Personal",
@@ -642,7 +690,10 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withValues(alpha: 0.14), width: 1),
+        border: Border.all(
+          color: primaryGreen.withValues(alpha: 0.14),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: primaryGreen.withValues(alpha: 0.05),
@@ -694,48 +745,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
           const SizedBox(height: 10),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-            child: _buildActionGradientButton(
-              label: 'Mis premios',
-              icon: Icons.workspace_premium_rounded,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MyPrizesPage()),
-                );
-              },
-              accentColor: const Color(0xFF4FC3F7),
-            ),
-          ),
-
           // 🚀 BOTÓN PARA EDITAR PERFIL
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
             child: _buildActionGradientButton(
               label: 'Editar Información',
               icon: Icons.edit_note_rounded,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EditProfilePage(player: _playerData!),
-                  ),
-                ).then((updatedPlayer) {
-                  if (updatedPlayer != null && updatedPlayer is PlayerData) {
-                    setState(() {
-                      _playerData = updatedPlayer;
-                    });
-                  }
-                });
-              },
+              onPressed: () => setState(() => _isEditing = true),
               accentColor: primaryGreen,
             ),
           ),
 
           // 🚀 BOTÓN PARA DESAFILIARSE
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 5, 16, 12),
             child: _buildActionGradientButton(
               label: 'Desafiliarse de Boombet',
               icon: Icons.person_off_rounded,
@@ -870,7 +893,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                     'Acción permanente e irreversible',
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color: Colors.white.withValues(alpha: 0.38),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.38,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -969,7 +994,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                     borderRadius: BorderRadius.circular(12),
                                     color: const Color(0xFF1A1A1A),
                                     border: Border.all(
-                                      color: primaryGreen.withValues(alpha: 0.38),
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.38,
+                                      ),
                                       width: 1.5,
                                     ),
                                   ),
@@ -979,8 +1006,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                       color: Colors.transparent,
                                       child: InkWell(
                                         onTap: () => Navigator.pop(context),
-                                        splashColor:
-                                            primaryGreen.withValues(alpha: 0.08),
+                                        splashColor: primaryGreen.withValues(
+                                          alpha: 0.08,
+                                        ),
                                         child: Center(
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -1046,10 +1074,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                       child: InkWell(
                                         onTap: _isUnaffiliating
                                             ? null
-                                            : () =>
-                                                _handleUnaffiliateConfirm(context),
-                                        splashColor:
-                                            Colors.white.withValues(alpha: 0.10),
+                                            : () => _handleUnaffiliateConfirm(
+                                                context,
+                                              ),
+                                        splashColor: Colors.white.withValues(
+                                          alpha: 0.10,
+                                        ),
                                         child: Center(
                                           child: _isUnaffiliating
                                               ? const SizedBox(
@@ -1057,12 +1087,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   width: 16,
                                                   child:
                                                       CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
+                                                        strokeWidth: 2,
+                                                        color: Colors.white,
+                                                      ),
                                                 )
                                               : const Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
                                                     Icon(
                                                       Icons.person_off_rounded,
@@ -1219,30 +1250,25 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color primaryGreen,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white10, width: 1)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primaryGreen.withValues(alpha: 0.22), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryGreen.withValues(alpha: 0.18),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: primaryGreen.withValues(alpha: 0.22),
+                width: 1,
+              ),
             ),
-            child: Icon(icon, color: primaryGreen, size: 22),
+            child: Icon(icon, color: primaryGreen, size: 17),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1250,15 +1276,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 13,
-                    color: textColor.withValues(alpha: 0.6),
+                    fontSize: 11,
+                    color: textColor.withValues(alpha: 0.55),
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   value.isEmpty ? "—" : value,
                   style: TextStyle(
-                    fontSize: 17,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),

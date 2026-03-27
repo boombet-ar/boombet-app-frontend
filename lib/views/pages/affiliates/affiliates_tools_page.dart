@@ -21,6 +21,9 @@ import 'package:boombet_app/views/pages/affiliates/sub-affiliates/subaffiliates_
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
+import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
@@ -42,27 +45,48 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
     final textColor = AppConstants.textDark;
     final bgColor = AppConstants.darkBg;
 
-    return FutureBuilder<String?>(
-      future: _roleFuture,
-      builder: (context, snapshot) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLogout = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('¿Cerrar sesión?'),
+            content: const Text(
+              'Para volver atrás tenés que cerrar sesión. ¿Querés hacerlo?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Cerrar sesión'),
+              ),
+            ],
+          ),
+        );
+        if (shouldLogout == true && context.mounted) {
+          await AuthService().logout();
+          if (context.mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              FadeRoute(page: const LoginPage()),
+              (route) => false,
+            );
+          }
+        }
+      },
+      child: FutureBuilder<String?>(
+        future: _roleFuture,
+        builder: (context, snapshot) {
         final role = snapshot.data?.trim().toUpperCase();
         final isAffiliator = role == 'AFILIADOR';
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             backgroundColor: bgColor,
-            appBar: const MainAppBar(
-              title: 'Herramientas Afiliador',
-              showBackButton: false,
-              showLogo: true,
-              showSettings: false,
-              showProfileButton: false,
-              showLogoutButton: true,
-              showFaqButton: false,
-              showExitButton: false,
-              showAdminTools: false,
-              showAffiliatesTools: false,
-            ),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
@@ -70,18 +94,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
         if (!isAffiliator) {
           return Scaffold(
             backgroundColor: bgColor,
-            appBar: const MainAppBar(
-              title: 'Herramientas Afiliador',
-              showBackButton: false,
-              showLogo: true,
-              showSettings: false,
-              showProfileButton: false,
-              showLogoutButton: true,
-              showFaqButton: false,
-              showExitButton: false,
-              showAdminTools: false,
-              showAffiliatesTools: false,
-            ),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -131,18 +143,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
 
         return Scaffold(
           backgroundColor: bgColor,
-          appBar: const MainAppBar(
-            title: 'Herramientas Afiliador',
-            showBackButton: false,
-            showLogo: true,
-            showSettings: false,
-            showProfileButton: false,
-            showLogoutButton: true,
-            showFaqButton: false,
-            showExitButton: false,
-            showAdminTools: false,
-            showAffiliatesTools: false,
-          ),
           body: ListView(
             padding: EdgeInsets.zero,
             children: [
@@ -189,7 +189,8 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
             ],
           ),
         );
-      },
+        },
+      ),
     );
   }
 }
@@ -722,23 +723,15 @@ class _TidsPageState extends State<TidsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'TIDs (Tracking IDs)',
-        showBackButton: true,
-        onBackPressed: () => context.go('/affiliates-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      backgroundColor: AppConstants.darkBg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/affiliates-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           TidsManagementView(
             onCreate: () => showCreateTidDialog(
@@ -781,6 +774,7 @@ class _TidsPageState extends State<TidsPage> {
             ),
         ],
       ),
+    ),
     );
   }
 }
@@ -964,23 +958,15 @@ class _EventosPageState extends State<EventosPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Eventos',
-        showBackButton: true,
-        onBackPressed: () => context.go('/affiliates-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      backgroundColor: AppConstants.darkBg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/affiliates-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           EventManagementView(
             onCreate: () => showCreateEventoDialog(
@@ -1022,6 +1008,7 @@ class _EventosPageState extends State<EventosPage> {
             ),
         ],
       ),
+    ),
     );
   }
 }
@@ -1388,23 +1375,15 @@ class _StandsPageState extends State<StandsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Stands / Puestos',
-        showBackButton: true,
-        onBackPressed: () => context.go('/affiliates-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      backgroundColor: AppConstants.darkBg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/affiliates-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           StandManagementView(
             onCreate: _createStand,
@@ -1437,6 +1416,7 @@ class _StandsPageState extends State<StandsPage> {
             ),
         ],
       ),
+    ),
     );
   }
 }
@@ -2025,23 +2005,15 @@ class _SubAfiliadoresPageState extends State<SubAfiliadoresPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Sub-afiliadores',
-        showBackButton: true,
-        onBackPressed: () => context.go('/affiliates-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      backgroundColor: AppConstants.darkBg,
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/affiliates-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           SubAfiliadosManagementView(
             onCreate: () => showCreateSubAfiliadoDialog(
@@ -2064,6 +2036,7 @@ class _SubAfiliadoresPageState extends State<SubAfiliadoresPage> {
           ),
         ],
       ),
+    ),
     );
   }
 }

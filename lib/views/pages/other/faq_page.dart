@@ -417,11 +417,6 @@ class _FaqPageState extends State<FaqPage> {
     }
 
     return Scaffold(
-      appBar: const MainAppBar(
-        showBackButton: true,
-        showLogo: true,
-        showFaqButton: false,
-      ),
       backgroundColor: const Color(0xFF0E0E0E),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),

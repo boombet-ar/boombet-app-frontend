@@ -292,12 +292,6 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: true,
-        showProfileButton: false,
-      ),
       body: ResponsiveWrapper(
         maxWidth: 900,
         child: Stack(

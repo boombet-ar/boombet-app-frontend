@@ -9,6 +9,8 @@ class SectionHeaderWidget extends StatefulWidget {
   final VoidCallback? onSwitch;
   final IconData? switchIcon;
   final Key? switchButtonKey;
+  final VoidCallback? onInfo;
+  final IconData? infoIcon;
 
   const SectionHeaderWidget({
     super.key,
@@ -19,6 +21,8 @@ class SectionHeaderWidget extends StatefulWidget {
     this.onSwitch,
     this.switchIcon,
     this.switchButtonKey,
+    this.onInfo,
+    this.infoIcon,
   });
 
   @override
@@ -43,12 +47,14 @@ class _SectionHeaderWidgetState extends State<SectionHeaderWidget>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _iconScale = Tween<double>(begin: 0.88, end: 1.0).animate(
-      CurvedAnimation(parent: _enterController, curve: Curves.easeOut),
-    );
-    _iconOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _enterController, curve: Curves.easeIn),
-    );
+    _iconScale = Tween<double>(
+      begin: 0.88,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _enterController, curve: Curves.easeOut));
+    _iconOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _enterController, curve: Curves.easeIn));
     _enterController.forward();
 
     // Punto: pulso continuo cada 1.4s
@@ -225,6 +231,17 @@ class _SectionHeaderWidgetState extends State<SectionHeaderWidget>
                       ],
                     ),
                   ),
+
+                  // ── Botón info/FAQ ────────────────────────────────────
+                  if (widget.onInfo != null) ...[
+                    const SizedBox(width: 6),
+                    _HeaderActionButton(
+                      icon: widget.infoIcon ?? Icons.help_outline_rounded,
+                      onTap: widget.onInfo!,
+                      accent: accent,
+                      tooltip: 'Ayuda',
+                    ),
+                  ],
 
                   // ── Botón switch ──────────────────────────────────────
                   if (widget.onSwitch != null) ...[

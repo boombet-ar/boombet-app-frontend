@@ -47,12 +47,6 @@ class AffiliationResultsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: _scaffoldBg,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: false,
-        showProfileButton: false,
-      ),
       body: ResponsiveWrapper(
         maxWidth: isWeb ? 980 : 800,
         constrainOnWeb: isWeb,
@@ -536,11 +530,6 @@ class AffiliationResultsPage extends StatelessWidget {
   Widget _buildErrorView(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBg,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: false,
-      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),

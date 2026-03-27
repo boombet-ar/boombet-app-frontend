@@ -10,6 +10,7 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/publicidad_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/profile/profile_page.dart';
+import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/widgets/casino_logo_carousel.dart';
 import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -668,6 +669,13 @@ class _HomeContentState extends State<HomeContent> {
           title: 'Inicio',
           subtitle: 'Los ultimos anuncios de tus casinos afiliados',
           icon: Icons.campaign,
+          onInfo: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FaqPage()),
+            );
+          },
+          infoIcon: Icons.help_outline_rounded,
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -840,7 +848,11 @@ class _HomeContentState extends State<HomeContent> {
             const SizedBox(width: 10),
             _buildPlayStoreLogoButton(compact: true, stripMode: true),
             const SizedBox(width: 8),
-            _buildAppStoreComingSoonButton(compact: true, textColor: textColor, stripMode: true),
+            _buildAppStoreComingSoonButton(
+              compact: true,
+              textColor: textColor,
+              stripMode: true,
+            ),
           ],
         ),
       ),
@@ -951,7 +963,10 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildPlayStoreLogoButton({required bool compact, bool stripMode = false}) {
+  Widget _buildPlayStoreLogoButton({
+    required bool compact,
+    bool stripMode = false,
+  }) {
     final height = stripMode ? 28.0 : (compact ? 40.0 : 52.0);
     return Material(
       color: Colors.transparent,
@@ -1062,129 +1077,137 @@ class _HomeContentState extends State<HomeContent> {
                       AspectRatio(
                         aspectRatio: adAspectRatio,
                         child: PageView.builder(
-                      controller: _carouselController,
-                      scrollBehavior: kIsWeb
-                          ? MaterialScrollBehavior().copyWith(
-                              dragDevices: {
-                                PointerDeviceKind.touch,
-                                PointerDeviceKind.mouse,
-                              },
-                            )
-                          : null,
-                      onPageChanged: (index) {
-                        final previousIndex = _currentCarouselPage;
-                        setState(() {
-                          _currentCarouselPage = index;
-                        });
-                        _cancelVideoEndTimer(previousIndex);
-                        unawaited(_pauseAndResetVideo(previousIndex));
-                        unawaited(_prepareVideoForPage(index));
-                      },
-                      itemCount: _ads.isNotEmpty ? _ads.length : 1,
-                      itemBuilder: (context, index) {
-                        if (_adsLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+                          controller: _carouselController,
+                          scrollBehavior: kIsWeb
+                              ? MaterialScrollBehavior().copyWith(
+                                  dragDevices: {
+                                    PointerDeviceKind.touch,
+                                    PointerDeviceKind.mouse,
+                                  },
+                                )
+                              : null,
+                          onPageChanged: (index) {
+                            final previousIndex = _currentCarouselPage;
+                            setState(() {
+                              _currentCarouselPage = index;
+                            });
+                            _cancelVideoEndTimer(previousIndex);
+                            unawaited(_pauseAndResetVideo(previousIndex));
+                            unawaited(_prepareVideoForPage(index));
+                          },
+                          itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                          itemBuilder: (context, index) {
+                            if (_adsLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
 
-                        if (_adsError != null) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: primaryGreen.withValues(alpha: 0.4),
-                                  width: 2,
+                            if (_adsError != null) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
                                 ),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.warning_amber_rounded,
-                                      size: 36,
-                                      color: Colors.orange,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: primaryGreen.withValues(
+                                        alpha: 0.4,
                                       ),
-                                      child: Text(
-                                        _adsError!,
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 14,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.warning_amber_rounded,
+                                          size: 36,
+                                          color: Colors.orange,
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
+                                        const SizedBox(height: 8),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Text(
+                                            _adsError!,
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontSize: 14,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        ElevatedButton.icon(
+                                          onPressed: _fetchAds,
+                                          icon: const Icon(Icons.refresh),
+                                          label: const Text('Reintentar'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primaryGreen,
+                                            foregroundColor:
+                                                AppConstants.textLight,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    ElevatedButton.icon(
-                                      onPressed: _fetchAds,
-                                      icon: const Icon(Icons.refresh),
-                                      label: const Text('Reintentar'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryGreen,
-                                        foregroundColor: AppConstants.textLight,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-
-                        if (_ads.isNotEmpty) {
-                          final ad = _ads[index];
-                          debugPrint(
-                            '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
-                          );
-                          return _buildAdCard(
-                            ad,
-                            index,
-                            primaryGreen,
-                            textColor,
-                          );
-                        }
-
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: primaryGreen.withValues(alpha: 0.08),
-                            border: Border.all(
-                              color: primaryGreen.withValues(alpha: 0.4),
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline, color: primaryGreen),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'No hay ninguna publicidad para mostrar actualmente',
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                              );
+                            }
+
+                            if (_ads.isNotEmpty) {
+                              final ad = _ads[index];
+                              debugPrint(
+                                '🎞️ Showing ad index=$index url=${ad.mediaUrl}',
+                              );
+                              return _buildAdCard(
+                                ad,
+                                index,
+                                primaryGreen,
+                                textColor,
+                              );
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 18,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: primaryGreen.withValues(alpha: 0.08),
+                                border: Border.all(
+                                  color: primaryGreen.withValues(alpha: 0.4),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: primaryGreen),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'No hay ninguna publicidad para mostrar actualmente',
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
                       Positioned(
                         bottom: 14,
@@ -1211,8 +1234,7 @@ class _HomeContentState extends State<HomeContent> {
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 3,
                                   ),
-                                  width:
-                                      _currentCarouselPage == index ? 24 : 7,
+                                  width: _currentCarouselPage == index ? 24 : 7,
                                   height: 7,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
