@@ -1,18 +1,22 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
+import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
 import 'package:boombet_app/views/pages/home/home_page.dart';
+import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
 import 'package:boombet_app/views/pages/auth/register_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:boombet_app/services/biometric_service.dart';
+import 'package:boombet_app/services/email_verification_service.dart';
 import 'package:boombet_app/widgets/casino_logo_carousel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -162,6 +166,69 @@ class _LoginPageState extends State<LoginPage>
 
       if (result['success'] == true) {
         debugPrint('DEBUG Login - Token guardado correctamente');
+        affiliationPasswordNotifier.value = _passwordController.text;
+
+        // Verificar si el email está confirmado
+        final data = result['data'];
+        final isVerified = data?['is_verified'] ?? data?['isVerified'] ?? true;
+        if (isVerified == false || isVerified == 0) {
+          // Extraer email del response o del campo identifier si es email
+          final emailFromData = data?['email'] as String?;
+          final identifier = _identifierController.text.trim();
+          final email = (emailFromData != null && emailFromData.isNotEmpty)
+              ? emailFromData
+              : (identifier.contains('@') ? identifier : null);
+
+          await _authService.logout();
+          if (!mounted) return;
+
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppConstants.darkAccent,
+              title: const Text(
+                'Email sin confirmar',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              content: const Text(
+                'Tu email no está confirmado. Confírmalo para continuar.',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (!mounted) return;
+                    await _sendVerificationEmailAndNavigate(email);
+                  },
+                  child: const Text(
+                    'Confirmar mi email',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
+        final isAffiliated = data?['isAffiliated'] ?? true;
+        if (isAffiliated == false) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            ScaleRoute(page: const IsNotAffiliatedPage()),
+          );
+          return;
+        }
 
         final biometricEnabled = await BiometricService.maybePromptEnable(
           context,
@@ -206,24 +273,73 @@ class _LoginPageState extends State<LoginPage>
           );
         }
       } else {
+        final message = result['message'] ?? '';
+        final isUnverified =
+            message.contains('no esta verificada') ||
+            message.contains('no está verificada') ||
+            message.contains('not verified') ||
+            message.contains('unverified') ||
+            message.contains('verificada') ||
+            message.contains('activarla');
+
+        if (isUnverified) {
+          final identifier = _identifierController.text.trim();
+          final email = identifier.contains('@') ? identifier : null;
+
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppConstants.darkAccent,
+              title: const Text(
+                'Email sin confirmar',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              content: const Text(
+                'Tu email no está confirmado. Confírmalo para continuar.',
+                style: TextStyle(color: AppConstants.textDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (!mounted) return;
+                    await _sendVerificationEmailAndNavigate(email);
+                  },
+                  child: const Text(
+                    'Confirmar mi email',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
         setState(() {
           _identifierError = true;
           _passwordError = true;
         });
-        const dialogBg = AppConstants.darkAccent;
-        const textColor = AppConstants.textDark;
 
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text(
+            backgroundColor: AppConstants.darkAccent,
+            title: const Text(
               'Error de autenticación',
-              style: TextStyle(color: textColor),
+              style: TextStyle(color: AppConstants.textDark),
             ),
             content: Text(
-              result['message'] ?? 'Usuario/Email o contraseña incorrectos',
-              style: TextStyle(color: textColor),
+              message.isNotEmpty ? message : 'Usuario/Email o contraseña incorrectos',
+              style: const TextStyle(color: AppConstants.textDark),
             ),
             actions: [
               TextButton(
@@ -274,6 +390,29 @@ class _LoginPageState extends State<LoginPage>
         ),
       );
     }
+  }
+
+  // ─── Reenvío de email de verificación ────────────────────────────────
+  Future<void> _sendVerificationEmailAndNavigate(String? email) async {
+    LoadingOverlay.show(context, message: 'Enviando email de verificación...');
+
+    if (email != null && email.isNotEmpty) {
+      await EmailVerificationService.resendVerificationEmail(email);
+    }
+
+    if (!mounted) return;
+    LoadingOverlay.hide(context);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmailConfirmationPage(
+          email: email,
+          verificacionToken: '',
+          isFromLogin: true,
+        ),
+      ),
+    );
   }
 
   // ─── Botón de ayuda ───────────────────────────────────────────────────

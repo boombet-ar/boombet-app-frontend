@@ -22,6 +22,7 @@ import 'package:boombet_app/views/pages/affiliates/events/event_management_view.
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
+import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/auth/register_page.dart';
 import 'package:boombet_app/views/pages/auth/reset_password_page.dart';
@@ -97,6 +98,10 @@ class DebugViewsMenuPage extends StatelessWidget {
           preview: true,
         );
       }),
+      _DebugEntry(
+        'Auth: IsNotAffiliatedPage',
+        () => const IsNotAffiliatedPage(),
+      ),
       _DebugEntry('Home: HomePage', () => const home_main.HomePage()),
       _DebugEntry(
         'Home Widgets: HomePage',
@@ -158,7 +163,6 @@ class DebugViewsMenuPage extends StatelessWidget {
       _DebugEntry(
         'Admin Ads: CreateAdSection',
         () => Scaffold(
-          appBar: AppBar(title: const Text('CreateAdSection')),
           body: const SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.only(bottom: 24),
@@ -384,7 +388,6 @@ class DebugViewsMenuPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Debug Views Menu')),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: entries.length + 3,
@@ -462,7 +465,6 @@ class DebugViewsMenuPage extends StatelessWidget {
     required Widget child,
   }) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: child,
@@ -518,7 +520,6 @@ class _HomeTutorialOverlayPreviewPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('HomeLoginTutorialOverlay')),
       body: Stack(
         children: [
           SingleChildScrollView(

@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/home/widgets/games_content.dart';
 import 'package:flutter/material.dart';
 
@@ -10,7 +11,7 @@ class GamesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF0A0A0A),
+      color: AppConstants.darkBg,
       child: SizedBox.expand(
         child: GamesContent(
           firstGameTutorialTargetKey: firstGameTutorialTargetKey,

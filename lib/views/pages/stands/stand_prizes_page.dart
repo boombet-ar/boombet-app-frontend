@@ -185,23 +185,15 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
   Widget build(BuildContext context) {
     const scaffoldBg = Color(0xFF0E0E0E);
 
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: MainAppBar(
-        title: 'Premios',
-        showBackButton: true,
-        onBackPressed: () => context.go('/stand-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/stand-tools');
+      },
+      child: Scaffold(
+        backgroundColor: scaffoldBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           SectionHeaderWidget(
             title: 'Premios del Stand',
@@ -213,6 +205,7 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
             child: _buildBody(),
           ),
         ],
+      ),
       ),
     );
   }

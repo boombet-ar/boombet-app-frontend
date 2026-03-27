@@ -5,6 +5,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/web_lifecycle.dart';
 import 'package:boombet_app/firebase_options.dart';
 import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
@@ -173,6 +174,9 @@ Future<void> main() async {
     }
   }
 
+  // Proteger flujos críticos (afiliación, verificación) contra F5 / cierre de pestaña en web
+  registerBeforeUnloadHandler();
+
   // Cargar preferencias de accesibilidad
   await loadFontSizeMultiplier();
   await loadSelectedPage();
@@ -318,7 +322,7 @@ class MyApp extends StatelessWidget {
                 textScaler: TextScaler.linear(fontSizeMultiplier),
               ),
               child: SafeArea(
-                top: false,
+                top: true,
                 left: false,
                 right: false,
                 bottom: true,

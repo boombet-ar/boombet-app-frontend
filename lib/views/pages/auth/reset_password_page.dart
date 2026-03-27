@@ -686,11 +686,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       return Scaffold(
         backgroundColor: const Color(0xFF0E0E0E),
-        appBar: const MainAppBar(
-          showSettings: false,
-          showProfileButton: false,
-          showBackButton: true,
-        ),
         body: Stack(
           children: [
             GestureDetector(

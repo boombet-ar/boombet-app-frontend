@@ -173,6 +173,8 @@ class _ForumPageState extends State<ForumPage> {
   List<_AffiliatedCasino> _affiliatedCasinos = const [];
   String _selectedForumId = _boomBetForumId;
 
+  int? _selectedPostId;
+
   List<ForumPost> _posts = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -180,6 +182,16 @@ class _ForumPageState extends State<ForumPage> {
   bool _hasMore = true;
   int _totalPages = 0;
   bool _showMine = false;
+
+  void _openPost(int postId) {
+    setState(() => _selectedPostId = postId);
+    pageBackCallbacks[_forumTabIndex] = _closePost;
+  }
+
+  void _closePost() {
+    setState(() => _selectedPostId = null);
+    pageBackCallbacks.remove(_forumTabIndex);
+  }
 
   @override
   void initState() {
@@ -214,6 +226,7 @@ class _ForumPageState extends State<ForumPage> {
     if (_selectedPageListener != null) {
       selectedPageNotifier.removeListener(_selectedPageListener!);
     }
+    pageBackCallbacks.remove(_forumTabIndex);
     super.dispose();
   }
 
@@ -680,6 +693,14 @@ class _ForumPageState extends State<ForumPage> {
     final accent = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
 
+    if (_selectedPostId != null) {
+      return ForumPostDetailPage(
+        key: ValueKey(_selectedPostId),
+        postId: _selectedPostId!,
+        onClose: _closePost,
+      );
+    }
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
@@ -1080,6 +1101,7 @@ class _ForumPageState extends State<ForumPage> {
           accent: accent,
           showDelete: showDelete,
           onDelete: _deletePost,
+          onTap: () => _openPost(_posts[index].id),
         ),
       ),
     );
@@ -1253,6 +1275,7 @@ class _PostCard extends StatelessWidget {
   final Color accent;
   final Function(int) onDelete;
   final bool showDelete;
+  final VoidCallback? onTap;
 
   const _PostCard({
     required this.post,
@@ -1260,6 +1283,7 @@ class _PostCard extends StatelessWidget {
     required this.accent,
     required this.onDelete,
     required this.showDelete,
+    this.onTap,
   });
 
   String _formatDate(DateTime date) {
@@ -1334,13 +1358,7 @@ class _PostCard extends StatelessWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ForumPostDetailPage(postId: post.id),
-                        ),
-                      ),
+                      onTap: onTap,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
                         child: Column(

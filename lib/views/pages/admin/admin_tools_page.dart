@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/services/affiliates_service.dart';
 import 'package:boombet_app/services/token_service.dart';
@@ -37,13 +38,21 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
   final Set<int> _affiliatorsDeleting = {};
 
   void _setSection(_AdminSection section) {
-    setState(() {
-      _activeSection = section;
-    });
-
+    setState(() => _activeSection = section);
+    if (section != _AdminSection.home) {
+      pageBackCallbacks[10] = () => _setSection(_AdminSection.home);
+    } else {
+      pageBackCallbacks.remove(10);
+    }
     if (section == _AdminSection.affiliators) {
       _loadAffiliators();
     }
+  }
+
+  @override
+  void dispose() {
+    pageBackCallbacks.remove(10);
+    super.dispose();
   }
 
   Future<void> _loadAffiliators({int page = 0, bool force = false}) async {
@@ -504,17 +513,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             backgroundColor: scaffoldBg,
-            appBar: const MainAppBar(
-              title: 'Herramientas Admin',
-              showBackButton: true,
-              showLogo: true,
-              showSettings: false,
-              showProfileButton: false,
-              showLogoutButton: false,
-              showFaqButton: false,
-              showExitButton: false,
-              showAdminTools: false,
-            ),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
@@ -522,18 +520,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
         if (!isAdmin) {
           return Scaffold(
             backgroundColor: scaffoldBg,
-            appBar: MainAppBar(
-              title: 'Herramientas Admin',
-              showBackButton: true,
-              onBackPressed: handleAppBarBack,
-              showLogo: true,
-              showSettings: false,
-              showProfileButton: false,
-              showLogoutButton: false,
-              showFaqButton: false,
-              showExitButton: false,
-              showAdminTools: false,
-            ),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -583,18 +569,6 @@ class _AdminToolsPageState extends State<AdminToolsPage> {
 
         return Scaffold(
           backgroundColor: scaffoldBg,
-          appBar: MainAppBar(
-            title: 'Herramientas Admin',
-            showBackButton: true,
-            onBackPressed: handleAppBarBack,
-            showLogo: true,
-            showSettings: false,
-            showProfileButton: false,
-            showLogoutButton: false,
-            showFaqButton: false,
-            showExitButton: false,
-            showAdminTools: false,
-          ),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             switchInCurve: Curves.easeOut,

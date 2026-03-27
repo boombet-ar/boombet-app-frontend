@@ -9,6 +9,7 @@ import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
+import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -60,6 +61,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
 
     if (!widget.preview) {
       saveAffiliationFlowRoute('/limited-home');
+      criticalFlowActive = true;
     }
 
     // // Timer de 15 segundos para mostrar resultados
@@ -182,6 +184,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
 
   @override
   void dispose() {
+    criticalFlowActive = false;
     _wsSubscription?.cancel();
     widget.affiliationService.closeWebSocket();
     super.dispose();
@@ -192,17 +195,8 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     return ValueListenableBuilder<int>(
       valueListenable: selectedPageNotifier,
       builder: (context, selectedPage, child) {
-        final safeIndex = selectedPage.clamp(0, 4);
+        final safeIndex = selectedPage.clamp(0, 5);
         return Scaffold(
-          // AppBar sin configuración ni perfil
-          appBar: MainAppBar(
-            showSettings: false,
-            showLogo: true,
-            showProfileButton: false,
-            showLogoutButton: true,
-            showExitButton: false,
-            showQrScannerButton: true,
-          ),
           body: ResponsiveWrapper(
             maxWidth: 1200,
             child: IndexedStack(
@@ -213,10 +207,14 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
                 const LimitedRafflesContent(),
                 const LimitedForumContent(), // Foro limitado sin publicar
                 LimitedGamesContent(onPlay: _openLimitedGame),
+                const QrScannerPage(),
               ],
             ),
           ),
-          bottomNavigationBar: const NavbarWidget(showCasinos: false),
+          bottomNavigationBar: const NavbarWidget(
+            showCasinos: false,
+            hiddenIndexes: [6, 7],
+          ),
         );
       },
     );

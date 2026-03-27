@@ -269,19 +269,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
             : 'Evento #${widget.eventoId}';
 
     return Scaffold(
-      appBar: MainAppBar(
-        title: nombre,
-        showBackButton: true,
-        onBackPressed: () => context.go('/affiliates-tools/eventos'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
       backgroundColor: AppConstants.darkBg,
       body: ListView(
         padding: EdgeInsets.zero,

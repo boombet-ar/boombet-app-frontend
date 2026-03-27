@@ -1,5 +1,9 @@
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
+import 'package:boombet_app/utils/page_transitions.dart';
+import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/views/pages/profile/profile_page.dart';
 import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
@@ -8,6 +12,12 @@ import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay
 import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:boombet_app/views/pages/games/games_page.dart';
+import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
+import 'package:boombet_app/views/pages/profile/settings_page.dart';
+import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
+import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
+import 'package:boombet_app/views/pages/other/claims_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -56,7 +66,14 @@ class _HomePageState extends State<HomePage> {
         defaultTargetPlatform == TargetPlatform.iOS;
   }
 
-  int get _pageCount => _hideCasinosOnMobile ? 5 : 6;
+  int get _pageCount => _hideCasinosOnMobile ? 12 : 12;
+
+  /// Índices siempre:
+  /// 0: Inicio, 1: Descuentos, 2: Sorteos, 3: Foro, 4: Juegos, 5: Scanner, 6: Settings, 7: My Prizes
+  /// 8: Casinos (si showCasinos) o Perfil (si móvil)
+  /// 9: Perfil (si desktop y showCasinos)
+  /// 10: Admin tools (solo visible para admins)
+  int get _profilePageIndex => _hideCasinosOnMobile ? 8 : 9;
 
   @override
   void initState() {
@@ -225,38 +242,66 @@ class _HomePageState extends State<HomePage> {
           });
         }
         _pages[safeIndex] ??= _buildPage(safeIndex);
-        return AbsorbPointer(
-          absorbing: _tutorialInteractionLocked,
-          child: Scaffold(
-            appBar: MainAppBar(
-              showSettings: true,
-              showLogo: true,
-              showProfileButton: true,
-              showLogoutButton: true,
-              showExitButton: false,
-              showQrScannerButton: true,
-              faqTutorialTargetKey: _faqAppbarTutorialKey,
-              profileTutorialTargetKey: _profileAppbarTutorialKey,
-              settingsTutorialTargetKey: _settingsAppbarTutorialKey,
-              logoutTutorialTargetKey: _logoutAppbarTutorialKey,
-            ),
-            body: ResponsiveWrapper(
-              maxWidth: 1200,
-              child: IndexedStack(
-                index: safeIndex,
-                children: List<Widget>.generate(_pages.length, (index) {
-                  final page = _pages[index];
-                  return page ?? const SizedBox.shrink();
-                }),
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            final back = pageBackCallbacks[selectedPage];
+            if (back != null) {
+              back();
+              return;
+            }
+            final shouldLogout = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('¿Cerrar sesión?'),
+                content: const Text(
+                  'Para volver atrás tenés que cerrar sesión. ¿Querés hacerlo?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Cerrar sesión'),
+                  ),
+                ],
               ),
-            ),
-            bottomNavigationBar: NavbarWidget(
-              showCasinos: !_hideCasinosOnMobile,
-              inicioTutorialTargetKey: _inicioNavbarTutorialKey,
-              descuentosTutorialTargetKey: _descuentosNavbarTutorialKey,
-              sorteosTutorialTargetKey: _sorteosNavbarTutorialKey,
-              foroTutorialTargetKey: _foroNavbarTutorialKey,
-              juegosTutorialTargetKey: _juegosNavbarTutorialKey,
+            );
+            if (shouldLogout == true && context.mounted) {
+              await AuthService().logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  FadeRoute(page: const LoginPage()),
+                  (route) => false,
+                );
+              }
+            }
+          },
+          child: AbsorbPointer(
+            absorbing: _tutorialInteractionLocked,
+            child: Scaffold(
+              body: ResponsiveWrapper(
+                maxWidth: 1200,
+                child: IndexedStack(
+                  index: safeIndex,
+                  children: List<Widget>.generate(_pages.length, (index) {
+                    final page = _pages[index];
+                    return page ?? const SizedBox.shrink();
+                  }),
+                ),
+              ),
+              bottomNavigationBar: NavbarWidget(
+                showCasinos: !_hideCasinosOnMobile,
+                profilePageIndex: _profilePageIndex,
+                inicioTutorialTargetKey: _inicioNavbarTutorialKey,
+                descuentosTutorialTargetKey: _descuentosNavbarTutorialKey,
+                sorteosTutorialTargetKey: _sorteosNavbarTutorialKey,
+                foroTutorialTargetKey: _foroNavbarTutorialKey,
+                juegosTutorialTargetKey: _juegosNavbarTutorialKey,
+              ),
             ),
           ),
         );
@@ -290,7 +335,21 @@ class _HomePageState extends State<HomePage> {
       case 4:
         return GamesPage(firstGameTutorialTargetKey: _firstGameTutorialKey);
       case 5:
+        return const QrScannerPage();
+      case 6:
+        return const SettingsPage();
+      case 7:
+        return const MyPrizesPage();
+      case 8:
+        if (_hideCasinosOnMobile) return const ProfilePage();
         return const MyCasinosPage();
+      case 9:
+        return const ProfilePage();
+      case 10:
+        return const AdminToolsPage();
+      case 11:
+        if (AppConstants.showClaimsPage) return const ClaimsPage();
+        return const SizedBox.shrink();
       default:
         return const SizedBox.shrink();
     }

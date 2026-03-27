@@ -4,6 +4,13 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
+
+/// Sistema de navegación interna universal.
+/// Cada página registra un callback de "volver" por su índice de tab.
+/// El PopScope del home lo consulta antes de mostrar el diálogo de logout.
+/// Uso: pageBackCallbacks[pageIndex] = () { ... }  // al entrar a sub-sección
+///      pageBackCallbacks.remove(pageIndex);         // al volver al root
+final Map<int, VoidCallback> pageBackCallbacks = {};
 ValueNotifier<bool> loginTutorialActiveNotifier = ValueNotifier(false);
 ValueNotifier<bool> rouletteTriggerAfterTutorialNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
@@ -39,12 +46,17 @@ const String _keyAffiliationWsUrl = 'affiliation_ws_url';
 
 bool selectedPageWasRestored = false;
 
+/// Flag global para proteger flujos críticos (afiliación, verificación de mail).
+/// Cuando es true, el handler de beforeunload (web) muestra un diálogo de confirmación
+/// si el usuario intenta refrescar o cerrar la pestaña.
+/// Las páginas de flujo crítico deben setear esto en initState/dispose.
+bool criticalFlowActive = false;
+
 /// Guarda datos de afiliación en SharedPreferences
 Future<void> saveAffiliationData({
   PlayerData? playerData,
   String? email,
   String? username,
-  String? password,
   String? dni,
   String? telefono,
   String? genero,
@@ -67,11 +79,6 @@ Future<void> saveAffiliationData({
     if (username != null && username.isNotEmpty) {
       await prefs.setString(_keyUsername, username);
       affiliationUsernameNotifier.value = username;
-    }
-
-    if (password != null && password.isNotEmpty) {
-      await prefs.setString(_keyPassword, password);
-      affiliationPasswordNotifier.value = password;
     }
 
     if (dni != null && dni.isNotEmpty) {
@@ -122,11 +129,6 @@ Future<void> loadAffiliationData() async {
     final username = prefs.getString(_keyUsername) ?? '';
     if (username.isNotEmpty) {
       affiliationUsernameNotifier.value = username;
-    }
-
-    final password = prefs.getString(_keyPassword) ?? '';
-    if (password.isNotEmpty) {
-      affiliationPasswordNotifier.value = password;
     }
 
     final dni = prefs.getString(_keyDni) ?? '';

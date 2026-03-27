@@ -130,3 +130,5 @@ ios/.symlinks/
 ios/Flutter/ephemeral/
 ios/DerivedData/
 ios/Podfile.lock
+
+.env.json

@@ -17,8 +17,17 @@ import 'package:image/image.dart' as img;
 
 class EditProfilePage extends StatefulWidget {
   final PlayerData player;
+  final bool embedded;
+  final void Function(PlayerData updatedPlayer)? onSaved;
+  final VoidCallback? onCancel;
 
-  const EditProfilePage({super.key, required this.player});
+  const EditProfilePage({
+    super.key,
+    required this.player,
+    this.embedded = false,
+    this.onSaved,
+    this.onCancel,
+  });
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -271,7 +280,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       );
 
-      Navigator.pop(context, _player);
+      if (widget.embedded) {
+        widget.onSaved?.call(_player);
+      } else {
+        if (mounted) Navigator.pop(context, _player);
+      }
     } catch (e) {
       _showError("Error al actualizar: $e");
     } finally {
@@ -345,19 +358,127 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   @override
+  Widget _buildMobileListView(ThemeData theme, Color onSurface, Color primaryGreen) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text(
+          "Editar Información",
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            color: primaryGreen,
+            letterSpacing: 0.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Center(
+          child: Container(
+            width: 48,
+            height: 3,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(2),
+              gradient: LinearGradient(
+                colors: [primaryGreen, primaryGreen.withValues(alpha: 0.2)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.45),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Modificá tus datos personales",
+          style: TextStyle(
+            color: onSurface.withValues(alpha: 0.5),
+            fontSize: 13,
+            letterSpacing: 0.1,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 28),
+        _avatarSection(theme, onSurface, primaryGreen),
+        const SizedBox(height: 16),
+        _usernameSection(theme, onSurface, primaryGreen),
+        const SizedBox(height: 12),
+        _section("Datos Personales"),
+        _field("Nombre", _c["nombre"]!),
+        _field("Apellido", _c["apellido"]!),
+        _field("Género", _c["genero"]!),
+        _field("Estado Civil", _c["estadoCivil"]!),
+        _field("Fecha de Nacimiento", _c["fechaNacimiento"]!),
+        const SizedBox(height: 24),
+        _section("Contacto"),
+        _field("Email", _c["email"]!, keyboard: TextInputType.emailAddress),
+        _field("Teléfono", _c["telefono"]!, keyboard: TextInputType.phone),
+        const SizedBox(height: 24),
+        _section("Documentación"),
+        _field("DNI", _c["dni"]!, readOnly: true),
+        _field("CUIL", _c["cuit"]!, readOnly: true),
+        const SizedBox(height: 24),
+        _section("Dirección"),
+        _field("Calle", _c["calle"]!, readOnly: true),
+        _field("Número", _c["numCalle"]!, readOnly: true),
+        _field("Ciudad", _c["ciudad"]!, readOnly: true),
+        _field("Provincia", _c["provincia"]!, readOnly: true),
+        _field("Código Postal", _c["cp"]!, readOnly: true),
+        const SizedBox(height: 32),
+        SizedBox(
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _loading ? null : _saveChanges,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _loading
+                ? const CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2,
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.save, size: 22),
+                      SizedBox(width: 12),
+                      Text(
+                        "Guardar Cambios",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
     final isWeb = kIsWeb;
 
+    if (widget.embedded) {
+      return _buildMobileListView(theme, onSurface, primaryGreen);
+    }
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
-      ),
       body: isWeb
           ? _buildWebBody(theme, onSurface, primaryGreen)
           : ResponsiveWrapper(

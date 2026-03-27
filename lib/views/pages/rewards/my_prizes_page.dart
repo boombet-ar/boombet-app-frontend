@@ -6,6 +6,7 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -104,16 +105,18 @@ class _MyPrizesPageState extends State<MyPrizesPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: const MainAppBar(
-        showSettings: false,
-        showLogo: true,
-        showBackButton: true,
-        showProfileButton: false,
-      ),
       body: ResponsiveWrapper(
         maxWidth: 900,
-        child: RefreshIndicator(
-          onRefresh: _loadPrize,
+        child: Column(
+          children: [
+            const SectionHeaderWidget(
+              title: 'Mis Premios',
+              subtitle: 'Premios ganados en ruletas',
+              icon: Icons.workspace_premium_outlined,
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadPrize,
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _error != null
@@ -173,6 +176,9 @@ class _MyPrizesPageState extends State<MyPrizesPage> {
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                   children: [_buildPrizeCard(context, primaryGreen, textColor)],
                 ),
+              ),
+            ),
+          ],
         ),
       ),
     );

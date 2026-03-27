@@ -53,23 +53,15 @@ class _StandRoulettesPageState extends State<StandRoulettesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppConstants.darkBg,
-      appBar: MainAppBar(
-        title: 'Ruletas',
-        showBackButton: true,
-        onBackPressed: () => context.go('/stand-tools'),
-        showLogo: true,
-        showSettings: false,
-        showProfileButton: false,
-        showLogoutButton: false,
-        showFaqButton: false,
-        showExitButton: false,
-        showAdminTools: false,
-        showAffiliatesTools: false,
-      ),
-      body: ListView(
-        padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/stand-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: ListView(
+          padding: EdgeInsets.zero,
         children: [
           SectionHeaderWidget(
             title: 'Ruletas del Stand',
@@ -81,6 +73,7 @@ class _StandRoulettesPageState extends State<StandRoulettesPage> {
             child: _buildBody(),
           ),
         ],
+      ),
       ),
     );
   }

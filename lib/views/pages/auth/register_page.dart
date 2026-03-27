@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
@@ -53,9 +51,9 @@ class _RegisterPageState extends State<RegisterPage>
   late Animation<double> _fadeAnimation;
 
   // Terms and conditions acceptance flags
-  bool _termsAccepted = false;
-  bool _privacyAccepted = false;
-  bool _dataAccepted = false;
+  bool _termsAccepted = true;
+  bool _privacyAccepted = true;
+  bool _dataAccepted = true;
 
   bool get _allLegalsAccepted =>
       _termsAccepted && _privacyAccepted && _dataAccepted;
@@ -148,610 +146,9 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   void _validateAndRegister() async {
-    // Check if all legal documents have been acknowledged
-    if (!_allLegalsAccepted) {
-      _showTermsDialog();
-      return;
-    }
-
-    setState(() {
-      _emailError = _emailController.text.trim().isEmpty;
-      _dniError = _dniController.text.trim().isEmpty;
-      _phoneError = _phoneController.text.trim().isEmpty;
-      _passwordError = _passwordController.text.trim().isEmpty;
-      _confirmPasswordError = _confirmPasswordController.text.trim().isEmpty;
-      _genderError = _selectedGender == null;
-    });
-
-    if (_emailError ||
-        _dniError ||
-        _phoneError ||
-        _passwordError ||
-        _confirmPasswordError ||
-        _genderError) {
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Campos incompletos', style: TextStyle(color: textColor)),
-          content: Text(
-            'Por favor, completa todos los campos obligatorios.',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    final blocked =
-        await InappropriateContentGuard.blockIfAnyFieldContainsInappropriateContent(
-          context: context,
-          values: [
-            _emailController.text.trim(),
-            _dniController.text.trim(),
-            _phoneController.text.trim(),
-            _passwordController.text.trim(),
-            _confirmPasswordController.text.trim(),
-            _affiliateCodeController.text.trim(),
-          ],
-        );
-    if (blocked) return;
-
-    // Validar formato de email usando PasswordValidationService
-    final email = _emailController.text.trim();
-    if (!PasswordValidationService.isEmailValid(email)) {
-      setState(() {
-        _emailError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Email inválido', style: TextStyle(color: textColor)),
-          content: Text(
-            PasswordValidationService.getEmailValidationMessage(email),
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    // Validar formato de teléfono usando PasswordValidationService
-    final phone = _phoneController.text.trim();
-    if (!PasswordValidationService.isPhoneValid(phone)) {
-      setState(() {
-        _phoneError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Teléfono inválido', style: TextStyle(color: textColor)),
-          content: Text(
-            PasswordValidationService.getPhoneValidationMessage(phone),
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    // Validar formato de DNI usando PasswordValidationService
-    final dni = _dniController.text.trim();
-    if (!PasswordValidationService.isDniValid(dni)) {
-      setState(() {
-        _dniError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('DNI inválido', style: TextStyle(color: textColor)),
-          content: Text(
-            PasswordValidationService.getDniValidationMessage(dni),
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    // Validar fortaleza de contraseña
-    String? passwordError = _validatePassword(_passwordController.text);
-    if (passwordError != null) {
-      setState(() {
-        _passwordError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text(
-            'Contraseña inválida',
-            style: TextStyle(color: textColor),
-          ),
-          content: Text(passwordError, style: TextStyle(color: textColor)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _confirmPasswordError = true;
-      });
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text(
-            'Error en contraseña',
-            style: TextStyle(color: textColor),
-          ),
-          content: const Text(
-            'Las contraseñas no coinciden.',
-            style: TextStyle(color: AppConstants.textDark),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    if (_hasAffiliateCode) {
-      final token = _affiliateCodeController.text.trim();
-      if (token.isEmpty) {
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
-
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text('Código requerido', style: TextStyle(color: textColor)),
-            content: Text(
-              'Ingresa el código promocional para continuar.',
-              style: TextStyle(color: textColor),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-      if (!_affiliateCodeValidated || _affiliateCodeValidatedToken != token) {
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
-
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text(
-              'Validación requerida',
-              style: TextStyle(color: textColor),
-            ),
-            content: Text(
-              'Debes validar el código promocional antes de continuar.',
-              style: TextStyle(color: textColor),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-    }
-
-    // Mostrar overlay de carga
-    LoadingOverlay.show(context, message: 'Validando datos...');
-
-    try {
-      // Validar datos con el backend (sin crear cuenta todavía)
-      final url = Uri.parse('${ApiConfig.baseUrl}/users/auth/userData');
-
-      final body = {
-        'genero': _selectedGender!,
-        'dni': _dniController.text.trim(),
-      };
-
-      final response = await http
-          .post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'key': Env.getString('USERDATA_KEY'),
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 60));
-
-      if (!mounted) return;
-
-      LoadingOverlay.hide(context);
-
-      if (AppConstants.debugRegisterEnabled) {
-        final debugEntries = [
-          '=== ${DateTime.now().toIso8601String()} ===',
-          '',
-          '[INPUT]',
-          'Username : ${_emailController.text.trim().split('@').first}',
-          'Email    : ${_emailController.text.trim()}',
-          'DNI      : ${_dniController.text.trim()}',
-          'Teléfono : ${_phoneController.text.trim()}',
-          'Género   : $_selectedGender',
-          'AffToken : ${_hasAffiliateCode ? _affiliateCodeController.text.trim() : "(ninguno)"}',
-          '',
-          '[REQUEST → POST /users/auth/userData]',
-          'Body: ${jsonEncode(body)}',
-          '',
-          '[RESPONSE]',
-          'Status : ${response.statusCode}',
-          'Body   : ${response.body.isEmpty ? "(vacío)" : response.body}',
-        ];
-        await _showDebugLogDialog(debugEntries);
-        if (!mounted) return;
-      }
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // DNI válido - parsear datos del jugador
-        final fullResponse = jsonDecode(response.body);
-
-        // Extraer el primer elemento de listaExistenciaFisica
-        final lista = fullResponse['listaExistenciaFisica'] as List?;
-        if (lista == null || lista.isEmpty) {
-          LoadingOverlay.hide(context);
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final dialogBg = isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightDialogBg;
-          final textColor = isDark
-              ? AppConstants.textDark
-              : AppConstants.lightLabelText;
-
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: dialogBg,
-              title: Text('Error', style: TextStyle(color: textColor)),
-              content: const Text(
-                'No se encontraron datos para el DNI ingresado.',
-                style: TextStyle(color: AppConstants.textDark),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-
-        final playerDataJson = lista[0] as Map<String, dynamic>;
-        // Parsear PlayerData desde la respuesta
-        PlayerData? playerData;
-        try {
-          playerData = PlayerData.fromRegisterResponse(playerDataJson);
-        } catch (e, stackTrace) {
-          playerData = null;
-        }
-
-        if (playerData != null) {
-          // Agregar email y teléfono que no vienen en listaExistenciaFisica
-          final updatedPlayerData = playerData.copyWith(
-            correoElectronico: _emailController.text.trim(),
-            telefono: _phoneController.text.trim(),
-          );
-
-          final age = _calculateAge(updatedPlayerData);
-          if (age != null && age < 18) {
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-            final dialogBg = isDark
-                ? AppConstants.darkAccent
-                : AppConstants.lightDialogBg;
-            final textColor = isDark
-                ? AppConstants.textDark
-                : AppConstants.lightLabelText;
-
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                backgroundColor: dialogBg,
-                title: Text(
-                  'Requisito de edad',
-                  style: TextStyle(color: textColor),
-                ),
-                content: Text(
-                  'Debes ser mayor de 18 años para afiliarte a BoomBet.',
-                  style: TextStyle(color: textColor),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Entendido',
-                      style: TextStyle(color: AppConstants.primaryGreen),
-                    ),
-                  ),
-                ],
-              ),
-            );
-            return;
-          }
-
-          // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
-          Navigator.push(
-            context,
-            SlideFadeRoute(
-              page: ConfirmPlayerDataPage(
-                playerData: updatedPlayerData,
-                email: _emailController.text.trim(),
-                username: _emailController.text.trim().split('@').first,
-                password: _passwordController.text,
-                dni: _dniController.text.trim(),
-                telefono: _phoneController.text.trim(),
-                genero: _selectedGender!,
-                affiliateToken: _hasAffiliateCode
-                    ? _affiliateCodeController.text.trim()
-                    : null,
-              ),
-            ),
-          );
-        } else {
-          // Error al parsear los datos
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final dialogBg = isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightDialogBg;
-          final textColor = isDark
-              ? AppConstants.textDark
-              : AppConstants.lightLabelText;
-
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: dialogBg,
-              title: Text('Error', style: TextStyle(color: textColor)),
-              content: const Text(
-                'Error al procesar los datos. Por favor, contacta con soporte.',
-                style: TextStyle(color: AppConstants.textDark),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-      } else {
-        // Error en la validación
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
-
-        final errorMessage = _extractBackendErrorMessage(
-          response.body,
-          fallback: 'No se pudieron validar los datos',
-        );
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text(
-              'Error de validación',
-              style: TextStyle(color: textColor),
-            ),
-            content: Text(errorMessage, style: TextStyle(color: textColor)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      LoadingOverlay.hide(context);
-
-      if (AppConstants.debugRegisterEnabled) {
-        await _showDebugLogDialog([
-          '=== ${DateTime.now().toIso8601String()} ===',
-          '',
-          '[EXCEPTION]',
-          '$e',
-        ]);
-        if (!mounted) return;
-      }
-
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      // Error inesperado
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Error de conexión', style: TextStyle(color: textColor)),
-          content: Text(
-            'No se pudo conectar con el servidor: $e',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    // Siempre mostrar el diálogo de documentos legales antes de continuar
+    _showTermsDialog();
+    return;
   }
 
   Future<void> _showDebugLogDialog(List<String> entries) async {
@@ -1033,7 +430,7 @@ class _RegisterPageState extends State<RegisterPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Por favor, revisa y acepta los siguientes documentos:',
+                            'Al registrarte aceptás los siguientes documentos. Podés leerlos cuando quieras:',
                             style: TextStyle(
                               color: textColor,
                               fontSize: 16,
@@ -1228,7 +625,7 @@ class _RegisterPageState extends State<RegisterPage>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isAccepted ? '✓ Leído y aceptado' : '👁️ Tap para leer',
+                    isAccepted ? '✓ Aceptado — tap para leer' : '👁️ Tap para leer',
                     style: TextStyle(
                       color: isAccepted
                           ? AppConstants.primaryGreen
@@ -1812,7 +1209,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         PlayerData? playerData;
         try {
           playerData = PlayerData.fromRegisterResponse(playerDataJson);
-        } catch (e, stackTrace) {
+        } catch (e) {
           playerData = null;
         }
 
@@ -2892,11 +2289,6 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
     }
 
     return Scaffold(
-      appBar: const MainAppBar(
-        showSettings: false,
-        showProfileButton: false,
-        showBackButton: true,
-      ),
       body: Stack(
         children: [
           GestureDetector(
@@ -2932,44 +2324,12 @@ class _LegalDocumentDialog extends StatefulWidget {
 }
 
 class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
-  late ScrollController _scrollController;
-  bool _isScrolledToBottom = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-
-    // Evaluar inmediatamente por si el contenido ya cabe en pantalla (maxScrollExtent == 0)
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrolledFlag());
-  }
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    _updateScrolledFlag();
-  }
-
-  void _updateScrolledFlag() {
-    if (!_scrollController.hasClients) return;
-
-    final maxExtent = _scrollController.position.maxScrollExtent;
-    final offset = _scrollController.offset;
-
-    // Si el contenido ya entra en pantalla, consideramos como leído.
-    final isAtBottom = maxExtent <= 0 || offset >= maxExtent - 50;
-
-    if (isAtBottom != _isScrolledToBottom) {
-      setState(() {
-        _isScrolledToBottom = isAtBottom;
-      });
-    }
   }
 
   @override
@@ -3034,30 +2394,6 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
                 ),
               ),
             ),
-            // Indicador de scroll
-            if (!_isScrolledToBottom)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.arrow_downward,
-                      size: 16,
-                      color: AppConstants.primaryGreen.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Desliza para continuar',
-                      style: TextStyle(
-                        color: AppConstants.primaryGreen.withValues(alpha: 0.6),
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             // Footer
             Container(
               width: double.infinity,
@@ -3073,18 +2409,14 @@ class _LegalDocumentDialogState extends State<_LegalDocumentDialog> {
                 ),
               ),
               child: TextButton(
-                onPressed: _isScrolledToBottom ? widget.onAcknowledged : null,
+                onPressed: widget.onAcknowledged,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: Text(
+                child: const Text(
                   'Entendido',
                   style: TextStyle(
-                    color: _isScrolledToBottom
-                        ? AppConstants.primaryGreen
-                        : (isDark
-                              ? Colors.grey[400]
-                              : AppConstants.lightHintText),
+                    color: AppConstants.primaryGreen,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

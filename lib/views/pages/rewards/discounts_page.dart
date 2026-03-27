@@ -664,11 +664,6 @@ class _DiscountsPageState extends State<DiscountsPage> {
 
     return Scaffold(
       backgroundColor: isDark ? AppConstants.darkBg : AppConstants.lightBg,
-      appBar: const MainAppBar(
-        showSettings: true,
-        showLogo: true,
-        showProfileButton: true,
-      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
