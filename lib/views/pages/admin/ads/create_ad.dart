@@ -7,7 +7,6 @@ import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/ad_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -885,11 +884,6 @@ class _CreateAdSectionState extends State<CreateAdSection> {
 
     return Column(
       children: [
-        SectionHeaderWidget(
-          title: 'Publicidades',
-          subtitle: 'Carga de banner vertical para carrusel publicitario.',
-          icon: Icons.campaign_outlined,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: formCard,

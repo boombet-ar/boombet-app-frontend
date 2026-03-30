@@ -6,7 +6,6 @@ import 'package:boombet_app/services/ad_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/views/pages/admin/ads/create_ad.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -363,11 +362,6 @@ class _AdManagementViewState extends State<AdManagementView> {
 
     return Column(
       children: [
-        SectionHeaderWidget(
-          title: 'Publicidades',
-          subtitle: 'Preview de publicidades activas (5 por página).',
-          icon: Icons.campaign_outlined,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(

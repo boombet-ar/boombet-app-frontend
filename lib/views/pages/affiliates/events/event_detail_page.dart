@@ -6,7 +6,6 @@ import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/eventos_service.dart';
 import 'package:boombet_app/services/tids_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -273,11 +272,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          SectionHeaderWidget(
-            title: 'Detalles del evento',
-            subtitle: nombre,
-            icon: Icons.event_note_outlined,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             child: Column(

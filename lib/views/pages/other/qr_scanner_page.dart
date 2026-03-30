@@ -10,7 +10,6 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -700,6 +699,20 @@ class _QrScannerPageState extends State<QrScannerPage>
 
     return Scaffold(
       backgroundColor: AppConstants.darkBg,
+      appBar: Navigator.canPop(context)
+          ? AppBar(
+              backgroundColor: AppConstants.darkBg,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              title: const Text(
+                'Escáner QR',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            )
+          : null,
       body: Stack(
         children: [
           // Radial glow — top left
@@ -744,11 +757,6 @@ class _QrScannerPageState extends State<QrScannerPage>
               maxWidth: 900,
               child: Column(
                 children: [
-                const SectionHeaderWidget(
-                  title: 'Escáner QR',
-                  subtitle: 'Escanear y canjear códigos',
-                  icon: Icons.qr_code_scanner_rounded,
-                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

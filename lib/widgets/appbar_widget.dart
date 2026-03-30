@@ -2,9 +2,8 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
-import 'package:boombet_app/views/pages/profile/profile_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/views/pages/profile/settings_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -288,12 +287,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     widgetKey: profileTutorialTargetKey,
                     icon: Icons.person_rounded,
                     tooltip: 'Ver perfil',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        ScaleRoute(page: ProfilePage()),
-                      );
-                    },
+                    onPressed: () => context.go(HomePageKeys.profile),
                   ),
                 ),
               if (showAdminTools)
@@ -363,12 +357,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     widgetKey: faqTutorialTargetKey,
                     icon: Icons.help_outline_rounded,
                     tooltip: 'Ayuda y preguntas frecuentes',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        FadeRoute(page: const FaqPage()),
-                      );
-                    },
+                    onPressed: () => context.push(HomePageKeys.faq),
                   ),
                 ),
               const Spacer(),

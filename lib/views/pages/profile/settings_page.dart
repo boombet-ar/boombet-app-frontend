@@ -1,19 +1,18 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/other/debug_views_menu_page.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
-import 'package:boombet_app/views/pages/profile/profile_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -180,11 +179,6 @@ class _SettingsPageState extends State<SettingsPage> {
         maxWidth: 800,
         child: Column(
           children: [
-            const SectionHeaderWidget(
-              title: 'Configuración',
-              subtitle: 'Ajustes de tu cuenta',
-              icon: Icons.settings_rounded,
-            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -199,14 +193,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.account_circle_outlined,
                 title: 'Ver Perfil',
                 subtitle: 'Información personal y documentación',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfilePage(),
-                    ),
-                  );
-                },
+                onTap: () => context.go(HomePageKeys.profile),
                 surfaceColor: surfaceColor,
               ),
               const SizedBox(height: 8),
@@ -215,14 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.lock_outline_rounded,
                 title: 'Cambiar Contraseña',
                 subtitle: 'Actualiza tu contraseña de acceso',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ForgetPasswordPage(),
-                    ),
-                  );
-                },
+                onTap: () => context.push(HomePageKeys.forgotPassword),
                 surfaceColor: surfaceColor,
               ),
               // _buildSettingsTile(
@@ -775,6 +755,30 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 28),
 
+              // Sección: Herramientas
+              _buildSectionTitle('Herramientas', Icons.build_outlined),
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                context: context,
+                icon: Icons.qr_code_outlined,
+                title: 'Escanear QR',
+                subtitle: 'Escaneá códigos QR de cupones y stands',
+                onTap: () => context.go(HomePageKeys.scanner),
+                surfaceColor: surfaceColor,
+              ),
+              if (AppConstants.showClaimsPage) ...[
+                const SizedBox(height: 8),
+                _buildSettingsTile(
+                  context: context,
+                  icon: Icons.report_problem_outlined,
+                  title: 'Reclamos',
+                  subtitle: 'Gestioná tus reclamos y consultas',
+                  onTap: () => context.go(HomePageKeys.claims),
+                  surfaceColor: surfaceColor,
+                ),
+              ],
+              const SizedBox(height: 28),
+
               // Sección: Información y Soporte
               _buildSectionTitle('Información y Soporte', Icons.help_outline),
               const SizedBox(height: 8),
@@ -783,12 +787,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.help_outline_rounded,
                 title: 'Preguntas Frecuentes (FAQ)',
                 subtitle: 'Encuentra respuestas a tus dudas',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const FaqPage()),
-                  );
-                },
+                onTap: () => context.push(HomePageKeys.faq),
                 surfaceColor: surfaceColor,
               ),
               const SizedBox(height: 8),

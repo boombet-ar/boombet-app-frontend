@@ -14,7 +14,6 @@ import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/rewards/not_enabled_page.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -3062,6 +3061,68 @@ class DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
+  Widget _buildClaimedToggle(Color primaryGreen) {
+    return Tooltip(
+      message: _showClaimed ? 'Ver descuentos' : 'Mis cupones reclamados',
+      child: GestureDetector(
+        key: _showClaimed ? null : widget.claimedSwitchTutorialTargetKey,
+        onTap: () {
+          if (_showClaimed) {
+            setState(() => _showClaimed = false);
+            _resetDiscountsState(triggerLoad: true);
+          } else {
+            setState(() => _showClaimed = true);
+            _resetDiscountsState(triggerLoad: false);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: _showClaimed
+                ? primaryGreen.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.05),
+            border: Border.all(
+              color: _showClaimed
+                  ? primaryGreen.withValues(alpha: 0.50)
+                  : primaryGreen.withValues(alpha: 0.20),
+              width: 1,
+            ),
+            boxShadow: _showClaimed
+                ? [
+                    BoxShadow(
+                      color: primaryGreen.withValues(alpha: 0.20),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: animation,
+              child: child,
+            ),
+            child: Icon(
+              _showClaimed
+                  ? Icons.local_offer_rounded
+                  : Icons.check_circle_outline,
+              key: ValueKey(_showClaimed),
+              color: _showClaimed
+                  ? primaryGreen
+                  : primaryGreen.withValues(alpha: 0.65),
+              size: 18,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3094,38 +3155,39 @@ class DiscountsContentState extends State<DiscountsContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_showClaimed)
-            SectionHeaderWidget(
-              title: 'Cupones Reclamados',
-              subtitle: 'Mira y usa los cupones que ya reclamaste',
-              icon: Icons.check_circle,
-              onSwitch: () {
-                _showClaimed = false;
-                _resetDiscountsState(triggerLoad: true);
-              },
-              switchIcon: Icons.local_offer_outlined,
-            )
-          else
-            SectionHeaderWidget(
-              title: 'Descuentos',
-              subtitle: 'Descuentos exclusivos para vos.',
-              icon: Icons.local_offer,
-              switchButtonKey: widget.claimedSwitchTutorialTargetKey,
-              onSwitch: () {
-                setState(() {
-                  _showClaimed = true;
-                });
-                _resetDiscountsState(triggerLoad: false);
-              },
-              switchIcon: Icons.check_circle_outline,
-            ),
           if (_bondaEnabled == false)
             const Expanded(child: NotEnabledContent())
           else if (_showClaimed)
             Expanded(
-              child: ClaimedCouponsContent(
-                key: widget.claimedKey,
-                hideHeader: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '',
+                            style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                        _buildClaimedToggle(primaryGreen),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ClaimedCouponsContent(
+                      key: widget.claimedKey,
+                      hideHeader: true,
+                    ),
+                  ),
+                ],
               ),
             )
           else if (_isCouponActivationReady)
@@ -3154,12 +3216,21 @@ class DiscountsContentState extends State<DiscountsContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SearchBarWidget(
-                    controller: _searchController,
-                    onSearch: _onSearchSubmitted,
-                    onChanged: _onSearchChanged,
-                    placeholder:
-                        'Buscar por nombre de cupón, empresa o categoría',
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: SearchBarWidget(
+                          controller: _searchController,
+                          onSearch: _onSearchSubmitted,
+                          onChanged: _onSearchChanged,
+                          placeholder:
+                              'Buscar por nombre de cupón, empresa o categoría',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildClaimedToggle(primaryGreen),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   SingleChildScrollView(

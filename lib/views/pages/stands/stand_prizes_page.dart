@@ -5,7 +5,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/stand_prize_model.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -186,7 +185,7 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
     const scaffoldBg = Color(0xFF0E0E0E);
 
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/stand-tools');
       },
@@ -195,11 +194,6 @@ class _StandPrizesPageState extends State<StandPrizesPage> {
         body: ListView(
           padding: EdgeInsets.zero,
         children: [
-          SectionHeaderWidget(
-            title: 'Premios del Stand',
-            subtitle: 'Premios disponibles y su stock actual.',
-            icon: Icons.workspace_premium_outlined,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             child: _buildBody(),

@@ -13,7 +13,6 @@ import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -288,11 +287,6 @@ class LimitedHomeContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SectionHeaderWidget(
-                    title: 'Inicio',
-                    subtitle: 'Anuncios y novedades personalizadas',
-                    icon: Icons.campaign,
-                  ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -321,11 +315,6 @@ class LimitedHomeContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SectionHeaderWidget(
-                  title: 'Inicio',
-                  subtitle: 'Anuncios y novedades personalizadas',
-                  icon: Icons.campaign,
-                ),
                 const SizedBox(height: 24),
                 Expanded(
                   child: Row(
@@ -391,11 +380,6 @@ class LimitedHomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeaderWidget(
-            title: 'Inicio',
-            subtitle: 'Anuncios y novedades personalizadas',
-            icon: Icons.campaign,
-          ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1714,13 +1698,6 @@ class _LimitedDiscountsContentState extends State<LimitedDiscountsContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeaderWidget(
-            title: 'Descuentos Exclusivos',
-            subtitle: _cupones.isNotEmpty
-                ? '${_cupones.length} ofertas disponibles'
-                : 'Descuentos exclusivos para ti',
-            icon: Icons.local_offer,
-          ),
           Expanded(
             child: _buildCuponPreviewSection(isDark, primaryGreen, textColor),
           ),
@@ -2298,11 +2275,6 @@ class LimitedRafflesContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeaderWidget(
-            title: 'Sorteos',
-            subtitle: 'Próximamente disponibles',
-            icon: Icons.card_giftcard,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: _buildLockedContent(
@@ -2355,12 +2327,6 @@ class LimitedGamesContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeaderWidget(
-            title: 'Juegos',
-            subtitle:
-                'Explora los minijuegos de BoomBet y probalos mientras te afiliamos!',
-            icon: Icons.videogame_asset,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             child: isWeb
@@ -3149,11 +3115,6 @@ class LimitedForumContent extends StatelessWidget {
             child: Stack(
               alignment: Alignment.centerRight,
               children: [
-                SectionHeaderWidget(
-                  title: 'Foro BoomBet',
-                  subtitle: 'Conecta con la comunidad',
-                  icon: Icons.forum_rounded,
-                ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Row(

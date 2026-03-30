@@ -6,7 +6,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -109,11 +108,6 @@ class _MyPrizesPageState extends State<MyPrizesPage> {
         maxWidth: 900,
         child: Column(
           children: [
-            const SectionHeaderWidget(
-              title: 'Mis Premios',
-              subtitle: 'Premios ganados en ruletas',
-              icon: Icons.workspace_premium_outlined,
-            ),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadPrize,

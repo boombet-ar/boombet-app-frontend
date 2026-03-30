@@ -6,9 +6,7 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/password_generator_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
-import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -1258,23 +1256,20 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
           }
 
           // Navegar a la pantalla de confirmación CON LOS DATOS DE REGISTRO
-          Navigator.push(
-            context,
-            SlideFadeRoute(
-              page: ConfirmPlayerDataPage(
-                playerData: updatedPlayerData,
-                email: _emailController.text.trim(),
-                username: _emailController.text.trim().split('@').first,
-                password: _passwordController.text,
-                dni: _dniController.text.trim(),
-                telefono: _phoneController.text.trim(),
-                genero: _selectedGender!,
-                affiliateToken: _hasAffiliateCode
-                    ? _affiliateCodeController.text.trim()
-                    : null,
-              ),
-            ),
-          );
+          if (context.mounted) {
+            context.push('/register/confirm-data', extra: {
+              'playerData': updatedPlayerData,
+              'email': _emailController.text.trim(),
+              'username': _emailController.text.trim().split('@').first,
+              'password': _passwordController.text,
+              'dni': _dniController.text.trim(),
+              'telefono': _phoneController.text.trim(),
+              'genero': _selectedGender!,
+              'affiliateToken': _hasAffiliateCode
+                  ? _affiliateCodeController.text.trim()
+                  : null,
+            });
+          }
         } else {
           // Error al parsear los datos
           final theme = Theme.of(context);

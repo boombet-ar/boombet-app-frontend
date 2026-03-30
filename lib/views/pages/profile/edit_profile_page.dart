@@ -16,18 +16,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 
 class EditProfilePage extends StatefulWidget {
-  final PlayerData player;
-  final bool embedded;
-  final void Function(PlayerData updatedPlayer)? onSaved;
-  final VoidCallback? onCancel;
+  final PlayerData? player;
 
-  const EditProfilePage({
-    super.key,
-    required this.player,
-    this.embedded = false,
-    this.onSaved,
-    this.onCancel,
-  });
+  const EditProfilePage({super.key, this.player});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -35,20 +26,27 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final Map<String, TextEditingController> _c = {};
-  late PlayerData _player;
+  PlayerData? _player;
   String _avatarUrl = '';
   bool _loading = false;
+  bool _loadingPlayer = false;
   bool _uploadingAvatar = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _player = widget.player;
-    _avatarUrl = widget.player.avatarUrl;
-    _hydrateAvatar();
+    if (widget.player != null) {
+      _initControllers(widget.player!);
+    } else {
+      _fetchPlayer();
+    }
+  }
 
-    final p = widget.player;
+  void _initControllers(PlayerData p) {
+    _player = p;
+    _avatarUrl = p.avatarUrl;
+    _hydrateAvatar();
 
     _c["username"] = TextEditingController(text: p.username);
     _c["nombre"] = TextEditingController(text: p.nombre);
@@ -58,15 +56,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _c["genero"] = TextEditingController(text: p.sexo);
     _c["estadoCivil"] = TextEditingController(text: p.estadoCivil);
     _c["fechaNacimiento"] = TextEditingController(text: p.fechaNacimiento);
-
     _c["dni"] = TextEditingController(text: p.dni);
     _c["cuit"] = TextEditingController(text: p.cuil);
-
     _c["calle"] = TextEditingController(text: p.calle);
     _c["numCalle"] = TextEditingController(text: p.numCalle);
     _c["ciudad"] = TextEditingController(text: p.localidad);
     _c["provincia"] = TextEditingController(text: p.provincia);
     _c["cp"] = TextEditingController(text: p.cp?.toString() ?? "");
+  }
+
+  Future<void> _fetchPlayer() async {
+    setState(() => _loadingPlayer = true);
+    try {
+      final data = await PlayerService().getCurrentUser();
+      if (!mounted) return;
+      _initControllers(PlayerData.fromJson(data['data'] ?? data));
+    } catch (_) {
+      // Si falla el fetch, el usuario verá un loading infinito — se puede mejorar con un retry
+    } finally {
+      if (mounted) setState(() => _loadingPlayer = false);
+    }
   }
 
   Future<void> _hydrateAvatar() async {
@@ -75,7 +84,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted || fresh == null || fresh.isEmpty) return;
       setState(() {
         _avatarUrl = fresh;
-        _player = _player.copyWith(avatarUrl: fresh);
+        _player = _player?.copyWith(avatarUrl:fresh);
       });
     } catch (_) {
       // Silencio: si falla seguimos mostrando el avatar existente
@@ -280,11 +289,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       );
 
-      if (widget.embedded) {
-        widget.onSaved?.call(_player);
-      } else {
-        if (mounted) Navigator.pop(context, _player);
-      }
+      if (mounted) Navigator.pop(context, _player);
     } catch (e) {
       _showError("Error al actualizar: $e");
     } finally {
@@ -330,7 +335,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       setState(() {
         _avatarUrl = avatarUrl;
-        _player = _player.copyWith(avatarUrl: avatarUrl);
+        _player = _player?.copyWith(avatarUrl:avatarUrl);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -473,8 +478,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     const primaryGreen = Color.fromARGB(255, 41, 255, 94);
     final isWeb = kIsWeb;
 
-    if (widget.embedded) {
-      return _buildMobileListView(theme, onSurface, primaryGreen);
+    if (_loadingPlayer || _player == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(

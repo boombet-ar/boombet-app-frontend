@@ -5,13 +5,11 @@ import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
-import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
-import 'package:boombet_app/views/pages/home/home_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
-import 'package:boombet_app/views/pages/auth/register_page.dart';
-import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -267,10 +265,8 @@ class _LoginPageState extends State<LoginPage>
             ScaleRoute(page: const StandsToolsPage()),
           );
         } else {
-          Navigator.pushReplacement(
-            context,
-            ScaleRoute(page: const HomePage(showLoginTutorial: true)),
-          );
+          pendingLoginTutorialNotifier.value = true;
+          if (context.mounted) context.go(HomePageKeys.home);
         }
       } else {
         final message = result['message'] ?? '';
@@ -423,7 +419,7 @@ class _LoginPageState extends State<LoginPage>
     return Center(
       child: TextButton(
         onPressed: () {
-          Navigator.push(context, FadeRoute(page: const FaqPage()));
+          context.push(HomePageKeys.faq);
         },
         style: TextButton.styleFrom(
           overlayColor: primaryGreen.withValues(alpha: 0.07),
@@ -603,12 +599,7 @@ class _LoginPageState extends State<LoginPage>
               ),
               overlayColor: primaryGreen.withValues(alpha: 0.06),
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                SlideRightRoute(page: const RegisterPage()),
-              );
-            },
+            onPressed: () => context.push('/register'),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -883,10 +874,7 @@ class _LoginPageState extends State<LoginPage>
         // Link olvidar contraseña
         TextButton(
           onPressed: () {
-            Navigator.push(
-              context,
-              FadeRoute(page: const ForgetPasswordPage()),
-            );
+            context.push(HomePageKeys.forgotPassword);
           },
           style: TextButton.styleFrom(
             overlayColor: primaryGreen.withValues(alpha: 0.07),

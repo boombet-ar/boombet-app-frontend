@@ -1,17 +1,18 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/views/pages/profile/edit_profile_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
+import 'package:boombet_app/views/pages/profile/widgets/username_badge.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'widgets/avatar_image.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,7 +26,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _isUnaffiliating = false;
-  bool _isEditing = false;
 
   Widget _buildActionGradientButton({
     required String label,
@@ -41,7 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return SizedBox(
       width: double.infinity,
-      height: 44,
+      height: 56,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -80,16 +80,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Icon(
                     icon,
-                    size: 18,
+                    size: 22,
                     color: enabled
                         ? labelColor
                         : labelColor.withValues(alpha: 0.55),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                       color: enabled
@@ -167,33 +167,29 @@ class _ProfilePageState extends State<ProfilePage> {
                 : _errorMessage != null
                 ? _buildErrorView(textColor, primaryGreen)
                 : _buildWebProfileContent(textColor, isDark, primaryGreen))
-          : Column(
-              children: [
-                const SectionHeaderWidget(
-                  title: 'Mi Perfil',
-                  subtitle: 'Tu información personal',
-                  icon: Icons.person_rounded,
-                ),
-                Expanded(
-                  child: ResponsiveWrapper(
-                    maxWidth: 900,
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _errorMessage != null
-                        ? _buildErrorView(textColor, primaryGreen)
-                        : _isEditing
-                        ? _buildEmbeddedEdit(textColor, isDark, primaryGreen)
-                        : RefreshIndicator(
-                            onRefresh: _refreshProfile,
-                            child: _buildProfileContent(
-                              textColor,
-                              isDark,
-                              primaryGreen,
+          : SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ResponsiveWrapper(
+                      maxWidth: 900,
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _errorMessage != null
+                          ? _buildErrorView(textColor, primaryGreen)
+                          : RefreshIndicator(
+                              onRefresh: _refreshProfile,
+                              child: _buildProfileContent(
+                                textColor,
+                                isDark,
+                                primaryGreen,
+                              ),
                             ),
-                          ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
     );
   }
@@ -264,11 +260,6 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         _buildHeader(textColor, isDark, primaryGreen),
-        const SectionHeaderWidget(
-          title: 'Información Personal',
-          subtitle: 'Tus datos de cuenta',
-          icon: Icons.person_outline_rounded,
-        ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
@@ -276,30 +267,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildEmbeddedEdit(Color textColor, bool isDark, Color primaryGreen) {
-    final pageIndex = selectedPageNotifier.value;
-    pageBackCallbacks[pageIndex] = () {
-      setState(() => _isEditing = false);
-      pageBackCallbacks.remove(pageIndex);
-    };
-
-    return EditProfilePage(
-      player: _playerData!,
-      embedded: true,
-      onSaved: (updatedPlayer) {
-        pageBackCallbacks.remove(pageIndex);
-        setState(() {
-          _playerData = updatedPlayer;
-          _isEditing = false;
-        });
-      },
-      onCancel: () {
-        pageBackCallbacks.remove(pageIndex);
-        setState(() => _isEditing = false);
-      },
     );
   }
 
@@ -333,11 +300,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 16),
-                              _buildInfoCard(isDark, textColor, primaryGreen),
-                            ],
+                          child: _buildInfoCard(
+                            isDark,
+                            textColor,
+                            primaryGreen,
                           ),
                         ),
                       ],
@@ -480,7 +446,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildHeader(Color textColor, bool isDark, Color primaryGreen) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -512,16 +478,16 @@ class _ProfilePageState extends State<ProfilePage> {
           AnimatedContainer(
             duration: AppConstants.mediumDelay,
             curve: Curves.easeOutBack,
-            width: 82,
-            height: 82,
+            width: 110,
+            height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: primaryGreen, width: 3),
+              border: Border.all(color: primaryGreen, width: 4),
               boxShadow: [
                 BoxShadow(
                   color: primaryGreen.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  spreadRadius: 4,
+                  blurRadius: 20,
+                  spreadRadius: 6,
                 ),
               ],
               color: isDark
@@ -529,161 +495,49 @@ class _ProfilePageState extends State<ProfilePage> {
                   : Theme.of(context).colorScheme.surface,
             ),
             child: ClipOval(
-              child: _buildAvatarImage(primaryGreen, isDark, size: 82),
+              child: _buildAvatarImage(primaryGreen, isDark, size: 110),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           Text(
             "${_playerData?.nombre ?? ''} ${_playerData?.apellido ?? ''}"
                 .trim(),
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
               color: textColor,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           _buildVerifiedBadge(primaryGreen, _playerData?.username ?? ''),
         ],
       ),
     );
   }
 
+  //AVATAR
+
   Widget _buildAvatarImage(
     Color primaryGreen,
     bool isDark, {
     double size = 130,
   }) {
-    final url = _playerData?.avatarUrl ?? '';
-
-    if (url.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: url,
-        key: ValueKey(
-          url,
-        ), // fuerza rebuild cuando cambia la URL (cache-buster)
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        fadeInDuration: const Duration(milliseconds: 120),
-        placeholder: (_, __) => const SizedBox.shrink(),
-        errorWidget: (_, __, ___) => Icon(
-          Icons.person,
-          size: (size * 0.55).clamp(48.0, 96.0).toDouble(),
-          color: primaryGreen,
-        ),
-      );
-    }
-
-    return Icon(
-      Icons.person,
-      size: (size * 0.55).clamp(48.0, 96.0).toDouble(),
-      color: primaryGreen,
+    return AvatarImage(
+      imageUrl: _playerData?.avatarUrl,
+      primaryColor: primaryGreen,
+      size: size,
     );
   }
 
+  //USERNAME BADGE
+
   Widget _buildVerifiedBadge(Color primaryGreen, String username) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: primaryGreen.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.35),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryGreen.withValues(alpha: 0.18),
-            blurRadius: 14,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.alternate_email, size: 13, color: primaryGreen),
-          const SizedBox(width: 7),
-          Text(
-            username,
-            style: TextStyle(
-              color: primaryGreen,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
+    if (username.isEmpty) return const SizedBox.shrink();
+    return UsernameBadge(primaryGreen: primaryGreen, username: username);
   }
 
   // ----------------- INFO SECTION -----------------
-
-  Widget _buildSectionTitle(Color primaryGreen, Color textColor) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 3,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [primaryGreen, primaryGreen.withValues(alpha: 0.15)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.5),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
-                decoration: BoxDecoration(
-                  color: primaryGreen.withValues(alpha: 0.05),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: primaryGreen.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline_rounded,
-                      color: primaryGreen,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "Información Personal",
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: textColor,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildInfoCard(bool isDark, Color textColor, Color primaryGreen) {
     return Container(
@@ -743,22 +597,30 @@ class _ProfilePageState extends State<ProfilePage> {
             primaryGreen: primaryGreen,
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
 
           // 🚀 BOTÓN PARA EDITAR PERFIL
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             child: _buildActionGradientButton(
               label: 'Editar Información',
               icon: Icons.edit_note_rounded,
-              onPressed: () => setState(() => _isEditing = true),
+              onPressed: () async {
+                final updated = await context.push<PlayerData>(
+                  HomePageKeys.profileEdit,
+                  extra: _playerData,
+                );
+                if (updated != null && mounted) {
+                  setState(() => _playerData = updated);
+                }
+              },
               accentColor: primaryGreen,
             ),
           ),
 
           // 🚀 BOTÓN PARA DESAFILIARSE
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 5, 16, 12),
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
             child: _buildActionGradientButton(
               label: 'Desafiliarse de Boombet',
               icon: Icons.person_off_rounded,
@@ -1134,13 +996,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildUnaffiliatePoint(String text, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Text(text, style: TextStyle(fontSize: 13, color: textColor)),
-    );
-  }
-
   Widget _buildCompactUnaffiliateItem({
     required IconData icon,
     required String title,
@@ -1250,25 +1105,25 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color primaryGreen,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white10, width: 1)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: primaryGreen.withValues(alpha: 0.22),
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: primaryGreen, size: 17),
+            child: Icon(icon, color: primaryGreen, size: 21),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,15 +1131,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: textColor.withValues(alpha: 0.55),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   value.isEmpty ? "—" : value,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),

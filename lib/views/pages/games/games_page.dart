@@ -1,5 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/views/pages/home/widgets/games_content.dart';
+import 'package:boombet_app/views/pages/games/games_content.dart';
 import 'package:flutter/material.dart';
 
 /// Página de juegos sin header duplicado; el header vive en `GamesContent`.
