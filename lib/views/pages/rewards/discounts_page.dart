@@ -7,7 +7,6 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/category_order.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 
@@ -669,13 +668,6 @@ class _DiscountsPageState extends State<DiscountsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            SectionHeaderWidget(
-              title: 'Descuentos',
-              subtitle:
-                  '${_filteredCupones.length} ${_filteredCupones.length == 1 ? 'cupón disponible' : 'cupones disponibles'}',
-              icon: Icons.local_offer_rounded,
-              onRefresh: () => _loadCupones(reset: true),
-            ),
 
             // Contenido principal
             if (_isLoading && _cupones.isEmpty)

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -108,12 +107,6 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
       color: theme.scaffoldBackgroundColor,
       child: Column(
         children: [
-          SectionHeaderWidget(
-            title: 'Mis casinos',
-            subtitle:
-                'Estos son los casinos a los que te encontrás afiliado por medio de BoomBet.',
-            icon: Icons.casino_rounded,
-          ),
           Expanded(
             child: _isLoading
                 ? Center(

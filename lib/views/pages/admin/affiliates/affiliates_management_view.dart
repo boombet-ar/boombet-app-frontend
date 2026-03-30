@@ -1,7 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 const _green = AppConstants.primaryGreen;
@@ -56,11 +55,6 @@ class AffiliatesManagementeView extends StatelessWidget {
 
     return Column(
       children: [
-        SectionHeaderWidget(
-          title: 'Afiliadores',
-          subtitle: 'Listado de afiliadores registrados.',
-          icon: Icons.group_outlined,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(

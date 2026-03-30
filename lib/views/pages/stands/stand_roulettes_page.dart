@@ -4,7 +4,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -54,7 +53,7 @@ class _StandRoulettesPageState extends State<StandRoulettesPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/stand-tools');
       },
@@ -63,11 +62,6 @@ class _StandRoulettesPageState extends State<StandRoulettesPage> {
         body: ListView(
           padding: EdgeInsets.zero,
         children: [
-          SectionHeaderWidget(
-            title: 'Ruletas del Stand',
-            subtitle: 'TIDs configurados para la entrega de premios.',
-            icon: Icons.casino_outlined,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             child: _buildBody(),

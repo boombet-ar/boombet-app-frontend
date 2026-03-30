@@ -2,8 +2,9 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/casino_response.dart';
-import 'package:boombet_app/views/pages/home/home_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -168,11 +169,7 @@ class AffiliationResultsPage extends StatelessWidget {
             label: 'Ir a la Aplicación',
             onPressed: preview
                 ? () {}
-                : () => Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HomePage()),
-                      (route) => false,
-                    ),
+                : () => context.go(HomePageKeys.home),
             disabled: preview,
             icon: Icons.arrow_forward_rounded,
             borderRadius: AppConstants.borderRadius,
@@ -393,11 +390,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 label: 'Ir a la Aplicación',
                 onPressed: preview
                     ? () {}
-                    : () => Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomePage()),
-                          (route) => false,
-                        ),
+                    : () => context.go(HomePageKeys.home),
                 disabled: preview,
                 icon: Icons.arrow_forward_rounded,
                 borderRadius: AppConstants.borderRadius,
@@ -508,11 +501,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 label: 'Ir a la Aplicación',
                 onPressed: preview
                     ? () {}
-                    : () => Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomePage()),
-                          (route) => false,
-                        ),
+                    : () => context.go(HomePageKeys.home),
                 disabled: preview,
                 icon: Icons.arrow_forward_rounded,
                 borderRadius: AppConstants.borderRadius,
@@ -577,11 +566,7 @@ class AffiliationResultsPage extends StatelessWidget {
                 label: 'Continuar',
                 onPressed: preview
                     ? () {}
-                    : () => Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomePage()),
-                          (route) => false,
-                        ),
+                    : () => context.go(HomePageKeys.home),
                 disabled: preview,
                 icon: Icons.arrow_forward_rounded,
                 borderRadius: AppConstants.borderRadius,

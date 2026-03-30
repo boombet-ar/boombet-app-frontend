@@ -12,6 +12,7 @@ ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
 ///      pageBackCallbacks.remove(pageIndex);         // al volver al root
 final Map<int, VoidCallback> pageBackCallbacks = {};
 ValueNotifier<bool> loginTutorialActiveNotifier = ValueNotifier(false);
+ValueNotifier<bool> pendingLoginTutorialNotifier = ValueNotifier(false);
 ValueNotifier<bool> rouletteTriggerAfterTutorialNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
 ValueNotifier<double> fontSizeMultiplierNotifier = ValueNotifier(1.0);

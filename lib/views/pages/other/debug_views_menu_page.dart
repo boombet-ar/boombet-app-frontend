@@ -30,11 +30,10 @@ import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/games/games_page.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
-import 'package:boombet_app/views/pages/home/home_page.dart' as home_main;
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
-import 'package:boombet_app/views/pages/home/widgets/games_content.dart';
+import 'package:boombet_app/views/pages/games/games_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_page.dart'
@@ -102,7 +101,6 @@ class DebugViewsMenuPage extends StatelessWidget {
         'Auth: IsNotAffiliatedPage',
         () => const IsNotAffiliatedPage(),
       ),
-      _DebugEntry('Home: HomePage', () => const home_main.HomePage()),
       _DebugEntry(
         'Home Widgets: HomePage',
         () => const home_widgets.HomePage(),

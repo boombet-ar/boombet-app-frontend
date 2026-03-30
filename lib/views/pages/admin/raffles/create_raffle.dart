@@ -6,7 +6,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/raffle_service.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -408,15 +407,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showHeader)
-          SectionHeaderWidget(
-            title: _isEditMode ? 'Editar sorteo' : 'Crear sorteo',
-            subtitle:
-                _isEditMode
-                    ? 'Modificá los datos del sorteo.'
-                    : 'Completá los datos para publicar un nuevo sorteo.',
-            icon: Icons.emoji_events_outlined,
-          ),
 
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),

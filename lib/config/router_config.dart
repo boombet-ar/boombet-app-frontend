@@ -7,6 +7,9 @@ import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
+import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_page.dart';
+import 'package:boombet_app/views/pages/admin/ads/ads_management_page.dart';
+import 'package:boombet_app/views/pages/admin/raffles/raffles_management_page.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
@@ -14,11 +17,28 @@ import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
 import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_detail_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
+import 'package:boombet_app/views/pages/auth/register_page.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
+import 'package:boombet_app/views/pages/community/forum_page.dart';
+import 'package:boombet_app/views/pages/games/games_page.dart';
+import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/views/pages/home/home_page.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
+import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
+import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
+import 'package:boombet_app/views/pages/other/claims_page.dart';
+import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
+import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
+import 'package:boombet_app/models/player_model.dart';
+import 'package:boombet_app/views/pages/profile/edit_profile_page.dart';
+import 'package:boombet_app/views/pages/profile/profile_page.dart';
+import 'package:boombet_app/views/pages/profile/settings_page.dart';
+import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
+import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
+import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
 import 'package:boombet_app/views/pages/other/onboarding_page.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
@@ -102,6 +122,12 @@ bool _isStandRoute(String path) {
   return path == '/stand-tools' || path.startsWith('/stand-tools/');
 }
 
+bool _isShellRoute(String path) {
+  return HomePageKeys.allRoutes.any(
+    (r) => path == r || path.startsWith('$r/'),
+  );
+}
+
 // Redirect callback para manejar autenticaci├│n
 Future<String?> _redirect(BuildContext context, GoRouterState state) async {
   debugPrint('­ƒöÇ ===== REDIRECT CALLBACK =====');
@@ -156,7 +182,11 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       state.uri.path == '/password-reset' ||
       state.uri.path.startsWith('/password-reset/') ||
       (kIsWeb && state.uri.path == '/reset-password/change-password') ||
-      state.uri.path == '/affiliation-results';
+      state.uri.path == '/affiliation-results' ||
+      state.uri.path == HomePageKeys.faq ||
+      state.uri.path == HomePageKeys.forgotPassword ||
+      state.uri.path == '/register' ||
+      state.uri.path == '/register/confirm-data';
 
   // Verificar si hay sesi├│n activa
   final isLoggedIn = await TokenService.isTokenValid();
@@ -205,7 +235,7 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       return '/home';
     }
   } else if (isVerified == false) {
-    if (path == '/' || path == '/home') {
+    if (path == '/' || _isShellRoute(path)) {
       debugPrint('­ƒöÇ Redirigiendo a confirm (no verificado)');
       return flowRoute ?? '/confirm';
     }
@@ -213,7 +243,7 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     return flowRoute;
   }
 
-  if (path == '/admin-tools') {
+  if (path == '/admin-tools' || path == HomePageKeys.admin) {
     if (roleUpper != 'ADMIN') return '/home';
   }
 
@@ -246,7 +276,153 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          HomePage(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.home,
+            builder: (_, __) => HomeContent(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.discounts,
+            builder: (_, __) => DiscountsContent(
+              key: HomePageKeys.discountsKey,
+              firstCouponTutorialTargetKey: HomePageKeys.firstCouponKey,
+              claimedSwitchTutorialTargetKey: HomePageKeys.claimedSwitchKey,
+              onCuponClaimed: () {
+                HomePageKeys.claimedKey.currentState?.refreshClaimedCupones();
+                HomePageKeys.discountsKey.currentState?.refreshClaimedIds();
+              },
+              claimedKey: HomePageKeys.claimedKey,
+            ),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.raffles,
+            builder: (_, __) => const RafflesPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.forum,
+            builder: (_, __) => ForumPage(
+              tutorialBoomBetForumTargetKey:
+                  HomePageKeys.forumBoomBetSelectorKey,
+              tutorialAddPostButtonKey: HomePageKeys.forumAddPostKey,
+              tutorialMyPostsButtonKey: HomePageKeys.forumMyPostsKey,
+            ),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.games,
+            builder: (_, __) => GamesPage(
+              firstGameTutorialTargetKey: HomePageKeys.firstGameKey,
+            ),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.scanner,
+            builder: (_, __) => const QrScannerPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.settings,
+            builder: (_, __) => const SettingsPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.prizes,
+            builder: (_, __) => const MyPrizesPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.casinos,
+            builder: (_, __) => const MyCasinosPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.profile,
+            builder: (_, __) => const ProfilePage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.admin,
+            builder: (_, __) => const AdminToolsPage(),
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(
+            path: HomePageKeys.claims,
+            builder: (_, __) => const ClaimsPage(),
+          ),
+        ]),
+      ],
+    ),
+    GoRoute(
+      path: HomePageKeys.profileEdit,
+      builder: (context, state) {
+        final player = state.extra is PlayerData
+            ? state.extra as PlayerData
+            : null;
+        return EditProfilePage(player: player);
+      },
+    ),
+    GoRoute(
+      path: HomePageKeys.faq,
+      builder: (_, __) => const FaqPage(),
+    ),
+    GoRoute(
+      path: HomePageKeys.forgotPassword,
+      builder: (_, __) => const ForgetPasswordPage(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (_, __) => const RegisterPage(),
+    ),
+    GoRoute(
+      path: '/register/confirm-data',
+      redirect: (context, state) {
+        if (state.extra == null) return '/register';
+        return null;
+      },
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return ConfirmPlayerDataPage(
+          playerData: extra['playerData'] as PlayerData,
+          email: extra['email'] as String,
+          username: extra['username'] as String,
+          password: extra['password'] as String,
+          dni: extra['dni'] as String,
+          telefono: extra['telefono'] as String,
+          genero: extra['genero'] as String,
+          affiliateToken: extra['affiliateToken'] as String?,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/admin/affiliates',
+      builder: (_, __) => const AffiliatesManagementPage(),
+    ),
+    GoRoute(
+      path: '/admin/ads',
+      builder: (_, __) => const AdsManagementPage(),
+    ),
+    GoRoute(
+      path: '/admin/raffles',
+      builder: (_, __) => const RafflesManagementPage(),
+    ),
     GoRoute(
       path: '/play-roulette',
       builder: (context, state) => PlayRoulettePage(

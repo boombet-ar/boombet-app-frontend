@@ -1,6 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/stand_model.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 const _green = AppConstants.primaryGreen;
@@ -41,11 +40,6 @@ class StandManagementView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SectionHeaderWidget(
-          title: 'Stands / Puestos',
-          subtitle: 'Listado de puestos registrados.',
-          icon: Icons.storefront_outlined,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(

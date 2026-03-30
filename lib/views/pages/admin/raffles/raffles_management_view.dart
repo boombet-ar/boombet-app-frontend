@@ -7,7 +7,6 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/raffle_service.dart';
 import 'package:boombet_app/views/pages/admin/raffles/create_raffle.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -295,11 +294,6 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
 
     return Column(
       children: [
-        SectionHeaderWidget(
-          title: 'Sorteos',
-          subtitle: 'Gestión de sorteos activos (5 por página).',
-          icon: Icons.emoji_events_outlined,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(

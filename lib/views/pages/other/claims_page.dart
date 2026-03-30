@@ -1,5 +1,4 @@
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 
 class ClaimsPage extends StatefulWidget {
@@ -71,11 +70,6 @@ class _ClaimsPageState extends State<ClaimsPage> {
       backgroundColor: bg,
       body: Column(
         children: [
-          SectionHeaderWidget(
-            title: 'Reclamos',
-            subtitle: 'Envianos tu consulta o problema',
-            icon: Icons.report_problem_outlined,
-          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),

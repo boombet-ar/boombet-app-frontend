@@ -25,7 +25,6 @@ import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
@@ -146,11 +145,6 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
           body: ListView(
             padding: EdgeInsets.zero,
             children: [
-              const SectionHeaderWidget(
-                title: 'Panel de afiliador',
-                subtitle: 'Acceso rápido a herramientas de seguimiento.',
-                icon: Icons.manage_search_outlined,
-              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 child: Column(
@@ -159,21 +153,21 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       title: 'TIDs (Tracking IDs)',
                       subtitle: 'Administrar y consultar tracking IDs',
                       icon: Icons.track_changes_outlined,
-                      onTap: () => context.go('/affiliates-tools/tids'),
+                      onTap: () => context.push('/affiliates-tools/tids'),
                     ),
                     const SizedBox(height: 12),
                     _AffiliatorPrimaryActionButton(
                       title: 'Eventos',
                       subtitle: 'Gestionar eventos y estadísticas',
                       icon: Icons.event_note_outlined,
-                      onTap: () => context.go('/affiliates-tools/eventos'),
+                      onTap: () => context.push('/affiliates-tools/eventos'),
                     ),
                     const SizedBox(height: 12),
                     _AffiliatorPrimaryActionButton(
                       title: 'Stands / Puestos',
                       subtitle: 'Configurar y administrar puestos',
                       icon: Icons.storefront_outlined,
-                      onTap: () => context.go('/affiliates-tools/stands'),
+                      onTap: () => context.push('/affiliates-tools/stands'),
                     ),
                     const SizedBox(height: 12),
                     _AffiliatorPrimaryActionButton(
@@ -181,8 +175,10 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       subtitle: 'Gestionar tu red de sub-afiliadores',
                       icon: Icons.group_outlined,
                       onTap: () =>
-                          context.go('/affiliates-tools/sub-afiliadores'),
+                          context.push('/affiliates-tools/sub-afiliadores'),
                     ),
+                    const SizedBox(height: 24),
+                    _LogoutButton(context: context),
                   ],
                 ),
               ),
@@ -190,6 +186,64 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
           ),
         );
         },
+      ),
+    );
+  }
+}
+
+// ── Logout Button ────────────────────────────────────────────────────────────
+
+class _LogoutButton extends StatelessWidget {
+  final BuildContext context;
+  const _LogoutButton({required this.context});
+
+  Future<void> _logout(BuildContext ctx) async {
+    final shouldLogout = await showDialog<bool>(
+      context: ctx,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('¿Cerrar sesión?'),
+        content: const Text('¿Querés cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dlgCtx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dlgCtx).pop(true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogout == true && ctx.mounted) {
+      await AuthService().logout();
+      if (ctx.mounted) {
+        Navigator.of(ctx).pushAndRemoveUntil(
+          FadeRoute(page: const LoginPage()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext outerContext) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _logout(outerContext),
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: const Text('Cerrar sesión'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppConstants.errorRed,
+          side: BorderSide(
+            color: AppConstants.errorRed.withValues(alpha: 0.40),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          ),
+        ),
       ),
     );
   }
@@ -724,7 +778,7 @@ class _TidsPageState extends State<TidsPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/affiliates-tools');
       },
@@ -951,7 +1005,7 @@ class _EventosPageState extends State<EventosPage> {
   }
 
   void _showAffiliationsCount(EventoModel evento) {
-    context.go('/affiliates-tools/eventos/${evento.id}', extra: evento);
+    context.push('/affiliates-tools/eventos/${evento.id}', extra: evento);
   }
 
   @override
@@ -959,7 +1013,7 @@ class _EventosPageState extends State<EventosPage> {
     final theme = Theme.of(context);
 
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/affiliates-tools');
       },
@@ -1376,7 +1430,7 @@ class _StandsPageState extends State<StandsPage> {
     final theme = Theme.of(context);
 
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/affiliates-tools');
       },
@@ -2006,7 +2060,7 @@ class _SubAfiliadoresPageState extends State<SubAfiliadoresPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/affiliates-tools');
       },

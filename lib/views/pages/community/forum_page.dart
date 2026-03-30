@@ -9,7 +9,6 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
 import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -703,11 +702,13 @@ class _ForumPageState extends State<ForumPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Column(
-        children: [
-          _buildHeader(accent, isDark, textColor),
-          _buildForumSelector(isDark, accent),
-          Expanded(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildForumSelector(isDark, accent),
+            _buildActionBar(accent, isDark),
+            Expanded(
             child: _isLoading
                 ? Center(
                     child: CircularProgressIndicator(
@@ -734,90 +735,175 @@ class _ForumPageState extends State<ForumPage> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
-  Widget _buildHeader(Color accent, bool isDark, Color textColor) {
-    final selectedForum = _selectedForum;
-    final title = selectedForum.label.isNotEmpty
-        ? 'Foro ${selectedForum.label}'
-        : 'Foro';
+  Widget _buildActionBar(Color accent, bool isDark) {
+    final textMuted = isDark
+        ? Colors.white.withValues(alpha: 0.40)
+        : Colors.black.withValues(alpha: 0.38);
 
-    return SafeArea(
-      bottom: false,
-      child: Stack(
-        alignment: Alignment.centerRight,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
         children: [
-          SectionHeaderWidget(
-            title: title,
-            subtitle: 'Conecta con la comunidad',
-            icon: Icons.forum_rounded,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Botón: crear publicación
-                Container(
-                  key: widget.tutorialAddPostButtonKey,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.28),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.add_rounded),
-                    onPressed: _showCreatePostDialog,
-                    color: accent,
-                    tooltip: 'Nueva publicación',
-                    iconSize: 17,
-                    padding: const EdgeInsets.all(7),
-                    constraints: const BoxConstraints(),
-                  ),
+          // ── Toggle Todos / Mis posts ─────────────────────────────
+          Expanded(
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.12),
+                  width: 1,
                 ),
-                const SizedBox(width: 6),
-                // Botón: mis publicaciones
-                Container(
-                  key: widget.tutorialMyPostsButtonKey,
-                  decoration: BoxDecoration(
-                    color: _showMine
-                        ? accent.withValues(alpha: 0.12)
-                        : null,
-                    border: Border.all(
-                      color: accent.withValues(
-                        alpha: _showMine ? 0.50 : 0.28,
-                      ),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      _showMine ? Icons.person : Icons.person_outline,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showMine = !_showMine;
-                        _currentPage = 0;
-                      });
-                      _loadPosts(refresh: true);
+              ),
+              child: Row(
+                children: [
+                  _buildToggleTab(
+                    label: 'Todos',
+                    icon: Icons.forum_outlined,
+                    isSelected: !_showMine,
+                    accent: accent,
+                    isDark: isDark,
+                    textMuted: textMuted,
+                    widgetKey: null,
+                    onTap: () {
+                      if (_showMine) {
+                        setState(() {
+                          _showMine = false;
+                          _currentPage = 0;
+                        });
+                        _loadPosts(refresh: true);
+                      }
                     },
-                    color: accent,
-                    tooltip: _showMine
-                        ? 'Ver todas las publicaciones'
-                        : 'Ver mis publicaciones',
-                    iconSize: 17,
-                    padding: const EdgeInsets.all(7),
-                    constraints: const BoxConstraints(),
                   ),
+                  _buildToggleTab(
+                    label: 'Mis posts',
+                    icon: Icons.person_outline,
+                    isSelected: _showMine,
+                    accent: accent,
+                    isDark: isDark,
+                    textMuted: textMuted,
+                    widgetKey: widget.tutorialMyPostsButtonKey,
+                    onTap: () {
+                      if (!_showMine) {
+                        setState(() {
+                          _showMine = true;
+                          _currentPage = 0;
+                        });
+                        _loadPosts(refresh: true);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // ── Botón publicar ────────────────────────────────────────
+          GestureDetector(
+            key: widget.tutorialAddPostButtonKey,
+            onTap: _showCreatePostDialog,
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.38),
+                  width: 1,
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.14),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_rounded, color: accent, size: 16),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Publicar',
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildToggleTab({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required Color accent,
+    required bool isDark,
+    required Color textMuted,
+    required Key? widgetKey,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        key: widgetKey,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? accent.withValues(alpha: isDark ? 0.16 : 0.11)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? accent.withValues(alpha: 0.28)
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 13,
+                color: isSelected ? accent : textMuted,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight:
+                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? accent : textMuted,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

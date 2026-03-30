@@ -13,7 +13,9 @@
       "Bash(dart pub:*)",
       "Bash(python -c \"import sys,json; pkgs=json.load\\(sys.stdin\\)[''''packages'''']; [print\\(p[''''name'''']\\) for p in pkgs if p[''''name''''] in [''''web'''',''''js'''',''''dart_js_interop'''']]\")",
       "Bash(python -c \"import sys,json; pkgs=json.load\\(sys.stdin\\)[''''packages'''']; [print\\(p[''''name''''], p.get\\(''''version'''',''''''''\\)\\) for p in pkgs if p[''''name'''']==''''web'''']\")",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(head -10 echo \"---\" grep -n \"Scaffold\\\\|AppBar\\\\|AppbarWidget\" \"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/admin/raffles/raffles_management_view.dart\")"
     ]
   }
 }

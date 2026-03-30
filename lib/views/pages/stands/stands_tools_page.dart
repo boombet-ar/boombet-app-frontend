@@ -4,7 +4,6 @@ import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
-import 'package:boombet_app/widgets/section_header_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,11 +50,6 @@ class StandsToolsPage extends StatelessWidget {
         body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const SectionHeaderWidget(
-            title: 'Panel del Stand',
-            subtitle: 'Acceso rápido a las herramientas del puesto.',
-            icon: Icons.storefront_outlined,
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             child: Column(
@@ -64,14 +58,14 @@ class StandsToolsPage extends StatelessWidget {
                   title: 'Premios',
                   subtitle: 'Consultar y gestionar premios del puesto',
                   icon: Icons.card_giftcard_outlined,
-                  onTap: () => context.go('/stand-tools/prizes'),
+                  onTap: () => context.push('/stand-tools/prizes'),
                 ),
                 const SizedBox(height: 12),
                 _StandPrimaryActionButton(
                   title: 'Ruletas',
                   subtitle: 'Ver ruletas disponibles en el puesto',
                   icon: Icons.casino_outlined,
-                  onTap: () => context.go('/stand-tools/roulettes'),
+                  onTap: () => context.push('/stand-tools/roulettes'),
                 ),
                 const SizedBox(height: 12),
                 _StandPrimaryActionButton(
@@ -81,6 +75,52 @@ class StandsToolsPage extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     FadeRoute(page: const QrScannerPage()),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final shouldLogout = await showDialog<bool>(
+                        context: context,
+                        builder: (dlgCtx) => AlertDialog(
+                          title: const Text('¿Cerrar sesión?'),
+                          content: const Text('¿Querés cerrar sesión?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dlgCtx).pop(false),
+                              child: const Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(dlgCtx).pop(true),
+                              child: const Text('Cerrar sesión'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (shouldLogout == true && context.mounted) {
+                        await AuthService().logout();
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            FadeRoute(page: const LoginPage()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Cerrar sesión'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppConstants.errorRed,
+                      side: BorderSide(
+                        color: AppConstants.errorRed.withValues(alpha: 0.40),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                      ),
+                    ),
                   ),
                 ),
               ],
