@@ -125,17 +125,21 @@ class _PlayRoulettePageState extends State<PlayRoulettePage>
 
     if (!mounted) return;
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black87,
-      builder:
-          (_) => _PrizeWonDialog(
-            nombre: nombre,
-            imgUrl: imgUrl,
-            standNombre: standNombre,
-          ),
-    );
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black87,
+        builder:
+            (_) => _PrizeWonDialog(
+              nombre: nombre,
+              imgUrl: imgUrl,
+              standNombre: standNombre,
+            ),
+      );
+    } catch (e) {
+      // Si hay error mostrando el diálogo, cerramos de todas formas
+    }
 
     _affiliationService.closeWebSocket();
     if (!mounted) return;
@@ -663,6 +667,7 @@ class _PrizeWonDialogState extends State<_PrizeWonDialog>
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
   late Animation<double> _glowAnim;
+  Timer? _autoCloseTimer;
 
   @override
   void initState() {
@@ -694,10 +699,20 @@ class _PrizeWonDialogState extends State<_PrizeWonDialog>
     );
 
     _entryController.forward();
+
+    // Auto-close después de 8 segundos por si el usuario no puede interactuar
+    _autoCloseTimer = Timer(const Duration(seconds: 8), _closePrizeDialog);
+  }
+
+  void _closePrizeDialog() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   void dispose() {
+    _autoCloseTimer?.cancel();
     _entryController.dispose();
     _glowController.dispose();
     _confettiController.dispose();
@@ -995,7 +1010,12 @@ class _PrizeWonDialogState extends State<_PrizeWonDialog>
             ],
           ),
           child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              _autoCloseTimer?.cancel();
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
+            },
             style: ElevatedButton.styleFrom(
               elevation: 0,
               backgroundColor: Colors.transparent,

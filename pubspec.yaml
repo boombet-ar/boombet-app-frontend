@@ -2,7 +2,7 @@ name: boombet_app
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.1.0+5 #Cambiar estos numeros a la hora de actualizar o generar appbundles nuevos.
+version: 1.2.0+6 #Cambiar estos numeros a la hora de actualizar o generar appbundles nuevos.
 #version: X.Y.Z+N
 #X = Major version (Cambios incompatibles con versiones anteriores)
 #Y = Minor version (Nuevas funcionalidades compatibles con versiones anteriores)

@@ -5,7 +5,6 @@ import 'package:boombet_app/models/afiliador_model.dart';
 import 'package:boombet_app/services/affiliates_service.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/create_affiliate.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_view.dart';
-import 'package:boombet_app/widgets/appbar_widget.dart' show MainAppBar;
 import 'package:flutter/material.dart';
 
 class AffiliatesManagementPage extends StatefulWidget {
@@ -478,7 +477,6 @@ class _AffiliatesManagementPageState extends State<AffiliatesManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: MainAppBar(title: 'Afiliadores', showBackButton: true),
       body: AffiliatesManagementeView(
         onCreate: _showAffiliatorForm,
         items: _affiliators,

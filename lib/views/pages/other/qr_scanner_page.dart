@@ -298,7 +298,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     // 1. Suscribirse ANTES de conectar para no perder ningún mensaje del servidor.
     //    El messageStream es broadcast: mensajes emitidos antes de suscribirse se pierden.
     _rouletteWsSubscription = _affiliationService.messageStream.listen(
-      (payload) async {
+      (payload) {
         if (_spinResultHandled) return;
 
         final spinFinishedValue = payload['spinFinished'];
@@ -308,11 +308,12 @@ class _QrScannerPageState extends State<QrScannerPage>
         if (!isSpinFinished) return;
 
         _spinResultHandled = true;
-        await _rouletteWsSubscription?.cancel();
+        // Sin await: cancelar la suscripción desde dentro de su propio callback
+        // con await puede interrumpir la ejecución del callback en Dart.
+        _rouletteWsSubscription?.cancel();
         _rouletteWsSubscription = null;
 
         if (!mounted) return;
-        Navigator.of(context).pop(); // dismiss spinning overlay
 
         final premioRaw = payload['premio'];
         if (premioRaw is Map<String, dynamic>) {
@@ -323,7 +324,9 @@ class _QrScannerPageState extends State<QrScannerPage>
                 idStandRaw is int
                     ? idStandRaw
                     : int.tryParse(idStandRaw.toString());
-            await _handleRoulettePrize(
+            // El overlay de Girando se cierra dentro de _handleRoulettePrize,
+            // justo antes del showDialog del premio, para no dejar pantalla negra.
+            _handleRoulettePrize(
               nombre: nombre,
               imgUrl: premioRaw['imgUrl']?.toString(),
               idStand: idStand,
@@ -334,6 +337,7 @@ class _QrScannerPageState extends State<QrScannerPage>
 
         _appendLog('Spin finished without valid prize');
         _affiliationService.closeWebSocket();
+        // Cerrar el overlay de Girando
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
@@ -382,6 +386,7 @@ class _QrScannerPageState extends State<QrScannerPage>
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black87,
+      useRootNavigator: false,
       builder: (_) => const _RouletteSpinningOverlay(),
     );
 
@@ -395,6 +400,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     String? imgUrl,
     int? idStand,
   }) async {
+    // Fetch del stand mientras el overlay de Girando sigue visible (sin pantalla negra).
     String? standNombre;
     if (idStand != null && idStand > 0) {
       final stand = await StandsService().fetchStandById(idStand);
@@ -404,20 +410,25 @@ class _QrScannerPageState extends State<QrScannerPage>
     _affiliationService.closeWebSocket();
     if (!mounted) return;
 
+    // Cerrar el overlay de Girando justo antes de mostrar el premio,
+    // para que no haya ningún frame de pantalla negra entre los dos.
+    Navigator.of(context).pop();
+    if (!mounted) return;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black87,
+      useRootNavigator: false,
       builder: (_) => _RouletteResultDialog(
         nombre: nombre,
         imgUrl: imgUrl,
         standNombre: standNombre,
       ),
     );
-
-    if (!mounted) return;
-    _appendLog('Roulette finished: closing scanner view');
-    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+    // El scanner queda de fondo, no se cierra.
+    _appendLog('Roulette prize dialog dismissed, scanner still active');
+    _handlingRouletteFlow = false;
   }
 
   Future<Map<String, dynamic>> _resolveUserIdentityFromUsersMe() async {
@@ -1769,6 +1780,7 @@ class _RouletteResultDialogState extends State<_RouletteResultDialog>
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
   late Animation<double> _glowAnim;
+  Timer? _autoCloseTimer;
 
   @override
   void initState() {
@@ -1799,10 +1811,16 @@ class _RouletteResultDialogState extends State<_RouletteResultDialog>
     );
 
     _entryController.forward();
+
+    // Auto-close: el dialog se cierra solo después de 5 segundos.
+    _autoCloseTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) Navigator.of(context).pop();
+    });
   }
 
   @override
   void dispose() {
+    _autoCloseTimer?.cancel();
     _entryController.dispose();
     _glowController.dispose();
     _confettiController.dispose();
