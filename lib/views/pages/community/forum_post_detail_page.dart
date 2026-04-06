@@ -6,6 +6,7 @@ import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class ForumPostDetailPage extends StatefulWidget {
@@ -724,14 +725,7 @@ class _ForumPostDetailPageState extends State<ForumPostDetailPage> {
                           const Spacer(),
                           TextButton(
                             onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ForumPostDetailPage(
-                                    postId: reply.id,
-                                  ),
-                                ),
-                              );
+                              await context.push('/forum/post/${reply.id}');
                               if (!mounted) return;
                               _loadReplies(forceRefresh: true);
                             },

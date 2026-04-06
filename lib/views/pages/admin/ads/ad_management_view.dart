@@ -360,7 +360,7 @@ class _AdManagementViewState extends State<AdManagementView> {
   Widget build(BuildContext context) {
     const green = AppConstants.primaryGreen;
 
-    return Column(
+    final content = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -673,6 +673,7 @@ class _AdManagementViewState extends State<AdManagementView> {
         ),
       ],
     );
+    return SingleChildScrollView(child: content);
   }
 }
 

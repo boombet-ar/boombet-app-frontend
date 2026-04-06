@@ -22,6 +22,7 @@ class GamesContent extends StatelessWidget {
         badge: 'Nuevo',
         onPlay: () => Navigator.of(
           context,
+          rootNavigator: true,
         ).push(MaterialPageRoute(builder: (_) => const Game01Page())),
         asset: 'assets/icons/game_01_icon.png',
       ),
@@ -33,6 +34,7 @@ class GamesContent extends StatelessWidget {
         badge: 'Arcade',
         onPlay: () => Navigator.of(
           context,
+          rootNavigator: true,
         ).push(MaterialPageRoute(builder: (_) => const Game02Page())),
         asset: 'assets/icons/game_02_icon.png',
       ),

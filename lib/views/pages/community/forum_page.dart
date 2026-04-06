@@ -7,8 +7,8 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/forum_service.dart';
-import 'package:boombet_app/views/pages/community/forum_post_detail_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -172,7 +172,6 @@ class _ForumPageState extends State<ForumPage> {
   List<_AffiliatedCasino> _affiliatedCasinos = const [];
   String _selectedForumId = _boomBetForumId;
 
-  int? _selectedPostId;
 
   List<ForumPost> _posts = [];
   bool _isLoading = true;
@@ -182,14 +181,8 @@ class _ForumPageState extends State<ForumPage> {
   int _totalPages = 0;
   bool _showMine = false;
 
-  void _openPost(int postId) {
-    setState(() => _selectedPostId = postId);
-    pageBackCallbacks[_forumTabIndex] = _closePost;
-  }
-
-  void _closePost() {
-    setState(() => _selectedPostId = null);
-    pageBackCallbacks.remove(_forumTabIndex);
+  void _openPost(BuildContext context, int postId) {
+    context.push('/forum/post/$postId');
   }
 
   @override
@@ -692,14 +685,6 @@ class _ForumPageState extends State<ForumPage> {
     final accent = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
 
-    if (_selectedPostId != null) {
-      return ForumPostDetailPage(
-        key: ValueKey(_selectedPostId),
-        postId: _selectedPostId!,
-        onClose: _closePost,
-      );
-    }
-
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
@@ -1187,7 +1172,7 @@ class _ForumPageState extends State<ForumPage> {
           accent: accent,
           showDelete: showDelete,
           onDelete: _deletePost,
-          onTap: () => _openPost(_posts[index].id),
+          onTap: () => _openPost(context, _posts[index].id),
         ),
       ),
     );

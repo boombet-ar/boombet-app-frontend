@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,6 +8,7 @@ class CasinoLogoCarousel extends StatefulWidget {
   const CasinoLogoCarousel({
     super.key,
     this.logos = defaultLogos,
+    this.comingSoonLogos = defaultComingSoonLogos,
     this.height = 62,
     this.title = 'Powered By',
     this.autoPlayInterval = Duration.zero,
@@ -14,11 +17,21 @@ class CasinoLogoCarousel extends StatefulWidget {
 
   static const List<String> defaultLogos = [
     'assets/images/bplay_logo.webp',
+    'assets/images/betano_logo.png',
     'assets/images/sportsbet_logo.webp',
+    'assets/images/betponcho_logo.svg',
     'assets/images/betsson_logo.svg',
+    'assets/images/betnor_logo.png',
+    'assets/images/easybet_logo.svg',
+  ];
+
+  static const List<String> defaultComingSoonLogos = [
+    'assets/images/betnor_logo.png',
+    'assets/images/easybet_logo.svg',
   ];
 
   final List<String> logos;
+  final List<String> comingSoonLogos;
   final double height;
   final String title;
   final Duration autoPlayInterval;
@@ -30,15 +43,38 @@ class CasinoLogoCarousel extends StatefulWidget {
 
 class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
   late final PageController _controller;
+  late final List<String> _shuffledLogos;
   bool _autoPlayRunning = false;
   static const double _webReferenceViewport = 600;
 
-  int get _initialPage => widget.logos.length * 1000;
+  int get _initialPage => _shuffledLogos.length * 1000;
   double get _viewportFraction => kIsWeb ? 0.38 : 0.55;
+
+  List<String> _buildShuffledLogos() {
+    final rng = Random();
+    final coming = widget.comingSoonLogos.toSet();
+    final list = [...widget.logos];
+    // Retry shuffle until no two coming-soon logos are adjacent (including wrap-around).
+    do {
+      list.shuffle(rng);
+    } while (_hasAdjacentComingSoon(list, coming));
+    return list;
+  }
+
+  bool _hasAdjacentComingSoon(List<String> list, Set<String> coming) {
+    final n = list.length;
+    for (var i = 0; i < n; i++) {
+      if (coming.contains(list[i]) && coming.contains(list[(i + 1) % n])) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   @override
   void initState() {
     super.initState();
+    _shuffledLogos = _buildShuffledLogos();
     _controller = PageController(
       viewportFraction: _viewportFraction,
       initialPage: _initialPage,
@@ -62,7 +98,8 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.autoPlayInterval != widget.autoPlayInterval ||
         oldWidget.animationDuration != widget.animationDuration ||
-        oldWidget.logos.length != widget.logos.length) {
+        oldWidget.logos.length != widget.logos.length ||
+        oldWidget.comingSoonLogos.length != widget.comingSoonLogos.length) {
       _autoPlayRunning = false;
       _startAutoPlay();
     }
@@ -113,7 +150,7 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final logos = widget.logos;
+    final logos = _shuffledLogos;
     if (logos.isEmpty) return const SizedBox.shrink();
 
     final textColor = Theme.of(context).colorScheme.onSurface;
@@ -141,6 +178,7 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
                   final asset = logos[index % logos.length];
+                  final isComingSoon = widget.comingSoonLogos.contains(asset);
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -156,12 +194,60 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                               width: 1,
                             ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  child: isComingSoon
+                                      ? ImageFiltered(
+                                          imageFilter: ImageFilter.blur(
+                                            sigmaX: 6.0,
+                                            sigmaY: 6.0,
+                                          ),
+                                          child: Opacity(
+                                            opacity: 0.30,
+                                            child: _buildLogoAsset(asset),
+                                          ),
+                                        )
+                                      : _buildLogoAsset(asset),
+                                ),
+                                if (isComingSoon)
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.45),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        spacing: 3,
+                                        children: [
+                                          Icon(
+                                            Icons.lock_rounded,
+                                            size: 13,
+                                            color: Colors.white.withValues(alpha: 0.55),
+                                          ),
+                                          Text(
+                                            'Próximamente',
+                                            style: TextStyle(
+                                              color: Colors.white.withValues(alpha: 0.80),
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            child: _buildLogoAsset(asset),
                           ),
                         ),
                       ),

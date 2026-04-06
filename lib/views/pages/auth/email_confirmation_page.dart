@@ -10,9 +10,8 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
-import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
 import 'package:boombet_app/services/email_verification_service.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -547,10 +546,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         LoadingOverlay.hide(context);
         if (!mounted) return;
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
-        );
+        if (context.mounted) context.go('/no-casinos');
 
         setState(() {
           _isProcessing = false;
@@ -604,10 +600,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       LoadingOverlay.hide(context);
 
       if (_isNoCasinosAvailableResponse(body: response.body)) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
-        );
+        if (context.mounted) context.go('/no-casinos');
 
         if (mounted) {
           setState(() {
@@ -618,10 +611,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
       }
 
       if (_isMissingProvinceResponse(body: response.body)) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
-        );
+        if (context.mounted) context.go('/no-casinos');
 
         if (mounted) {
           setState(() {
@@ -677,10 +667,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         }
 
         if (_isMissingProvinceResponse(body: errorMessage)) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const NoCasinosAvailablePage()),
-          );
+          if (context.mounted) context.go('/no-casinos');
 
           setState(() {
             _isProcessing = false;
@@ -901,12 +888,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
                               await _checkIsVerified(showFeedback: true);
                               if (_isVerified && mounted) {
                                 if (widget.isFromLogin) {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginPage(),
-                                    ),
-                                  );
+                                  if (context.mounted) context.go('/');
                                 } else {
                                   await _processAfiliation();
                                 }

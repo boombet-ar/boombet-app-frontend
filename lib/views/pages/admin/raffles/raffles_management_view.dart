@@ -292,7 +292,7 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
   Widget build(BuildContext context) {
     const green = AppConstants.primaryGreen;
 
-    return Column(
+    final content = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -404,6 +404,7 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
         ),
       ],
     );
+    return SingleChildScrollView(child: content);
   }
 }
 

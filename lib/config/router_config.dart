@@ -39,6 +39,7 @@ import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
+import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
 import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
 import 'package:boombet_app/views/pages/other/onboarding_page.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
@@ -56,6 +57,12 @@ const Duration _isVerifiedTtl = Duration(seconds: 20);
 const bool _forceShowOnboardingAlways = false;
 bool? _cachedIsVerified;
 DateTime? _cachedIsVerifiedAt;
+
+/// Limpia la caché de verificación del router. Llamar en logout.
+void clearRouterCache() {
+  _cachedIsVerified = null;
+  _cachedIsVerifiedAt = null;
+}
 
 bool _parseIsVerified(dynamic data) {
   if (data is Map<String, dynamic>) {
@@ -328,12 +335,6 @@ final GoRouter appRouter = GoRouter(
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
-            path: HomePageKeys.scanner,
-            builder: (_, __) => const QrScannerPage(),
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
             path: HomePageKeys.settings,
             builder: (_, __) => const SettingsPage(),
           ),
@@ -348,12 +349,6 @@ final GoRouter appRouter = GoRouter(
           GoRoute(
             path: HomePageKeys.casinos,
             builder: (_, __) => const MyCasinosPage(),
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: HomePageKeys.profile,
-            builder: (_, __) => const ProfilePage(),
           ),
         ]),
         StatefulShellBranch(routes: [
@@ -378,6 +373,14 @@ final GoRouter appRouter = GoRouter(
             : null;
         return EditProfilePage(player: player);
       },
+    ),
+    GoRoute(
+      path: HomePageKeys.profile,
+      builder: (_, __) => const ProfilePage(),
+    ),
+    GoRoute(
+      path: HomePageKeys.scanner,
+      builder: (_, __) => const QrScannerPage(),
     ),
     GoRoute(
       path: HomePageKeys.faq,
@@ -479,6 +482,18 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/stand-tools/roulettes',
       builder: (context, state) => const StandRoulettesPage(),
+    ),
+    GoRoute(
+      path: '/stand-tools/scanner',
+      builder: (context, state) => const QrScannerPage(),
+    ),
+    GoRoute(
+      path: '/not-affiliated',
+      builder: (_, __) => const IsNotAffiliatedPage(),
+    ),
+    GoRoute(
+      path: '/no-casinos',
+      builder: (_, __) => const NoCasinosAvailablePage(),
     ),
 
     // Deeplink: detalle de publicación del foro

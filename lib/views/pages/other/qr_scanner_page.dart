@@ -298,7 +298,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     // 1. Suscribirse ANTES de conectar para no perder ningún mensaje del servidor.
     //    El messageStream es broadcast: mensajes emitidos antes de suscribirse se pierden.
     _rouletteWsSubscription = _affiliationService.messageStream.listen(
-      (payload) {
+      (payload) async {
         if (_spinResultHandled) return;
 
         final spinFinishedValue = payload['spinFinished'];
@@ -341,6 +341,8 @@ class _QrScannerPageState extends State<QrScannerPage>
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
+        _handlingRouletteFlow = false;
+        await _activateScanner();
       },
       onError: (_) {},
       onDone: () {},
@@ -427,8 +429,9 @@ class _QrScannerPageState extends State<QrScannerPage>
       ),
     );
     // El scanner queda de fondo, no se cierra.
-    _appendLog('Roulette prize dialog dismissed, scanner still active');
+    _appendLog('Roulette prize dialog dismissed, reactivating scanner');
     _handlingRouletteFlow = false;
+    await _activateScanner();
   }
 
   Future<Map<String, dynamic>> _resolveUserIdentityFromUsersMe() async {

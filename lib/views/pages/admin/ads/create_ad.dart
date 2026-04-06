@@ -45,6 +45,7 @@ class _CreateAdSectionState extends State<CreateAdSection> {
   String _imageMimeType = 'image/jpeg';
   String? _existingImageUrl;
   bool _isSubmitting = false;
+  bool _sendPush = false;
   bool _isLoadingCasinos = false;
   String? _casinosError;
   int? _selectedCasinoId;
@@ -318,12 +319,14 @@ class _CreateAdSectionState extends State<CreateAdSection> {
           casinoGralId: _selectedCasinoId,
           imageName: _imageName,
           imageMimeType: _imageMimeType,
+          push: _sendPush,
         );
       }
 
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
+        _sendPush = false;
         _titleController.clear();
         _expiryDateTime = null;
         _imageBytes = null;
@@ -821,6 +824,51 @@ class _CreateAdSectionState extends State<CreateAdSection> {
                   ],
                 ),
               ),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Switch notificaciones push
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF141414),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _sendPush
+                    ? green.withValues(alpha: 0.35)
+                    : green.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.notifications_outlined,
+                  color: _sendPush ? green : green.withValues(alpha: 0.45),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Activar notificaciones push',
+                    style: TextStyle(
+                      color: _sendPush
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.55),
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: _sendPush,
+                  onChanged: (val) => setState(() => _sendPush = val),
+                  activeColor: green,
+                  activeTrackColor: green.withValues(alpha: 0.25),
+                  inactiveThumbColor: Colors.white.withValues(alpha: 0.35),
+                  inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+                ),
+              ],
             ),
           ),
 

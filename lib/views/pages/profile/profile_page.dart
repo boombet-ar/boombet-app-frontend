@@ -1,5 +1,4 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
@@ -13,6 +12,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'widgets/avatar_image.dart';
+
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -230,10 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ? () async {
                       await AuthService().logout();
                       if (mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          FadeRoute(page: const LoginPage()),
-                          (route) => false,
-                        );
+                        context.go('/');
                       }
                     }
                   : _loadUserData,

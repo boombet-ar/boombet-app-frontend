@@ -1,8 +1,6 @@
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -209,10 +207,7 @@ class _HomePageState extends State<HomePage> {
         if (shouldLogout == true && context.mounted) {
           await AuthService().logout();
           if (context.mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeRoute(page: const LoginPage()),
-              (route) => false,
-            );
+            context.go('/');
           }
         }
       },

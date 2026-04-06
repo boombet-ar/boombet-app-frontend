@@ -53,7 +53,7 @@ class AffiliatesManagementeView extends StatelessWidget {
     final canGoBack = page > 0 && !isFirstPage;
     final canGoForward = totalPages > 0 ? page < lastIndex : !isLastPage;
 
-    return Column(
+    final content = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -196,6 +196,7 @@ class AffiliatesManagementeView extends StatelessWidget {
         ),
       ],
     );
+    return SingleChildScrollView(child: content);
   }
 }
 

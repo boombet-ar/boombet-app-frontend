@@ -35,10 +35,8 @@ class HomePageKeys {
     5:  forum,
     6:  casinos,
     7:  settings,
-    8:  profile,
-    9:  admin,
-    10: scanner,
-    11: claims,
+    8:  admin,
+    9:  claims,
   };
 
   static const Map<String, int> routeToIndex = {
@@ -50,10 +48,8 @@ class HomePageKeys {
     forum:     5,
     casinos:   6,
     settings:  7,
-    profile:   8,
-    admin:     9,
-    scanner:   10,
-    claims:    11,
+    admin:     8,
+    claims:    9,
   };
 
   /// Devuelve el índice correspondiente a [path], o 0 si no hay coincidencia.

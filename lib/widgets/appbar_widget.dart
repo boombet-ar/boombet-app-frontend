@@ -2,7 +2,6 @@ import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/views/pages/profile/settings_page.dart';
@@ -242,10 +241,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                         await authService.logout();
 
                         if (context.mounted) {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            FadeRoute(page: const LoginPage()),
-                            (route) => false,
-                          );
+                          context.go('/');
                         }
                       }
                     },
@@ -287,7 +283,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     widgetKey: profileTutorialTargetKey,
                     icon: Icons.person_rounded,
                     tooltip: 'Ver perfil',
-                    onPressed: () => context.go(HomePageKeys.profile),
+                    onPressed: () => context.push(HomePageKeys.profile),
                   ),
                 ),
               if (showAdminTools)

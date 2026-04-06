@@ -1,7 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class NoCasinosAvailablePage extends StatelessWidget {
   final bool preview;
@@ -83,13 +83,7 @@ class NoCasinosAvailablePage extends StatelessWidget {
                   label: 'Volver al login',
                   onPressed: preview
                       ? () {}
-                      : () => Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginPage(),
-                            ),
-                            (route) => false,
-                          ),
+                      : () => context.go('/'),
                   disabled: preview,
                   icon: Icons.arrow_back_rounded,
                   borderRadius: AppConstants.borderRadius,

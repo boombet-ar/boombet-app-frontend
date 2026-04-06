@@ -22,8 +22,6 @@ import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
 import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
 import 'package:boombet_app/services/auth_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -70,10 +68,7 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
         if (shouldLogout == true && context.mounted) {
           await AuthService().logout();
           if (context.mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeRoute(page: const LoginPage()),
-              (route) => false,
-            );
+            context.go('/');
           }
         }
       },
@@ -218,10 +213,7 @@ class _LogoutButton extends StatelessWidget {
     if (shouldLogout == true && ctx.mounted) {
       await AuthService().logout();
       if (ctx.mounted) {
-        Navigator.of(ctx).pushAndRemoveUntil(
-          FadeRoute(page: const LoginPage()),
-          (route) => false,
-        );
+        ctx.go('/');
       }
     }
   }

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
+import '../config/router_config.dart';
+import '../core/notifiers.dart';
 import '../utils/error_parser.dart';
 import 'http_client.dart';
 import 'token_service.dart';
@@ -116,6 +118,8 @@ class AuthService {
   Future<void> logout() async {
     BiometricService.resetRuntimeValidation();
     await _clearCouponCaches();
+    await clearSessionState();
+    clearRouterCache();
     await TokenService.deleteToken();
     await TokenService.deleteFcmToken();
 

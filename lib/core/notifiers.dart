@@ -341,6 +341,36 @@ Future<void> clearAffiliationFlowRoute() async {
   }
 }
 
+/// Limpia todo el estado de sesión al hacer logout.
+/// No limpia preferencias de dispositivo (font_size_multiplier, hasSeenOnboarding).
+Future<void> clearSessionState() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keySelectedPage);
+    await prefs.remove(_keyAffiliateType);
+    await prefs.remove(_keyAffiliateCodeValidated);
+    await prefs.remove(_keyAffiliateCodeToken);
+
+    selectedPageNotifier.value = 0;
+    loginTutorialActiveNotifier.value = false;
+    pendingLoginTutorialNotifier.value = false;
+    rouletteTriggerAfterTutorialNotifier.value = false;
+    emailVerifiedNotifier.value = false;
+    affiliateTypeNotifier.value = '';
+    affiliateCodeValidatedNotifier.value = false;
+    affiliateCodeTokenNotifier.value = '';
+    pageBackCallbacks.clear();
+
+    await clearAffiliationData();
+    await clearAffiliationFlowRoute();
+    await clearAffiliationWsUrl();
+
+    debugPrint('🗑️ [SESSION] Estado de sesión limpiado');
+  } catch (e) {
+    debugPrint('❌ [SESSION] Error limpiando estado de sesión: $e');
+  }
+}
+
 Future<void> saveAffiliationWsUrl(String wsUrl) async {
   try {
     final prefs = await SharedPreferences.getInstance();

@@ -20,6 +20,8 @@ class _FaqPageState extends State<FaqPage> {
   static const String _bplayPoweredByUrl = 'https://www.bplay.bet.ar/';
   static const String _sportsbetPoweredByUrl = 'https://sportsbet.bet.ar/';
   static const String _betssonPoweredByUrl = 'https://www.betsson.bet.ar/';
+  static const String _betanoPoweredByUrl = 'https://www.betano.bet.ar/';
+  static const String _betponchoPouredByUrl = 'https://m.betponcho.bet.ar/es/';
   final List<Map<String, String>> _platformFaqs = [
     {
       'question': '¿Que es BoomBet?',
@@ -1068,40 +1070,56 @@ class _FaqPageState extends State<FaqPage> {
           ),
           const SizedBox(height: 16),
           // Casino logos
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth > 1200
-                  ? 20.0
-                  : 8.0;
-              return Row(
-                children: [
-                  Expanded(
-                    child: _buildPoweredByLogoTile(
-                      assetPath: 'assets/images/bplay_logo.webp',
-                      url: _bplayPoweredByUrl,
-                      logoHeight: logoHeight,
-                      horizontalPadding: horizontalPadding,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildPoweredByLogoTile(
-                      assetPath: 'assets/images/sportsbet_logo.webp',
-                      url: _sportsbetPoweredByUrl,
-                      logoHeight: logoHeight,
-                      horizontalPadding: horizontalPadding,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildPoweredByLogoTile(
-                      assetPath: 'assets/images/betsson_logo.svg',
-                      url: _betssonPoweredByUrl,
-                      logoHeight: logoHeight,
-                      horizontalPadding: horizontalPadding,
-                    ),
-                  ),
-                ],
-              );
-            },
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.transparent,
+                Colors.white,
+                Colors.white,
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.04, 0.82, 1.0],
+            ).createShader(bounds),
+            blendMode: BlendMode.dstIn,
+            child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildPoweredByLogoTile(
+                  assetPath: 'assets/images/bplay_logo.webp',
+                  url: _bplayPoweredByUrl,
+                  logoHeight: logoHeight,
+                  horizontalPadding: 8,
+                ),
+                _buildPoweredByLogoTile(
+                  assetPath: 'assets/images/sportsbet_logo.webp',
+                  url: _sportsbetPoweredByUrl,
+                  logoHeight: logoHeight,
+                  horizontalPadding: 8,
+                ),
+                _buildPoweredByLogoTile(
+                  assetPath: 'assets/images/betsson_logo.svg',
+                  url: _betssonPoweredByUrl,
+                  logoHeight: logoHeight,
+                  horizontalPadding: 8,
+                ),
+                _buildPoweredByLogoTile(
+                  assetPath: 'assets/images/betano_logo.png',
+                  url: _betanoPoweredByUrl,
+                  logoHeight: logoHeight,
+                  horizontalPadding: 8,
+                ),
+                _buildPoweredByLogoTile(
+                  assetPath: 'assets/images/betponcho_logo.svg',
+                  url: _betponchoPouredByUrl,
+                  logoHeight: logoHeight,
+                  horizontalPadding: 8,
+                ),
+              ],
+            ),
+          ),
           ),
           const SizedBox(height: 20),
           // Section divider
@@ -1202,9 +1220,10 @@ class _FaqPageState extends State<FaqPage> {
           borderRadius: BorderRadius.circular(12),
           splashColor: primaryGreen.withValues(alpha: 0.10),
           child: Container(
+            width: 110,
             height: 84,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF141414),
               borderRadius: BorderRadius.circular(12),
@@ -1216,12 +1235,14 @@ class _FaqPageState extends State<FaqPage> {
             child: assetPath.toLowerCase().endsWith('.svg')
                 ? SvgPicture.asset(
                     assetPath,
-                    height: logoHeight,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.contain,
                   )
                 : Image.asset(
                     assetPath,
-                    height: logoHeight,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.contain,
                   ),
           ),

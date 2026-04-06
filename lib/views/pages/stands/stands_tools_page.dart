@@ -1,8 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/auth_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
-import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -38,10 +35,7 @@ class StandsToolsPage extends StatelessWidget {
         if (shouldLogout == true && context.mounted) {
           await AuthService().logout();
           if (context.mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeRoute(page: const LoginPage()),
-              (route) => false,
-            );
+            context.go('/');
           }
         }
       },
@@ -72,10 +66,7 @@ class StandsToolsPage extends StatelessWidget {
                   title: 'Escanear QR',
                   subtitle: 'Escanear código QR de un cliente',
                   icon: Icons.qr_code_scanner_rounded,
-                  onTap: () => Navigator.push(
-                    context,
-                    FadeRoute(page: const QrScannerPage()),
-                  ),
+                  onTap: () => context.push('/stand-tools/scanner'),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -102,10 +93,7 @@ class StandsToolsPage extends StatelessWidget {
                       if (shouldLogout == true && context.mounted) {
                         await AuthService().logout();
                         if (context.mounted) {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            FadeRoute(page: const LoginPage()),
-                            (route) => false,
-                          );
+                          context.go('/');
                         }
                       }
                     },

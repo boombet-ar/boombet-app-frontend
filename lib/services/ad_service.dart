@@ -15,6 +15,7 @@ class AdService {
     int? casinoGralId,
     String? imageName,
     String imageMimeType = 'image/jpeg',
+    bool push = false,
   }) async {
     final request = await _buildAuthorizedMultipartRequest(
       method: 'POST',
@@ -25,6 +26,7 @@ class AdService {
       'casinoGralId': casinoGralId,
       'endAt': _toIso8601WithOffset(endAt),
       'text': text,
+      'push': push,
     };
 
     request.files.add(

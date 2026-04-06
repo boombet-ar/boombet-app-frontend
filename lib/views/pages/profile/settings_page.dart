@@ -4,7 +4,6 @@ import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/views/pages/other/debug_views_menu_page.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/services/auth_service.dart';
@@ -193,7 +192,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.account_circle_outlined,
                 title: 'Ver Perfil',
                 subtitle: 'Información personal y documentación',
-                onTap: () => context.go(HomePageKeys.profile),
+                onTap: () => context.push(HomePageKeys.profile),
                 surfaceColor: surfaceColor,
               ),
               const SizedBox(height: 8),
@@ -763,7 +762,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.qr_code_outlined,
                 title: 'Escanear QR',
                 subtitle: 'Escaneá códigos QR de cupones y stands',
-                onTap: () => context.go(HomePageKeys.scanner),
+                onTap: () => context.push(HomePageKeys.scanner),
                 surfaceColor: surfaceColor,
               ),
               if (AppConstants.showClaimsPage) ...[
@@ -865,13 +864,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (!confirmed || !context.mounted) return;
                           await AuthService().logout();
                           if (!context.mounted) return;
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginPage(),
-                            ),
-                            (route) => false,
-                          );
+                          context.go('/');
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(

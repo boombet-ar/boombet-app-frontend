@@ -3,10 +3,7 @@ import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
-import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
-import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
@@ -221,10 +218,7 @@ class _LoginPageState extends State<LoginPage>
         final isAffiliated = data?['isAffiliated'] ?? true;
         if (isAffiliated == false) {
           if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            ScaleRoute(page: const IsNotAffiliatedPage()),
-          );
+          if (context.mounted) context.go('/not-affiliated');
           return;
         }
 
@@ -255,15 +249,9 @@ class _LoginPageState extends State<LoginPage>
         if (!mounted) return;
 
         if (role?.trim().toUpperCase() == 'AFILIADOR') {
-          Navigator.pushReplacement(
-            context,
-            ScaleRoute(page: const AffiliatesToolsPage()),
-          );
+          if (context.mounted) context.go('/affiliates-tools');
         } else if (role?.trim().toUpperCase() == 'STAND') {
-          Navigator.pushReplacement(
-            context,
-            ScaleRoute(page: const StandsToolsPage()),
-          );
+          if (context.mounted) context.go('/stand-tools');
         } else {
           pendingLoginTutorialNotifier.value = true;
           if (context.mounted) context.go(HomePageKeys.home);
