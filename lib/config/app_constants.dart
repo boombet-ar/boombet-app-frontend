@@ -138,7 +138,7 @@ class AppConstants {
 
   /// Muestra la consola de logs en IsNotAffiliatedPage para debuggear
   /// el endpoint POST /api/users/auth/affiliate. Desactivar en producción.
-  static const bool isNotAffiliatedDebugConsoleEnabled = true;
+  static const bool isNotAffiliatedDebugConsoleEnabled = false;
 
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =
