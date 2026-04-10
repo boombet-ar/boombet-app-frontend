@@ -70,8 +70,11 @@ class _NavbarWidgetState extends State<NavbarWidget>
   /// desplazable (ej. escritorio), completa el paso automáticamente.
   void _onSwipeTutorialActivated() {
     if (!navbarSwipeTutorialNotifier.value) return;
-    if (!_scrollController.hasClients) return;
-    if (_scrollController.position.maxScrollExtent == 0) {
+    // En desktop web el ScrollController nunca se adjunta (no hay
+    // SingleChildScrollView). Tratamos ese caso igual que maxScrollExtent == 0:
+    // la navbar no es deslizable, completar el paso automáticamente.
+    if (!_scrollController.hasClients ||
+        _scrollController.position.maxScrollExtent == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) navbarScrolledToEndNotifier.value = true;
       });

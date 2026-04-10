@@ -284,7 +284,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     final premios = _premioControllers.asMap().entries.map((e) => <String, dynamic>{
       'nombre': e.value.text.trim(),
       'imgUrl': '',
-      'orden': e.key + 1,
+      if (_premioControllers.length > 1) 'orden': e.key + 1,
     }).toList();
 
     setState(() => _isSubmitting = true);

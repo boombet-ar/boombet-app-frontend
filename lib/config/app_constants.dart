@@ -47,7 +47,7 @@ class AppConstants {
 
   /// Forzar el tutorial de bienvenida en todos los logins, ignorando is_first_login.
   /// Activar durante el desarrollo del tutorial. Desactivar antes de producción.
-  static const bool forceTutorial = true;
+  static const bool forceTutorial = false;
 
   // ==================== DURACIONES ====================
   static const Duration apiTimeout = Duration(seconds: 15);
