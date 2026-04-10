@@ -90,13 +90,15 @@ class AdminToolsPage extends StatelessWidget {
                 icon: Icons.campaign_outlined,
                 onTap: () => context.push('/admin/ads'),
               ),
-              const SizedBox(height: 12),
-              _AdminPrimaryActionButton(
-                title: 'Sorteos',
-                subtitle: 'Gestión de sorteos y premios',
-                icon: Icons.emoji_events_outlined,
-                onTap: () => context.push('/admin/raffles'),
-              ),
+              if (AppConstants.showAdminRaffles) ...[
+                const SizedBox(height: 12),
+                _AdminPrimaryActionButton(
+                  title: 'Sorteos',
+                  subtitle: 'Gestión de sorteos y premios',
+                  icon: Icons.emoji_events_outlined,
+                  onTap: () => context.push('/admin/raffles'),
+                ),
+              ],
             ],
           ),
         );

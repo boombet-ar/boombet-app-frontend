@@ -9,7 +9,6 @@ import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
-import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/services/email_verification_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -646,16 +645,8 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
         await saveAffiliationFlowRoute('/limited-home');
 
-        // Navegar a LimitedHomePage
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LimitedHomePage(
-              affiliationService: _affiliationService,
-              wsUrl: wsUrl,
-            ),
-          ),
-        );
+        // Navegar a LimitedHomePage dentro del árbol de GoRouter
+        if (context.mounted) context.go('/limited-home');
       } else {
         // ❌ ERROR EN LA AFILIACIÓN
         String errorMessage = 'Error al completar la afiliación';

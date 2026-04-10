@@ -8,7 +8,7 @@ import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
-import 'package:boombet_app/views/pages/home/limited_home_page.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 
@@ -180,15 +180,7 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
         await saveAffiliationFlowRoute('/limited-home');
 
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => LimitedHomePage(
-              affiliationService: _affiliationService,
-              wsUrl: wsUrl,
-            ),
-          ),
-        );
+        if (context.mounted) context.go('/limited-home');
       } else {
         String errorMsg = 'Error al iniciar la afiliación';
         try {

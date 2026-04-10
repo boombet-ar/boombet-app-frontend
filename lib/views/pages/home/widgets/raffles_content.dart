@@ -400,7 +400,7 @@ class _RaffleCardState extends State<_RaffleCard>
   }
 
   void _initCountdown() {
-    final endAt = DateTime.tryParse(widget.raffle.endAt);
+    final endAt = DateTime.tryParse(widget.raffle.fechaFin);
     if (endAt == null) return;
     _updateRemaining(endAt);
     _countdownTimer = Timer.periodic(

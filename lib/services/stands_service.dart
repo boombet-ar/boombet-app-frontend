@@ -62,6 +62,7 @@ class StandsService {
     required String username,
     required String password,
     required String email,
+    required String telefono,
   }) async {
     final url = '${ApiConfig.baseUrl}/stands';
     final body = <String, dynamic>{
@@ -69,6 +70,7 @@ class StandsService {
       'username': username.trim(),
       'password': password,
       'email': email.trim(),
+      'telefono': telefono.trim(),
     };
 
     final response = await HttpClient.post(url, includeAuth: true, body: body);

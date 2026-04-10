@@ -48,6 +48,7 @@ class _HomeContentState extends State<HomeContent> {
     super.initState();
     _fetchAds();
     rouletteTriggerAfterTutorialNotifier.addListener(_onRouletteTriggerChanged);
+    finalTutorialActiveNotifier.addListener(_onRouletteTriggerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowRouletteOnce();
     });
@@ -68,7 +69,7 @@ class _HomeContentState extends State<HomeContent> {
       return;
     }
 
-    if (loginTutorialActiveNotifier.value) {
+    if (loginTutorialActiveNotifier.value || finalTutorialActiveNotifier.value) {
       Future.delayed(const Duration(milliseconds: 350), () {
         if (mounted) {
           _checkAndShowRouletteOnce();
@@ -144,6 +145,7 @@ class _HomeContentState extends State<HomeContent> {
     rouletteTriggerAfterTutorialNotifier.removeListener(
       _onRouletteTriggerChanged,
     );
+    finalTutorialActiveNotifier.removeListener(_onRouletteTriggerChanged);
     for (final controller in _videoControllers.values) {
       controller.dispose();
     }

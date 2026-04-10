@@ -35,7 +35,6 @@ import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dar
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
 import 'package:boombet_app/views/pages/games/games_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
-import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_page.dart'
     as home_widgets;
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
@@ -250,7 +249,7 @@ class DebugViewsMenuPage extends StatelessWidget {
             onEdit: (_) {},
             onDelete: (_) {},
             onViewAffiliations: (_) {},
-            eventoNames: const {1: 'Evento Mock'},
+            eventoNames: const {1: 'Evento Mock'}, onShowQr: (TidModel p1) {  },
           ),
         ),
       ),
@@ -379,10 +378,6 @@ class DebugViewsMenuPage extends StatelessWidget {
           ),
         ),
       ),
-      _DebugEntry(
-        'Widgets: HomeLoginTutorialOverlay',
-        () => const _HomeTutorialOverlayPreviewPage(),
-      ),
     ];
 
     return Scaffold(
@@ -478,97 +473,3 @@ class _DebugEntry {
   _DebugEntry(this.title, this.builder);
 }
 
-class _HomeTutorialOverlayPreviewPage extends StatelessWidget {
-  const _HomeTutorialOverlayPreviewPage();
-
-  @override
-  Widget build(BuildContext context) {
-    final inicioKey = GlobalKey();
-    final descuentosKey = GlobalKey();
-    final sorteosKey = GlobalKey();
-    final foroKey = GlobalKey();
-    final juegosKey = GlobalKey();
-    final firstCouponKey = GlobalKey();
-    final firstGameKey = GlobalKey();
-    final faqKey = GlobalKey();
-    final profileKey = GlobalKey();
-    final settingsKey = GlobalKey();
-    final logoutKey = GlobalKey();
-    final claimedSwitchKey = GlobalKey();
-    final forumBoomBetKey = GlobalKey();
-    final forumAddPostKey = GlobalKey();
-    final forumMyPostsKey = GlobalKey();
-
-    Widget target(GlobalKey key, String text) {
-      return Container(
-        key: key,
-        width: 110,
-        height: 38,
-        alignment: Alignment.center,
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppConstants.primaryGreen.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Text(text, style: const TextStyle(fontSize: 11)),
-      );
-    }
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                target(inicioKey, 'Inicio'),
-                target(descuentosKey, 'Descuentos'),
-                target(sorteosKey, 'Sorteos'),
-                target(foroKey, 'Foro'),
-                target(juegosKey, 'Juegos'),
-                target(firstCouponKey, 'FirstCoupon'),
-                target(firstGameKey, 'FirstGame'),
-                target(faqKey, 'FAQ'),
-                target(profileKey, 'Profile'),
-                target(settingsKey, 'Settings'),
-                target(logoutKey, 'Logout'),
-                target(claimedSwitchKey, 'ClaimedSwitch'),
-                target(forumBoomBetKey, 'ForumBoomBet'),
-                target(forumAddPostKey, 'ForumAddPost'),
-                target(forumMyPostsKey, 'ForumMyPosts'),
-              ],
-            ),
-          ),
-          HomeLoginTutorialOverlay(
-            onClose: () => Navigator.of(context).maybePop(),
-            inicioTargetKey: inicioKey,
-            descuentosTargetKey: descuentosKey,
-            sorteosTargetKey: sorteosKey,
-            foroTargetKey: foroKey,
-            juegosTargetKey: juegosKey,
-            firstCouponTargetKey: firstCouponKey,
-            firstGameTargetKey: firstGameKey,
-            faqTargetKey: faqKey,
-            profileTargetKey: profileKey,
-            settingsTargetKey: settingsKey,
-            logoutTargetKey: logoutKey,
-            claimedSwitchTargetKey: claimedSwitchKey,
-            forumBoomBetTargetKey: forumBoomBetKey,
-            forumAddPostTargetKey: forumAddPostKey,
-            forumMyPostsTargetKey: forumMyPostsKey,
-            onRequestOpenDiscounts: () {},
-            onRequestOpenRaffles: () {},
-            onRequestOpenForum: () {},
-            onRequestOpenGames: () {},
-            onRequestOpenClaimedCoupons: () {},
-          ),
-        ],
-      ),
-    );
-  }
-}

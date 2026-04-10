@@ -4,10 +4,13 @@ import 'dart:math' as math;
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:boombet_app/models/prize_canje_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/stands_service.dart';
+import 'package:boombet_app/services/tids_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +18,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class QrScannerPage extends StatefulWidget {
-  const QrScannerPage({super.key});
+  const QrScannerPage({super.key, this.fromLogin = false});
+
+  final bool fromLogin;
 
   @override
   State<QrScannerPage> createState() => _QrScannerPageState();
@@ -211,6 +216,16 @@ class _QrScannerPageState extends State<QrScannerPage>
       _lastScanAt = now;
     });
 
+    // fromLogin: intentar parsear QR como JSON de TID directo
+    if (widget.fromLogin) {
+      final tidFromJson = _extractTidStringFromJson(value!);
+      if (tidFromJson != null) {
+        _appendLog('fromLogin: TID extracted from JSON QR: $tidFromJson');
+        GoRouter.of(context).go('/register', extra: {'tid': tidFromJson});
+        return;
+      }
+    }
+
     // STAND role: intercept every QR for prize canje
     if (_userRole == 'STAND') {
       if (_handlingCanjeFlow) {
@@ -267,7 +282,30 @@ class _QrScannerPageState extends State<QrScannerPage>
       return;
     }
 
-    _appendLog('Non-roulette URI, opening external app');
+    if (_isTidDeepLink(uri)) {
+      _appendLog('TID deeplink detected');
+
+      // Nuevo formato: boombet://tid?code=TEST_ING — sin fetch al backend
+      if (widget.fromLogin) {
+        final code = uri.queryParameters['code']?.trim();
+        if (code != null && code.isNotEmpty) {
+          _appendLog('fromLogin: TID code from URL param: $code');
+          GoRouter.of(context).go('/register', extra: {'tid': code});
+          return;
+        }
+      }
+
+      final tidId = _extractTidId(uri);
+      if (tidId == null) {
+        _appendLog('TID ID missing/invalid in URI');
+        _showSnack('QR de TID inválido');
+        return;
+      }
+      await _handleTidDeepLink(tidId);
+      return;
+    }
+
+    _appendLog('Non-boombet URI, opening external app');
 
     if (_isLaunching) return;
     _isLaunching = true;
@@ -521,6 +559,256 @@ class _QrScannerPageState extends State<QrScannerPage>
     return host.contains('roulette') || path.contains('roulette');
   }
 
+  // ─── TID DEEP LINK ───────────────────────────────────────────────────────
+
+  /// Intenta extraer el campo "tid" si el valor crudo del QR es un JSON de TID.
+  /// Soporta tanto `{"tid":"ABC-DEF",...}` como deeplink `boombet://tid?id=1`.
+  String? _extractTidStringFromJson(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        final tid = decoded['tid'];
+        if (tid is String && tid.trim().isNotEmpty) return tid.trim();
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  bool _isTidDeepLink(Uri uri) {
+    if (uri.scheme != 'boombet') return false;
+    final host = uri.host.toLowerCase();
+    final path = uri.path.toLowerCase();
+    return host == 'tid' || path.contains('tid');
+  }
+
+  int? _extractTidId(Uri uri) {
+    final fromQuery = uri.queryParameters['id'];
+    if (fromQuery != null) return int.tryParse(fromQuery.trim());
+    if (uri.pathSegments.isNotEmpty) {
+      return int.tryParse(uri.pathSegments.last.trim());
+    }
+    return null;
+  }
+
+  Future<void> _handleTidDeepLink(int tidId) async {
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+    _appendLog('TID deeplink detected: id=$tidId');
+
+    // ── Flujo desde login: redirigir al registro con el TID pre-cargado ──
+    if (widget.fromLogin) {
+      _appendLog('fromLogin=true: fetching TID id=$tidId');
+      final router = GoRouter.of(context);
+      try {
+        final url = Uri.parse('${ApiConfig.baseUrl}/tid/$tidId');
+        final response = await http.get(url).timeout(const Duration(seconds: 10));
+        _appendLog('TID fetch status: ${response.statusCode}');
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final tid = data['tid'] as String?;
+          if (tid != null && tid.isNotEmpty) {
+            _appendLog('TID fetched: $tid — navigating to register');
+            router.go('/register', extra: {'tid': tid});
+          } else {
+            _appendLog('TID fetch: campo tid vacío en respuesta');
+            if (mounted) _showSnack('QR inválido: TID no encontrado.');
+          }
+        } else {
+          _appendLog('TID fetch error: HTTP ${response.statusCode}');
+          if (mounted) _showSnack('No se pudo obtener el TID del QR.');
+        }
+      } catch (e) {
+        _appendLog('TID fetch exception: $e');
+        if (mounted) _showSnack('No se pudo obtener el TID del QR.');
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      builder: (ctx) {
+        bool isFetching = false;
+        dynamic tidData;
+        String? fetchError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            if (!isFetching && tidData == null && fetchError == null) {
+              isFetching = true;
+              TidsService()
+                  .fetchTidById(id: tidId)
+                  .then((result) {
+                    setDialogState(() {
+                      tidData = result;
+                      isFetching = false;
+                    });
+                  })
+                  .catchError((e) {
+                    _appendLog('TID fetch error: $e');
+                    setDialogState(() {
+                      fetchError = 'No se pudo obtener el TID.';
+                      isFetching = false;
+                    });
+                  });
+            }
+
+            return Dialog(
+              backgroundColor: dialogBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: green.withValues(alpha: 0.20)),
+              ),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 24,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Header ───────────────────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                      decoration: BoxDecoration(
+                        color: green.withValues(alpha: 0.06),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(18),
+                          topRight: Radius.circular(18),
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: green.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: green.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: green.withValues(alpha: 0.22),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_rounded,
+                              color: green,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tracking ID',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                Text(
+                                  'Información del TID escaneado',
+                                  style: TextStyle(
+                                    color: Color(0x66FFFFFF),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Contenido ────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                      child: isFetching
+                          ? const SizedBox(
+                              height: 80,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: green,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            )
+                          : fetchError != null
+                          ? SizedBox(
+                              height: 80,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    color: AppConstants.errorRed,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      fetchError!,
+                                      style: const TextStyle(
+                                        color: AppConstants.errorRed,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _TidInfoRows(tid: tidData),
+                    ),
+
+                    // ── Acción ───────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            backgroundColor: green.withValues(alpha: 0.08),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: green.withValues(alpha: 0.18),
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cerrar',
+                            style: TextStyle(
+                              color: green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   String? _extractRouletteCode(Uri uri) {
     final queryCode =
         uri.queryParameters['codigoRuleta'] ??
@@ -769,9 +1057,7 @@ class _QrScannerPageState extends State<QrScannerPage>
           Positioned.fill(
             child: ResponsiveWrapper(
               maxWidth: 900,
-              child: Column(
-                children: [
-                Expanded(
+              child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -791,33 +1077,23 @@ class _QrScannerPageState extends State<QrScannerPage>
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: Center(
-                          child: const _SearchingAnimation(),
-                        ),
-                      ),
+                      const SizedBox(height: 14),
+                      const Center(child: _SearchingAnimation()),
                       if (AppConstants.qrScannerDebugConsoleEnabled) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppConstants.paddingLarge,
-                            0,
+                            14,
                             AppConstants.paddingLarge,
                             AppConstants.paddingLarge,
                           ),
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 14),
-                              _buildLogsPanel(),
-                            ],
-                          ),
+                          child: _buildLogsPanel(),
                         ),
                       ],
                     ],
                   ),
                 ),
-              ],
             ),
-          ),
           ),
         ],
       ),
@@ -2342,4 +2618,72 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ConfettiPainter old) => animation != old.animation;
+}
+
+// ── Widget de filas de info del TID ───────────────────────────────────────────
+
+class _TidInfoRows extends StatelessWidget {
+  final dynamic tid; // TidModel
+
+  const _TidInfoRows({required this.tid});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tid == null) return const SizedBox.shrink();
+
+    final rows = <_InfoRow>[
+      _InfoRow(label: 'ID', value: tid.id.toString()),
+      _InfoRow(label: 'TID', value: tid.tid.isNotEmpty ? tid.tid : '—'),
+      _InfoRow(
+        label: 'Evento',
+        value: tid.idEvento != 0 ? tid.idEvento.toString() : 'Sin evento',
+      ),
+      _InfoRow(label: 'Afiliador', value: tid.idAfiliador.toString()),
+      _InfoRow(
+        label: 'Stand',
+        value: tid.idStand != null ? tid.idStand.toString() : '—',
+      ),
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: rows
+          .map(
+            (r) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Text(
+                    r.label,
+                    style: const TextStyle(
+                      color: Color(0x66FFFFFF),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      r.value,
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _InfoRow {
+  final String label;
+  final String value;
+  const _InfoRow({required this.label, required this.value});
 }

@@ -58,6 +58,7 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
+  final _telefonoController = TextEditingController();
 
   @override
   void dispose() {
@@ -65,6 +66,7 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
     _usernameController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
 
@@ -75,8 +77,9 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
     final email = _emailController.text.trim();
+    final telefono = _telefonoController.text.trim();
 
-    if (nombre.isEmpty || username.isEmpty || password.isEmpty || email.isEmpty) {
+    if (nombre.isEmpty || username.isEmpty || password.isEmpty || email.isEmpty || telefono.isEmpty) {
       widget.onError('Todos los campos son obligatorios para continuar.');
       return;
     }
@@ -89,6 +92,7 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
         username: username,
         password: password,
         email: email,
+        telefono: telefono,
       );
 
       if (mounted && Navigator.of(context).canPop()) {
@@ -292,6 +296,18 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
                         label: 'Email del operador',
                         hint: 'Ej: stand@boombet.com',
                         icon: Icons.email_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _telefonoController,
+                      keyboardType: TextInputType.phone,
+                      style: fieldStyle,
+                      cursorColor: green,
+                      decoration: _fieldDecoration(
+                        label: 'Teléfono',
+                        hint: 'Ej: 1122334455',
+                        icon: Icons.phone_outlined,
                       ),
                     ),
                     const SizedBox(height: 4),

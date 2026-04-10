@@ -18,6 +18,7 @@ class TidsManagementView extends StatelessWidget {
   final void Function(TidModel) onEdit;
   final void Function(TidModel) onDelete;
   final void Function(TidModel) onViewAffiliations;
+  final void Function(TidModel) onShowQr;
   final Map<int, String> eventoNames;
   final Map<int, String> standNames;
 
@@ -34,6 +35,7 @@ class TidsManagementView extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onViewAffiliations,
+    required this.onShowQr,
     this.eventoNames = const {},
     this.standNames = const {},
   });
@@ -81,6 +83,10 @@ class TidsManagementView extends StatelessWidget {
                       trailingWidget: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          _QrIconButton(
+                            isDisabled: isEditing || isDeleting,
+                            onPressed: () => onShowQr(tid),
+                          ),
                           _EditIconButton(
                             isEditing: isEditing,
                             isDisabled: isEditing || isDeleting,
@@ -477,6 +483,31 @@ class _TidListTile extends StatelessWidget {
           ),
           if (trailingWidget != null) trailingWidget!,
         ],
+      ),
+    );
+  }
+}
+
+// ── Botón QR ───────────────────────────────────────────────────────────────────
+
+class _QrIconButton extends StatelessWidget {
+  final bool isDisabled;
+  final VoidCallback onPressed;
+
+  const _QrIconButton({
+    required this.isDisabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Ver QR del TID',
+      onPressed: isDisabled ? null : onPressed,
+      icon: Icon(
+        Icons.qr_code_rounded,
+        color: isDisabled ? _green.withValues(alpha: 0.30) : _green,
+        size: 20,
       ),
     );
   }

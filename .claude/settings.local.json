@@ -15,7 +15,13 @@
       "Bash(python -c \"import sys,json; pkgs=json.load\\(sys.stdin\\)[''''packages'''']; [print\\(p[''''name''''], p.get\\(''''version'''',''''''''\\)\\) for p in pkgs if p[''''name'''']==''''web'''']\")",
       "Bash(flutter pub:*)",
       "Bash(grep -v \"^$\")",
-      "Bash(head -10 echo \"---\" grep -n \"Scaffold\\\\|AppBar\\\\|AppbarWidget\" \"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/admin/raffles/raffles_management_view.dart\")"
+      "Bash(head -10 echo \"---\" grep -n \"Scaffold\\\\|AppBar\\\\|AppbarWidget\" \"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/admin/raffles/raffles_management_view.dart\")",
+      "Bash(find lib:*)",
+      "Bash(2)",
+      "Bash(del \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\views\\\\pages\\\\home\\\\widgets\\\\home_login_tutorial_overlay.dart\")",
+      "Bash(\"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/config/router_config.dart\")",
+      "Bash(python -c \"print\\(''ok''\\)\")",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

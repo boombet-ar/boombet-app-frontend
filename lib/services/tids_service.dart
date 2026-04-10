@@ -33,12 +33,12 @@ class TidsService {
     throw Exception(ErrorParser.parseResponse(response));
   }
 
-  Future<TidModel> fetchTidById({required int id}) async {
+  Future<TidModel> fetchTidById({required int id, bool includeAuth = true}) async {
     final url = '${ApiConfig.baseUrl}/tid/$id';
 
     final response = await HttpClient.get(
       url,
-      includeAuth: true,
+      includeAuth: includeAuth,
       cacheTtl: Duration.zero,
     );
 

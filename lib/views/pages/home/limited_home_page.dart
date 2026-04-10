@@ -8,7 +8,7 @@ import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
 import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
+import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
@@ -142,12 +142,7 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     await _closeGameIfOpen();
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AffiliationResultsPage(result: result),
-      ),
-    );
+    if (context.mounted) context.go('/affiliation-results', extra: result);
   }
 
   Future<void> _openLimitedGame(WidgetBuilder builder) async {
@@ -210,9 +205,12 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
               ],
             ),
           ),
-          bottomNavigationBar: const NavbarWidget(
+          bottomNavigationBar: NavbarWidget(
             showCasinos: false,
             hiddenIndexes: [6, 7],
+            onTabTap: (index) {
+              selectedPageNotifier.value = index;
+            },
           ),
         );
       },

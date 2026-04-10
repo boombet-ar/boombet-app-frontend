@@ -736,6 +736,7 @@ class _ForumPageState extends State<ForumPage> {
           // ── Toggle Todos / Mis posts ─────────────────────────────
           Expanded(
             child: Container(
+              key: widget.tutorialMyPostsButtonKey,
               height: 38,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
@@ -775,7 +776,7 @@ class _ForumPageState extends State<ForumPage> {
                     accent: accent,
                     isDark: isDark,
                     textMuted: textMuted,
-                    widgetKey: widget.tutorialMyPostsButtonKey,
+                    widgetKey: null,
                     onTap: () {
                       if (!_showMine) {
                         setState(() {

@@ -606,6 +606,43 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
         ),
+        const SizedBox(height: 10),
+
+        // Botón Escanear QR promocional
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: textColor.withValues(alpha: 0.22),
+                width: 1.5,
+              ),
+              backgroundColor: textColor.withValues(alpha: 0.05),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              ),
+              overlayColor: textColor.withValues(alpha: 0.06),
+            ),
+            onPressed: () => context.push(HomePageKeys.scanner, extra: {'fromLogin': true}),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.qr_code_scanner_rounded, size: 18, color: textColor.withValues(alpha: 0.75)),
+                const SizedBox(width: 8),
+                Text(
+                  'Escanear QR promocional',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: textColor.withValues(alpha: 0.75),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 14),
 
         // Separador con "o"

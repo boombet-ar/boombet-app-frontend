@@ -1,14 +1,16 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
-import 'package:boombet_app/views/pages/home/widgets/home_login_tutorial_overlay.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/widgets/tutorial_overlay.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -28,8 +30,6 @@ Future<void> _subscribeToTopics() async {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _tutorialInteractionLocked = false;
-
   bool get _hideCasinosOnMobile {
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.android ||
@@ -39,136 +39,355 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-
-    final showTutorial = pendingLoginTutorialNotifier.value;
     pendingLoginTutorialNotifier.value = false;
-
-    _tutorialInteractionLocked = showTutorial && !kIsWeb;
-    if (_tutorialInteractionLocked) {
-      loginTutorialActiveNotifier.value = true;
-    }
-    rouletteTriggerAfterTutorialNotifier.value = !showTutorial || kIsWeb;
-
+    rouletteTriggerAfterTutorialNotifier.value = true;
     _subscribeToTopics();
+    juegosNavbarTutorialNotifier.addListener(_onJuegosNavbarTrigger);
+    sorteosNavbarTutorialNotifier.addListener(_onSorteosNavbarTrigger);
+    navbarScrolledToEndNotifier.addListener(_onNavbarScrolledToEnd);
+    foroNavbarTutorialNotifier.addListener(_onForoNavbarTrigger);
+    ajustesNavbarTutorialNotifier.addListener(_onAjustesNavbarTrigger);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkFirstLogin());
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (showTutorial && !kIsWeb) {
-        _maybeShowLoginTutorialOverlay();
-      }
+  @override
+  void dispose() {
+    juegosNavbarTutorialNotifier.removeListener(_onJuegosNavbarTrigger);
+    sorteosNavbarTutorialNotifier.removeListener(_onSorteosNavbarTrigger);
+    navbarScrolledToEndNotifier.removeListener(_onNavbarScrolledToEnd);
+    foroNavbarTutorialNotifier.removeListener(_onForoNavbarTrigger);
+    ajustesNavbarTutorialNotifier.removeListener(_onAjustesNavbarTrigger);
+    super.dispose();
+  }
+
+  void _onNavbarScrolledToEnd() {
+    if (navbarScrolledToEndNotifier.value && mounted) {
+      navbarSwipeTutorialNotifier.value = false;
+      navbarScrolledToEndNotifier.value = false;
+      _launchPremiosNavbarTutorial();
+    }
+  }
+
+  void _onForoNavbarTrigger() {
+    if (foroNavbarTutorialNotifier.value && mounted) {
+      foroNavbarTutorialNotifier.value = false;
+      _launchForoNavbarTutorial();
+    }
+  }
+
+  void _onAjustesNavbarTrigger() {
+    if (ajustesNavbarTutorialNotifier.value && mounted) {
+      ajustesNavbarTutorialNotifier.value = false;
+      _launchAjustesNavbarTutorial();
+    }
+  }
+
+  void _launchPremiosNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          TargetFocus(
+            identify: 'premios_navbar',
+            keyTarget: HomePageKeys.premiosNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.workspace_premium_rounded,
+                  title: 'Premios',
+                  description: '¡Vamos a ver la sección de premios!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'premios_navbar' && mounted) {
+            context.go(HomePageKeys.prizes);
+            premiosTutorialActiveNotifier.value = true;
+          }
+        },
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
     });
   }
 
-  Future<void> _maybeShowLoginTutorialOverlay() async {
-    if (kIsWeb) return;
-
-    final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
-    if (!mounted) return;
-
-    if (isFirstLogin == false) {
-      setState(() => _tutorialInteractionLocked = false);
-      loginTutorialActiveNotifier.value = false;
-      return;
-    }
-
-    await _showLoginTutorialOverlay();
+  void _launchForoNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          TargetFocus(
+            identify: 'foro_navbar',
+            keyTarget: HomePageKeys.foroNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.forum_rounded,
+                  title: 'Foro',
+                  description: '¡Vamos a ver el foro de BoomBet!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'foro_navbar' && mounted) {
+            context.go(HomePageKeys.forum);
+            foroTutorialActiveNotifier.value = true;
+          }
+        },
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
+    });
   }
 
-  Future<void> _showLoginTutorialOverlay() async {
-    if (kIsWeb) return;
-    if (!mounted) return;
-
-    final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
-    if (!mounted) return;
-    if (isFirstLogin == false) {
-      if (mounted) setState(() => _tutorialInteractionLocked = false);
-      loginTutorialActiveNotifier.value = false;
-      return;
-    }
-
-    final shouldShowRoulette = await _shouldShowRouletteForCurrentUser();
-
-    loginTutorialActiveNotifier.value = true;
-    try {
-      await showGeneralDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        barrierLabel: 'tutorial',
-        barrierColor: Colors.transparent,
-        transitionDuration: const Duration(milliseconds: 220),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return HomeLoginTutorialOverlay(
-            inicioTargetKey:        HomePageKeys.inicioNavbarKey,
-            descuentosTargetKey:    HomePageKeys.descuentosNavbarKey,
-            sorteosTargetKey:       HomePageKeys.sorteosNavbarKey,
-            foroTargetKey:          HomePageKeys.foroNavbarKey,
-            juegosTargetKey:        HomePageKeys.juegosNavbarKey,
-            firstCouponTargetKey:   HomePageKeys.firstCouponKey,
-            firstGameTargetKey:     HomePageKeys.firstGameKey,
-            faqTargetKey:           HomePageKeys.faqAppbarKey,
-            profileTargetKey:       HomePageKeys.profileAppbarKey,
-            settingsTargetKey:      HomePageKeys.settingsAppbarKey,
-            logoutTargetKey:        HomePageKeys.logoutAppbarKey,
-            claimedSwitchTargetKey: HomePageKeys.claimedSwitchKey,
-            forumBoomBetTargetKey:  HomePageKeys.forumBoomBetSelectorKey,
-            forumAddPostTargetKey:  HomePageKeys.forumAddPostKey,
-            forumMyPostsTargetKey:  HomePageKeys.forumMyPostsKey,
-            onRequestOpenDiscounts: () => context.go(HomePageKeys.discounts),
-            onRequestOpenRaffles:   () => context.go(HomePageKeys.raffles),
-            onRequestOpenForum:     () => context.go(HomePageKeys.forum),
-            onRequestOpenGames:     () => context.go(HomePageKeys.games),
-            onRequestOpenClaimedCoupons: () {
-              context.go(HomePageKeys.discounts);
-              HomePageKeys.discountsKey.currentState
-                  ?.openClaimedFromTutorial();
-            },
-            onTutorialCompleted: () async {
-              if (shouldShowRoulette) {
-                rouletteTriggerAfterTutorialNotifier.value = true;
-                return;
-              }
-              await _setFirstLoginFalseSafely();
-            },
-            onClose: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              }
-            },
-          );
+  void _launchAjustesNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          TargetFocus(
+            identify: 'ajustes_navbar',
+            keyTarget: HomePageKeys.ajustesNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.settings_rounded,
+                  title: 'Ajustes',
+                  description: '¡Vamos a ver los ajustes de la app!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'ajustes_navbar' && mounted) {
+            context.go(HomePageKeys.settings);
+            ajustesTutorialActiveNotifier.value = true;
+          }
         },
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      );
-    } finally {
-      if (mounted) setState(() => _tutorialInteractionLocked = false);
-      loginTutorialActiveNotifier.value = false;
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
+    });
+  }
+
+  void _onJuegosNavbarTrigger() {
+    if (juegosNavbarTutorialNotifier.value && mounted) {
+      juegosNavbarTutorialNotifier.value = false;
+      _launchJuegosNavbarTutorial();
     }
   }
 
-  Future<void> _setFirstLoginFalseSafely() async {
+  void _onSorteosNavbarTrigger() {
+    if (sorteosNavbarTutorialNotifier.value && mounted) {
+      sorteosNavbarTutorialNotifier.value = false;
+      _launchSorteosNavbarTutorial();
+    }
+  }
+
+  Future<void> _checkFirstLogin() async {
+    if (AppConstants.forceTutorial) {
+      if (mounted) loginTutorialActiveNotifier.value = true;
+      return;
+    }
     try {
-      await PlayerService().setFirstLoginFalse();
+      final isFirst = await PlayerService().getCurrentUserIsFirstLogin();
+      if (isFirst == true && mounted) {
+        loginTutorialActiveNotifier.value = true;
+      }
     } catch (_) {}
   }
 
-  Future<bool> _shouldShowRouletteForCurrentUser() async {
-    if (kIsWeb) return false;
-    try {
-      final isFirstLogin = await _getCurrentUserIsFirstLoginSafely();
-      if (isFirstLogin == false) return false;
-      await loadAffiliateCodeUsage();
-      return !affiliateCodeValidatedNotifier.value;
-    } catch (_) {
-      return false;
-    }
+  void _launchJuegosNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          TargetFocus(
+            identify: 'juegos_navbar',
+            keyTarget: HomePageKeys.juegosNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.videogame_asset_rounded,
+                  title: 'Juegos',
+                  description: '¡Vamos a ver los juegos oficiales de BoomBet!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'juegos_navbar' && mounted) {
+            context.go(HomePageKeys.games);
+            gamesTutorialActiveNotifier.value = true;
+          }
+        },
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
+    });
   }
 
-  Future<bool?> _getCurrentUserIsFirstLoginSafely() async {
-    try {
-      return await PlayerService().getCurrentUserIsFirstLogin();
-    } catch (_) {
-      return null;
-    }
+  void _launchSorteosNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          TargetFocus(
+            identify: 'sorteos_navbar',
+            keyTarget: HomePageKeys.sorteosNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'Sorteos',
+                  description: '¡Continuemos con los sorteos!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'sorteos_navbar' && mounted) {
+            context.go(HomePageKeys.raffles);
+            sorteosTutorialActiveNotifier.value = true;
+          }
+        },
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
+    });
+  }
+
+  void _launchNavbarTutorial() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      TutorialCoachMark(
+        targets: [
+          // Paso 1 — Club
+          TargetFocus(
+            identify: 'club_navbar',
+            keyTarget: HomePageKeys.inicioNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: false,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.groups_rounded,
+                  title: 'Club',
+                  description:
+                      'Esta es la página principal. Acá vas a poder enterarte de los últimos eventos y promociones de BoomBet, y de los casinos a los que estás afiliado.',
+                  onContinue: controller.next,
+                ),
+              ),
+            ],
+          ),
+          // Paso 2 — Descuentos (el usuario toca el botón para avanzar)
+          TargetFocus(
+            identify: 'descuentos_navbar',
+            keyTarget: HomePageKeys.descuentosNavbarKey,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            enableOverlayTab: false,
+            enableTargetTab: true,
+            contents: [
+              TargetContent(
+                align: ContentAlign.top,
+                builder: (ctx, controller) => TutorialStepCard(
+                  icon: Icons.local_offer_rounded,
+                  title: 'Descuentos',
+                  description:
+                      '¡Vamos a cambiar a la vista de descuentos!',
+                  hint: 'Tocá el botón para continuar',
+                ),
+              ),
+            ],
+          ),
+        ],
+        colorShadow: Colors.black,
+        opacityShadow: 0.88,
+        paddingFocus: 10,
+        focusAnimationDuration: const Duration(milliseconds: 400),
+        unFocusAnimationDuration: const Duration(milliseconds: 300),
+        skipWidget: const SizedBox.shrink(),
+        onClickTarget: (target) {
+          if (target.identify == 'descuentos_navbar' && mounted) {
+            context.go(HomePageKeys.discounts);
+            discountsTutorialActiveNotifier.value = true;
+          }
+        },
+        onFinish: () {},
+        onSkip: () => true,
+      ).show(context: context);
+    });
   }
 
   @override
@@ -211,22 +430,55 @@ class _HomePageState extends State<HomePage> {
           }
         }
       },
-      child: AbsorbPointer(
-        absorbing: _tutorialInteractionLocked,
-        child: Scaffold(
-          body: ResponsiveWrapper(
-            maxWidth: 1200,
-            child: widget.navigationShell,
+      child: Stack(
+        children: [
+          Scaffold(
+            body: ResponsiveWrapper(
+              maxWidth: 1200,
+              child: widget.navigationShell,
+            ),
+            bottomNavigationBar: NavbarWidget(
+              showCasinos: !_hideCasinosOnMobile,
+              inicioTutorialTargetKey:     HomePageKeys.inicioNavbarKey,
+              descuentosTutorialTargetKey: HomePageKeys.descuentosNavbarKey,
+              sorteosTutorialTargetKey:    HomePageKeys.sorteosNavbarKey,
+              foroTutorialTargetKey:       HomePageKeys.foroNavbarKey,
+              juegosTutorialTargetKey:     HomePageKeys.juegosNavbarKey,
+              premiosTutorialTargetKey:    HomePageKeys.premiosNavbarKey,
+              ajustesTutorialTargetKey:    HomePageKeys.ajustesNavbarKey,
+            ),
           ),
-          bottomNavigationBar: NavbarWidget(
-            showCasinos: !_hideCasinosOnMobile,
-            inicioTutorialTargetKey:     HomePageKeys.inicioNavbarKey,
-            descuentosTutorialTargetKey: HomePageKeys.descuentosNavbarKey,
-            sorteosTutorialTargetKey:    HomePageKeys.sorteosNavbarKey,
-            foroTutorialTargetKey:       HomePageKeys.foroNavbarKey,
-            juegosTutorialTargetKey:     HomePageKeys.juegosNavbarKey,
+          ValueListenableBuilder<bool>(
+            valueListenable: loginTutorialActiveNotifier,
+            builder: (context, isActive, _) {
+              if (!isActive) return const SizedBox.shrink();
+              return TutorialOverlay(
+                onContinue: () {
+                  loginTutorialActiveNotifier.value = false;
+                  _launchNavbarTutorial();
+                },
+              );
+            },
           ),
-        ),
+          ValueListenableBuilder<bool>(
+            valueListenable: navbarSwipeTutorialNotifier,
+            builder: (context, isActive, _) {
+              if (!isActive) return const SizedBox.shrink();
+              return const NavbarSwipeTutorial();
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: finalTutorialActiveNotifier,
+            builder: (context, isActive, _) {
+              if (!isActive) return const SizedBox.shrink();
+              return TutorialFinalOverlay(
+                onContinue: () {
+                  finalTutorialActiveNotifier.value = false;
+                },
+              );
+            },
+          ),
+        ],
       ),
     );
   }

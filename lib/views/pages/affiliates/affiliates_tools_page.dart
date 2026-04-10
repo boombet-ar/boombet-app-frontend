@@ -1,5 +1,7 @@
 import 'dart:developer';
 import 'dart:math' show max;
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/evento_model.dart';
@@ -26,6 +28,8 @@ import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:boombet_app/core/utils/qr_saver.dart';
 
 class AffiliatesToolsPage extends StatefulWidget {
   const AffiliatesToolsPage({super.key});
@@ -171,6 +175,13 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       icon: Icons.group_outlined,
                       onTap: () =>
                           context.push('/affiliates-tools/sub-afiliadores'),
+                    ),
+                    const SizedBox(height: 12),
+                    _AffiliatorPrimaryActionButton(
+                      title: 'Sorteos',
+                      subtitle: 'Gestión de sorteos y premios',
+                      icon: Icons.emoji_events_outlined,
+                      onTap: () => context.push('/admin/raffles'),
                     ),
                     const SizedBox(height: 24),
                     _LogoutButton(context: context),
@@ -767,6 +778,311 @@ class _TidsPageState extends State<TidsPage> {
     );
   }
 
+  void _showTidQr(TidModel tid) {
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+    // Key fuera del builder para que sobreviva los rebuilds del StatefulBuilder
+    final qrRepaintKey = GlobalKey();
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      builder: (ctx) {
+        bool isFetching = false;
+        String? qrData;
+        String? fetchError;
+        bool isDownloading = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // ── Carga inicial ────────────────────────────────────────────
+            if (!isFetching && qrData == null && fetchError == null) {
+              isFetching = true;
+              _tidsService
+                  .fetchTidById(id: tid.id)
+                  .then((result) {
+                    setDialogState(() {
+                      // Deep link propio de la app: solo el scanner de BoomBet
+                      // sabe qué hacer con este esquema. Un scanner externo
+                      // verá una URL opaca sin datos sensibles.
+                      qrData = 'boombet://tid?code=${result.tid}';
+                      isFetching = false;
+                    });
+                  })
+                  .catchError((e) {
+                    log('[TidsPage] fetchTidById error: $e');
+                    setDialogState(() {
+                      fetchError = 'No se pudo obtener el TID.';
+                      isFetching = false;
+                    });
+                  });
+            }
+
+            // ── Descarga ─────────────────────────────────────────────────
+            Future<void> handleDownload() async {
+              if (isDownloading) return;
+              setDialogState(() => isDownloading = true);
+              try {
+                final boundary = qrRepaintKey.currentContext
+                    ?.findRenderObject() as RenderRepaintBoundary?;
+                if (boundary == null) throw Exception('No se pudo capturar el QR');
+
+                final image = await boundary.toImage(pixelRatio: 3.0);
+                final byteData = await image.toByteData(
+                  format: ui.ImageByteFormat.png,
+                );
+                if (byteData == null) throw Exception('Error al generar imagen');
+
+                final bytes = byteData.buffer.asUint8List();
+                final safeName = tid.tid
+                    .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+                final filename = 'tid_${safeName}_qr.png';
+
+                final savedPath = await saveQrImage(bytes, filename);
+
+                if (ctx.mounted) {
+                  final msg = savedPath != null
+                      ? 'QR guardado en Descargas'
+                      : 'QR descargado correctamente';
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: green,
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              } catch (e) {
+                log('[TidsPage] QR download error: $e');
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al descargar: $e'),
+                      backgroundColor: AppConstants.errorRed,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } finally {
+                if (ctx.mounted) setDialogState(() => isDownloading = false);
+              }
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── QR card ──────────────────────────────────────────────
+                  Container(
+                    decoration: BoxDecoration(
+                      color: dialogBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: green.withValues(alpha: 0.20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: green.withValues(alpha: 0.25),
+                          blurRadius: 32,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: green.withValues(alpha: 0.22),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.qr_code_rounded,
+                                color: green,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                tid.tid.isNotEmpty ? tid.tid : 'QR del TID',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  letterSpacing: -0.2,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── QR / loading / error ─────────────────────────
+                        if (qrData != null)
+                          RepaintBoundary(
+                            key: qrRepaintKey,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: QrImageView(
+                                data: qrData!,
+                                version: QrVersions.auto,
+                                size: 220,
+                                backgroundColor: Colors.white,
+                                eyeStyle: const QrEyeStyle(
+                                  eyeShape: QrEyeShape.square,
+                                  color: Colors.black,
+                                ),
+                                dataModuleStyle: const QrDataModuleStyle(
+                                  dataModuleShape: QrDataModuleShape.square,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (fetchError != null)
+                          SizedBox(
+                            height: 120,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppConstants.errorRed,
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  fetchError!,
+                                  style: const TextStyle(
+                                    color: AppConstants.errorRed,
+                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          const SizedBox(
+                            height: 120,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: green,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 16),
+
+                        // ── Botón descargar (solo con QR listo) ──────────
+                        if (qrData != null) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: isDownloading ? null : handleDownload,
+                              icon: isDownloading
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.black,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.download_rounded,
+                                      size: 16,
+                                    ),
+                              label: Text(
+                                isDownloading
+                                    ? 'Descargando...'
+                                    : 'Descargar QR',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: green,
+                                foregroundColor: Colors.black,
+                                disabledBackgroundColor:
+                                    green.withValues(alpha: 0.45),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+
+                        // ── Botón cerrar ─────────────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 11),
+                              backgroundColor:
+                                  green.withValues(alpha: 0.08),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: green.withValues(alpha: 0.18),
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cerrar',
+                              style: TextStyle(
+                                color: green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tocá en cualquier lugar para cerrar',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -797,6 +1113,7 @@ class _TidsPageState extends State<TidsPage> {
             onEdit: _edit,
             onDelete: _delete,
             onViewAffiliations: _showTidAffiliationsCount,
+            onShowQr: _showTidQr,
             eventoNames: {
               for (final opt in _eventoOptions)
                 if (opt.id != null) opt.id!: opt.label,

@@ -41,6 +41,14 @@ class AppConstants {
   /// Poner en true para mostrar la sección de Reclamos (navbar + página).
   static const bool showClaimsPage = false;
 
+  /// Muestra el botón de Sorteos en la página de herramientas del admin.
+  /// Por ahora los sorteos son exclusivos para afiliadores.
+  static const bool showAdminRaffles = false;
+
+  /// Forzar el tutorial de bienvenida en todos los logins, ignorando is_first_login.
+  /// Activar durante el desarrollo del tutorial. Desactivar antes de producción.
+  static const bool forceTutorial = true;
+
   // ==================== DURACIONES ====================
   static const Duration apiTimeout = Duration(seconds: 15);
   static const Duration affiliationTimeout = Duration(seconds: 15);

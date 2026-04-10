@@ -15,7 +15,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({super.key, this.initialTid});
+
+  final String? initialTid;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -77,6 +79,14 @@ class _RegisterPageState extends State<RegisterPage>
     _affiliateCodeController = TextEditingController();
     _selectedGender = null;
     _passwordController.addListener(_validatePasswordLive);
+
+    // Pre-cargar TID escaneado desde el login (código promocional oculto)
+    if (widget.initialTid != null) {
+      _affiliateCodeController.text = widget.initialTid!;
+      _hasAffiliateCode = true;
+      _affiliateCodeValidated = true;
+      _affiliateCodeValidatedToken = widget.initialTid!;
+    }
 
     _fadeController = AnimationController(
       vsync: this,
@@ -1857,6 +1867,9 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
     }
 
     Widget buildAffiliateCodeSection() {
+      // Si hay un TID pre-cargado desde QR, ocultar toda la sección
+      if (widget.initialTid != null) return const SizedBox.shrink();
+
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [

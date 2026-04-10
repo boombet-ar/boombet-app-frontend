@@ -11,7 +11,7 @@ class RaffleService {
   // ── Listar sorteos del usuario (afiliados + globales) ────────────────────────
   Future<List<Map<String, dynamic>>> fetchMyRaffles() async {
     final response = await HttpClient.get(
-      '${ApiConfig.baseUrl}/sorteos/me',
+      '${ApiConfig.baseUrl}/sorteos/participando',
       includeAuth: true,
       cacheTtl: Duration.zero,
     );
@@ -43,7 +43,7 @@ class RaffleService {
   // ── Listar casinos disponibles (para dropdown de creación) ───────────────────
   Future<List<Map<String, dynamic>>> fetchCasinos() async {
     final response = await HttpClient.get(
-      '${ApiConfig.baseUrl}/sorteos/casinos',
+      '${ApiConfig.baseUrl}/publicidades/casinos',
       includeAuth: true,
     );
 
@@ -92,12 +92,51 @@ class RaffleService {
         .toList(growable: false);
   }
 
-  // ── Crear sorteo (multipart: sorteo JSON + file requerido) ───────────────────
+  // ── Alternar estado activo ───────────────────────────────────────────────────
+  Future<Map<String, dynamic>> toggleRaffleActive(int id) async {
+    final response = await HttpClient.patch(
+      '${ApiConfig.baseUrl}/sorteos/$id/activo',
+      body: {},
+      includeAuth: true,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    throw Exception('Respuesta inesperada del servidor');
+  }
+
+  // ── Obtener sorteo por id ────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> fetchRaffleById(int id) async {
+    final response = await HttpClient.get(
+      '${ApiConfig.baseUrl}/sorteos/$id',
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    throw Exception('Respuesta inesperada del servidor');
+  }
+
+  // ── Crear sorteo (multipart: sorteo JSON + file opcional) ────────────────────
   Future<void> createRaffle({
-    required Uint8List imageBytes,
     required String text,
-    required DateTime endAt,
+    required DateTime fechaFin,
+    required int cantidadGanadores,
+    required List<Map<String, dynamic>> premios,
     int? casinoGralId,
+    int? tidId,
+    String? emailPresentador,
+    bool activo = true,
+    Uint8List? imageBytes,
     String? imageName,
     String imageMimeType = 'image/jpeg',
   }) async {
@@ -107,9 +146,15 @@ class RaffleService {
     );
 
     final sorteoPayload = <String, dynamic>{
-      'casinoGralId': casinoGralId,
-      'endAt': _toIso8601WithOffset(endAt),
       'text': text,
+      'fechaFin': _toIso8601WithOffset(fechaFin),
+      'cantidadGanadores': cantidadGanadores,
+      'premios': premios,
+      'activo': activo,
+      if (casinoGralId != null) 'casinoGralId': casinoGralId,
+      if (tidId != null) 'tidId': tidId,
+      if (emailPresentador != null && emailPresentador.isNotEmpty)
+        'emailPresentador': emailPresentador,
     };
 
     request.files.add(
@@ -121,14 +166,16 @@ class RaffleService {
       ),
     );
 
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: imageName ?? 'sorteo.jpg',
-        contentType: MediaType.parse(imageMimeType),
-      ),
-    );
+    if (imageBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: imageName ?? 'sorteo.jpg',
+          contentType: MediaType.parse(imageMimeType),
+        ),
+      );
+    }
 
     await _sendOrThrow(request);
   }
@@ -137,8 +184,13 @@ class RaffleService {
   Future<void> updateRaffle({
     required int id,
     required String text,
-    required DateTime endAt,
+    required DateTime fechaFin,
+    required int cantidadGanadores,
+    required List<Map<String, dynamic>> premios,
     int? casinoGralId,
+    int? tidId,
+    String? emailPresentador,
+    bool activo = true,
     Uint8List? imageBytes,
     String? imageName,
     String imageMimeType = 'image/jpeg',
@@ -149,9 +201,15 @@ class RaffleService {
     );
 
     final sorteoPayload = <String, dynamic>{
-      'casinoGralId': casinoGralId,
-      'endAt': _toIso8601WithOffset(endAt),
       'text': text,
+      'fechaFin': _toIso8601WithOffset(fechaFin),
+      'cantidadGanadores': cantidadGanadores,
+      'premios': premios,
+      'activo': activo,
+      if (casinoGralId != null) 'casinoGralId': casinoGralId,
+      if (tidId != null) 'tidId': tidId,
+      if (emailPresentador != null && emailPresentador.isNotEmpty)
+        'emailPresentador': emailPresentador,
     };
 
     request.files.add(
@@ -205,9 +263,8 @@ class RaffleService {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     final second = local.second.toString().padLeft(2, '0');
-    final millisecond = local.millisecond.toString().padLeft(3, '0');
 
-    return '$year-$month-${day}T$hour:$minute:$second.$millisecond$sign$hours:$minutes';
+    return '$year-$month-${day}T$hour:$minute:$second$sign$hours:$minutes';
   }
 
   Future<http.MultipartRequest> _buildAuthorizedMultipartRequest({

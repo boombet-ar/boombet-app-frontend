@@ -77,6 +77,8 @@ class HomePageKeys {
   static final GlobalKey sorteosNavbarKey    = GlobalKey();
   static final GlobalKey foroNavbarKey       = GlobalKey();
   static final GlobalKey juegosNavbarKey     = GlobalKey();
+  static final GlobalKey premiosNavbarKey    = GlobalKey();
+  static final GlobalKey ajustesNavbarKey    = GlobalKey();
 
   // ── Keys para el tutorial – AppBar ────────────────────────────────
   static final GlobalKey faqAppbarKey      = GlobalKey();

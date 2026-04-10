@@ -48,7 +48,6 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
   static const double _webReferenceViewport = 600;
 
   int get _initialPage => _shuffledLogos.length * 1000;
-  double get _viewportFraction => kIsWeb ? 0.38 : 0.55;
 
   List<String> _buildShuffledLogos() {
     final rng = Random();
@@ -71,12 +70,21 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
     return false;
   }
 
+  double _initialViewportFraction() {
+    if (!kIsWeb) return 0.55;
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final screenWidth = view.physicalSize.width / view.devicePixelRatio;
+    final cardWidth = _maxCardWidth(screenWidth);
+    // Slot = card + ~30px de margen total entre cards.
+    return ((cardWidth + 30) / screenWidth).clamp(0.12, 0.55);
+  }
+
   @override
   void initState() {
     super.initState();
     _shuffledLogos = _buildShuffledLogos();
     _controller = PageController(
-      viewportFraction: _viewportFraction,
+      viewportFraction: _initialViewportFraction(),
       initialPage: _initialPage,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -207,11 +215,11 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                                   child: isComingSoon
                                       ? ImageFiltered(
                                           imageFilter: ImageFilter.blur(
-                                            sigmaX: 6.0,
-                                            sigmaY: 6.0,
+                                            sigmaX: 1.0,
+                                            sigmaY: 1.0,
                                           ),
                                           child: Opacity(
-                                            opacity: 0.30,
+                                            opacity: 0.65,
                                             child: _buildLogoAsset(asset),
                                           ),
                                         )
