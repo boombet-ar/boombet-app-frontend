@@ -23,7 +23,9 @@
       "Bash(python -c \"print\\(''ok''\\)\")",
       "Bash(python3 -c \":*)",
       "Bash(xargs grep:*)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Read(//c/Users/Usuario/AppData/Local/Pub/Cache/hosted/pub.dev/tutorial_coach_mark-1.3.3/lib/src/**)",
+      "Read(//c/Users/Usuario/AppData/Local/Pub/Cache/hosted/pub.dev/tutorial_coach_mark-1.3.3/**)"
     ]
   }
 }

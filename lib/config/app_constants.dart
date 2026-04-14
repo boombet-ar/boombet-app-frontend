@@ -50,6 +50,10 @@ class AppConstants {
   /// Por ahora los sorteos son exclusivos para afiliadores.
   static const bool showAdminRaffles = false;
 
+  /// Desactivar el tutorial completamente para todos los usuarios.
+  /// Cuando es true, nadie ve el tutorial independientemente de forceTutorial o is_first_login.
+  static const bool disableTutorial = true;
+
   /// Forzar el tutorial de bienvenida en todos los logins, ignorando is_first_login.
   /// Activar durante el desarrollo del tutorial. Desactivar antes de producción.
   static const bool forceTutorial = false;
