@@ -36,6 +36,7 @@ import 'package:boombet_app/views/pages/profile/profile_page.dart';
 import 'package:boombet_app/views/pages/profile/settings_page.dart';
 import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
+import 'package:boombet_app/views/pages/rewards/refert_to_cash_view.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
@@ -414,6 +415,10 @@ final GoRouter appRouter = GoRouter(
       builder: (_, __) => const FaqPage(),
     ),
     GoRoute(
+      path: HomePageKeys.referToCash,
+      builder: (_, __) => const ReferToCashView(),
+    ),
+    GoRoute(
       path: HomePageKeys.forgotPassword,
       builder: (_, __) => const ForgetPasswordPage(),
     ),
@@ -421,10 +426,14 @@ final GoRouter appRouter = GoRouter(
       path: '/register',
       builder: (_, state) {
         final extra = state.extra;
-        final initialTid = extra is Map<String, dynamic>
-            ? extra['tid'] as String?
-            : null;
-        return RegisterPage(initialTid: initialTid);
+        final tidFromExtra = extra is Map<String, dynamic> ? extra['tid'] as String? : null;
+        final tidFromQuery = state.uri.queryParameters['tid']?.trim();
+        final initialTid = (tidFromExtra != null && tidFromExtra.isNotEmpty)
+            ? tidFromExtra
+            : (tidFromQuery != null && tidFromQuery.isNotEmpty ? tidFromQuery : null);
+        final ref = state.uri.queryParameters['ref']?.trim();
+        final initialRefCode = (ref != null && ref.isNotEmpty) ? ref : null;
+        return RegisterPage(initialTid: initialTid, initialRefCode: initialRefCode);
       },
     ),
     GoRoute(
@@ -444,6 +453,7 @@ final GoRouter appRouter = GoRouter(
           telefono: extra['telefono'] as String,
           genero: extra['genero'] as String,
           affiliateToken: extra['affiliateToken'] as String?,
+          codigoReferido: extra['codigoReferido'] as String?,
         );
       },
     ),

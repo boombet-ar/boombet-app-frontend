@@ -143,6 +143,44 @@ class DeepLinkPayload {
 
     return false;
   }
+
+  bool get isRegisterWithRef {
+    final ref = uri.queryParameters['ref'];
+    if (ref == null || ref.trim().isEmpty) return false;
+
+    if (uri.scheme == 'boombet') {
+      final host = uri.host.toLowerCase();
+      return host == 'register';
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final path = uri.path.toLowerCase();
+      return path == '/register' || path == 'register';
+    }
+
+    return false;
+  }
+
+  String? get refCode => uri.queryParameters['ref']?.trim();
+
+  bool get isTidRegister {
+    final tid = uri.queryParameters['tid'];
+    if (tid == null || tid.trim().isEmpty) return false;
+
+    if (uri.scheme == 'boombet') {
+      final host = uri.host.toLowerCase();
+      return host == 'register';
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final path = uri.path.toLowerCase();
+      return path == '/register' || path == 'register';
+    }
+
+    return false;
+  }
+
+  String? get tidCode => uri.queryParameters['tid']?.trim();
 }
 
 class DeepLinkService {
@@ -172,6 +210,24 @@ class DeepLinkService {
 
   String? navigationPathForPayload(DeepLinkPayload payload) {
     final token = payload.token;
+
+    if (payload.isRegisterWithRef) {
+      final ref = payload.refCode;
+      if (ref == null || ref.isEmpty) return null;
+      return Uri(
+        path: '/register',
+        queryParameters: {'ref': ref},
+      ).toString();
+    }
+
+    if (payload.isTidRegister) {
+      final tid = payload.tidCode;
+      if (tid == null || tid.isEmpty) return null;
+      return Uri(
+        path: '/register',
+        queryParameters: {'tid': tid},
+      ).toString();
+    }
 
     if (payload.isForumPostDetail) {
       final postId = payload.forumPostId;

@@ -41,6 +41,11 @@ class AppConstants {
   /// Poner en true para mostrar la sección de Reclamos (navbar + página).
   static const bool showClaimsPage = false;
 
+  /// Muestra el botón "Refer to Cash" en Ajustes para que el usuario
+  /// genere su QR de referido y cobre comisiones a fin de mes.
+  /// Activar cuando el backend esté integrado.
+  static const bool showReferToCash = true;
+
   /// Muestra el botón de Sorteos en la página de herramientas del admin.
   /// Por ahora los sorteos son exclusivos para afiliadores.
   static const bool showAdminRaffles = false;

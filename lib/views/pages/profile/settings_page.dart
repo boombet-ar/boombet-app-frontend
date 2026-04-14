@@ -13,6 +13,7 @@ import 'package:boombet_app/services/push_notification_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -27,6 +28,8 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _bioLoading = true;
   bool _bioToggling = false;
 
+  String _appVersion = '';
+
   bool _pushEnabled = true;
   bool _adsPushEnabled = true;
   bool _forumPushEnabled = true;
@@ -39,6 +42,18 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _loadBiometricState();
     _loadPushState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _appVersion = info.version);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _appVersion = '1.2.1');
+    }
   }
 
   Future<void> _loadPushState() async {
@@ -765,6 +780,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => context.push(HomePageKeys.scanner),
                 surfaceColor: surfaceColor,
               ),
+              if (AppConstants.showReferToCash) ...[
+                const SizedBox(height: 8),
+                _buildSettingsTile(
+                  context: context,
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'Refer to Cash',
+                  subtitle: 'Generá tu QR de referido y cobrá comisiones',
+                  onTap: () => context.push(HomePageKeys.referToCash),
+                  surfaceColor: surfaceColor,
+                ),
+              ],
               if (AppConstants.showClaimsPage) ...[
                 const SizedBox(height: 8),
                 _buildSettingsTile(
@@ -805,7 +831,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 context: context,
                 icon: Icons.info_outline_rounded,
                 title: 'Acerca de BoomBet',
-                subtitle: 'Versión 1.0.0',
+                subtitle: _appVersion.isEmpty ? 'Versión' : 'Versión $_appVersion',
                 onTap: () {
                   _showAboutDialog(context);
                 },
@@ -1123,7 +1149,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Versión 1.0',
+                    _appVersion.isEmpty ? 'Versión' : 'Versión $_appVersion',
                     style: TextStyle(
                       color: textColor,
                       fontWeight: FontWeight.w600,

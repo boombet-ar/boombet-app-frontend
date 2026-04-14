@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:boombet_app/models/prize_canje_model.dart';
@@ -285,9 +286,10 @@ class _QrScannerPageState extends State<QrScannerPage>
     if (_isTidDeepLink(uri)) {
       _appendLog('TID deeplink detected');
 
-      // Nuevo formato: boombet://tid?code=TEST_ING — sin fetch al backend
+      // Soporta boombet://tid?code=X y https://app.boombet.com/register?tid=X
       if (widget.fromLogin) {
-        final code = uri.queryParameters['code']?.trim();
+        final code = (uri.queryParameters['code']?.trim())
+            ?? (uri.queryParameters['tid']?.trim());
         if (code != null && code.isNotEmpty) {
           _appendLog('fromLogin: TID code from URL param: $code');
           GoRouter.of(context).go('/register', extra: {'tid': code});
@@ -303,6 +305,34 @@ class _QrScannerPageState extends State<QrScannerPage>
       }
       await _handleTidDeepLink(tidId);
       return;
+    }
+
+    if (_isRefDeepLink(uri)) {
+      _appendLog('Refer deeplink detected');
+      final ref = uri.queryParameters['ref']?.trim();
+      if (ref == null || ref.isEmpty) {
+        _appendLog('Ref code missing/invalid in URI');
+        _showSnack('QR de referido inválido');
+        return;
+      }
+      _appendLog('Navigating to /register?ref=$ref');
+      if (!mounted) return;
+      GoRouter.of(context).go('/register?ref=$ref');
+      return;
+    }
+
+    // En web: si la URL es del mismo origen, navegar internamente con GoRouter
+    if (kIsWeb && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      try {
+        if (uri.origin == Uri.base.origin) {
+          _appendLog('Web same-origin URI, navigating internally');
+          if (!mounted) return;
+          final path = uri.path;
+          final query = uri.query.isNotEmpty ? '?${uri.query}' : '';
+          GoRouter.of(context).go('$path$query');
+          return;
+        }
+      } catch (_) {}
     }
 
     _appendLog('Non-boombet URI, opening external app');
@@ -575,10 +605,33 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   bool _isTidDeepLink(Uri uri) {
-    if (uri.scheme != 'boombet') return false;
-    final host = uri.host.toLowerCase();
-    final path = uri.path.toLowerCase();
-    return host == 'tid' || path.contains('tid');
+    if (uri.scheme == 'boombet') {
+      final host = uri.host.toLowerCase();
+      final path = uri.path.toLowerCase();
+      return host == 'tid' || path.contains('tid');
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return uri.queryParameters.containsKey('tid');
+    }
+
+    return false;
+  }
+
+  bool _isRefDeepLink(Uri uri) {
+    final ref = uri.queryParameters['ref'];
+    if (ref == null || ref.trim().isEmpty) return false;
+
+    if (uri.scheme == 'boombet') {
+      return uri.host.toLowerCase() == 'register';
+    }
+
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      final path = uri.path.toLowerCase();
+      return path == '/register' || path == 'register';
+    }
+
+    return false;
   }
 
   int? _extractTidId(Uri uri) {

@@ -9,6 +9,7 @@ class NavbarWidget extends StatefulWidget {
   const NavbarWidget({
     super.key,
     this.showCasinos = true,
+    this.showQrScanner = false,
     this.hiddenIndexes = const [],
     this.inicioTutorialTargetKey,
     this.descuentosTutorialTargetKey,
@@ -22,6 +23,10 @@ class NavbarWidget extends StatefulWidget {
 
   /// Muestra la pestaña de casinos (oculta en flows limitados).
   final bool showCasinos;
+
+  /// Muestra un tab de QR Scanner al final (usado en el flow limitado).
+  /// Cuando está activo oculta automáticamente la pestaña de Premios.
+  final bool showQrScanner;
 
   /// Índices de tabs a ocultar (ej: [6, 7] para Ajustes y Premios).
   final List<int> hiddenIndexes;
@@ -214,10 +219,24 @@ class _NavbarWidgetState extends State<NavbarWidget>
                 selectedIcon: Icons.build_rounded,
                 label: 'Admin',
               ),
+            if (widget.showQrScanner)
+              _NavItem(
+                route: HomePageKeys.scanner,
+                icon: Icons.qr_code_scanner_outlined,
+                selectedIcon: Icons.qr_code_scanner,
+                label: 'Escanear',
+              ),
           ];
 
+          // Cuando showQrScanner está activo, ocultar Premios automáticamente.
+          final extraHidden = widget.showQrScanner
+              ? {HomePageKeys.prizes}
+              : const <String>{};
+
           final displayItems = items
-              .where((item) => !hiddenRoutes.contains(item.route))
+              .where((item) =>
+                  !hiddenRoutes.contains(item.route) &&
+                  !extraHidden.contains(item.route))
               .toList();
 
           // Peek: si hay más items que los visibles, reducir el ancho para que

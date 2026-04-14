@@ -23,9 +23,10 @@ class HomePageKeys {
   static const String profileEdit     = '/profile/edit';
   static const String faq             = '/faq';
   static const String forgotPassword  = '/forgot-password';
+  static const String referToCash     = '/refer-to-cash';
 
   // ── Mapas de conversión índice ↔ ruta ─────────────────────────────
-  // Orden: Descuentos, Club, Juegos, Sorteos, Premios, Foro, Casinos, Ajustes, Admin
+  // Orden: Descuentos, Club, Juegos, Sorteos, Premios, Foro, Casinos, Ajustes, Admin, Claims, Scanner
   static const Map<int, String> indexToRoute = {
     0:  discounts,
     1:  home,
@@ -37,6 +38,7 @@ class HomePageKeys {
     7:  settings,
     8:  admin,
     9:  claims,
+    10: scanner,
   };
 
   static const Map<String, int> routeToIndex = {
@@ -50,6 +52,7 @@ class HomePageKeys {
     settings:  7,
     admin:     8,
     claims:    9,
+    scanner:   10,
   };
 
   /// Devuelve el índice correspondiente a [path], o 0 si no hay coincidencia.

@@ -31,12 +31,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
+            <!-- 🔥 APP LINKS - app.boombet.com (register, refer, TID) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="app.boombet.com"/>
+            </intent-filter>
+
             <!-- 🔥 CONFIRM EMAIL - HTTP Links (desde el email) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="example.com" android:pathPrefix="/confirm"/>
+                <data android:scheme="https" android:host="app.boombet.com" android:pathPrefix="/confirm"/>
                 <data android:scheme="http" android:host="192.168.0.8" android:pathPrefix="/confirm"/>
                 <data android:scheme="http" android:host="10.0.2.2" android:pathPrefix="/confirm"/>
             </intent-filter>
@@ -50,11 +58,11 @@
             </intent-filter>
 
             <!-- 🔥 RESET PASSWORD - HTTP Links (desde el email) -->
-            <intent-filter android:autoVerify="false">
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="example.com" android:pathPrefix="/reset-password"/>
+                <data android:scheme="https" android:host="app.boombet.com" android:pathPrefix="/reset-password"/>
                 <data android:scheme="http" android:host="192.168.0.8" android:pathPrefix="/reset-password"/>
                 <data android:scheme="http" android:host="10.0.2.2" android:pathPrefix="/reset-password"/>
             </intent-filter>

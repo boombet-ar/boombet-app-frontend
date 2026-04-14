@@ -145,6 +145,13 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
     if (context.mounted) context.go('/affiliation-results', extra: result);
   }
 
+  Future<void> _openQrScanner() async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const QrScannerPage()),
+    );
+  }
+
   Future<void> _openLimitedGame(WidgetBuilder builder) async {
     if (widget.preview) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -196,20 +203,25 @@ class _LimitedHomePageState extends State<LimitedHomePage> {
             child: IndexedStack(
               index: safeIndex,
               children: [
-                LimitedHomeContent(statusMessage: _statusMessage),
-                const LimitedDiscountsContent(),
-                const LimitedRafflesContent(),
-                const LimitedForumContent(), // Foro limitado sin publicar
-                LimitedGamesContent(onPlay: _openLimitedGame),
-                const QrScannerPage(),
+                const LimitedDiscountsContent(),                   // 0 = discounts
+                LimitedHomeContent(statusMessage: _statusMessage), // 1 = home/club
+                LimitedGamesContent(onPlay: _openLimitedGame),     // 2 = games
+                const LimitedRafflesContent(),                     // 3 = raffles
+                const SizedBox.shrink(),                           // 4 = prizes (oculto en navbar limitada)
+                const LimitedForumContent(),                       // 5 = forum
               ],
             ),
           ),
           bottomNavigationBar: NavbarWidget(
             showCasinos: false,
+            showQrScanner: true,
             hiddenIndexes: [6, 7],
             onTabTap: (index) {
-              selectedPageNotifier.value = index;
+              if (index == 10) {
+                _openQrScanner();
+              } else {
+                selectedPageNotifier.value = index;
+              }
             },
           ),
         );
@@ -3476,4 +3488,40 @@ class _ForumPost {
     this.parentId,
     this.avatarUrl = '',
   });
+}
+
+/// Placeholder para tabs sin contenido en el flow limitado (ej: Premios).
+class _LimitedLockedTab extends StatelessWidget {
+  final String label;
+  const _LimitedLockedTab({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryGreen = Theme.of(context).colorScheme.primary;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_outline_rounded, size: 48, color: primaryGreen.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: primaryGreen.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Disponible al completar la afiliación.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

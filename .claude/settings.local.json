@@ -21,7 +21,8 @@
       "Bash(del \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\views\\\\pages\\\\home\\\\widgets\\\\home_login_tutorial_overlay.dart\")",
       "Bash(\"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/config/router_config.dart\")",
       "Bash(python -c \"print\\(''ok''\\)\")",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

@@ -15,9 +15,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key, this.initialTid});
+  const RegisterPage({super.key, this.initialTid, this.initialRefCode});
 
   final String? initialTid;
+  final String? initialRefCode;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -1278,6 +1279,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
               'affiliateToken': _hasAffiliateCode
                   ? _affiliateCodeController.text.trim()
                   : null,
+              'codigoReferido': widget.initialRefCode,
             });
           }
         } else {
@@ -1867,8 +1869,8 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
     }
 
     Widget buildAffiliateCodeSection() {
-      // Si hay un TID pre-cargado desde QR, ocultar toda la sección
-      if (widget.initialTid != null) return const SizedBox.shrink();
+      // Si hay un TID o código de referido pre-cargado desde QR, ocultar toda la sección
+      if (widget.initialTid != null || widget.initialRefCode != null) return const SizedBox.shrink();
 
       return Column(
         mainAxisSize: MainAxisSize.min,

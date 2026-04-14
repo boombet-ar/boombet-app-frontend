@@ -29,6 +29,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
   final String telefono;
   final String genero;
   final String? affiliateToken;
+  final String? codigoReferido;
   final bool preview;
 
   const ConfirmPlayerDataPage({
@@ -41,6 +42,7 @@ class ConfirmPlayerDataPage extends StatefulWidget {
     required this.telefono,
     required this.genero,
     this.affiliateToken,
+    this.codigoReferido,
     this.preview = false,
   });
 
@@ -399,6 +401,11 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
           final token = widget.affiliateToken?.trim();
           if (token != null && token.isNotEmpty) {
             data['token_afiliador'] = token;
+          }
+
+          final refCode = widget.codigoReferido?.trim();
+          if (refCode != null && refCode.isNotEmpty) {
+            data['codigo_referido'] = refCode;
           }
 
           return data;

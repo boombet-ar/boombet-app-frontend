@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:math' show max;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 
 import 'package:boombet_app/config/app_constants.dart';
@@ -802,10 +803,8 @@ class _TidsPageState extends State<TidsPage> {
                   .fetchTidById(id: tid.id)
                   .then((result) {
                     setDialogState(() {
-                      // Deep link propio de la app: solo el scanner de BoomBet
-                      // sabe qué hacer con este esquema. Un scanner externo
-                      // verá una URL opaca sin datos sensibles.
-                      qrData = 'boombet://tid?code=${result.tid}';
+                      final base = kIsWeb ? Uri.base.origin : 'https://app.boombet.com';
+                      qrData = '$base/register?tid=${result.tid}';
                       isFetching = false;
                     });
                   })
