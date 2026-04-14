@@ -10,6 +10,7 @@ import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/biometric_service.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/push_notification_service.dart';
+import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -37,12 +38,22 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _pushToggling = false;
   bool _pushSubToggling = false;
 
+  String? _userRole;
+
   @override
   void initState() {
     super.initState();
     _loadBiometricState();
     _loadPushState();
     _loadAppVersion();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await TokenService.getUserRole();
+    if (mounted) {
+      setState(() => _userRole = role);
+    }
   }
 
   Future<void> _loadAppVersion() async {
@@ -780,7 +791,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => context.push(HomePageKeys.scanner),
                 surfaceColor: surfaceColor,
               ),
-              if (AppConstants.showReferToCash) ...[
+              if (_userRole?.toUpperCase() == 'USER') ...[
                 const SizedBox(height: 8),
                 _buildSettingsTile(
                   context: context,

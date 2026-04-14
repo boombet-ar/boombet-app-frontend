@@ -22,7 +22,8 @@
       "Bash(\"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/config/router_config.dart\")",
       "Bash(python -c \"print\\(''ok''\\)\")",
       "Bash(python3 -c \":*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(dart analyze:*)"
     ]
   }
 }

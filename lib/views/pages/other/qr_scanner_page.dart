@@ -1110,6 +1110,7 @@ class _QrScannerPageState extends State<QrScannerPage>
           Positioned.fill(
             child: ResponsiveWrapper(
               maxWidth: 900,
+              constrainOnWeb: true,
               child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1124,9 +1125,19 @@ class _QrScannerPageState extends State<QrScannerPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _buildScannerCard(),
-                            const SizedBox(height: 14),
-                            _buildControls(),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 520),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildScannerCard(),
+                                    const SizedBox(height: 14),
+                                    _buildControls(),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

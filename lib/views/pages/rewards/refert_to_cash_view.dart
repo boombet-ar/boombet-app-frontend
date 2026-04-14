@@ -189,74 +189,127 @@ class _ReferToCashViewState extends State<ReferToCashView>
 
   @override
   Widget build(BuildContext context) {
+    final isLarge = MediaQuery.of(context).size.width > 600;
+    final maxWidth = isLarge ? 800.0 : double.infinity;
+
     return Scaffold(
       backgroundColor: AppConstants.darkBg,
-      appBar: AppBar(
-        backgroundColor: AppConstants.darkBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          spacing: 12,
-          children: [
-            Image.asset(
-              'assets/images/boombetlogo.png',
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [AppConstants.primaryGreen, Color(0xFF7FFF9F)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ).createShader(bounds),
-              child: Text(
-                'REFER-TO-CASH',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1.5,
-                  shadows: [
-                    Shadow(
-                      color: AppConstants.primaryGreen.withValues(alpha: 0.5),
-                      offset: const Offset(0, 3),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
+      appBar: _buildResponsiveAppBar(),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                isLarge ? 24 : 16,
+                14,
+                isLarge ? 24 : 16,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ① Instrucciones
+                  _buildInstructions(),
+                  const SizedBox(height: 14),
+
+                  // ② Selector de casinos
+                  _buildCasinoSelector(),
+                  const SizedBox(height: 14),
+
+                  // ③ Área del QR
+                  Expanded(child: _buildQRArea()),
+                  const SizedBox(height: 14),
+
+                  // ④ Stats
+                  _buildStatsCard(),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ① Instrucciones
-              _buildInstructions(),
-              const SizedBox(height: 14),
+    );
+  }
 
-              // ② Selector de casinos
-              _buildCasinoSelector(),
-              const SizedBox(height: 14),
+  PreferredSizeWidget _buildResponsiveAppBar() {
+    final isLarge = MediaQuery.of(context).size.width > 600;
 
-              // ③ Área del QR
-              Expanded(child: _buildQRArea()),
-              const SizedBox(height: 14),
+    return AppBar(
+      backgroundColor: AppConstants.darkBg,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: isLarge
+          ? _buildAppBarTitleDesktop()
+          : _buildAppBarTitleMobile(),
+      centerTitle: isLarge ? false : true,
+      toolbarHeight: isLarge ? 70 : 80,
+    );
+  }
 
-              // ④ Stats
-              _buildStatsCard(),
-              const SizedBox(height: 16),
-            ],
+  Widget _buildAppBarTitleDesktop() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 12,
+      children: [
+        Image.asset(
+          'assets/images/boombetlogo.png',
+          height: 50,
+          fit: BoxFit.contain,
+        ),
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [AppConstants.primaryGreen, Color(0xFF7FFF9F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: const Text(
+            'REFER-TO-CASH',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1.2,
+              shadows: [
+                Shadow(
+                  color: Color(0xFF29FF5E),
+                  offset: Offset(0, 2),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppBarTitleMobile() {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [AppConstants.primaryGreen, Color(0xFF7FFF9F)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(bounds),
+      child: Text(
+        'REFER-TO-CASH',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 1.5,
+          shadows: [
+            Shadow(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.5),
+              offset: const Offset(0, 3),
+              blurRadius: 12,
+            ),
+          ],
         ),
       ),
     );
@@ -265,20 +318,51 @@ class _ReferToCashViewState extends State<ReferToCashView>
   // ① Instrucciones ─────────────────────────────────────────────────────────
 
   Widget _buildInstructions() {
+    final isLarge = MediaQuery.of(context).size.width > 600;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: isLarge ? 16 : 12,
+        vertical: isLarge ? 12 : 10,
+      ),
       decoration: BoxDecoration(
         color: AppConstants.darkCardBg,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(color: AppConstants.borderDark),
       ),
+      child: isLarge
+          ? _buildInstructionsDesktop()
+          : _buildInstructionsMobile(),
+    );
+  }
+
+  Widget _buildInstructionsMobile() {
+    return Row(
+      children: const [
+        _Step(icon: Icons.touch_app_rounded, label: 'Elegí\nun casino', step: 1),
+        _StepConnector(),
+        _Step(icon: Icons.qr_code_2_rounded, label: 'Se genera\ntu QR', step: 2),
+        _StepConnector(),
+        _Step(icon: Icons.share_rounded, label: 'Compartí\ny cobrá', step: 3),
+      ],
+    );
+  }
+
+  Widget _buildInstructionsDesktop() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: const [
-          _Step(icon: Icons.touch_app_rounded, label: 'Elegí\nun casino', step: 1),
-          _StepConnector(),
-          _Step(icon: Icons.qr_code_2_rounded, label: 'Se genera\ntu QR', step: 2),
-          _StepConnector(),
-          _Step(icon: Icons.share_rounded, label: 'Compartí\ny cobrá', step: 3),
+          _StepCompact(icon: Icons.touch_app_rounded, label: 'Elegí un casino', step: 1),
+          SizedBox(width: 24),
+          _StepConnectorVertical(),
+          SizedBox(width: 24),
+          _StepCompact(icon: Icons.qr_code_2_rounded, label: 'Se genera tu QR', step: 2),
+          SizedBox(width: 24),
+          _StepConnectorVertical(),
+          SizedBox(width: 24),
+          _StepCompact(icon: Icons.share_rounded, label: 'Compartí y cobrá', step: 3),
         ],
       ),
     );
@@ -495,8 +579,12 @@ class _ReferToCashViewState extends State<ReferToCashView>
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  // Limitar tamaño del QR
+                  final maxQrSize = 450.0;
                   final size = constraints.maxWidth > 0
-                      ? constraints.maxWidth
+                      ? (constraints.maxWidth > maxQrSize
+                          ? maxQrSize
+                          : constraints.maxWidth)
                       : 260.0;
                   return QrImageView(
                     data: _referUrl,
@@ -580,29 +668,32 @@ class _ReferToCashViewState extends State<ReferToCashView>
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$total referidos totales',
-                  style: const TextStyle(
-                    fontSize: AppConstants.headingSmall,
-                    fontWeight: FontWeight.w800,
-                    color: AppConstants.primaryGreen,
-                    height: 1.1,
-                    letterSpacing: -0.3,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$total referidos totales',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: AppConstants.headingSmall,
+                      fontWeight: FontWeight.w800,
+                      color: AppConstants.primaryGreen,
+                      height: 1.1,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                const Text(
-                  'Total acumulado',
-                  style: TextStyle(
-                    fontSize: AppConstants.captionSize,
-                    color: Colors.white38,
+                  const Text(
+                    'Total acumulado',
+                    style: TextStyle(
+                      fontSize: AppConstants.captionSize,
+                      color: Colors.white38,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -634,25 +725,32 @@ class _ReferToCashViewState extends State<ReferToCashView>
         ),
         const SizedBox(height: 10),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _StateBadge(
-              label: 'Pendientes',
-              count: pendientes,
-              color: Colors.orange,
+            Expanded(
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  _StateBadge(
+                    label: 'Pendientes',
+                    count: pendientes,
+                    color: Colors.orange,
+                  ),
+                  _StateBadge(
+                    label: 'Confirmados',
+                    count: confirmados,
+                    color: AppConstants.primaryGreen,
+                  ),
+                  _StateBadge(
+                    label: 'Acreditados',
+                    count: acreditados,
+                    color: Colors.blue,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 6),
-            _StateBadge(
-              label: 'Confirmados',
-              count: confirmados,
-              color: AppConstants.primaryGreen,
-            ),
-            const SizedBox(width: 6),
-            _StateBadge(
-              label: 'Acreditados',
-              count: acreditados,
-              color: Colors.blue,
-            ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Text(
               '$limSemRest / 20 disp.',
               style: const TextStyle(fontSize: 10, color: Colors.white38),
@@ -796,6 +894,87 @@ class _StepConnector extends StatelessWidget {
         color: AppConstants.primaryGreen.withValues(alpha: 0.2),
         thickness: 1,
       ),
+    );
+  }
+}
+
+class _StepConnectorVertical extends StatelessWidget {
+  const _StepConnectorVertical();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      child: Divider(
+        color: AppConstants.primaryGreen.withValues(alpha: 0.2),
+        thickness: 1,
+      ),
+    );
+  }
+}
+
+class _StepCompact extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int step;
+
+  const _StepCompact({
+    required this.icon,
+    required this.label,
+    required this.step,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppConstants.primaryGreen.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 17, color: AppConstants.primaryGreen),
+            ),
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: const BoxDecoration(
+                  color: AppConstants.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '$step',
+                    style: const TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.white54,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 }
