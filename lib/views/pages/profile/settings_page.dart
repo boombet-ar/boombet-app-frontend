@@ -791,17 +791,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => context.push(HomePageKeys.scanner),
                 surfaceColor: surfaceColor,
               ),
-              if (_userRole?.toUpperCase() == 'USER') ...[
-                const SizedBox(height: 8),
-                _buildSettingsTile(
-                  context: context,
-                  icon: Icons.card_giftcard_rounded,
-                  title: 'Refer to Cash',
-                  subtitle: 'Generá tu QR de referido y cobrá comisiones',
-                  onTap: () => context.push(HomePageKeys.referToCash),
-                  surfaceColor: surfaceColor,
-                ),
-              ],
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                context: context,
+                icon: Icons.card_giftcard_rounded,
+                title: 'Refer to Cash',
+                subtitle: 'Generá tu QR de referido y cobrá comisiones',
+                onTap: () => context.push(HomePageKeys.referToCash),
+                surfaceColor: surfaceColor,
+              ),
               if (AppConstants.showClaimsPage) ...[
                 const SizedBox(height: 8),
                 _buildSettingsTile(

@@ -557,6 +557,18 @@ class _ReferToCashViewState extends State<ReferToCashView>
   }
 
   Widget _buildQRContent() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLarge = screenWidth > 600;
+    // Restar: padding horizontal externo (16 o 24 c/lado) + padding QR area (20 c/lado) + padding container blanco (12 c/lado)
+    final outerPad = (isLarge ? 24.0 : 16.0) * 2;
+    final qrAreaPad = 20.0 * 2;
+    final whitePad = 12.0 * 2;
+    final availableWidth = screenWidth - outerPad - qrAreaPad - whitePad;
+    const maxQrSize = 280.0;
+    final size = availableWidth > 0
+        ? (availableWidth > maxQrSize ? maxQrSize : availableWidth)
+        : 220.0;
+
     return FadeTransition(
       opacity: _qrFade,
       child: ScaleTransition(
@@ -577,29 +589,18 @@ class _ReferToCashViewState extends State<ReferToCashView>
                   ),
                 ],
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // Limitar tamaño del QR
-                  final maxQrSize = 450.0;
-                  final size = constraints.maxWidth > 0
-                      ? (constraints.maxWidth > maxQrSize
-                          ? maxQrSize
-                          : constraints.maxWidth)
-                      : 260.0;
-                  return QrImageView(
-                    data: _referUrl,
-                    version: QrVersions.auto,
-                    size: size,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: Colors.black,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Colors.black,
-                    ),
-                  );
-                },
+              child: QrImageView(
+                data: _referUrl,
+                version: QrVersions.auto,
+                size: size,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Colors.black,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Colors.black,
+                ),
               ),
             ),
           ),
