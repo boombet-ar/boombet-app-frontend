@@ -11,13 +11,6 @@ class NavbarWidget extends StatefulWidget {
     this.showCasinos = true,
     this.showQrScanner = false,
     this.hiddenIndexes = const [],
-    this.inicioTutorialTargetKey,
-    this.descuentosTutorialTargetKey,
-    this.sorteosTutorialTargetKey,
-    this.foroTutorialTargetKey,
-    this.juegosTutorialTargetKey,
-    this.premiosTutorialTargetKey,
-    this.ajustesTutorialTargetKey,
     this.onTabTap,
   });
 
@@ -34,13 +27,6 @@ class NavbarWidget extends StatefulWidget {
   /// Si se provee, intercepta el tap en un tab (recibe el índice global).
   /// Si es null, usa el comportamiento por defecto (context.go).
   final void Function(int index)? onTabTap;
-  final GlobalKey? inicioTutorialTargetKey;
-  final GlobalKey? descuentosTutorialTargetKey;
-  final GlobalKey? sorteosTutorialTargetKey;
-  final GlobalKey? foroTutorialTargetKey;
-  final GlobalKey? juegosTutorialTargetKey;
-  final GlobalKey? premiosTutorialTargetKey;
-  final GlobalKey? ajustesTutorialTargetKey;
 
   @override
   State<NavbarWidget> createState() => _NavbarWidgetState();
@@ -60,7 +46,6 @@ class _NavbarWidgetState extends State<NavbarWidget>
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
-    navbarSwipeTutorialNotifier.addListener(_onSwipeTutorialActivated);
 
     _pulseController = AnimationController(
       vsync: this,
@@ -71,32 +56,12 @@ class _NavbarWidgetState extends State<NavbarWidget>
     );
   }
 
-  /// Llamado cuando el tutorial de swipe se activa. Si la navbar no es
-  /// desplazable (ej. escritorio), completa el paso automáticamente.
-  void _onSwipeTutorialActivated() {
-    if (!navbarSwipeTutorialNotifier.value) return;
-    // En desktop web el ScrollController nunca se adjunta (no hay
-    // SingleChildScrollView). Tratamos ese caso igual que maxScrollExtent == 0:
-    // la navbar no es deslizable, completar el paso automáticamente.
-    if (!_scrollController.hasClients ||
-        _scrollController.position.maxScrollExtent == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) navbarScrolledToEndNotifier.value = true;
-      });
-    }
-  }
-
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final max = _scrollController.position.maxScrollExtent;
     final offset = _scrollController.offset;
     final newRight = max > 0 && offset < max - 1;
     final newLeft = offset > 1;
-
-    // Tutorial: detectar cuando se llegó al final del scroll
-    if (navbarSwipeTutorialNotifier.value && _canScrollRight && !newRight) {
-      navbarScrolledToEndNotifier.value = true;
-    }
 
     if (newRight != _canScrollRight || newLeft != _canScrollLeft) {
       setState(() {
@@ -110,7 +75,6 @@ class _NavbarWidgetState extends State<NavbarWidget>
   void dispose() {
     _scrollController.dispose();
     _pulseController.dispose();
-    navbarSwipeTutorialNotifier.removeListener(_onSwipeTutorialActivated);
     super.dispose();
   }
 
@@ -161,42 +125,36 @@ class _NavbarWidgetState extends State<NavbarWidget>
               icon: Icons.local_offer_outlined,
               selectedIcon: Icons.local_offer,
               label: 'Descuentos',
-              tutorialKey: widget.descuentosTutorialTargetKey,
             ),
             _NavItem(
               route: HomePageKeys.home,
               icon: Icons.groups_outlined,
               selectedIcon: Icons.groups,
               label: 'Club',
-              tutorialKey: widget.inicioTutorialTargetKey,
             ),
             _NavItem(
               route: HomePageKeys.games,
               icon: Icons.videogame_asset_outlined,
               selectedIcon: Icons.videogame_asset,
               label: 'Juegos',
-              tutorialKey: widget.juegosTutorialTargetKey,
             ),
             _NavItem(
               route: HomePageKeys.raffles,
               icon: Icons.card_giftcard_outlined,
               selectedIcon: Icons.card_giftcard,
               label: 'Sorteos',
-              tutorialKey: widget.sorteosTutorialTargetKey,
             ),
             _NavItem(
               route: HomePageKeys.prizes,
               icon: Icons.workspace_premium_rounded,
               selectedIcon: Icons.workspace_premium,
               label: 'Premios',
-              tutorialKey: widget.premiosTutorialTargetKey,
             ),
             _NavItem(
               route: HomePageKeys.forum,
               icon: Icons.forum_outlined,
               selectedIcon: Icons.forum,
               label: 'Foro',
-              tutorialKey: widget.foroTutorialTargetKey,
             ),
             if (widget.showCasinos)
               _NavItem(
@@ -210,7 +168,6 @@ class _NavbarWidgetState extends State<NavbarWidget>
               icon: Icons.settings_outlined,
               selectedIcon: Icons.settings,
               label: 'Ajustes',
-              tutorialKey: widget.ajustesTutorialTargetKey,
             ),
             if (hasSession && isAdmin)
               _NavItem(
@@ -269,7 +226,6 @@ class _NavbarWidgetState extends State<NavbarWidget>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       AnimatedContainer(
-                        key: item.tutorialKey,
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -450,13 +406,11 @@ class _NavItem {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
-  final GlobalKey? tutorialKey;
 
   const _NavItem({
     required this.route,
     required this.icon,
     required this.selectedIcon,
     required this.label,
-    this.tutorialKey,
   });
 }

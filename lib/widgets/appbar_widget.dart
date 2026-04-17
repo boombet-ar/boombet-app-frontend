@@ -26,10 +26,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showMenuButton;
   final VoidCallback? onMenuPressed;
   final VoidCallback? onBackPressed;
-  final GlobalKey? faqTutorialTargetKey;
-  final GlobalKey? profileTutorialTargetKey;
-  final GlobalKey? settingsTutorialTargetKey;
-  final GlobalKey? logoutTutorialTargetKey;
 
   const MainAppBar({
     super.key,
@@ -47,10 +43,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showMenuButton = false,
     this.onMenuPressed,
     this.onBackPressed,
-    this.faqTutorialTargetKey,
-    this.profileTutorialTargetKey,
-    this.settingsTutorialTargetKey,
-    this.logoutTutorialTargetKey,
   });
 
   @override
@@ -166,7 +158,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: navBtn(
-                    widgetKey: logoutTutorialTargetKey,
                     icon: Icons.logout_rounded,
                     tooltip: 'Cerrar Sesión',
                     onPressed: () async {
@@ -251,7 +242,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: navBtn(
-                    widgetKey: settingsTutorialTargetKey,
                     icon: Icons.settings_rounded,
                     tooltip: 'Configuración',
                     onPressed: () {
@@ -280,7 +270,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: navBtn(
-                    widgetKey: profileTutorialTargetKey,
                     icon: Icons.person_rounded,
                     tooltip: 'Ver perfil',
                     onPressed: () => context.push(HomePageKeys.profile),
@@ -350,7 +339,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: navBtn(
-                    widgetKey: faqTutorialTargetKey,
                     icon: Icons.help_outline_rounded,
                     tooltip: 'Ayuda y preguntas frecuentes',
                     onPressed: () => context.push(HomePageKeys.faq),

@@ -40,6 +40,8 @@ class RaffleModel {
   final List<PremioModel> premios;
   final int? afiliadorId;
   final String createdAt;
+  final String? tipo;
+  final String? instrucciones;
 
   const RaffleModel({
     required this.id,
@@ -55,6 +57,8 @@ class RaffleModel {
     required this.premios,
     required this.afiliadorId,
     required this.createdAt,
+    this.tipo,
+    this.instrucciones,
   });
 
   factory RaffleModel.fromMap(Map<String, dynamic> map) {
@@ -86,6 +90,8 @@ class RaffleModel {
       premios: premios,
       afiliadorId: parseId(map['afiliadorId']),
       createdAt: map['createdAt']?.toString() ?? '',
+      tipo: map['tipo']?.toString(),
+      instrucciones: map['instrucciones']?.toString(),
     );
   }
 }

@@ -182,7 +182,7 @@ class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
                       title: 'Sorteos',
                       subtitle: 'Gestión de sorteos y premios',
                       icon: Icons.emoji_events_outlined,
-                      onTap: () => context.push('/admin/raffles'),
+                      onTap: () => context.push('/affiliates-tools/sorteos'),
                     ),
                     const SizedBox(height: 24),
                     _LogoutButton(context: context),
@@ -1859,6 +1859,92 @@ class _AffiliatorPrimaryActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SorteosPage — selector entre sorteos de la app y externos
+// ─────────────────────────────────────────────────────────────────────────────
+
+class SorteosPage extends StatelessWidget {
+  const SorteosPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/affiliates-tools');
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBg,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SorteosHeader(),
+                const SizedBox(height: 24),
+                _AffiliatorPrimaryActionButton(
+                  title: 'Sorteos de la app',
+                  subtitle: 'Gestionar sorteos internos de BoomBet',
+                  icon: Icons.emoji_events_outlined,
+                  onTap: () => context.push('/admin/raffles'),
+                ),
+                const SizedBox(height: 12),
+                _AffiliatorPrimaryActionButton(
+                  title: 'Sorteos por formulario',
+                  subtitle: 'Gestionar sorteos fuera de la plataforma',
+                  icon: Icons.public_outlined,
+                  onTap: () => context.push('/affiliates-tools/sorteos/externos'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SorteosHeader extends StatelessWidget {
+  const _SorteosHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    const green = AppConstants.primaryGreen;
+
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => context.pop(),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: green.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: green.withValues(alpha: 0.18)),
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: green,
+              size: 16,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Text(
+          'Sorteos',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
     );
   }
 }

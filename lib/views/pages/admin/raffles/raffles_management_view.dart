@@ -260,6 +260,7 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
           child: SingleChildScrollView(
             child: CreateRaffleSection(
               showHeader: false,
+              tipo: 'APP',
               raffleId: raffle.id,
               initialText: raffle.text,
               initialCasinoGralId: raffle.casinoGralId,
@@ -269,6 +270,8 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
               initialCantidadGanadores: raffle.cantidadGanadores,
               initialPremios: raffle.premios,
               initialEmailPresentador: raffle.emailPresentador,
+              initialInstrucciones: raffle.instrucciones,
+              initialActivo: raffle.activo,
               onCreated: () {
                 Navigator.of(dialogContext).pop();
                 _loadRaffles();
@@ -383,6 +386,7 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
           child: SingleChildScrollView(
             child: CreateRaffleSection(
               showHeader: false,
+              tipo: 'APP',
               onCreated: () {
                 Navigator.of(dialogContext).pop();
                 _loadRaffles();

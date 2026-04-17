@@ -253,7 +253,6 @@ class _LoginPageState extends State<LoginPage>
         } else if (role?.trim().toUpperCase() == 'STAND') {
           if (context.mounted) context.go('/stand-tools');
         } else {
-          pendingLoginTutorialNotifier.value = true;
           if (context.mounted) context.go(HomePageKeys.home);
         }
       } else {

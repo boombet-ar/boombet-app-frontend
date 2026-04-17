@@ -139,6 +139,8 @@ class RaffleService {
     Uint8List? imageBytes,
     String? imageName,
     String imageMimeType = 'image/jpeg',
+    String? tipo,
+    String? instrucciones,
   }) async {
     final request = await _buildAuthorizedMultipartRequest(
       method: 'POST',
@@ -155,6 +157,9 @@ class RaffleService {
       if (tidId != null) 'tidId': tidId,
       if (emailPresentador != null && emailPresentador.isNotEmpty)
         'emailPresentador': emailPresentador,
+      if (tipo != null) 'tipo': tipo,
+      if (instrucciones != null && instrucciones.isNotEmpty)
+        'instrucciones': instrucciones,
     };
 
     request.files.add(
@@ -180,7 +185,7 @@ class RaffleService {
     await _sendOrThrow(request);
   }
 
-  // ── Actualizar sorteo (multipart: sorteo JSON + file opcional) ───────────────
+  // ── Actualizar sorteo (application/json) ────────────────────────────────────
   Future<void> updateRaffle({
     required int id,
     required String text,
@@ -194,13 +199,9 @@ class RaffleService {
     Uint8List? imageBytes,
     String? imageName,
     String imageMimeType = 'image/jpeg',
+    String? instrucciones,
   }) async {
-    final request = await _buildAuthorizedMultipartRequest(
-      method: 'PATCH',
-      url: '${ApiConfig.baseUrl}/sorteos/$id',
-    );
-
-    final sorteoPayload = <String, dynamic>{
+    final body = <String, dynamic>{
       'text': text,
       'fechaFin': _toIso8601WithOffset(fechaFin),
       'cantidadGanadores': cantidadGanadores,
@@ -210,29 +211,18 @@ class RaffleService {
       if (tidId != null) 'tidId': tidId,
       if (emailPresentador != null && emailPresentador.isNotEmpty)
         'emailPresentador': emailPresentador,
+      if (instrucciones != null && instrucciones.isNotEmpty)
+        'instrucciones': instrucciones,
     };
 
-    request.files.add(
-      http.MultipartFile.fromString(
-        'sorteo',
-        jsonEncode(sorteoPayload),
-        filename: 'sorteo.json',
-        contentType: MediaType('application', 'json'),
-      ),
+    final response = await HttpClient.patch(
+      '${ApiConfig.baseUrl}/sorteos/$id',
+      body: body,
     );
 
-    if (imageBytes != null) {
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          imageBytes,
-          filename: imageName ?? 'sorteo.jpg',
-          contentType: MediaType.parse(imageMimeType),
-        ),
-      );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
-
-    await _sendOrThrow(request);
   }
 
   // ── Eliminar sorteo ──────────────────────────────────────────────────────────

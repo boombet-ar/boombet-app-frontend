@@ -11,22 +11,6 @@ ValueNotifier<int> selectedPageNotifier = ValueNotifier(0);
 /// Uso: pageBackCallbacks[pageIndex] = () { ... }  // al entrar a sub-sección
 ///      pageBackCallbacks.remove(pageIndex);         // al volver al root
 final Map<int, VoidCallback> pageBackCallbacks = {};
-ValueNotifier<bool> loginTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> pendingLoginTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> discountsTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> gamesTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> juegosNavbarTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> sorteosNavbarTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> sorteosTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> navbarSwipeTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> navbarScrolledToEndNotifier = ValueNotifier(false);
-ValueNotifier<bool> premiosTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> foroNavbarTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> foroTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> ajustesNavbarTutorialNotifier = ValueNotifier(false);
-ValueNotifier<bool> ajustesTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> finalTutorialActiveNotifier = ValueNotifier(false);
-ValueNotifier<bool> rouletteTriggerAfterTutorialNotifier = ValueNotifier(false);
 ValueNotifier<bool> emailVerifiedNotifier = ValueNotifier(false);
 ValueNotifier<double> fontSizeMultiplierNotifier = ValueNotifier(1.0);
 ValueNotifier<String> affiliateTypeNotifier = ValueNotifier('');
@@ -365,22 +349,6 @@ Future<void> clearSessionState() async {
     await prefs.remove(_keyAffiliateCodeToken);
 
     selectedPageNotifier.value = 0;
-    loginTutorialActiveNotifier.value = false;
-    pendingLoginTutorialNotifier.value = false;
-    rouletteTriggerAfterTutorialNotifier.value = false;
-    discountsTutorialActiveNotifier.value = false;
-    gamesTutorialActiveNotifier.value = false;
-    juegosNavbarTutorialNotifier.value = false;
-    sorteosNavbarTutorialNotifier.value = false;
-    sorteosTutorialActiveNotifier.value = false;
-    navbarSwipeTutorialNotifier.value = false;
-    navbarScrolledToEndNotifier.value = false;
-    premiosTutorialActiveNotifier.value = false;
-    foroNavbarTutorialNotifier.value = false;
-    foroTutorialActiveNotifier.value = false;
-    ajustesNavbarTutorialNotifier.value = false;
-    ajustesTutorialActiveNotifier.value = false;
-    finalTutorialActiveNotifier.value = false;
     emailVerifiedNotifier.value = false;
     affiliateTypeNotifier.value = '';
     affiliateCodeValidatedNotifier.value = false;

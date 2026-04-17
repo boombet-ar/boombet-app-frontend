@@ -26,14 +26,10 @@ class DiscountsContent extends StatefulWidget {
     super.key,
     this.onCuponClaimed,
     this.claimedKey,
-    this.firstCouponTutorialTargetKey,
-    this.claimedSwitchTutorialTargetKey,
   });
 
   final VoidCallback? onCuponClaimed;
   final GlobalKey<ClaimedCouponsContentState>? claimedKey;
-  final GlobalKey? firstCouponTutorialTargetKey;
-  final GlobalKey? claimedSwitchTutorialTargetKey;
 
   @override
   State<DiscountsContent> createState() => DiscountsContentState();
@@ -3065,7 +3061,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     return Tooltip(
       message: _showClaimed ? 'Ver descuentos' : 'Mis cupones reclamados',
       child: GestureDetector(
-        key: _showClaimed ? null : widget.claimedSwitchTutorialTargetKey,
         onTap: () {
           if (_showClaimed) {
             setState(() => _showClaimed = false);
@@ -3508,15 +3503,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           textColor,
                                           isDark,
                                         );
-                                        if (index == 0 &&
-                                            widget.firstCouponTutorialTargetKey !=
-                                                null) {
-                                          return KeyedSubtree(
-                                            key: widget
-                                                .firstCouponTutorialTargetKey,
-                                            child: card,
-                                          );
-                                        }
                                         return card;
                                       },
                                     );
@@ -3563,15 +3549,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           compactMobile: true,
                                           forceMobileStyle: kIsWeb,
                                         );
-                                        if (index == 0 &&
-                                            widget.firstCouponTutorialTargetKey !=
-                                                null) {
-                                          return KeyedSubtree(
-                                            key: widget
-                                                .firstCouponTutorialTargetKey,
-                                            child: card,
-                                          );
-                                        }
                                         return card;
                                       },
                                     );
@@ -3609,15 +3586,6 @@ class DiscountsContentState extends State<DiscountsContent> {
                                           ),
                                         ),
                                       );
-                                      if (index == 0 &&
-                                          widget.firstCouponTutorialTargetKey !=
-                                              null) {
-                                        return KeyedSubtree(
-                                          key: widget
-                                              .firstCouponTutorialTargetKey,
-                                          child: item,
-                                        );
-                                      }
                                       return item;
                                     },
                                   );

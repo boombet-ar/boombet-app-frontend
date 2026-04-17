@@ -12,6 +12,7 @@ import 'package:boombet_app/views/pages/admin/ads/ads_management_page.dart';
 import 'package:boombet_app/views/pages/admin/raffles/raffles_management_page.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
+import 'package:boombet_app/views/pages/affiliates/external_raffles_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
 import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
@@ -46,11 +47,8 @@ import 'package:boombet_app/views/pages/other/onboarding_page.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
 import 'package:boombet_app/views/pages/auth/reset_password_page.dart';
 import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
-import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/widgets/tutorial_overlay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -306,65 +304,44 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.discounts,
-            builder: (_, __) => _DiscountsTutorialShell(
-              child: DiscountsContent(
-                key: HomePageKeys.discountsKey,
-                firstCouponTutorialTargetKey: HomePageKeys.firstCouponKey,
-                claimedSwitchTutorialTargetKey: HomePageKeys.claimedSwitchKey,
-                onCuponClaimed: () {
-                  HomePageKeys.claimedKey.currentState?.refreshClaimedCupones();
-                  HomePageKeys.discountsKey.currentState?.refreshClaimedIds();
-                },
-                claimedKey: HomePageKeys.claimedKey,
-              ),
+            builder: (_, __) => DiscountsContent(
+              key: HomePageKeys.discountsKey,
+              onCuponClaimed: () {
+                HomePageKeys.claimedKey.currentState?.refreshClaimedCupones();
+                HomePageKeys.discountsKey.currentState?.refreshClaimedIds();
+              },
+              claimedKey: HomePageKeys.claimedKey,
             ),
           ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.raffles,
-            builder: (_, __) => const _SorteosTutorialShell(
-              child: RafflesPage(),
-            ),
+            builder: (_, __) => const RafflesPage(),
           ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.forum,
-            builder: (_, __) => _ForoTutorialShell(
-              child: ForumPage(
-                tutorialBoomBetForumTargetKey:
-                    HomePageKeys.forumBoomBetSelectorKey,
-                tutorialAddPostButtonKey: HomePageKeys.forumAddPostKey,
-                tutorialMyPostsButtonKey: HomePageKeys.forumMyPostsKey,
-              ),
-            ),
+            builder: (_, __) => const ForumPage(),
           ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.games,
-            builder: (_, __) => _GamesTutorialShell(
-              child: GamesPage(
-                firstGameTutorialTargetKey: HomePageKeys.firstGameKey,
-              ),
-            ),
+            builder: (_, __) => const GamesPage(),
           ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.settings,
-            builder: (_, __) => const _AjustesTutorialShell(
-              child: SettingsPage(),
-            ),
+            builder: (_, __) => const SettingsPage(),
           ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
             path: HomePageKeys.prizes,
-            builder: (_, __) => const _PremiosTutorialShell(
-              child: MyPrizesPage(),
-            ),
+            builder: (_, __) => const MyPrizesPage(),
           ),
         ]),
         StatefulShellBranch(routes: [
@@ -503,6 +480,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/affiliates-tools/sub-afiliadores',
       builder: (context, state) => const SubAfiliadoresPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/sorteos',
+      builder: (context, state) => const SorteosPage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/sorteos/externos',
+      builder: (context, state) => const ExternalRafflesPage(),
     ),
     GoRoute(
       path: '/affiliates-tools/eventos/:id',
@@ -839,517 +824,4 @@ Widget _buildResetPasswordPage(BuildContext context, GoRouterState state) {
   }
 }
 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la página de Descuentos
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DiscountsTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _DiscountsTutorialShell({required this.child});
-
-  @override
-  State<_DiscountsTutorialShell> createState() =>
-      _DiscountsTutorialShellState();
-}
-
-class _DiscountsTutorialShellState extends State<_DiscountsTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    discountsTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    discountsTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  void _launchCouponTutorial() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      TutorialCoachMark(
-        targets: [
-          TargetFocus(
-            identify: 'first_coupon',
-            keyTarget: HomePageKeys.firstCouponKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 16,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.local_offer_rounded,
-                  title: 'Cupones de descuento',
-                  description:
-                      'Apretá la imagen del cupón para saber más sobre este, '
-                      'y el botón "Reclamar" para que sea tuyo y puedas '
-                      'usarlo cuando quieras.',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-          TargetFocus(
-            identify: 'claimed_switch',
-            keyTarget: HomePageKeys.claimedSwitchKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 14,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.check_circle_rounded,
-                  title: 'Mis cupones reclamados',
-                  description:
-                      'Apretando este botón vas a poder ver un historial '
-                      'de tus cupones reclamados para poder acceder a '
-                      'ellos fácilmente.',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-        ],
-        colorShadow: Colors.black,
-        opacityShadow: 0.88,
-        paddingFocus: 10,
-        focusAnimationDuration: const Duration(milliseconds: 400),
-        unFocusAnimationDuration: const Duration(milliseconds: 300),
-        skipWidget: const SizedBox.shrink(),
-        onFinish: () {
-          juegosNavbarTutorialNotifier.value = true;
-        },
-        onSkip: () => true,
-      ).show(context: context);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = discountsTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.local_offer_rounded,
-            description:
-                'Acá vas a poder acceder a descuentos exclusivos '
-                'en las mejores marcas.',
-            onContinue: () {
-              discountsTutorialActiveNotifier.value = false;
-              _launchCouponTutorial();
-            },
-          ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la página de Juegos
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _GamesTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _GamesTutorialShell({required this.child});
-
-  @override
-  State<_GamesTutorialShell> createState() => _GamesTutorialShellState();
-}
-
-class _GamesTutorialShellState extends State<_GamesTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    gamesTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    gamesTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  void _launchGameCardTutorial() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      TutorialCoachMark(
-        targets: [
-          TargetFocus(
-            identify: 'first_game',
-            keyTarget: HomePageKeys.firstGameKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 16,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.sports_esports_rounded,
-                  title: 'Jugar ahora',
-                  description:
-                      'Podés apretar en "Jugar ahora" para disfrutar '
-                      'de nuestros juegos.',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-        ],
-        colorShadow: Colors.black,
-        opacityShadow: 0.88,
-        paddingFocus: 10,
-        focusAnimationDuration: const Duration(milliseconds: 400),
-        unFocusAnimationDuration: const Duration(milliseconds: 300),
-        skipWidget: const SizedBox.shrink(),
-        onFinish: () {
-          sorteosNavbarTutorialNotifier.value = true;
-        },
-        onSkip: () => true,
-      ).show(context: context);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = gamesTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.videogame_asset_rounded,
-            description:
-                'Acá podés acceder a nuestros juegos, los cuales podés '
-                'jugar por puntos para obtener más beneficios y participar '
-                'por increíbles premios.',
-            onContinue: () {
-              gamesTutorialActiveNotifier.value = false;
-              _launchGameCardTutorial();
-            },
-          ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la página de Sorteos
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SorteosTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _SorteosTutorialShell({required this.child});
-
-  @override
-  State<_SorteosTutorialShell> createState() => _SorteosTutorialShellState();
-}
-
-class _SorteosTutorialShellState extends State<_SorteosTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    sorteosTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    sorteosTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = sorteosTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.card_giftcard_rounded,
-            description:
-                'Acá podés participar de los sorteos de BoomBet por '
-                'increíbles premios. No te olvides de activar las '
-                'notificaciones para enterarte lo antes posible y ser '
-                'el primero en participar!',
-            onContinue: () {
-              sorteosTutorialActiveNotifier.value = false;
-              navbarSwipeTutorialNotifier.value = true;
-            },
-          ),
-      ],
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la pagina de Premios
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PremiosTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _PremiosTutorialShell({required this.child});
-
-  @override
-  State<_PremiosTutorialShell> createState() => _PremiosTutorialShellState();
-}
-
-class _PremiosTutorialShellState extends State<_PremiosTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    premiosTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    premiosTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = premiosTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.workspace_premium_rounded,
-            description:
-                'Acá vas a poder ver y canjear los premios que ganaste '
-                'en BoomBet. Buscá tu stand más cercano y enteráte '
-                'cómo ganar o cómo canjearlo!',
-            onContinue: () {
-              premiosTutorialActiveNotifier.value = false;
-              foroNavbarTutorialNotifier.value = true;
-            },
-          ),
-      ],
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la pagina de Foro
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ForoTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _ForoTutorialShell({required this.child});
-
-  @override
-  State<_ForoTutorialShell> createState() => _ForoTutorialShellState();
-}
-
-class _ForoTutorialShellState extends State<_ForoTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    foroTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    foroTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  void _launchForumSelectorTutorial() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      TutorialCoachMark(
-        targets: [
-          // Paso 1 — Selector de foro BoomBet
-          TargetFocus(
-            identify: 'forum_boombet_selector',
-            keyTarget: HomePageKeys.forumBoomBetSelectorKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 16,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.forum_rounded,
-                  title: 'Foro de BoomBet',
-                  description:
-                      'Este es el foro de BoomBet. Al lado vas a ver los '
-                      'botones para acceder a los foros de tus casinos '
-                      'afiliados.',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-          // Paso 2 — Toggle Todos / Mis posts
-          TargetFocus(
-            identify: 'forum_filter_buttons',
-            keyTarget: HomePageKeys.forumMyPostsKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 14,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.filter_list_rounded,
-                  title: 'Filtros de posteos',
-                  description:
-                      'Acá podés alternar entre todos los posteos y los '
-                      'tuyos, incluidas tus respuestas a otros usuarios!',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-          // Paso 3 — Botón Publicar
-          TargetFocus(
-            identify: 'forum_add_post',
-            keyTarget: HomePageKeys.forumAddPostKey,
-            shape: ShapeLightFocus.RRect,
-            radius: 14,
-            enableOverlayTab: false,
-            enableTargetTab: false,
-            contents: [
-              TargetContent(
-                align: ContentAlign.bottom,
-                builder: (ctx, controller) => TutorialStepCard(
-                  icon: Icons.edit_rounded,
-                  title: 'Publicar',
-                  description:
-                      'Apretá acá para escribir un posteo y publicarlo '
-                      'en el foro en el que estés posicionado.',
-                  onContinue: controller.next,
-                ),
-              ),
-            ],
-          ),
-        ],
-        colorShadow: Colors.black,
-        opacityShadow: 0.88,
-        paddingFocus: 10,
-        focusAnimationDuration: const Duration(milliseconds: 400),
-        unFocusAnimationDuration: const Duration(milliseconds: 300),
-        skipWidget: const SizedBox.shrink(),
-        onFinish: () {
-          ajustesNavbarTutorialNotifier.value = true;
-        },
-        onSkip: () => true,
-      ).show(context: context);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = foroTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.forum_rounded,
-            description:
-                'Este es nuestro foro. Acá podés formar parte de nuestra '
-                'comunidad hablando con otros usuarios tanto en nuestro '
-                'foro general como en los foros de tus casinos afiliados.',
-            onContinue: () {
-              foroTutorialActiveNotifier.value = false;
-              _launchForumSelectorTutorial();
-            },
-          ),
-      ],
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shell de tutorial para la pagina de Ajustes
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _AjustesTutorialShell extends StatefulWidget {
-  final Widget child;
-  const _AjustesTutorialShell({required this.child});
-
-  @override
-  State<_AjustesTutorialShell> createState() => _AjustesTutorialShellState();
-}
-
-class _AjustesTutorialShellState extends State<_AjustesTutorialShell> {
-  @override
-  void initState() {
-    super.initState();
-    ajustesTutorialActiveNotifier.addListener(_onTutorialChanged);
-  }
-
-  @override
-  void dispose() {
-    ajustesTutorialActiveNotifier.removeListener(_onTutorialChanged);
-    super.dispose();
-  }
-
-  void _onTutorialChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = ajustesTutorialActiveNotifier.value;
-
-    return Stack(
-      children: [
-        IgnorePointer(ignoring: isActive, child: widget.child),
-        if (isActive)
-          TutorialPageOverlay(
-            icon: Icons.settings_rounded,
-            description:
-                'Estos son los ajustes. Acá podés acceder a tu perfil, '
-                'cambiar tu contraseña, activar/desactivar la biometría '
-                'y notificaciones, entre otras cosas!',
-            onContinue: () {
-              ajustesTutorialActiveNotifier.value = false;
-              finalTutorialActiveNotifier.value = true;
-            },
-          ),
-      ],
-    );
-  }
-}
+// (tutorial shells eliminados)

@@ -74,26 +74,4 @@ class HomePageKeys {
   static final GlobalKey<ClaimedCouponsContentState> claimedKey =
       GlobalKey<ClaimedCouponsContentState>();
 
-  // ── Keys para el tutorial – NavBar ────────────────────────────────
-  static final GlobalKey inicioNavbarKey     = GlobalKey();
-  static final GlobalKey descuentosNavbarKey = GlobalKey();
-  static final GlobalKey sorteosNavbarKey    = GlobalKey();
-  static final GlobalKey foroNavbarKey       = GlobalKey();
-  static final GlobalKey juegosNavbarKey     = GlobalKey();
-  static final GlobalKey premiosNavbarKey    = GlobalKey();
-  static final GlobalKey ajustesNavbarKey    = GlobalKey();
-
-  // ── Keys para el tutorial – AppBar ────────────────────────────────
-  static final GlobalKey faqAppbarKey      = GlobalKey();
-  static final GlobalKey profileAppbarKey  = GlobalKey();
-  static final GlobalKey settingsAppbarKey = GlobalKey();
-  static final GlobalKey logoutAppbarKey   = GlobalKey();
-
-  // ── Keys para el tutorial – Páginas hijas ─────────────────────────
-  static final GlobalKey firstCouponKey          = GlobalKey();
-  static final GlobalKey claimedSwitchKey        = GlobalKey();
-  static final GlobalKey firstGameKey            = GlobalKey();
-  static final GlobalKey forumBoomBetSelectorKey = GlobalKey();
-  static final GlobalKey forumAddPostKey         = GlobalKey();
-  static final GlobalKey forumMyPostsKey         = GlobalKey();
 }

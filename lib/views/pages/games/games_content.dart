@@ -3,9 +3,7 @@ import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:flutter/material.dart';
 
 class GamesContent extends StatelessWidget {
-  const GamesContent({super.key, this.firstGameTutorialTargetKey});
-
-  final GlobalKey? firstGameTutorialTargetKey;
+  const GamesContent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -68,14 +66,6 @@ class GamesContent extends StatelessWidget {
                               asset: g.asset,
                             );
 
-                            if (index == 0 &&
-                                firstGameTutorialTargetKey != null) {
-                              return KeyedSubtree(
-                                key: firstGameTutorialTargetKey,
-                                child: card,
-                              );
-                            }
-
                             return card;
                           }),
                         );
@@ -107,14 +97,6 @@ class GamesContent extends StatelessWidget {
                             onPlay: g.onPlay,
                             asset: g.asset,
                           );
-
-                          if (index == 0 &&
-                              firstGameTutorialTargetKey != null) {
-                            return KeyedSubtree(
-                              key: firstGameTutorialTargetKey,
-                              child: card,
-                            );
-                          }
 
                           return card;
                         },

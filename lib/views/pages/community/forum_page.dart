@@ -147,16 +147,7 @@ class _AffiliatedCasino {
 }
 
 class ForumPage extends StatefulWidget {
-  const ForumPage({
-    super.key,
-    this.tutorialBoomBetForumTargetKey,
-    this.tutorialAddPostButtonKey,
-    this.tutorialMyPostsButtonKey,
-  });
-
-  final Key? tutorialBoomBetForumTargetKey;
-  final Key? tutorialAddPostButtonKey;
-  final Key? tutorialMyPostsButtonKey;
+  const ForumPage({super.key});
 
   @override
   State<ForumPage> createState() => _ForumPageState();
@@ -736,7 +727,6 @@ class _ForumPageState extends State<ForumPage> {
           // ── Toggle Todos / Mis posts ─────────────────────────────
           Expanded(
             child: Container(
-              key: widget.tutorialMyPostsButtonKey,
               height: 38,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
@@ -796,7 +786,6 @@ class _ForumPageState extends State<ForumPage> {
 
           // ── Botón publicar ────────────────────────────────────────
           GestureDetector(
-            key: widget.tutorialAddPostButtonKey,
             onTap: _showCreatePostDialog,
             child: Container(
               height: 38,
@@ -922,9 +911,6 @@ class _ForumPageState extends State<ForumPage> {
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              key: forum.id == _boomBetForumId
-                  ? widget.tutorialBoomBetForumTargetKey
-                  : null,
               borderRadius: BorderRadius.circular(14),
               onTap: () => _selectForum(forum),
               child: Ink(

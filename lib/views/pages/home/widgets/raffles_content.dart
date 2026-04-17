@@ -115,7 +115,10 @@ class _RafflesContentState extends State<RafflesContent> {
       final rafflesMaps = results[0];
       final casinosMaps = results[1];
 
-      final raffles = rafflesMaps.map(RaffleModel.fromMap).toList();
+      final raffles = rafflesMaps
+          .map(RaffleModel.fromMap)
+          .where((r) => r.tipo == 'APP')
+          .toList();
       final casinoMap = <int, _CasinoInfo>{};
       for (final m in casinosMaps) {
         final rawId = m['id'];

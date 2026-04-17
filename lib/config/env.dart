@@ -29,6 +29,10 @@ class Env {
     'VIDEO_PROXY_BASE',
     defaultValue: '',
   );
+  static const _defineMenuUrl = String.fromEnvironment(
+    'MENU_URL',
+    defaultValue: '',
+  );
   static const _defineUserDataKey = String.fromEnvironment(
     'USERDATA_KEY',
     defaultValue: '',
@@ -112,6 +116,8 @@ class Env {
         return _defineImageProxyBase;
       case 'VIDEO_PROXY_BASE':
         return _defineVideoProxyBase;
+      case 'MENU_URL':
+        return _defineMenuUrl;
       case 'USERDATA_KEY':
         return _defineUserDataKey;
       default:

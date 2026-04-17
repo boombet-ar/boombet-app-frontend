@@ -47,36 +47,14 @@ class _HomeContentState extends State<HomeContent> {
   void initState() {
     super.initState();
     _fetchAds();
-    rouletteTriggerAfterTutorialNotifier.addListener(_onRouletteTriggerChanged);
-    finalTutorialActiveNotifier.addListener(_onRouletteTriggerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowRouletteOnce();
     });
   }
 
-  void _onRouletteTriggerChanged() {
-    if (!mounted) return;
-    if (rouletteTriggerAfterTutorialNotifier.value) {
-      _checkAndShowRouletteOnce();
-    }
-  }
-
   Future<void> _checkAndShowRouletteOnce() async {
     if (kIsWeb) return;
     if (_rouletteChecked) return;
-
-    if (!rouletteTriggerAfterTutorialNotifier.value) {
-      return;
-    }
-
-    if (loginTutorialActiveNotifier.value || finalTutorialActiveNotifier.value) {
-      Future.delayed(const Duration(milliseconds: 350), () {
-        if (mounted) {
-          _checkAndShowRouletteOnce();
-        }
-      });
-      return;
-    }
 
     final currentRoute = ModalRoute.of(context);
     if (currentRoute != null && !currentRoute.isCurrent) {
@@ -142,10 +120,6 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   void dispose() {
-    rouletteTriggerAfterTutorialNotifier.removeListener(
-      _onRouletteTriggerChanged,
-    );
-    finalTutorialActiveNotifier.removeListener(_onRouletteTriggerChanged);
     for (final controller in _videoControllers.values) {
       controller.dispose();
     }

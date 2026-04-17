@@ -4,18 +4,14 @@ import 'package:flutter/material.dart';
 
 /// Página de juegos sin header duplicado; el header vive en `GamesContent`.
 class GamesPage extends StatelessWidget {
-  const GamesPage({super.key, this.firstGameTutorialTargetKey});
-
-  final GlobalKey? firstGameTutorialTargetKey;
+  const GamesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    return const ColoredBox(
       color: AppConstants.darkBg,
       child: SizedBox.expand(
-        child: GamesContent(
-          firstGameTutorialTargetKey: firstGameTutorialTargetKey,
-        ),
+        child: GamesContent(),
       ),
     );
   }

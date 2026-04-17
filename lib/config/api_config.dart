@@ -15,6 +15,11 @@ class ApiConfig {
       Env.getString('IMAGE_PROXY_BASE', allowEmpty: true);
   static String get videoProxyBase =>
       Env.getString('VIDEO_PROXY_BASE', allowEmpty: true);
+  static String get menuUrl {
+    final raw = Env.getString('MENU_URL', allowEmpty: true);
+    final url = raw.isEmpty ? 'http://localhost:5173/' : raw;
+    return url.endsWith('/') ? url : '$url/';
+  }
 
   static String get baseUrl {
     final rawHost = apiHost.trim();

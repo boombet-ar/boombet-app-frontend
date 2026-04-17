@@ -25,6 +25,9 @@ class CreateRaffleSection extends StatefulWidget {
   final int? initialCantidadGanadores;
   final List<PremioModel>? initialPremios;
   final String? initialEmailPresentador;
+  final String? initialInstrucciones;
+  final bool initialActivo;
+  final String? tipo;
 
   const CreateRaffleSection({
     super.key,
@@ -39,6 +42,9 @@ class CreateRaffleSection extends StatefulWidget {
     this.initialCantidadGanadores,
     this.initialPremios,
     this.initialEmailPresentador,
+    this.initialInstrucciones,
+    this.initialActivo = false,
+    this.tipo,
   });
 
   @override
@@ -50,6 +56,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   final _tidsService = TidsService();
   final _textController = TextEditingController();
   final _emailController = TextEditingController();
+  final _instruccionesController = TextEditingController();
   final _imagePicker = ImagePicker();
 
   DateTime? _expiryDateTime;
@@ -70,6 +77,8 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   bool _isLoadingTids = false;
   int? _selectedTidId;
   List<TidModel> _tidOptions = const [];
+
+  bool _activo = false;
 
   // Premios
   int _cantidadGanadores = 1;
@@ -95,6 +104,9 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     _selectedTidId = widget.initialTidId;
     final email = widget.initialEmailPresentador?.trim();
     if (email != null && email.isNotEmpty) _emailController.text = email;
+    final instrucciones = widget.initialInstrucciones?.trim();
+    if (instrucciones != null && instrucciones.isNotEmpty) _instruccionesController.text = instrucciones;
+    _activo = widget.initialActivo;
     final initialPremios = widget.initialPremios;
     if (initialPremios != null && initialPremios.isNotEmpty) {
       final sorted = [...initialPremios]..sort((a, b) => a.orden.compareTo(b.orden));
@@ -115,6 +127,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   void dispose() {
     _textController.dispose();
     _emailController.dispose();
+    _instruccionesController.dispose();
     for (final c in _premioControllers) {
       c.dispose();
     }
@@ -290,6 +303,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     setState(() => _isSubmitting = true);
 
     try {
+      final instrucciones = _instruccionesController.text.trim();
       if (_isEditMode) {
         await _raffleService.updateRaffle(
           id: widget.raffleId!,
@@ -300,9 +314,11 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
           casinoGralId: _selectedCasinoId,
           tidId: _selectedTidId,
           emailPresentador: email.isNotEmpty ? email : null,
+          activo: _activo,
           imageBytes: _imageBytes,
           imageName: _imageName,
           imageMimeType: _imageMimeType,
+          instrucciones: instrucciones.isNotEmpty ? instrucciones : null,
         );
       } else {
         await _raffleService.createRaffle(
@@ -313,9 +329,12 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
           casinoGralId: _selectedCasinoId,
           tidId: _selectedTidId,
           emailPresentador: email.isNotEmpty ? email : null,
+          activo: _activo,
           imageBytes: _imageBytes,
           imageName: _imageName,
           imageMimeType: _imageMimeType,
+          tipo: widget.tipo,
+          instrucciones: instrucciones.isNotEmpty ? instrucciones : null,
         );
       }
 
@@ -324,6 +343,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
         _isSubmitting = false;
         _textController.clear();
         _emailController.clear();
+        _instruccionesController.clear();
         _expiryDateTime = null;
         _imageBytes = null;
         _existingImageUrl = null;
@@ -528,7 +548,67 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
                 ),
               ),
 
+              const SizedBox(height: 16),
+
+              // ── Instrucciones ────────────────────────────────────────────────
+              TextFormField(
+                controller: _instruccionesController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: _fieldDecoration(
+                  label: 'Instrucciones para el ganador',
+                  hint: 'Ej: Comunicate por Instagram @boombet para reclamar tu premio.',
+                  icon: Icons.info_outline_rounded,
+                ),
+              ),
+
               const SizedBox(height: 24),
+
+              // ── Tipo (read-only, solo si fue provisto) ───────────────────────
+              if (widget.tipo != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111111),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: green.withValues(alpha: 0.18)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.label_outline_rounded,
+                          color: green.withValues(alpha: 0.55), size: 18),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Tipo',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.50),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: green.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: green.withValues(alpha: 0.30)),
+                        ),
+                        child: Text(
+                          widget.tipo!,
+                          style: const TextStyle(
+                            color: green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // ── Botón guardar ────────────────────────────────────────────────
               _buildSaveButton(green),
