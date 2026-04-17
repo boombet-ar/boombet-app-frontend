@@ -17,7 +17,7 @@ class ApiConfig {
       Env.getString('VIDEO_PROXY_BASE', allowEmpty: true);
   static String get menuUrl {
     final raw = Env.getString('MENU_URL', allowEmpty: true);
-    final url = raw.isEmpty ? 'http://localhost:5173/' : raw;
+    final url = raw.isEmpty ? 'https://ruleta.boombet-ar.bet/' : raw;
     return url.endsWith('/') ? url : '$url/';
   }
 
