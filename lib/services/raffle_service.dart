@@ -185,7 +185,7 @@ class RaffleService {
     await _sendOrThrow(request);
   }
 
-  // ── Actualizar sorteo (application/json) ────────────────────────────────────
+  // ── Actualizar sorteo (multipart/form-data) ─────────────────────────────────
   Future<void> updateRaffle({
     required int id,
     required String text,
@@ -201,7 +201,12 @@ class RaffleService {
     String imageMimeType = 'image/jpeg',
     String? instrucciones,
   }) async {
-    final body = <String, dynamic>{
+    final request = await _buildAuthorizedMultipartRequest(
+      method: 'PATCH',
+      url: '${ApiConfig.baseUrl}/sorteos/$id',
+    );
+
+    final sorteoPayload = <String, dynamic>{
       'text': text,
       'fechaFin': _toIso8601WithOffset(fechaFin),
       'cantidadGanadores': cantidadGanadores,
@@ -215,14 +220,27 @@ class RaffleService {
         'instrucciones': instrucciones,
     };
 
-    final response = await HttpClient.patch(
-      '${ApiConfig.baseUrl}/sorteos/$id',
-      body: body,
+    request.files.add(
+      http.MultipartFile.fromString(
+        'sorteo',
+        jsonEncode(sorteoPayload),
+        filename: 'sorteo.json',
+        contentType: MediaType('application', 'json'),
+      ),
     );
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+    if (imageBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: imageName ?? 'sorteo.jpg',
+          contentType: MediaType.parse(imageMimeType),
+        ),
+      );
     }
+
+    await _sendOrThrow(request);
   }
 
   // ── Eliminar sorteo ──────────────────────────────────────────────────────────

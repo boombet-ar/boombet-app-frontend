@@ -663,7 +663,10 @@ class _DiscountsPageState extends State<DiscountsPage> {
 
     return Scaffold(
       backgroundColor: isDark ? AppConstants.darkBg : AppConstants.lightBg,
-      body: SingleChildScrollView(
+      body: RefreshIndicator(
+        onRefresh: () => _loadCupones(reset: true),
+        color: primaryGreen,
+        child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -730,28 +733,44 @@ class _DiscountsPageState extends State<DiscountsPage> {
                 ),
               )
             else if (_cupones.isEmpty)
-              Center(
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.discount,
-                        size: 80,
-                        color: theme.colorScheme.primary,
+                      ShaderMask(
+                        shaderCallback: (r) => const LinearGradient(
+                          colors: [AppConstants.primaryGreen, Color(0xFF00E5FF)],
+                        ).createShader(r),
+                        child: const Icon(
+                          Icons.discount_rounded,
+                          size: 72,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        'No hay cupones disponibles',
+                      const Text(
+                        'SIN CUPONES DISPONIBLES',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
+                          fontFamily: 'ThaleahFat',
+                          fontSize: 22,
+                          color: Colors.white,
+                          letterSpacing: 2,
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No hay cupones disponibles en este momento.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.6),
                       ),
                     ],
                   ),
+                ),
                 ),
               )
             else
@@ -955,6 +974,7 @@ class _DiscountsPageState extends State<DiscountsPage> {
               ),
           ],
         ),
+      ),
       ),
       bottomNavigationBar: const NavbarWidget(),
     );

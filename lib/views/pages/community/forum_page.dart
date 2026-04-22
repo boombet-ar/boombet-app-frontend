@@ -1099,43 +1099,32 @@ class _ForumPageState extends State<ForumPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: accent.withOpacity(0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Icon(
+            ShaderMask(
+              shaderCallback: (r) => const LinearGradient(
+                colors: [AppConstants.primaryGreen, Color(0xFF00E5FF)],
+              ).createShader(r),
+              child: const Icon(
                 Icons.chat_bubble_outline_rounded,
-                size: 64,
-                color: accent,
+                size: 72,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 32),
-            Text(
-              '¡Comienza la conversación!',
+            const SizedBox(height: 20),
+            const Text(
+              'SIN PUBLICACIONES',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+                fontFamily: 'ThaleahFat',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               'Todavía no hay publicaciones.\nSé el primero en compartir algo con la comunidad.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, height: 1.5, color: textColor),
+              style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.6),
             ),
           ],
         ),

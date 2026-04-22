@@ -190,41 +190,44 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
   }
 
   Widget _buildEmpty(Color accent) {
-    final textColor = Theme.of(context).colorScheme.onSurface;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
+            ShaderMask(
+              shaderCallback: (r) => const LinearGradient(
+                colors: [
+                  AppConstants.primaryGreen,
+                  Color(0xFF00E5FF),
+                ],
+              ).createShader(r),
+              child: const Icon(
+                Icons.casino_rounded,
+                size: 72,
+                color: Colors.white,
               ),
-              child: Icon(Icons.casino_rounded, size: 48, color: Colors.grey),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Aún no estás asociado',
+            const SizedBox(height: 20),
+            const Text(
+              'SIN CASINOS ASOCIADOS',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+                fontFamily: 'ThaleahFat',
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               'Aquí aparecerán los casinos a los que te unas.',
               textAlign: TextAlign.center,
               style: TextStyle(
+                color: Colors.grey[500],
                 fontSize: 14,
-                color: textColor.withValues(alpha: 0.6),
+                height: 1.6,
               ),
             ),
           ],

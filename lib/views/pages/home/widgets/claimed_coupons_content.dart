@@ -372,39 +372,40 @@ class ClaimedCouponsContentState extends State<ClaimedCouponsContent> {
                 )
               : _claimedCupones.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (r) => const LinearGradient(
+                            colors: [AppConstants.primaryGreen, Color(0xFF00E5FF)],
+                          ).createShader(r),
+                          child: const Icon(
+                            Icons.card_giftcard_rounded,
+                            size: 72,
+                            color: Colors.white,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.card_giftcard,
-                          size: 48,
-                          color: Colors.grey,
+                        const SizedBox(height: 20),
+                        const Text(
+                          'SIN CUPONES RECLAMADOS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'ThaleahFat',
+                            fontSize: 22,
+                            color: Colors.white,
+                            letterSpacing: 2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Sin cupones reclamados',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                        const SizedBox(height: 10),
+                        Text(
+                          '¡Reclama un cupón para verlo aquí!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.6),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '¡Reclama un cupón para verlo aquí!',
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.6),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 )
               : Column(

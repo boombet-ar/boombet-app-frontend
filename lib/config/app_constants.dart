@@ -127,7 +127,7 @@ class AppConstants {
   /// Controla si se afilia al usuario a cupones durante el registro.
   /// Poner en false para saltear el POST /api/cupones/afiliado
   /// al confirmar el email (útil para cuentas de test en producción).
-  static const bool couponAffiliationOnRegisterEnabled = false;
+  static const bool couponAffiliationOnRegisterEnabled = true;
 
   /// Muestra un pop-up de debug con el request/response completo
   /// al presionar "Crear cuenta". Desactivar en producción estable.
