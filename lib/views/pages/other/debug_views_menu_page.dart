@@ -249,7 +249,7 @@ class DebugViewsMenuPage extends StatelessWidget {
             onEdit: (_) {},
             onDelete: (_) {},
             onViewAffiliations: (_) {},
-            eventoNames: const {1: 'Evento Mock'}, onShowQr: (TidModel p1) {  },
+            eventoNames: const {1: 'Evento Mock'}, onShowQr: (TidModel p1) {  }, onCreateForm: (int tidId) {  },
           ),
         ),
       ),

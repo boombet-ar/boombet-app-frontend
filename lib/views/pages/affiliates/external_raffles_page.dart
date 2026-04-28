@@ -3,7 +3,9 @@ import 'dart:ui' as ui;
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/raffle_model.dart';
+import 'package:boombet_app/services/formularios_service.dart';
 import 'package:boombet_app/services/raffle_service.dart';
+import 'package:boombet_app/views/pages/affiliates/forms/create_form.dart';
 import 'package:boombet_app/utils/qr_saver.dart';
 import 'package:boombet_app/views/pages/admin/raffles/create_raffle.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
@@ -25,10 +27,12 @@ class _ExternalRafflesPageState extends State<ExternalRafflesPage> {
   static const String _tipo = 'FORM';
 
   final _raffleService = RaffleService();
+  final _formulariosService = FormulariosService();
 
   bool _isLoading = true;
   String? _errorMessage;
   List<RaffleModel> _raffles = const [];
+  Map<int, int> _sorteoFormIdMap = const {};
   int _currentPage = 0;
   final Set<int> _togglingIds = {};
 
@@ -36,6 +40,20 @@ class _ExternalRafflesPageState extends State<ExternalRafflesPage> {
   void initState() {
     super.initState();
     _loadRaffles();
+    _loadFormularios();
+  }
+
+  Future<void> _loadFormularios() async {
+    try {
+      final forms = await _formulariosService.fetchFormularios();
+      if (!mounted) return;
+      setState(() {
+        _sorteoFormIdMap = {
+          for (final f in forms)
+            if (f.sorteoId != null) f.sorteoId!: f.id,
+        };
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadRaffles() async {
@@ -269,9 +287,24 @@ class _ExternalRafflesPageState extends State<ExternalRafflesPage> {
     }
   }
 
+  Future<void> _handleCreateForm(RaffleModel raffle) async {
+    if (raffle.id == null) return;
+    await showCreateFormDialog(
+      context: context,
+      preSorteoId: raffle.id,
+      onCreated: (created) {
+        setState(() {
+          _sorteoFormIdMap = {..._sorteoFormIdMap, raffle.id!: created.id};
+        });
+      },
+    );
+  }
+
   Future<void> _handleDownloadQr(RaffleModel raffle) async {
     if (raffle.id == null) return;
-    final url = '${ApiConfig.menuUrl}sorteoForm?raffleId=${raffle.id}';
+    final formId = _sorteoFormIdMap[raffle.id];
+    if (formId == null) return;
+    final url = '${ApiConfig.menuUrl}sorteoForm?formId=$formId';
     await showDialog<void>(
       context: context,
       builder: (_) => _QrDownloadDialog(
@@ -373,11 +406,13 @@ class _ExternalRafflesPageState extends State<ExternalRafflesPage> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _FormRaffleCard(
                       raffle: raffle,
+                      formId: _sorteoFormIdMap[raffle.id],
                       formatEndAt: _formatEndAt(raffle.fechaFin),
                       onEdit: () => _handleEdit(raffle),
                       onDelete: () => _handleDelete(raffle),
                       onToggleActive: () => _handleToggleActive(raffle),
                       onDownloadQr: () => _handleDownloadQr(raffle),
+                      onCreateForm: () => _handleCreateForm(raffle),
                       isToggling: _togglingIds.contains(raffle.id),
                     ),
                   ),
@@ -427,20 +462,24 @@ class _ExternalRafflesPageState extends State<ExternalRafflesPage> {
 
 class _FormRaffleCard extends StatelessWidget {
   final RaffleModel raffle;
+  final int? formId;
   final String formatEndAt;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onToggleActive;
   final VoidCallback onDownloadQr;
+  final VoidCallback onCreateForm;
   final bool isToggling;
 
   const _FormRaffleCard({
     required this.raffle,
+    required this.formId,
     required this.formatEndAt,
     required this.onEdit,
     required this.onDelete,
     required this.onToggleActive,
     required this.onDownloadQr,
+    required this.onCreateForm,
     required this.isToggling,
   });
 
@@ -628,12 +667,46 @@ class _FormRaffleCard extends StatelessWidget {
                       ],
                     ),
 
-                    if (raffle.id != null) ...[
+                    if (formId == null) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: onCreateForm,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.10)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.dynamic_form_outlined,
+                                  size: 13,
+                                  color: Colors.white.withValues(alpha: 0.35)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Crear formulario',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (formId != null) ...[
                       const SizedBox(height: 8),
                       // ── Link del formulario ───────────────────────────────
                       Builder(builder: (context) {
                         final url =
-                            '${ApiConfig.menuUrl}sorteoForm?raffleId=${raffle.id}';
+                            '${ApiConfig.menuUrl}sorteoForm?formId=$formId';
                         return GestureDetector(
                           onTap: () {
                             Clipboard.setData(ClipboardData(text: url));
@@ -697,12 +770,14 @@ class _FormRaffleCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _CardIconButton(
-                          icon: Icons.qr_code_2_rounded,
-                          color: Colors.white.withValues(alpha: 0.70),
-                          onTap: onDownloadQr,
-                        ),
-                        const SizedBox(width: 6),
+                        if (formId != null) ...[
+                          _CardIconButton(
+                            icon: Icons.qr_code_2_rounded,
+                            color: Colors.white.withValues(alpha: 0.70),
+                            onTap: onDownloadQr,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
                         _CardIconButton(
                           icon: Icons.edit_outlined,
                           color: green,

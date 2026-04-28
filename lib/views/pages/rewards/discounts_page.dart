@@ -6,6 +6,10 @@ import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/category_order.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
+import 'package:boombet_app/widgets/coupons/discount_category_chips.dart';
+import 'package:boombet_app/widgets/coupons/discount_list_card.dart';
+import 'package:boombet_app/widgets/coupons/discounts_points_banner.dart';
+import 'package:boombet_app/widgets/coupons/coupon_states.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -676,278 +680,50 @@ class _DiscountsPageState extends State<DiscountsPage> {
             if (_isLoading && _cupones.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(32.0),
-                child: Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(color: primaryGreen),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Cargando cupones...',
-                        style: TextStyle(color: theme.colorScheme.onSurface),
-                      ),
-                    ],
-                  ),
+                child: CouponLoadingState(
+                  primaryGreen: primaryGreen,
+                  textColor: theme.colorScheme.onSurface,
+                  message: 'Cargando cupones...',
                 ),
               )
             else if (_hasError)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 80,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Error',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: theme.colorScheme.onSurface),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          _currentPage = 1;
-                          _cupones.clear();
-                          _loadCupones();
-                        },
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
+              Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: CouponErrorState(
+                  errorMessage: _errorMessage,
+                  primaryGreen: primaryGreen,
+                  textColor: theme.colorScheme.onSurface,
+                  onRetry: () {
+                    _currentPage = 1;
+                    _cupones.clear();
+                    _loadCupones();
+                  },
                 ),
               )
             else if (_cupones.isEmpty)
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.6,
-                child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (r) => const LinearGradient(
-                          colors: [AppConstants.primaryGreen, Color(0xFF00E5FF)],
-                        ).createShader(r),
-                        child: const Icon(
-                          Icons.discount_rounded,
-                          size: 72,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'SIN CUPONES DISPONIBLES',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'ThaleahFat',
-                          fontSize: 22,
-                          color: Colors.white,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'No hay cupones disponibles en este momento.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.6),
-                      ),
-                    ],
-                  ),
-                ),
-                ),
+                child: const CouponEmptyState(),
               )
             else
               Column(
                 children: [
                   // Filtros de categorías
                   if (_categoriaByName.isNotEmpty)
-                    Builder(
-                      builder: (context) {
-                        final sortedCategoryNames =
-                            CategoryOrder.sortCategoryNames(
-                              _categoriaByName.keys,
-                            );
-
-                        return SizedBox(
-                          height: 50,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            itemCount: sortedCategoryNames.length,
-                            itemBuilder: (context, index) {
-                              final categoryName = sortedCategoryNames[index];
-                              final isSelected =
-                                  _selectedCategory == categoryName;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () => _onCategoryToggle(categoryName),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? primaryGreen.withValues(alpha: 0.14)
-                                          : (isDark
-                                                ? const Color(0xFF1A1A1A)
-                                                : AppConstants
-                                                      .lightSurfaceVariant),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? primaryGreen.withValues(alpha: 0.55)
-                                            : (isDark
-                                                  ? Colors.white.withValues(
-                                                      alpha: 0.12,
-                                                    )
-                                                  : Colors.black12),
-                                        width: isSelected ? 1.5 : 1.0,
-                                      ),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: primaryGreen.withValues(
-                                                  alpha: 0.20,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Text(
-                                      categoryName,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: isSelected
-                                            ? primaryGreen
-                                            : (isDark
-                                                  ? Colors.white.withValues(
-                                                      alpha: 0.65,
-                                                    )
-                                                  : AppConstants.textLight),
-                                        letterSpacing: 0.2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
+                    DiscountCategoryChips(
+                      categoryNames: CategoryOrder.sortCategoryNames(
+                        _categoriaByName.keys,
+                      ).toList(),
+                      selectedCategory: _selectedCategory,
+                      isDark: isDark,
+                      primaryGreen: primaryGreen,
+                      onCategoryToggle: _onCategoryToggle,
                     ),
 
                   // Widget de Puntos - AQUÍ, después de los filtros
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF111111)
-                          : AppConstants.lightCardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: primaryGreen.withValues(alpha: 0.25),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryGreen.withValues(alpha: 0.10),
-                          blurRadius: 18,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: primaryGreen.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: primaryGreen.withValues(alpha: 0.40),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryGreen.withValues(alpha: 0.22),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.star_rounded,
-                            color: primaryGreen,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tus Puntos',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.50)
-                                    : AppConstants.textLight.withValues(
-                                        alpha: 0.60,
-                                      ),
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '0 pts',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: primaryGreen,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  DiscountsPointsBanner(
+                    primaryGreen: primaryGreen,
+                    isDark: isDark,
                   ),
 
                   const SizedBox(height: 8),
@@ -967,7 +743,13 @@ class _DiscountsPageState extends State<DiscountsPage> {
                         );
                       }
                       final cupon = _filteredCupones[index];
-                      return _buildCuponCard(cupon);
+                      return DiscountListCard(
+                        cupon: cupon,
+                        primaryGreen: primaryGreen,
+                        isDark: isDark,
+                        textColor: theme.colorScheme.onSurface,
+                        onTap: () => _showCuponDetails(cupon),
+                      );
                     },
                   ),
                 ],
@@ -977,291 +759,6 @@ class _DiscountsPageState extends State<DiscountsPage> {
       ),
       ),
       bottomNavigationBar: const NavbarWidget(),
-    );
-  }
-
-  Widget _buildCuponCard(Cupon cupon) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryGreen = const Color(0xFF00D084);
-
-    return GestureDetector(
-      onTap: () => _showCuponDetails(cupon),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: primaryGreen.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Neon left strip
-                Container(
-                  width: 4,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        primaryGreen,
-                        primaryGreen.withValues(alpha: 0.45),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryGreen.withValues(alpha: 0.45),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
-                // Card content
-                Expanded(
-                  child: Container(
-                    color: isDark
-                        ? const Color(0xFF111111)
-                        : AppConstants.lightCardBg,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Imagen de fondo
-                        Stack(
-                          children: [
-                            if (cupon.fotoUrl.isNotEmpty)
-                              Image.network(
-                                cupon.fotoUrl,
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 150,
-                                    color: const Color(0xFF1A1A1A),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.image_not_supported,
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                        size: 40,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            else
-                              Container(
-                                height: 150,
-                                color: const Color(0xFF1A1A1A),
-                                child: Center(
-                                  child: Icon(
-                                    Icons.discount,
-                                    color: primaryGreen.withValues(alpha: 0.4),
-                                    size: 40,
-                                  ),
-                                ),
-                              ),
-                            // Badge de descuento — neon green
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primaryGreen,
-                                      primaryGreen.withValues(alpha: 0.75),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryGreen.withValues(alpha: 0.45),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 3),
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  cupon.descuento,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Contenido de la tarjeta
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Logo y nombre empresa
-                              if (cupon.logoUrl.isNotEmpty)
-                                Row(
-                                  children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: primaryGreen.withValues(
-                                              alpha: 0.18,
-                                            ),
-                                            blurRadius: 6,
-                                          ),
-                                        ],
-                                      ),
-                                      child: CircleAvatar(
-                                        backgroundImage:
-                                            NetworkImage(cupon.logoUrl),
-                                        radius: 20,
-                                        onBackgroundImageError: (_, __) {},
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            cupon.empresa.nombre,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: isDark
-                                                  ? Colors.white.withValues(
-                                                      alpha: 0.50,
-                                                    )
-                                                  : AppConstants.textLight
-                                                        .withValues(alpha: 0.55),
-                                            ),
-                                          ),
-                                          Text(
-                                            cupon.nombre,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Text(
-                                  cupon.nombre,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              const SizedBox(height: 8),
-                              // Categorías — custom neon chips
-                              if (cupon.categorias.isNotEmpty)
-                                Wrap(
-                                  spacing: 4,
-                                  runSpacing: 4,
-                                  children: cupon.categorias
-                                      .take(3)
-                                      .map(
-                                        (cat) => Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: primaryGreen.withValues(
-                                              alpha: 0.10,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: primaryGreen.withValues(
-                                                alpha: 0.22,
-                                              ),
-                                              width: 0.5,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            cat.nombre,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: primaryGreen,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                ),
-                              const SizedBox(height: 8),
-                              // Descripción breve
-                              if (cupon.descripcionBreve.isNotEmpty)
-                                Text(
-                                  cupon.descripcionBreve,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.50),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

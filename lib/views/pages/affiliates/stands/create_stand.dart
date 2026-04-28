@@ -1,4 +1,5 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/stands_service.dart';
 import 'package:flutter/material.dart';
 
@@ -60,8 +61,48 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
   final _emailController = TextEditingController();
   final _telefonoController = TextEditingController();
 
+  Map<String, bool> _passwordRules = {
+    '8+ caracteres': false,
+    '1 mayúscula': false,
+    '1 número': false,
+    '1 símbolo': false,
+    'Sin repetidos': false,
+    'Sin secuencias': false,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    final pw = _passwordController.text;
+    if (pw.isEmpty) {
+      setState(() => _passwordRules = {
+            '8+ caracteres': false,
+            '1 mayúscula': false,
+            '1 número': false,
+            '1 símbolo': false,
+            'Sin repetidos': false,
+            'Sin secuencias': false,
+          });
+      return;
+    }
+    final status = PasswordValidationService.getValidationStatus(pw);
+    setState(() {
+      _passwordRules['8+ caracteres'] = status['minimum_length']!;
+      _passwordRules['1 mayúscula'] = status['uppercase']!;
+      _passwordRules['1 número'] = status['number']!;
+      _passwordRules['1 símbolo'] = status['symbol']!;
+      _passwordRules['Sin repetidos'] = status['no_repetition']!;
+      _passwordRules['Sin secuencias'] = status['no_sequence']!;
+    });
+  }
+
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
     _nombreController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -81,6 +122,11 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
 
     if (nombre.isEmpty || username.isEmpty || password.isEmpty || email.isEmpty || telefono.isEmpty) {
       widget.onError('Todos los campos son obligatorios para continuar.');
+      return;
+    }
+
+    if (!PasswordValidationService.isPasswordValid(password)) {
+      widget.onError(PasswordValidationService.getValidationMessage(password));
       return;
     }
 
@@ -117,6 +163,50 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
             : 'No se pudo crear el puesto.',
       );
     }
+  }
+
+  Widget _PasswordRulesPanel({required Map<String, bool> rules}) {
+    const green = AppConstants.primaryGreen;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: green.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rules.entries.map((e) {
+          final isValid = e.value;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              children: [
+                Icon(
+                  isValid
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: isValid ? green : Colors.white.withValues(alpha: 0.25),
+                  size: 15,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  e.key,
+                  style: TextStyle(
+                    color: isValid
+                        ? green
+                        : Colors.white.withValues(alpha: 0.45),
+                    fontSize: 12,
+                    fontWeight:
+                        isValid ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   InputDecoration _fieldDecoration({
@@ -271,7 +361,7 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
                       cursorColor: green,
                       decoration: _fieldDecoration(
                         label: 'Contraseña',
-                        hint: 'Mínimo 6 caracteres',
+                        hint: '••••••••',
                         icon: Icons.lock_outline_rounded,
                         suffix: IconButton(
                           icon: Icon(
@@ -286,6 +376,10 @@ class _CreateStandDialogBodyState extends State<_CreateStandDialogBody> {
                         ),
                       ),
                     ),
+                    if (_passwordController.text.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _PasswordRulesPanel(rules: _passwordRules),
+                    ],
                     const SizedBox(height: 10),
                     TextField(
                       controller: _emailController,

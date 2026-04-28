@@ -1,6 +1,8 @@
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 const _green = AppConstants.primaryGreen;
 const _cardBg = Color(0xFF141414);
@@ -21,6 +23,8 @@ class TidsManagementView extends StatelessWidget {
   final void Function(TidModel) onShowQr;
   final Map<int, String> eventoNames;
   final Map<int, String> standNames;
+  final Map<int, int> tidFormIdMap;
+  final void Function(int tidId) onCreateForm;
 
   const TidsManagementView({
     super.key,
@@ -36,8 +40,10 @@ class TidsManagementView extends StatelessWidget {
     required this.onDelete,
     required this.onViewAffiliations,
     required this.onShowQr,
+    required this.onCreateForm,
     this.eventoNames = const {},
     this.standNames = const {},
+    this.tidFormIdMap = const {},
   });
 
   @override
@@ -79,6 +85,8 @@ class TidsManagementView extends StatelessWidget {
                       tid: tid,
                       eventoNames: eventoNames,
                       standNames: standNames,
+                      formId: tidFormIdMap[tid.id],
+                      onCreateForm: () => onCreateForm(tid.id),
                       onViewAffiliations: () => onViewAffiliations(tid),
                       trailingWidget: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -396,6 +404,8 @@ class _TidListTile extends StatelessWidget {
   final Map<int, String> standNames;
   final Widget? trailingWidget;
   final VoidCallback? onViewAffiliations;
+  final int? formId;
+  final VoidCallback? onCreateForm;
 
   const _TidListTile({
     required this.tid,
@@ -403,10 +413,16 @@ class _TidListTile extends StatelessWidget {
     this.standNames = const {},
     this.trailingWidget,
     this.onViewAffiliations,
+    this.formId,
+    this.onCreateForm,
   });
 
   @override
   Widget build(BuildContext context) {
+    final formUrl = formId != null
+        ? '${ApiConfig.menuUrl}sorteoForm?formId=$formId'
+        : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
@@ -414,74 +430,170 @@ class _TidListTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         border: Border.all(color: _green.withValues(alpha: 0.14)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _green.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _green.withValues(alpha: 0.20)),
-            ),
-            child: const Icon(
-              Icons.track_changes_outlined,
-              color: _green,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tid.tid.isNotEmpty ? tid.tid : 'Sin TID',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _green.withValues(alpha: 0.20)),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  _eventoLabel(tid, eventoNames),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.50),
-                    fontSize: 12,
-                  ),
+                child: const Icon(
+                  Icons.track_changes_outlined,
+                  color: _green,
+                  size: 18,
                 ),
-                if (_standLabel(tid, standNames) case final standLbl?) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    standLbl,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.50),
-                      fontSize: 12,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tid.tid.isNotEmpty ? tid.tid : 'Sin TID',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
                     ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _eventoLabel(tid, eventoNames),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.50),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (_standLabel(tid, standNames) case final standLbl?) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        standLbl,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.50),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 2),
+                    TextButton.icon(
+                      onPressed: onViewAffiliations,
+                      icon: const Icon(
+                        Icons.people_outline,
+                        size: 13,
+                        color: _green,
+                      ),
+                      label: const Text(
+                        'Ver afiliaciones',
+                        style: TextStyle(color: _green, fontSize: 11.5),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailingWidget != null) trailingWidget!,
+            ],
+          ),
+
+          // ── Formulario asociado ───────────────────────────────────────
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 8),
+          if (formUrl != null)
+            Builder(builder: (ctx) {
+              return GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: formUrl));
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Link copiado al portapapeles',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      backgroundColor: _green,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _green.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(7),
+                    border:
+                        Border.all(color: _green.withValues(alpha: 0.20)),
                   ),
-                ],
-                const SizedBox(height: 2),
-                TextButton.icon(
-                  onPressed: onViewAffiliations,
-                  icon: const Icon(
-                    Icons.people_outline,
-                    size: 13,
-                    color: _green,
-                  ),
-                  label: const Text(
-                    'Ver afiliaciones',
-                    style: TextStyle(color: _green, fontSize: 11.5),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  child: Row(
+                    children: [
+                      Icon(Icons.link_rounded,
+                          size: 13, color: _green.withValues(alpha: 0.65)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          formUrl,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: _green.withValues(alpha: 0.80),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(Icons.copy_rounded,
+                          size: 12, color: _green.withValues(alpha: 0.55)),
+                    ],
                   ),
                 ),
-              ],
+              );
+            })
+          else
+            GestureDetector(
+              onTap: onCreateForm,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.10)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.dynamic_form_outlined,
+                        size: 13,
+                        color: Colors.white.withValues(alpha: 0.35)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Crear formulario',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          if (trailingWidget != null) trailingWidget!,
         ],
       ),
     );

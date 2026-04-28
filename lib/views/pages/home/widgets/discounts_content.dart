@@ -17,8 +17,13 @@ import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:boombet_app/widgets/search_bar_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_html/flutter_html.dart';
+import 'package:boombet_app/widgets/coupons/category_filter_chips.dart';
+import 'package:boombet_app/widgets/coupons/claimed_toggle_button.dart';
+import 'package:boombet_app/widgets/coupons/coupon_activation_pending_card.dart';
+import 'package:boombet_app/widgets/coupons/coupon_code_box.dart';
+import 'package:boombet_app/widgets/coupons/coupon_states.dart';
+import 'package:boombet_app/widgets/coupons/cupon_card.dart';
+import 'package:boombet_app/widgets/coupons/cupon_detail_section.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DiscountsContent extends StatefulWidget {
@@ -97,44 +102,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     _resetDiscountsState(triggerLoad: false);
   }
 
-  Widget _buildScrollableCouponCode(
-    String code,
-    Color primaryGreen, {
-    double fontSize = 16,
-    FontWeight fontWeight = FontWeight.w800,
-    double letterSpacing = 1,
-  }) {
-    if (code.isEmpty) {
-      return Text(
-        'Codigo no disponible',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: primaryGreen.withValues(alpha: 0.8),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: fontSize + 6,
-      width: double.infinity,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Text(
-          code,
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            color: primaryGreen,
-            fontFamily: 'monospace',
-            letterSpacing: letterSpacing,
-          ),
-          softWrap: false,
-        ),
-      ),
-    );
-  }
 
   Future<void> _clearCuponCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1093,1173 +1060,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     }
   }
 
-  Widget _buildCouponActivationPendingCard(
-    Color primaryGreen,
-    Color textColor,
-  ) {
-    return Center(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF111111),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: primaryGreen.withValues(alpha: 0.14),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.07),
-                    blurRadius: 32,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.40),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(21),
-                child: Stack(
-                  children: [
-                    // Radial glow — top center
-                    Positioned(
-                      top: -60,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          width: 240,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                primaryGreen.withValues(alpha: 0.14),
-                                primaryGreen.withValues(alpha: 0.04),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 0.5, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Radial glow — bottom right (sutil)
-                    Positioned(
-                      bottom: -30,
-                      right: -30,
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              primaryGreen.withValues(alpha: 0.06),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Contenido
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 30, 24, 26),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Icon-box con glow
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: primaryGreen.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: primaryGreen.withValues(alpha: 0.22),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primaryGreen.withValues(alpha: 0.18),
-                                  blurRadius: 18,
-                                  spreadRadius: 0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.card_giftcard,
-                              color: primaryGreen,
-                              size: 34,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          // Pill "EN PROCESO"
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: primaryGreen.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(
-                                color: primaryGreen.withValues(alpha: 0.18),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              'EN PROCESO',
-                              style: TextStyle(
-                                color: primaryGreen,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Título
-                          Text(
-                            'Activando cupones',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.6,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Pronto tendrás tus beneficios disponibles.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.40),
-                              fontSize: 13,
-                              height: 1.55,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCuponCard(
-    BuildContext context,
-    Cupon cupon,
-    Color primaryGreen,
-    Color textColor,
-    bool isDark, {
-    bool compactMobile = false,
-    bool forceMobileStyle = false,
-  }) {
-    final isClaimed = _claimedCuponIds.contains(cupon.id);
-    final displayCode = (_claimedCuponCodes[cupon.id] ?? cupon.codigo).trim();
-    final isWeb = kIsWeb && !forceMobileStyle;
-    final double heroHeight = isWeb ? 140 : (compactMobile ? 112 : 160);
-    final double logoSize = compactMobile ? 40 : 56;
-    final EdgeInsets contentPadding = isWeb
-        ? const EdgeInsets.fromLTRB(16, 14, 16, 14)
-        : (compactMobile
-              ? const EdgeInsets.fromLTRB(14, 12, 14, 0)
-              : const EdgeInsets.fromLTRB(16, 14, 16, 0));
-    final double gapSm = isWeb ? 8 : (compactMobile ? 6 : 10);
-    final double gapMd = isWeb ? 10 : (compactMobile ? 8 : 14);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          _showCuponDetails(context, cupon, primaryGreen, textColor);
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              color: const Color(0xFF111111),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        height: heroHeight,
-                        width: double.infinity,
-                        color: const Color(0xFF1A1A1A),
-                        child: cupon.fotoUrl.isNotEmpty
-                            ? Image.network(
-                                _imageUrlForPlatform(cupon.fotoUrl),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Icon(
-                                      Icons.local_offer,
-                                      size: 64,
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : Center(
-                                child: Icon(
-                                  Icons.local_offer,
-                                  size: 64,
-                                  color: primaryGreen.withValues(alpha: 0.3),
-                                ),
-                              ),
-                      ),
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.25),
-                                Colors.black.withValues(alpha: 0.45),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: isClaimed
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primaryGreen.withValues(alpha: 0.9),
-                                      primaryGreen,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.5,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppConstants.textLight,
-                                      size: 14,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Reclamado',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppConstants.textLight,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                      Positioned(
-                        top: compactMobile ? 8 : 12,
-                        right: compactMobile ? 8 : 12,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: compactMobile ? 9 : 12,
-                            vertical: compactMobile ? 4 : 6,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                primaryGreen,
-                                primaryGreen.withValues(alpha: 0.75),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              compactMobile ? 18 : 24,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryGreen.withValues(alpha: 0.45),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                                spreadRadius: 1,
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            cupon.descuento,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: compactMobile ? 12 : 16,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: compactMobile ? 8 : 12,
-                        left: compactMobile ? 8 : 12,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1A),
-                            borderRadius: BorderRadius.circular(
-                              compactMobile ? 10 : 12,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryGreen.withValues(alpha: 0.25),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                                spreadRadius: 0,
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: primaryGreen.withValues(alpha: 0.30),
-                              width: 1.5,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(3),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: cupon.logoUrl.isNotEmpty
-                                ? Image.network(
-                                    _imageUrlForPlatform(cupon.logoUrl),
-                                    width: logoSize,
-                                    height: logoSize,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: logoSize,
-                                        height: logoSize,
-                                        color: const Color(0xFF1A1A1A),
-                                        child: Center(
-                                          child: Text(
-                                            cupon.empresa.nombre
-                                                .substring(
-                                                  0,
-                                                  (cupon.empresa.nombre.length)
-                                                      .clamp(0, 2),
-                                                )
-                                                .toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryGreen,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    width: logoSize,
-                                    height: logoSize,
-                                    color: const Color(0xFF1A1A1A),
-                                    child: Center(
-                                      child: Text(
-                                        cupon.empresa.nombre
-                                            .substring(
-                                              0,
-                                              (cupon.empresa.nombre.length)
-                                                  .clamp(0, 2),
-                                            )
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: primaryGreen,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isWeb)
-                    Expanded(
-                      child: Padding(
-                        padding: contentPadding,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              cupon.nombre,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: 0.2,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.storefront,
-                                  size: 14,
-                                  color: primaryGreen.withValues(alpha: 0.7),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    cupon.empresa.nombre,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textColor.withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: gapSm),
-                            Text(
-                              _cleanHtml(cupon.descripcionBreve),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textColor.withValues(alpha: 0.7),
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: gapSm),
-                            if (cupon.categorias.isNotEmpty)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: cupon.categorias.take(2).map((cat) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        width: 0.5,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      cat.nombre,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: primaryGreen,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            SizedBox(height: gapSm),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 14,
-                                  color: textColor.withValues(alpha: 0.4),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    isClaimed
-                                        ? 'Reclamado el: ${cupon.fechaVencimientoFormatted}'
-                                        : 'Válido hasta: ${cupon.fechaVencimientoFormatted}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(
-                              height: compactMobile
-                                  ? 4
-                                  : (isWeb ? gapSm : gapMd),
-                            ),
-
-                            // En web, fijamos el bloque inferior (código o botón)
-                            // al fondo para mantener todas las cards simétricas.
-                            if (isWeb) const Spacer(),
-                            if (isClaimed) ...[
-                              Container(
-                                padding: EdgeInsets.all(
-                                  isWeb ? 10 : (compactMobile ? 8 : 12),
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primaryGreen.withValues(alpha: 0.12),
-                                      primaryGreen.withValues(alpha: 0.06),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: primaryGreen.withValues(alpha: 0.3),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            compactMobile
-                                                ? 'Código:'
-                                                : 'Tu Código',
-                                            style: TextStyle(
-                                              fontSize: compactMobile ? 10 : 11,
-                                              color: textColor.withValues(
-                                                alpha: 0.6,
-                                              ),
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.3,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: compactMobile ? 2 : 6,
-                                          ),
-                                          if (compactMobile)
-                                            SizedBox(
-                                              height: 16,
-                                              width: double.infinity,
-                                              child: Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    displayCode,
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      color: primaryGreen,
-                                                      fontFamily: 'monospace',
-                                                      letterSpacing: 0.9,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          else
-                                            _buildScrollableCouponCode(
-                                              displayCode,
-                                              primaryGreen,
-                                              fontSize: isWeb ? 16 : 18,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 1.2,
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(width: compactMobile ? 8 : 12),
-                                    InkWell(
-                                      onTap: () async {
-                                        if (displayCode.isEmpty) return;
-                                        await Clipboard.setData(
-                                          ClipboardData(text: displayCode),
-                                        );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Código copiado: $displayCode',
-                                            ),
-                                            duration: const Duration(
-                                              seconds: 2,
-                                            ),
-                                            backgroundColor: primaryGreen,
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(
-                                        compactMobile ? 10 : 12,
-                                      ),
-                                      child: Container(
-                                        padding: EdgeInsets.all(
-                                          compactMobile ? 6 : 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            compactMobile ? 10 : 12,
-                                          ),
-                                          border: Border.all(
-                                            color: primaryGreen.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.content_copy,
-                                          color: primaryGreen,
-                                          size: compactMobile ? 16 : 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ] else ...[
-                              if (isWeb)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _buildClaimButton(
-                                    context: context,
-                                    cupon: cupon,
-                                    primaryGreen: primaryGreen,
-                                  ),
-                                )
-                              else
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _buildClaimButton(
-                                    context: context,
-                                    cupon: cupon,
-                                    primaryGreen: primaryGreen,
-                                    compact: true,
-                                  ),
-                                ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: Padding(
-                        padding: contentPadding,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              cupon.nombre,
-                              style: TextStyle(
-                                fontSize: compactMobile ? 14 : 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: 0.2,
-                              ),
-                              maxLines: compactMobile ? 1 : 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.storefront,
-                                  size: 14,
-                                  color: primaryGreen.withValues(alpha: 0.7),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    cupon.empresa.nombre,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textColor.withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: gapSm),
-                            if (!compactMobile) ...[
-                              Text(
-                                _cleanHtml(cupon.descripcionBreve),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: textColor.withValues(alpha: 0.7),
-                                  height: 1.4,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: gapSm),
-                            ],
-                            if (cupon.categorias.isNotEmpty)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: cupon.categorias
-                                    .take(compactMobile ? 1 : 2)
-                                    .map((cat) {
-                                      final rawCategoryName = cat.nombre.trim();
-                                      final compactCategoryName =
-                                          rawCategoryName.contains(',')
-                                          ? rawCategoryName
-                                                .split(',')
-                                                .first
-                                                .trim()
-                                          : rawCategoryName;
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: primaryGreen.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          border: Border.all(
-                                            color: primaryGreen.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          compactMobile
-                                              ? compactCategoryName
-                                              : rawCategoryName,
-                                          style: TextStyle(
-                                            fontSize: compactMobile ? 10 : 11,
-                                            color: primaryGreen,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          softWrap: false,
-                                        ),
-                                      );
-                                    })
-                                    .toList(),
-                              ),
-                            SizedBox(height: gapSm),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 14,
-                                  color: textColor.withValues(alpha: 0.4),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    isClaimed
-                                        ? 'Reclamado el: ${cupon.fechaVencimientoFormatted}'
-                                        : 'Válido hasta: ${cupon.fechaVencimientoFormatted}',
-                                    style: TextStyle(
-                                      fontSize: compactMobile ? 10 : 11,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: compactMobile ? 4 : gapMd),
-                            if (isClaimed) ...[
-                              Container(
-                                padding: EdgeInsets.all(
-                                  isWeb ? 10 : (compactMobile ? 8 : 12),
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primaryGreen.withValues(alpha: 0.12),
-                                      primaryGreen.withValues(alpha: 0.06),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: primaryGreen.withValues(alpha: 0.3),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: compactMobile
-                                    ? Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  'Código:',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: textColor.withValues(
-                                                      alpha: 0.6,
-                                                    ),
-                                                    fontWeight: FontWeight.w700,
-                                                    letterSpacing: 0.3,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                SizedBox(
-                                                  height: 16,
-                                                  width: double.infinity,
-                                                  child: Align(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: FittedBox(
-                                                      fit: BoxFit.scaleDown,
-                                                      alignment:
-                                                          Alignment.centerLeft,
-                                                      child: Text(
-                                                        displayCode,
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w800,
-                                                          color: primaryGreen,
-                                                          fontFamily:
-                                                              'monospace',
-                                                          letterSpacing: 0.9,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          InkWell(
-                                            onTap: () async {
-                                              if (displayCode.isEmpty) return;
-                                              await Clipboard.setData(
-                                                ClipboardData(
-                                                  text: displayCode,
-                                                ),
-                                              );
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Código copiado: $displayCode',
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 2,
-                                                  ),
-                                                  backgroundColor: primaryGreen,
-                                                ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: primaryGreen.withValues(
-                                                  alpha: 0.15,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                border: Border.all(
-                                                  color: primaryGreen
-                                                      .withValues(alpha: 0.2),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                Icons.content_copy,
-                                                color: primaryGreen,
-                                                size: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Tu Código',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: textColor.withValues(
-                                                      alpha: 0.6,
-                                                    ),
-                                                    fontWeight: FontWeight.w700,
-                                                    letterSpacing: 0.3,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                _buildScrollableCouponCode(
-                                                  displayCode,
-                                                  primaryGreen,
-                                                  fontSize: isWeb ? 16 : 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  letterSpacing: 1.2,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          InkWell(
-                                            onTap: () async {
-                                              if (displayCode.isEmpty) return;
-                                              await Clipboard.setData(
-                                                ClipboardData(
-                                                  text: displayCode,
-                                                ),
-                                              );
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Código copiado: $displayCode',
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 2,
-                                                  ),
-                                                  backgroundColor: primaryGreen,
-                                                ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: primaryGreen.withValues(
-                                                  alpha: 0.15,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: primaryGreen
-                                                      .withValues(alpha: 0.2),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                Icons.content_copy,
-                                                color: primaryGreen,
-                                                size: 20,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                              ),
-                            ] else ...[
-                              Align(
-                                alignment: compactMobile
-                                    ? Alignment.center
-                                    : Alignment.centerRight,
-                                child: _buildClaimButton(
-                                  context: context,
-                                  cupon: cupon,
-                                  primaryGreen: primaryGreen,
-                                  compact: true,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  bool _isSmallScreen(BuildContext context) {
-    return MediaQuery.of(context).size.width < 380;
-  }
-
-  Widget _buildClaimButton({
-    required BuildContext context,
-    required Cupon cupon,
-    required Color primaryGreen,
-    bool compact = false,
-  }) {
-    final isSmallScreen = _isSmallScreen(context);
-    final showIcon = !isSmallScreen;
-    final isClaimed = _claimedCuponIds.contains(cupon.id);
-    final isClaiming = _claimingCuponIds.contains(cupon.id);
-    final isDisabled = isClaimed || isClaiming;
-
-    return ElevatedButton(
-      onPressed: isDisabled
-          ? null
-          : () => _claimCupon(context, cupon, primaryGreen),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primaryGreen,
-        foregroundColor: AppConstants.textLight,
-        disabledBackgroundColor: Colors.grey.shade800,
-        disabledForegroundColor: Theme.of(
-          context,
-        ).colorScheme.onSurface.withValues(alpha: 0.6),
-        padding: EdgeInsets.symmetric(
-          vertical: isSmallScreen ? 7 : (compact ? 9 : 11),
-          horizontal: isSmallScreen ? 12 : (compact ? 14 : 16),
-        ),
-        minimumSize: Size(isSmallScreen ? 88 : 0, isSmallScreen ? 36 : 0),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: 4,
-        shadowColor: primaryGreen.withValues(alpha: 0.4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showIcon) ...[
-            Icon(
-              isClaimed ? Icons.check_circle_outline : Icons.check_circle,
-              size: 17,
-            ),
-            const SizedBox(width: 7),
-          ],
-          Text(
-            isClaimed
-                ? 'Reclamado'
-                : (isClaiming ? 'Reclamando...' : 'Reclamar'),
-            maxLines: 1,
-            overflow: TextOverflow.fade,
-            softWrap: false,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<bool> _claimCupon(
     BuildContext context,
@@ -2697,20 +1497,20 @@ class DiscountsContentState extends State<DiscountsContent> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildSection(
-                                  'Cómo usar',
-                                  Icons.info_outline,
-                                  primaryGreen,
-                                  cupon.descripcionMicrositio,
-                                  textColor,
+                                CuponDetailSection(
+                                  title: 'Cómo usar',
+                                  icon: Icons.info_outline,
+                                  primaryGreen: primaryGreen,
+                                  content: cupon.descripcionMicrositio,
+                                  textColor: textColor,
                                 ),
                                 const SizedBox(height: 18),
-                                _buildSection(
-                                  'Términos y Condiciones',
-                                  Icons.gavel,
-                                  primaryGreen,
-                                  cupon.legales,
-                                  textColor.withValues(alpha: 0.8),
+                                CuponDetailSection(
+                                  title: 'Términos y Condiciones',
+                                  icon: Icons.gavel,
+                                  primaryGreen: primaryGreen,
+                                  content: cupon.legales,
+                                  textColor: textColor.withValues(alpha: 0.8),
                                 ),
                                 const SizedBox(height: 18),
                                 // Fecha vencimiento
@@ -2782,94 +1582,13 @@ class DiscountsContentState extends State<DiscountsContent> {
                                 ),
                                 if (isClaimed) ...[
                                   const SizedBox(height: 18),
-                                  Container(
+                                  CouponCodeBox(
+                                    code: displayCode,
+                                    primaryGreen: primaryGreen,
+                                    textColor: textColor,
+                                    compact: false,
+                                    codeFontSize: 18,
                                     padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          primaryGreen.withValues(alpha: 0.08),
-                                          primaryGreen.withValues(alpha: 0.04),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: primaryGreen.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Tu Código',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: textColor.withValues(
-                                                    alpha: 0.5,
-                                                  ),
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              _buildScrollableCouponCode(
-                                                displayCode,
-                                                primaryGreen,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        InkWell(
-                                          onTap: () async {
-                                            if (displayCode.isEmpty) return;
-                                            await Clipboard.setData(
-                                              ClipboardData(text: displayCode),
-                                            );
-                                            if (!context.mounted) return;
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Código copiado: $displayCode',
-                                                ),
-                                                duration: const Duration(
-                                                  seconds: 2,
-                                                ),
-                                                backgroundColor: primaryGreen,
-                                              ),
-                                            );
-                                          },
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: primaryGreen.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              Icons.content_copy,
-                                              color: primaryGreen,
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ),
                                 ],
                                 const SizedBox(height: 22),
@@ -2964,160 +1683,6 @@ class DiscountsContentState extends State<DiscountsContent> {
     );
   }
 
-  Widget _buildSection(
-    String title,
-    IconData icon,
-    Color primaryGreen,
-    String content,
-    Color textColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 3,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        primaryGreen,
-                        primaryGreen.withValues(alpha: 0.50),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryGreen.withValues(alpha: 0.40),
-                        blurRadius: 5,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    color: primaryGreen.withValues(alpha: 0.07),
-                    child: Row(
-                      children: [
-                        Icon(icon, color: primaryGreen, size: 15),
-                        const SizedBox(width: 8),
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: primaryGreen,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A0A0A),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: primaryGreen.withValues(alpha: 0.12)),
-          ),
-          child: Html(
-            data: content,
-            style: {
-              'body': Style(
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(13),
-                color: textColor,
-                lineHeight: const LineHeight(1.5),
-              ),
-              'p': Style(margin: Margins.only(bottom: 8)),
-              'ul': Style(margin: Margins.only(left: 16, bottom: 8)),
-              'li': Style(margin: Margins.only(bottom: 4)),
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildClaimedToggle(Color primaryGreen) {
-    return Tooltip(
-      message: _showClaimed ? 'Ver descuentos' : 'Mis cupones reclamados',
-      child: GestureDetector(
-        onTap: () {
-          if (_showClaimed) {
-            setState(() => _showClaimed = false);
-            _resetDiscountsState(triggerLoad: true);
-          } else {
-            setState(() => _showClaimed = true);
-            _resetDiscountsState(triggerLoad: false);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: _showClaimed
-                ? primaryGreen.withValues(alpha: 0.15)
-                : Colors.white.withValues(alpha: 0.05),
-            border: Border.all(
-              color: _showClaimed
-                  ? primaryGreen.withValues(alpha: 0.50)
-                  : primaryGreen.withValues(alpha: 0.20),
-              width: 1,
-            ),
-            boxShadow: _showClaimed
-                ? [
-                    BoxShadow(
-                      color: primaryGreen.withValues(alpha: 0.20),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : null,
-          ),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: animation,
-              child: child,
-            ),
-            child: Icon(
-              _showClaimed
-                  ? Icons.local_offer_rounded
-                  : Icons.check_circle_outline,
-              key: ValueKey(_showClaimed),
-              color: _showClaimed
-                  ? primaryGreen
-                  : primaryGreen.withValues(alpha: 0.65),
-              size: 18,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3172,7 +1737,19 @@ class DiscountsContentState extends State<DiscountsContent> {
                             ),
                           ),
                         ),
-                        _buildClaimedToggle(primaryGreen),
+                        ClaimedToggleButton(
+                          isActive: _showClaimed,
+                          primaryGreen: primaryGreen,
+                          onToggle: () {
+                            if (_showClaimed) {
+                              setState(() => _showClaimed = false);
+                              _resetDiscountsState(triggerLoad: true);
+                            } else {
+                              setState(() => _showClaimed = true);
+                              _resetDiscountsState(triggerLoad: false);
+                            }
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -3224,129 +1801,46 @@ class DiscountsContentState extends State<DiscountsContent> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _buildClaimedToggle(primaryGreen),
+                      ClaimedToggleButton(
+                        isActive: _showClaimed,
+                        primaryGreen: primaryGreen,
+                        onToggle: () {
+                          if (_showClaimed) {
+                            setState(() => _showClaimed = false);
+                            _resetDiscountsState(triggerLoad: true);
+                          } else {
+                            setState(() => _showClaimed = true);
+                            _resetDiscountsState(triggerLoad: false);
+                          }
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: categories.map((category) {
-                        final isSelected = _selectedFilter == category;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeInOut,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
-                              gradient: isSelected
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        primaryGreen,
-                                        primaryGreen.withValues(alpha: 0.75),
-                                      ],
-                                    )
-                                  : null,
-                              color: isSelected
-                                  ? null
-                                  : Colors.white.withValues(alpha: 0.05),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.22)
-                                    : primaryGreen.withValues(alpha: 0.22),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      (isSelected ? primaryGreen : Colors.black)
-                                          .withValues(alpha: 0.12),
-                                  blurRadius: isSelected ? 10 : 7,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () async {
-                                  final selectedCat = category == 'Todos'
-                                      ? null
-                                      : (_remoteCategories.firstWhere(
-                                          (c) => c.nombre == category,
-                                          orElse: () =>
-                                              _categoriaByName[category] ??
-                                              Categoria(
-                                                id: category,
-                                                nombre: category,
-                                              ),
-                                        ));
-                                  final selectedId = selectedCat == null
-                                      ? null
-                                      : (selectedCat.id?.toString() ??
-                                            selectedCat.finalId?.toString());
-                                  setState(() {
-                                    _selectedFilter = category;
-                                    _selectedCategoryId = selectedId;
-                                    _currentPage = 1;
-                                    _apiPage = 1;
-                                  });
-                                  _scrollListToTop();
-                                  unawaited(
-                                    _loadCupones(
-                                      pageOverride: 1,
-                                      reset: true,
-                                      categoryId: selectedId,
-                                      categoryName: selectedCat?.nombre,
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(18),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isSelected
-                                            ? Icons.check_circle_rounded
-                                            : Icons.local_offer_outlined,
-                                        size: 16,
-                                        color: isSelected
-                                            ? (isDark
-                                                  ? Colors.white
-                                                  : AppConstants.textLight)
-                                            : primaryGreen,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        category,
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: isSelected
-                                              ? (isDark
-                                                    ? Colors.white
-                                                    : AppConstants.textLight)
-                                              : primaryGreen,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                  CategoryFilterChips(
+                    categories: categories,
+                    selectedFilter: _selectedFilter,
+                    isDark: isDark,
+                    primaryGreen: primaryGreen,
+                    remoteCategories: _remoteCategories,
+                    categoriaByName: _categoriaByName,
+                    onCategorySelected: (name, id) {
+                      setState(() {
+                        _selectedFilter = name;
+                        _selectedCategoryId = id;
+                        _currentPage = 1;
+                        _apiPage = 1;
+                      });
+                      _scrollListToTop();
+                      unawaited(
+                        _loadCupones(
+                          pageOverride: 1,
+                          reset: true,
+                          categoryId: id,
+                          categoryName: name == 'Todos' ? null : name,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -3354,135 +1848,47 @@ class DiscountsContentState extends State<DiscountsContent> {
           if (!_showClaimed && _bondaEnabled != false && !_isCouponActivationReady)
             Expanded(
               child: (_isBootstrapLoading || _isLoading)
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            color: primaryGreen,
-                            strokeWidth: 3,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Cargando ofertas...',
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? CouponLoadingState(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
                     )
-                  : _buildCouponActivationPendingCard(primaryGreen, textColor),
+                  : CouponActivationPendingCard(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                    ),
             ),
           if (!_showClaimed && _bondaEnabled != false && _isCouponActivationReady)
             Expanded(
               child: (_isLoading || _isBootstrapLoading) && _cupones.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            color: primaryGreen,
-                            strokeWidth: 3,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Cargando ofertas...',
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? CouponLoadingState(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
                     )
                   : _hasError
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: textColor),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              () async {
-                                final ok = await _guardAuthOrRedirect();
-                                if (!ok) return;
-
-                                _currentPage = 1;
-                                _loadCupones(
-                                  pageOverride: 1,
-                                  reset: true,
-                                  categoryId: _selectedCategoryId,
-                                  categoryName: _selectedFilter == 'Todos'
-                                      ? null
-                                      : _selectedFilter,
-                                  ignoreCategory: false,
-                                  forceRefresh: true,
-                                );
-                              }();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reintentar'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              foregroundColor: AppConstants.textLight,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? CouponErrorState(
+                      errorMessage: _errorMessage,
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      onRetry: () {
+                        () async {
+                          final ok = await _guardAuthOrRedirect();
+                          if (!ok) return;
+                          _currentPage = 1;
+                          _loadCupones(
+                            pageOverride: 1,
+                            reset: true,
+                            categoryId: _selectedCategoryId,
+                            categoryName: _selectedFilter == 'Todos'
+                                ? null
+                                : _selectedFilter,
+                            ignoreCategory: false,
+                            forceRefresh: true,
+                          );
+                        }();
+                      },
                     )
                   : _filteredCupones.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ShaderMask(
-                              shaderCallback: (r) => const LinearGradient(
-                                colors: [AppConstants.primaryGreen, Color(0xFF00E5FF)],
-                              ).createShader(r),
-                              child: const Icon(
-                                Icons.discount_rounded,
-                                size: 72,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'SIN CUPONES DISPONIBLES',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'ThaleahFat',
-                                fontSize: 22,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'No hay cupones disponibles en este momento.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.6),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
+                  ? const CouponEmptyState()
                   : Column(
                       children: [
                         Expanded(
@@ -3527,14 +1933,19 @@ class DiscountsContentState extends State<DiscountsContent> {
                                       itemBuilder: (context, index) {
                                         final cupon =
                                             pagedFilteredCupones[index];
-                                        final card = _buildCuponCard(
-                                          context,
-                                          cupon,
-                                          primaryGreen,
-                                          textColor,
-                                          isDark,
+                                        return CuponCard(
+                                          cupon: cupon,
+                                          primaryGreen: primaryGreen,
+                                          textColor: textColor,
+                                          isDark: isDark,
+                                          isClaimed: _claimedCuponIds.contains(cupon.id),
+                                          isClaiming: _claimingCuponIds.contains(cupon.id),
+                                          displayCode: (_claimedCuponCodes[cupon.id] ?? cupon.codigo).trim(),
+                                          imageUrlBuilder: _imageUrlForPlatform,
+                                          cleanHtml: _cleanHtml,
+                                          onTap: () => _showCuponDetails(context, cupon, primaryGreen, textColor),
+                                          onClaim: () => _claimCupon(context, cupon, primaryGreen),
                                         );
-                                        return card;
                                       },
                                     );
                                   }
@@ -3571,16 +1982,21 @@ class DiscountsContentState extends State<DiscountsContent> {
                                       itemBuilder: (context, index) {
                                         final cupon =
                                             pagedFilteredCupones[index];
-                                        final card = _buildCuponCard(
-                                          context,
-                                          cupon,
-                                          primaryGreen,
-                                          textColor,
-                                          isDark,
+                                        return CuponCard(
+                                          cupon: cupon,
+                                          primaryGreen: primaryGreen,
+                                          textColor: textColor,
+                                          isDark: isDark,
                                           compactMobile: true,
                                           forceMobileStyle: kIsWeb,
+                                          isClaimed: _claimedCuponIds.contains(cupon.id),
+                                          isClaiming: _claimingCuponIds.contains(cupon.id),
+                                          displayCode: (_claimedCuponCodes[cupon.id] ?? cupon.codigo).trim(),
+                                          imageUrlBuilder: _imageUrlForPlatform,
+                                          cleanHtml: _cleanHtml,
+                                          onTap: () => _showCuponDetails(context, cupon, primaryGreen, textColor),
+                                          onClaim: () => _claimCupon(context, cupon, primaryGreen),
                                         );
-                                        return card;
                                       },
                                     );
                                   }
@@ -3606,13 +2022,19 @@ class DiscountsContentState extends State<DiscountsContent> {
                                             constraints: const BoxConstraints(
                                               maxWidth: 520,
                                             ),
-                                            child: _buildCuponCard(
-                                              context,
-                                              cupon,
-                                              primaryGreen,
-                                              textColor,
-                                              isDark,
+                                            child: CuponCard(
+                                              cupon: cupon,
+                                              primaryGreen: primaryGreen,
+                                              textColor: textColor,
+                                              isDark: isDark,
                                               forceMobileStyle: kIsWeb,
+                                              isClaimed: _claimedCuponIds.contains(cupon.id),
+                                              isClaiming: _claimingCuponIds.contains(cupon.id),
+                                              displayCode: (_claimedCuponCodes[cupon.id] ?? cupon.codigo).trim(),
+                                              imageUrlBuilder: _imageUrlForPlatform,
+                                              cleanHtml: _cleanHtml,
+                                              onTap: () => _showCuponDetails(context, cupon, primaryGreen, textColor),
+                                              onClaim: () => _claimCupon(context, cupon, primaryGreen),
                                             ),
                                           ),
                                         ),

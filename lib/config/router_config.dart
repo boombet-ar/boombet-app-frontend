@@ -12,7 +12,6 @@ import 'package:boombet_app/views/pages/admin/ads/ads_management_page.dart';
 import 'package:boombet_app/views/pages/admin/raffles/raffles_management_page.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
-import 'package:boombet_app/views/pages/affiliates/external_raffles_page.dart';
 import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
 import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
 import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
@@ -39,6 +38,7 @@ import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:boombet_app/views/pages/rewards/refert_to_cash_view.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
+import 'package:boombet_app/views/pages/auth/auth_callback_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
@@ -196,7 +196,8 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       state.uri.path == HomePageKeys.forgotPassword ||
       state.uri.path == '/register' ||
       state.uri.path == '/register/confirm-data' ||
-      state.uri.path == HomePageKeys.scanner;
+      state.uri.path == HomePageKeys.scanner ||
+      state.uri.path == '/auth/callback';
 
   // Verificar si hay sesi├│n activa
   final isLoggedIn = await TokenService.isTokenValid();
@@ -291,6 +292,13 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
+    GoRoute(
+      path: '/auth/callback',
+      builder: (context, state) => AuthCallbackPage(
+        token: state.uri.queryParameters['token'],
+        redirect: state.uri.queryParameters['redirect'],
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           HomePage(navigationShell: navigationShell),
@@ -486,8 +494,8 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SorteosPage(),
     ),
     GoRoute(
-      path: '/affiliates-tools/sorteos/externos',
-      builder: (context, state) => const ExternalRafflesPage(),
+      path: '/affiliates-tools/formularios',
+      builder: (context, state) => const FormsPage(),
     ),
     GoRoute(
       path: '/affiliates-tools/eventos/:id',
