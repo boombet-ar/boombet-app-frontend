@@ -197,7 +197,7 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       state.uri.path == '/register' ||
       state.uri.path == '/register/confirm-data' ||
       state.uri.path == HomePageKeys.scanner ||
-      state.uri.path == '/auth/callback';
+      state.uri.path == 'auth/callback';
 
   // Verificar si hay sesi├│n activa
   final isLoggedIn = await TokenService.isTokenValid();
@@ -293,7 +293,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(
-      path: '/auth/callback',
+      path: 'auth/callback',
       builder: (context, state) => AuthCallbackPage(
         token: state.uri.queryParameters['token'],
         redirect: state.uri.queryParameters['redirect'],
