@@ -525,7 +525,9 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/not-affiliated',
-      builder: (_, __) => const IsNotAffiliatedPage(),
+      builder: (_, state) => IsNotAffiliatedPage(
+        fromCallback: state.uri.queryParameters['from'] == 'callback',
+      ),
     ),
     GoRoute(
       path: '/no-casinos',

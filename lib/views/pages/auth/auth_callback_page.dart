@@ -39,7 +39,10 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       if (!mounted) return;
 
       if (widget.redirect != null && widget.redirect!.isNotEmpty) {
-        context.go('/${widget.redirect}');
+        final dest = widget.redirect == 'not-affiliated'
+            ? '/not-affiliated?from=callback'
+            : '/${widget.redirect}';
+        context.go(dest);
         return;
       }
 

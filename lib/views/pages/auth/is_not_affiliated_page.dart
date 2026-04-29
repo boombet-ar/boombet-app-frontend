@@ -13,7 +13,9 @@ import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
 
 class IsNotAffiliatedPage extends StatefulWidget {
-  const IsNotAffiliatedPage({super.key});
+  final bool fromCallback;
+
+  const IsNotAffiliatedPage({super.key, this.fromCallback = false});
 
   @override
   State<IsNotAffiliatedPage> createState() => _IsNotAffiliatedPageState();
@@ -23,7 +25,9 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
     with TickerProviderStateMixin {
   final AffiliationService _affiliationService = AffiliationService();
   final PlayerService _playerService = PlayerService();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isProcessing = false;
+  bool _obscurePassword = true;
   final List<String> _logs = [];
   final ScrollController _logsScrollController = ScrollController();
 
@@ -90,6 +94,7 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
     _pulseController.dispose();
     _entranceController.dispose();
     _logsScrollController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -132,6 +137,43 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
         return;
       }
 
+      if (widget.fromCallback) {
+        final password = _passwordController.text;
+        final checkUrl = '${ApiConfig.baseUrl}/users/check-password';
+        _log('POST $checkUrl');
+        final checkResponse = await HttpClient.post(checkUrl, body: {'password': password});
+        _log('check-password status: ${checkResponse.statusCode}');
+        if (!mounted) return;
+        if (checkResponse.statusCode != 200) {
+          LoadingOverlay.hide(context);
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              title: const Text(
+                'Contraseña incorrecta',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: const Text(
+                'Usá la misma contraseña que usaste cuando te registraste.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(color: AppConstants.primaryGreen),
+                  ),
+                ),
+              ],
+            ),
+          );
+          setState(() => _isProcessing = false);
+          return;
+        }
+      }
+
       final wsUrl = WebSocketUrlService.generateAffiliationUrl();
       _log('wsUrl: $wsUrl');
       await saveAffiliationWsUrl(wsUrl);
@@ -152,7 +194,9 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
           'ciudad': playerData.localidad,
           'cp': playerData.cp?.toString() ?? '',
           'user': playerData.username,
-          'password': affiliationPasswordNotifier.value,
+          'password': widget.fromCallback
+            ? _passwordController.text
+            : affiliationPasswordNotifier.value,
           'fecha_nacimiento': playerData.fechaNacimiento,
           'est_civil': playerData.estadoCivil,
         },
@@ -238,6 +282,10 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
                       const SizedBox(height: 40),
                       _buildTitle(),
                       const SizedBox(height: 52),
+                      if (widget.fromCallback) ...[
+                        _buildPasswordField(),
+                        const SizedBox(height: 20),
+                      ],
                       _buildCTAButton(),
                     ],
                   ),
@@ -355,6 +403,35 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: 'Por cuestiones de seguridad, introducí tu contraseña',
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          borderSide: const BorderSide(color: AppConstants.primaryGreen, width: 1.5),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white38,
+          ),
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
     );
