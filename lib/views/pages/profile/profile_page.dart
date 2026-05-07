@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
 import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/views/pages/profile/widgets/username_badge.dart';
@@ -145,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _refreshProfile() async {
-    // Limpiar el estado y recargar
+    HttpClient.clearCache(urlPattern: '/users/me');
     _isFetching = false;
     await _loadUserData();
   }

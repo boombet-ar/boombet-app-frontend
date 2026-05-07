@@ -50,6 +50,10 @@ class AppConstants {
   /// Por ahora los sorteos son exclusivos para afiliadores.
   static const bool showAdminRaffles = false;
 
+  /// Muestra la sección "Mis Casinos" en la navbar y como página navegable.
+  /// Antes estaba restringida a web; en true se habilita en todas las plataformas.
+  static const bool showMyCasinos = true;
+
   // ==================== DURACIONES ====================
   static const Duration apiTimeout = Duration(seconds: 15);
   static const Duration affiliationTimeout = Duration(seconds: 15);

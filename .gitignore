@@ -133,4 +133,8 @@ ios/DerivedData/
 ios/Podfile.lock
 
 .env.json
+.env.dev.json
+.env.prod.json
+.env.stage.json
 .design_system.md 
+comandos.txt

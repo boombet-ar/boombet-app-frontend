@@ -467,6 +467,7 @@ class _ForumPageState extends State<ForumPage> {
     const newestFirstSort = ['createdAt,desc'];
 
     if (refresh) {
+      HttpClient.clearCache(urlPattern: '/publicaciones/me');
       setState(() {
         _currentPage = 0;
         _hasMore = true;
