@@ -77,8 +77,7 @@ class ForumService {
       sort: sort,
     );
     final url = uri.toString();
-    // Evitar cache para no servir resultados viejos de este usuario
-    final response = await HttpClient.get(url, cacheTtl: Duration.zero);
+    final response = await HttpClient.get(url, cacheTtl: const Duration(minutes: 1));
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;

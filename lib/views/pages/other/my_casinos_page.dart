@@ -99,7 +99,6 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final accent = theme.colorScheme.primary;
     final isWeb = kIsWeb;
 
@@ -119,7 +118,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
                 ? _buildError(accent)
                 : _casinos.isEmpty
                 ? _buildEmpty(accent)
-                : _buildList(isDark, accent, isWeb: isWeb),
+                : _buildList(accent, isWeb: isWeb),
           ),
         ],
       ),
@@ -236,7 +235,7 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
     );
   }
 
-  Widget _buildList(bool isDark, Color accent, {required bool isWeb}) {
+  Widget _buildList(Color accent, {required bool isWeb}) {
     return RefreshIndicator(
       onRefresh: () => _loadCasinos(refresh: true),
       child: isWeb
@@ -250,7 +249,6 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
                     itemCount: _casinos.length,
                     itemBuilder: (context, index) => _CasinoCard(
                       casino: _casinos[index],
-                      isDark: isDark,
                       accent: accent,
                       onTap: () => _openCasinoUrl(_casinos[index].url),
                     ),
@@ -273,7 +271,6 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
                   itemCount: _casinos.length,
                   itemBuilder: (context, index) => _CasinoGridCard(
                     casino: _casinos[index],
-                    isDark: isDark,
                     accent: accent,
                     onTap: () => _openCasinoUrl(_casinos[index].url),
                   ),
@@ -285,7 +282,6 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
               itemCount: _casinos.length,
               itemBuilder: (context, index) => _CasinoCard(
                 casino: _casinos[index],
-                isDark: isDark,
                 accent: accent,
                 onTap: () => _openCasinoUrl(_casinos[index].url),
               ),
@@ -294,141 +290,176 @@ class _MyCasinosPageState extends State<MyCasinosPage> {
   }
 }
 
+// ─── Pressable wrapper (maneja escala + glow animado) ───────────────────────
+
+class _PressableCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  final Color accent;
+  final EdgeInsetsGeometry margin;
+
+  const _PressableCard({
+    required this.child,
+    required this.onTap,
+    required this.accent,
+    this.margin = EdgeInsets.zero,
+  });
+
+  @override
+  State<_PressableCard> createState() => _PressableCardState();
+}
+
+class _PressableCardState extends State<_PressableCard> {
+  bool _pressed = false;
+
+  void _onTapDown(TapDownDetails _) => setState(() => _pressed = true);
+  void _onTapUp(TapUpDetails _) {
+    setState(() => _pressed = false);
+    widget.onTap();
+  }
+  void _onTapCancel() => setState(() => _pressed = false);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: widget.margin,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: widget.accent.withValues(alpha: _pressed ? 0.65 : 0.22),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: widget.accent.withValues(
+                  alpha: _pressed ? 0.35 : 0.10,
+                ),
+                blurRadius: _pressed ? 36 : 20,
+                spreadRadius: _pressed ? 2 : 0,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.55),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Badge "ONLINE" ──────────────────────────────────────────────────────────
+
+Widget _onlineBadge(Color accent) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: accent.withValues(alpha: 0.35),
+        width: 1,
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: accent,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.8),
+                blurRadius: 5,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          'ONLINE',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: accent.withValues(alpha: 0.9),
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 // ─── Grid card (desktop wide) ───────────────────────────────────────────────
 
 class _CasinoGridCard extends StatelessWidget {
   final CasinoData casino;
-  final bool isDark;
   final Color accent;
   final VoidCallback onTap;
 
   const _CasinoGridCard({
     required this.casino,
-    required this.isDark,
     required this.accent,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.22),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.10),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+    return _PressableCard(
+      onTap: onTap,
+      accent: accent,
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            color: const Color(0xFF080808),
+            padding: const EdgeInsets.all(32),
+            child: _logoWidget(casino.logoUrl, accent, size: 56),
           ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          hoverColor: accent.withValues(alpha: 0.04),
-          splashColor: accent.withValues(alpha: 0.08),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Online badge
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withValues(alpha: 0.7),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'ONLINE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: accent.withValues(alpha: 0.85),
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Logo area
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0A0A0A),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: accent.withValues(alpha: 0.10),
-                          width: 1,
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: casino.logoUrl.isNotEmpty
-                          ? Image.network(
-                              casino.logoUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Icon(
-                                Icons.casino_rounded,
-                                color: accent.withValues(alpha: 0.4),
-                                size: 48,
-                              ),
-                            )
-                          : Icon(
-                              Icons.casino_rounded,
-                              color: accent.withValues(alpha: 0.4),
-                              size: 48,
-                            ),
-                    ),
+          // Spotlight radial detrás del logo
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.75,
+                    colors: [
+                      accent.withValues(alpha: 0.06),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                // Casino name
-                Text(
-                  casino.nombreGral,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // CTA button
-                _CasinoButton(accent: accent, onTap: onTap),
-              ],
+              ),
             ),
           ),
-        ),
+          // Badge online
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _onlineBadge(accent),
+          ),
+        ],
       ),
     );
   }
@@ -438,199 +469,99 @@ class _CasinoGridCard extends StatelessWidget {
 
 class _CasinoCard extends StatelessWidget {
   final CasinoData casino;
-  final bool isDark;
   final Color accent;
   final VoidCallback onTap;
 
   const _CasinoCard({
     required this.casino,
-    required this.isDark,
     required this.accent,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _PressableCard(
+      onTap: onTap,
+      accent: accent,
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.22),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.10),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+      child: Stack(
+        children: [
+          Container(
+            height: 180,
+            width: double.infinity,
+            color: const Color(0xFF080808),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: _logoWidget(casino.logoUrl, accent, size: 52),
           ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          hoverColor: accent.withValues(alpha: 0.04),
-          splashColor: accent.withValues(alpha: 0.08),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Online badge row
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withValues(alpha: 0.7),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'ONLINE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: accent.withValues(alpha: 0.85),
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Logo area — hero height
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0A0A0A),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.10),
-                        width: 1,
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 20,
-                    ),
-                    child: casino.logoUrl.isNotEmpty
-                        ? Image.network(
-                            casino.logoUrl,
-                            fit: BoxFit.contain,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.casino_rounded,
-                              color: accent.withValues(alpha: 0.4),
-                              size: 52,
-                            ),
-                          )
-                        : Icon(
-                            Icons.casino_rounded,
-                            color: accent.withValues(alpha: 0.4),
-                            size: 52,
-                          ),
+          // Spotlight radial detrás del logo
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.8,
+                    colors: [
+                      accent.withValues(alpha: 0.07),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                // Casino name
-                Text(
-                  casino.nombreGral,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // CTA button
-                _CasinoButton(accent: accent, onTap: onTap),
-              ],
+              ),
             ),
           ),
-        ),
+          // Gradiente inferior sutil
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.45),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Badge online
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _onlineBadge(accent),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Shared CTA button ───────────────────────────────────────────────────────
-
-class _CasinoButton extends StatelessWidget {
-  final Color accent;
-  final VoidCallback onTap;
-
-  const _CasinoButton({
-    required this.accent,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
+Widget _logoWidget(String logoUrl, Color accent, {required double size}) {
+  if (logoUrl.isNotEmpty) {
+    return Image.network(
+      logoUrl,
+      fit: BoxFit.contain,
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          elevation: 8,
-          shadowColor: accent.withValues(alpha: 0.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.casino_outlined, size: 18, color: Colors.black),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'Acceder al casino',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.north_east_rounded, size: 15, color: Colors.black),
-          ],
-        ),
+      height: double.infinity,
+      errorBuilder: (_, __, ___) => Icon(
+        Icons.casino_rounded,
+        color: accent.withValues(alpha: 0.4),
+        size: size,
       ),
     );
   }
+  return Icon(
+    Icons.casino_rounded,
+    color: accent.withValues(alpha: 0.4),
+    size: size,
+  );
 }
 
 // ─── Data model ─────────────────────────────────────────────────────────────

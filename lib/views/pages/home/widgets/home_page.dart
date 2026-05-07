@@ -1,3 +1,4 @@
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
@@ -30,13 +31,7 @@ class _HomePageState extends State<HomePage> {
   late GlobalKey<ClaimedCouponsContentState> _claimedKey;
   late List<Widget?> _pages;
 
-  bool get _hideCasinosOnMobile {
-    if (kIsWeb) return false;
-    return defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS;
-  }
-
-  int get _pageCount => _hideCasinosOnMobile ? 5 : 6;
+  int get _pageCount => AppConstants.showMyCasinos ? 6 : 5;
 
   @override
   void initState() {
@@ -75,7 +70,7 @@ class _HomePageState extends State<HomePage> {
               }),
             ),
           ),
-          bottomNavigationBar: NavbarWidget(showCasinos: !_hideCasinosOnMobile),
+          bottomNavigationBar: NavbarWidget(showCasinos: AppConstants.showMyCasinos),
         );
       },
     );

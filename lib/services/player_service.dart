@@ -37,11 +37,10 @@ class PlayerService {
     final url = "${ApiConfig.baseUrl}/users/me";
     log("🌐 GET (no-cache) → $url");
 
-    // evitar cache para refrescar icon_url
     final response = await HttpClient.get(
       url,
       includeAuth: true,
-      cacheTtl: Duration.zero,
+      cacheTtl: const Duration(minutes: 2),
     );
     log("📥 getCurrentUser response: ${response.statusCode} ${response.body}");
 
@@ -103,8 +102,6 @@ class PlayerService {
   }
 
   Future<String?> getCurrentUserAvatarUrl() async {
-    // limpiar cache previo para forzar reload
-    HttpClient.clearCache(urlPattern: '/users/me');
     final data = await getCurrentUser();
     final avatar = _extractAvatarUrl(data);
     if (avatar.isEmpty) return null;
