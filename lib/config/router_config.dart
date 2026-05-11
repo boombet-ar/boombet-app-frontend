@@ -40,6 +40,8 @@ import 'package:boombet_app/views/pages/rewards/refert_to_cash_view.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/auth/auth_callback_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/views/pages/admin/casino_verifications/casino_verifications_admin_page.dart';
+import 'package:boombet_app/views/pages/other/casino_verification_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
 import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
@@ -404,6 +406,10 @@ final GoRouter appRouter = GoRouter(
       builder: (_, __) => const ReferToCashView(),
     ),
     GoRoute(
+      path: HomePageKeys.casinoVerification,
+      builder: (_, __) => const CasinoVerificationPage(),
+    ),
+    GoRoute(
       path: HomePageKeys.forgotPassword,
       builder: (_, __) => const ForgetPasswordPage(),
     ),
@@ -453,6 +459,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/admin/raffles',
       builder: (_, __) => const RafflesManagementPage(),
+    ),
+    GoRoute(
+      path: '/admin/casino-verifications',
+      builder: (_, __) => const CasinoVerificationsAdminPage(),
     ),
     GoRoute(
       path: '/play-roulette',

@@ -366,50 +366,6 @@ class _PressableCardState extends State<_PressableCard> {
 
 // ─── Badge "ONLINE" ──────────────────────────────────────────────────────────
 
-Widget _onlineBadge(Color accent) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.55),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: accent.withValues(alpha: 0.35),
-        width: 1,
-      ),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: accent,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.8),
-                blurRadius: 5,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          'ONLINE',
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            color: accent.withValues(alpha: 0.9),
-            letterSpacing: 1.2,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 // ─── Grid card (desktop wide) ───────────────────────────────────────────────
 
 class _CasinoGridCard extends StatelessWidget {
@@ -454,11 +410,6 @@ class _CasinoGridCard extends StatelessWidget {
             ),
           ),
           // Badge online
-          Positioned(
-            top: 12,
-            left: 12,
-            child: _onlineBadge(accent),
-          ),
         ],
       ),
     );
@@ -530,12 +481,6 @@ class _CasinoCard extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          // Badge online
-          Positioned(
-            top: 12,
-            left: 12,
-            child: _onlineBadge(accent),
           ),
         ],
       ),

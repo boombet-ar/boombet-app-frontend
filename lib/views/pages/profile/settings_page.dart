@@ -800,6 +800,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => context.push(HomePageKeys.referToCash),
                 surfaceColor: surfaceColor,
               ),
+              const SizedBox(height: 8),
+              _buildSettingsTile(
+                context: context,
+                icon: Icons.verified_outlined,
+                title: 'Verificación de Casinos',
+                subtitle: 'Verificá el estado de los casinos disponibles',
+                onTap: () => context.push(HomePageKeys.casinoVerification),
+                surfaceColor: surfaceColor,
+              ),
               if (AppConstants.showClaimsPage) ...[
                 const SizedBox(height: 8),
                 _buildSettingsTile(
