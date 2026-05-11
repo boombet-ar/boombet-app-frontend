@@ -60,6 +60,7 @@ class CasinoService {
     if (response.statusCode != 200) {
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
+    HttpClient.clearCache(urlPattern: 'casinos_afiliados');
   }
 
   Future<List<AffiliatedCasino>> getAffiliatedCasinos() async {
@@ -111,6 +112,7 @@ class CasinoService {
     if (response.statusCode != 200) {
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
+    HttpClient.clearCache(urlPattern: 'pendientes');
   }
 
   /// Limpia el cache de casinos
