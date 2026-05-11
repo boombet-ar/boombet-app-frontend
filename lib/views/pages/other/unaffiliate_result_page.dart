@@ -97,7 +97,7 @@ class UnaffiliateResultPage extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Lamentamos que te vayas. Te desafiliamos de nuestra plataforma.\n\nEsto no te desafilia de los casinos asociados.',
+                    'Lamentamos que te vayas. Te desafiliamos de nuestra plataforma.\n\nEsto no te desafilia de los casinos asociados.\n\nPodes volver a loguearte en un plazo de 30 dias para reactivar tu cuenta.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13.5,

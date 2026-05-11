@@ -144,6 +144,16 @@ class DeepLinkPayload {
     return false;
   }
 
+  bool get isCasinoVerification {
+    if (uri.scheme == 'boombet') {
+      return uri.host.toLowerCase() == 'casino-verification';
+    }
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return uri.path.toLowerCase().contains('casino-verification');
+    }
+    return false;
+  }
+
   bool get isRegisterWithRef {
     final ref = uri.queryParameters['ref'];
     if (ref == null || ref.trim().isEmpty) return false;
@@ -210,6 +220,10 @@ class DeepLinkService {
 
   String? navigationPathForPayload(DeepLinkPayload payload) {
     final token = payload.token;
+
+    if (payload.isCasinoVerification) {
+      return '/casino-verification';
+    }
 
     if (payload.isRegisterWithRef) {
       final ref = payload.refCode;

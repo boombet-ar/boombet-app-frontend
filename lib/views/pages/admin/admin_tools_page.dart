@@ -90,6 +90,13 @@ class AdminToolsPage extends StatelessWidget {
                 icon: Icons.campaign_outlined,
                 onTap: () => context.push('/admin/ads'),
               ),
+              const SizedBox(height: 12),
+              _AdminPrimaryActionButton(
+                title: 'Verificar afiliaciones',
+                subtitle: 'Revisá y gestioná verificaciones pendientes',
+                icon: Icons.verified_outlined,
+                onTap: () => context.push('/admin/casino-verifications'),
+              ),
               if (AppConstants.showAdminRaffles) ...[
                 const SizedBox(height: 12),
                 _AdminPrimaryActionButton(

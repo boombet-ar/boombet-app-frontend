@@ -23,7 +23,8 @@ class HomePageKeys {
   static const String profileEdit     = '/profile/edit';
   static const String faq             = '/faq';
   static const String forgotPassword  = '/forgot-password';
-  static const String referToCash     = '/refer-to-cash';
+  static const String referToCash          = '/refer-to-cash';
+  static const String casinoVerification  = '/casino-verification';
 
   // ── Mapas de conversión índice ↔ ruta ─────────────────────────────
   // Orden: Descuentos, Club, Juegos, Sorteos, Premios, Foro, Casinos, Ajustes, Admin, Claims, Scanner
