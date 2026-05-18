@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/services/auth_service.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/token_service.dart';
@@ -88,29 +89,7 @@ class _LoginPageState extends State<LoginPage>
     });
 
     if (_identifierError || _passwordError) {
-      const dialogBg = AppConstants.darkAccent;
-      const textColor = AppConstants.textDark;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Campos incompletos', style: TextStyle(color: textColor)),
-          content: Text(
-            'Por favor, completa todos los campos.',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
+      showErrorDialog(context, 'Por favor, completa todos los campos.');
       return;
     }
 
@@ -119,28 +98,9 @@ class _LoginPageState extends State<LoginPage>
         setState(() {
           _identifierError = true;
         });
-        const dialogBg = AppConstants.darkAccent;
-        const textColor = AppConstants.textDark;
-
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text('Email inválido', style: TextStyle(color: textColor)),
-            content: Text(
-              PasswordValidationService.getEmailValidationMessage(identifier),
-              style: TextStyle(color: textColor),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
+        showErrorDialog(
+          context,
+          PasswordValidationService.getEmailValidationMessage(identifier),
         );
         return;
       }
@@ -312,66 +272,26 @@ class _LoginPageState extends State<LoginPage>
           _passwordError = true;
         });
 
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppConstants.darkAccent,
-            title: const Text(
-              'Error de autenticación',
-              style: TextStyle(color: AppConstants.textDark),
-            ),
-            content: Text(
-              message.isNotEmpty ? message : 'Usuario/Email o contraseña incorrectos',
-              style: const TextStyle(color: AppConstants.textDark),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
+        showErrorDialog(
+          context,
+          message.isNotEmpty ? message : 'Usuario/Email o contraseña incorrectos',
         );
       }
     } catch (e) {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
-      const dialogBg = AppConstants.darkAccent;
-      const textColor = AppConstants.textDark;
 
-      String errorTitle = 'Error de conexión';
       String errorMessage = 'No se pudo conectar con el servidor';
-
       if (e.toString().contains('ClientException') ||
           e.toString().contains('Failed to fetch')) {
-        errorTitle = 'Error de conexión desde navegador';
         errorMessage =
             'El servidor no permite conexiones desde navegadores web por seguridad (CORS).\n\n'
             '✅ Solución: Usa la aplicación desde Android o iOS.\n\n'
             'Si necesitas usar el navegador, contacta al administrador para configurar CORS en el backend.';
       }
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text(errorTitle, style: TextStyle(color: textColor)),
-          content: Text(errorMessage, style: TextStyle(color: textColor)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
+      showErrorDialog(context, errorMessage);
     }
   }
 

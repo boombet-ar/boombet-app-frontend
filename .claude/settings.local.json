@@ -28,7 +28,10 @@
       "Read(//c/Users/Usuario/AppData/Local/Pub/Cache/hosted/pub.dev/tutorial_coach_mark-1.3.3/**)",
       "Bash(mv /tmp/router_tmp.dart \"C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/config/router_config.dart\")",
       "Bash(xargs wc *)",
-      "Bash(Test-Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\services\\\\casino_service.dart\")"
+      "Bash(Test-Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\services\\\\casino_service.dart\")",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(del \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\error_handler.md\")",
+      "PowerShell(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\error_handler.md\" -Confirm:$false)"
     ]
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,13 +17,17 @@ class _CasinoData {
   final String logoUrl;
   final String url;
   final String nombreGral;
+  final String verified;
 
   const _CasinoData({
     this.id,
     required this.logoUrl,
     required this.url,
     required this.nombreGral,
+    required this.verified,
   });
+
+  bool get isVerified => verified == 'OK';
 
   factory _CasinoData.fromJson(Map<String, dynamic> json) {
     return _CasinoData(
@@ -30,6 +35,7 @@ class _CasinoData {
       logoUrl: json['logoUrl']?.toString() ?? '',
       url: json['url']?.toString() ?? '',
       nombreGral: json['nombreGral']?.toString() ?? '',
+      verified: json['verified']?.toString() ?? 'PENDIENTE',
     );
   }
 }
@@ -42,7 +48,7 @@ class ReferToCashView extends StatefulWidget {
 }
 
 class _ReferToCashViewState extends State<ReferToCashView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   _CasinoData? _selectedCasino;
   List<_CasinoData> _casinos = [];
   bool _loadingCasinos = true;
@@ -54,6 +60,8 @@ class _ReferToCashViewState extends State<ReferToCashView>
   late final AnimationController _qrCtrl;
   late final Animation<double> _qrFade;
   late final Animation<double> _qrScale;
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
 
   @override
   void initState() {
@@ -66,6 +74,13 @@ class _ReferToCashViewState extends State<ReferToCashView>
     _qrScale = Tween<double>(begin: 0.88, end: 1.0).animate(
       CurvedAnimation(parent: _qrCtrl, curve: Curves.easeOutBack),
     );
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
     _loadCasinos();
     _loadResumen();
   }
@@ -73,6 +88,7 @@ class _ReferToCashViewState extends State<ReferToCashView>
   @override
   void dispose() {
     _qrCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -94,14 +110,20 @@ class _ReferToCashViewState extends State<ReferToCashView>
           final restored = savedCasino != null
               ? loaded.where((c) => c.nombreGral == savedCasino).firstOrNull
               : null;
+          final isValid = restored?.isVerified ?? false;
+          if (!isValid && (savedCasino != null || savedCode != null)) {
+            final prefs2 = await SharedPreferences.getInstance();
+            await prefs2.remove(_prefKeyCasino);
+            await prefs2.remove(_prefKeyCode);
+          }
           if (!mounted) return;
           setState(() {
             _casinos = loaded;
-            _selectedCasino = restored;
-            _referCode = savedCode;
+            _selectedCasino = isValid ? restored : null;
+            _referCode = isValid ? savedCode : null;
             _loadingCasinos = false;
           });
-          if (savedCode != null) _qrCtrl.forward(from: 1);
+          if (isValid && savedCode != null) _qrCtrl.forward(from: 1);
           return;
         }
       }
@@ -134,6 +156,7 @@ class _ReferToCashViewState extends State<ReferToCashView>
   Future<void> _selectCasino(_CasinoData casino) async {
     if (_selectingCasino || casino.id == null) return;
     final isFirstTime = _referCode == null;
+    final previousCasino = _selectedCasino;
     setState(() {
       _selectedCasino = casino;
       _selectingCasino = true;
@@ -161,9 +184,27 @@ class _ReferToCashViewState extends State<ReferToCashView>
           _loadResumen();
           return;
         }
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_prefKeyCasino);
+        await prefs.remove(_prefKeyCode);
+        if (!mounted) return;
+        setState(() {
+          _selectedCasino = previousCasino;
+          _referCode = null;
+          _selectingCasino = false;
+        });
+        _qrCtrl.reset();
+        await showErrorDialog(context, response);
+        return;
       }
     } catch (_) {}
-    if (mounted) setState(() => _selectingCasino = false);
+    if (mounted) {
+      setState(() {
+        _selectedCasino = previousCasino;
+        _selectingCasino = false;
+      });
+    }
   }
 
   String get _referUrl {
@@ -248,6 +289,47 @@ class _ReferToCashViewState extends State<ReferToCashView>
           : _buildAppBarTitleMobile(),
       centerTitle: isLarge ? false : true,
       toolbarHeight: isLarge ? 70 : 80,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: ScaleTransition(
+            scale: _pulseAnim,
+            child: GestureDetector(
+              onTap: _showHelpDialog,
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.55),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    '?',
+                    style: TextStyle(
+                      color: AppConstants.primaryGreen,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -695,66 +777,54 @@ class _ReferToCashViewState extends State<ReferToCashView>
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppConstants.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppConstants.primaryGreen.withValues(alpha: 0.25),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$limSemRest',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1,
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '+$estaSemana',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppConstants.primaryGreen,
-                      height: 1,
-                    ),
+                const Text(
+                  'restantes\nesta semana',
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.white38,
+                    height: 1.35,
                   ),
-                  const Text(
-                    'esta semana',
-                    style: TextStyle(fontSize: 9, color: Colors.white38),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 10),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  _StateBadge(
-                    label: 'Pendientes',
-                    count: pendientes,
-                    color: Colors.orange,
-                  ),
-                  _StateBadge(
-                    label: 'Confirmados',
-                    count: confirmados,
-                    color: AppConstants.primaryGreen,
-                  ),
-                  _StateBadge(
-                    label: 'Acreditados',
-                    count: acreditados,
-                    color: Colors.blue,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$limSemRest / 20 disp.',
-              style: const TextStyle(fontSize: 10, color: Colors.white38),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                _StateBadge(
+                  label: 'Pendientes',
+                  count: pendientes,
+                  color: Colors.orange,
+                ),
+                _StateBadge(
+                  label: 'Confirmados',
+                  count: confirmados,
+                  color: AppConstants.primaryGreen,
+                ),
+                _StateBadge(
+                  label: 'Acreditados',
+                  count: acreditados,
+                  color: Colors.blue,
+                ),
+              ],
             ),
           ],
         ),
@@ -799,6 +869,13 @@ class _ReferToCashViewState extends State<ReferToCashView>
     );
   }
 
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => const _HelpDialog(),
+    );
+  }
+
   void _showReferidosSheet() {
     showModalBottomSheet(
       context: context,
@@ -808,6 +885,273 @@ class _ReferToCashViewState extends State<ReferToCashView>
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       builder: (_) => const _ReferidosBottomSheet(),
+    );
+  }
+}
+
+// ─── Help dialog ──────────────────────────────────────────────────────────────
+
+class _HelpDialog extends StatelessWidget {
+  const _HelpDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 440),
+        decoration: BoxDecoration(
+          color: AppConstants.darkCardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppConstants.primaryGreen.withValues(alpha: 0.25),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.08),
+              blurRadius: 30,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '?',
+                        style: TextStyle(
+                          color: AppConstants.primaryGreen,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      '¿Cómo funciona Refer-to-Cash?',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 20),
+                  ),
+                ],
+              ),
+            ),
+            // Body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Invitá a tus amigos a Boombet y ganá dinero por cada uno que complete el proceso.',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _HelpStep(
+                    number: '1',
+                    title: 'Elegí un casino',
+                    body: 'En esta pantalla, seleccioná el casino en el que querés cobrar. Una vez elegido, se genera tu QR personal.',
+                  ),
+                  _HelpStep(
+                    number: '2',
+                    title: 'Compartí tu QR',
+                    body: 'Mostraselo a tu amigo. Cuando lo escanee en el inicio de sesion, va directo al registro de Boombet y solo tiene que crear su cuenta.',
+                  ),
+                  _HelpStep(
+                    number: '3',
+                    title: 'Tu amigo verifica un casino',
+                    body: 'Una vez registrado, tu amigo tiene que ir a Ajustes → Verificación de casinos y completar su afiliación en al menos un casino de Boombet. Un administrador lo revisa y aprueba.',
+                  ),
+                  _HelpStep(
+                    number: '4',
+                    title: 'El referido se confirma',
+                    body: 'Cuando la afiliación de tu amigo es aprobada, el referido aparece como Confirmado en tu lista.',
+                    isLast: true,
+                  ),
+                  SizedBox(height: 16),
+                  _HelpLimitsBox(),
+                ],
+              ),
+            ),
+          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HelpStep extends StatelessWidget {
+  final String number;
+  final String title;
+  final String body;
+  final bool isLast;
+
+  const _HelpStep({
+    required this.number,
+    required this.title,
+    required this.body,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: AppConstants.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    number,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 1.5,
+                    color: AppConstants.primaryGreen.withValues(alpha: 0.2),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    body,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HelpLimitsBox extends StatelessWidget {
+  const _HelpLimitsBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppConstants.primaryGreen.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppConstants.primaryGreen.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Límites del programa',
+            style: TextStyle(
+              color: AppConstants.primaryGreen,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _LimitRow(icon: Icons.calendar_today_rounded, text: 'Hasta 5 referidos por semana'),
+          const SizedBox(height: 4),
+          _LimitRow(icon: Icons.people_rounded, text: 'Máximo 2.000 referidos en total'),
+        ],
+      ),
+    );
+  }
+}
+
+class _LimitRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _LimitRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: AppConstants.primaryGreen.withValues(alpha: 0.6)),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+      ],
     );
   }
 }

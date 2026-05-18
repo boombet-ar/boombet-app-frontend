@@ -13,6 +13,7 @@ import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:boombet_app/utils/error_dialog.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key, this.initialTid, this.initialRefCode});
@@ -1181,35 +1182,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         final lista = fullResponse['listaExistenciaFisica'] as List?;
         if (lista == null || lista.isEmpty) {
           LoadingOverlay.hide(context);
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final dialogBg = isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightDialogBg;
-          final textColor = isDark
-              ? AppConstants.textDark
-              : AppConstants.lightLabelText;
-
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: dialogBg,
-              title: Text('Error', style: TextStyle(color: textColor)),
-              content: const Text(
-                'No se encontraron datos para el DNI ingresado.',
-                style: TextStyle(color: AppConstants.textDark),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          );
+          showErrorDialog(context, 'No se encontraron datos para el DNI ingresado.');
           return;
         }
 
@@ -1231,38 +1204,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
           final age = _calculateAge(updatedPlayerData);
           if (age != null && age < 18) {
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-            final dialogBg = isDark
-                ? AppConstants.darkAccent
-                : AppConstants.lightDialogBg;
-            final textColor = isDark
-                ? AppConstants.textDark
-                : AppConstants.lightLabelText;
-
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                backgroundColor: dialogBg,
-                title: Text(
-                  'Requisito de edad',
-                  style: TextStyle(color: textColor),
-                ),
-                content: Text(
-                  'Debes ser mayor de 18 años para afiliarte a BoomBet.',
-                  style: TextStyle(color: textColor),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Entendido',
-                      style: TextStyle(color: AppConstants.primaryGreen),
-                    ),
-                  ),
-                ],
-              ),
-            );
+            showErrorDialog(context, 'Debes ser mayor de 18 años para afiliarte a BoomBet.');
             return;
           }
 
@@ -1283,72 +1225,14 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
             });
           }
         } else {
-          // Error al parsear los datos
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final dialogBg = isDark
-              ? AppConstants.darkAccent
-              : AppConstants.lightDialogBg;
-          final textColor = isDark
-              ? AppConstants.textDark
-              : AppConstants.lightLabelText;
-
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: dialogBg,
-              title: Text('Error', style: TextStyle(color: textColor)),
-              content: const Text(
-                'Error al procesar los datos. Por favor, contacta con soporte.',
-                style: TextStyle(color: AppConstants.textDark),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          );
+          showErrorDialog(context, 'Error al procesar los datos. Por favor, contacta con soporte.');
         }
       } else {
-        // Error en la validación
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final dialogBg = isDark
-            ? AppConstants.darkAccent
-            : AppConstants.lightDialogBg;
-        final textColor = isDark
-            ? AppConstants.textDark
-            : AppConstants.lightLabelText;
-
         final errorMessage = _extractBackendErrorMessage(
           response.body,
           fallback: 'No se pudieron validar los datos',
         );
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: dialogBg,
-            title: Text(
-              'Error de validación',
-              style: TextStyle(color: textColor),
-            ),
-            content: Text(errorMessage, style: TextStyle(color: textColor)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Entendido',
-                  style: TextStyle(color: AppConstants.primaryGreen),
-                ),
-              ),
-            ],
-          ),
-        );
+        showErrorDialog(context, errorMessage);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1365,36 +1249,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
         if (!mounted) return;
       }
 
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      final dialogBg = isDark
-          ? AppConstants.darkAccent
-          : AppConstants.lightDialogBg;
-      final textColor = isDark
-          ? AppConstants.textDark
-          : AppConstants.lightLabelText;
-
-      // Error inesperado
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: dialogBg,
-          title: Text('Error de conexión', style: TextStyle(color: textColor)),
-          content: Text(
-            'No se pudo conectar con el servidor: $e',
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Entendido',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      );
+      showErrorDialog(context, e);
     }
   }
 

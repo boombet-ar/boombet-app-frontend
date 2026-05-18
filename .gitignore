@@ -138,3 +138,6 @@ ios/Podfile.lock
 .env.stage.json
 .design_system.md 
 comandos.txt
+192.168.0.51-key.pem
+192.168.0.51.pem
+Caddyfile

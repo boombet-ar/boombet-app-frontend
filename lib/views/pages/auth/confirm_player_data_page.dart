@@ -7,6 +7,7 @@ import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/services/notification_service.dart';
 import 'package:boombet_app/services/token_service.dart';
 import 'package:boombet_app/utils/error_parser.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:boombet_app/views/pages/auth/email_confirmation_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
@@ -109,38 +110,6 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     _telefonoController.dispose();
     _estadoCivilController.dispose();
     super.dispose();
-  }
-
-  void _showErrorDialog({required String title, required String message}) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: AppConstants.primaryGreen.withValues(alpha: 0.18),
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontSize: 17),
-        ),
-        content: Text(
-          message,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(color: AppConstants.primaryGreen),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSuccessDialog({required String message, VoidCallback? onOk}) {
@@ -262,10 +231,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
 
   Future<void> _onConfirmarDatos() async {
     if (widget.preview) {
-      _showErrorDialog(
-        title: 'Modo Preview',
-        message: 'Acción deshabilitada (solo visual).',
-      );
+      showErrorDialog(context, 'Acción deshabilitada (solo visual).');
       return;
     }
 
@@ -287,53 +253,35 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
     // Validar Nombre
     final nombre = _nombreController.text.trim();
     if (nombre.isEmpty) {
-      _showErrorDialog(
-        title: 'Campo incompleto',
-        message: 'Por favor, ingresa tu nombre.',
-      );
+      showErrorDialog(context, 'Por favor, ingresa tu nombre.');
       return;
     }
     if (nombre.length < 2) {
-      _showErrorDialog(
-        title: 'Validación de nombre',
-        message: 'El nombre debe tener al menos 2 caracteres.',
-      );
+      showErrorDialog(context, 'El nombre debe tener al menos 2 caracteres.');
       return;
     }
 
     // Validar Apellido
     final apellido = _apellidoController.text.trim();
     if (apellido.isEmpty) {
-      _showErrorDialog(
-        title: 'Campo incompleto',
-        message: 'Por favor, ingresa tu apellido.',
-      );
+      showErrorDialog(context, 'Por favor, ingresa tu apellido.');
       return;
     }
     if (apellido.length < 2) {
-      _showErrorDialog(
-        title: 'Validación de apellido',
-        message: 'El apellido debe tener al menos 2 caracteres.',
-      );
+      showErrorDialog(context, 'El apellido debe tener al menos 2 caracteres.');
       return;
     }
 
     // Validar Género
     if (_selectedGenero == null || _selectedGenero!.isEmpty) {
-      _showErrorDialog(
-        title: 'Campo incompleto',
-        message: 'Por favor, selecciona tu género.',
-      );
+      showErrorDialog(context, 'Por favor, selecciona tu género.');
       return;
     }
 
     // Validar Estado Civil
     final estadoCivil = _estadoCivilController.text.trim();
     if (estadoCivil.isEmpty) {
-      _showErrorDialog(
-        title: 'Campo incompleto',
-        message: 'Por favor, ingresa tu estado civil.',
-      );
+      showErrorDialog(context, 'Por favor, ingresa tu estado civil.');
       return;
     }
 
@@ -343,20 +291,14 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
     );
     if (!emailRegex.hasMatch(email)) {
-      _showErrorDialog(
-        title: 'Email inválido',
-        message: 'Por favor, ingresa un email válido.',
-      );
+      showErrorDialog(context, 'Por favor, ingresa un email válido.');
       return;
     }
 
     // Validar formato de teléfono
     final telefono = _telefonoController.text.trim();
     if (!RegExp(r'^\d{10,15}$').hasMatch(telefono)) {
-      _showErrorDialog(
-        title: 'Teléfono inválido',
-        message: 'El teléfono debe contener solo números (10-15 dígitos).',
-      );
+      showErrorDialog(context, 'El teléfono debe contener solo números (10-15 dígitos).');
       return;
     }
 
@@ -552,7 +494,7 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
               'El usuario o email ya están registrados. Por favor, intenta con otros datos.',
         );
 
-        _showErrorDialog(title: 'Usuario duplicado', message: errorMessage);
+        showErrorDialog(context, errorMessage);
       } else {
         // ❌ OTROS ERRORES
         if (!mounted) return;
@@ -568,17 +510,14 @@ class _ConfirmPlayerDataPageState extends State<ConfirmPlayerDataPage> {
               'El DNI ya está registrado. Usá un DNI diferente o recuperá acceso.';
         }
 
-        _showErrorDialog(title: 'Error de registro', message: errorMessage);
+        showErrorDialog(context, errorMessage);
       }
     } catch (e) {
       if (!mounted) return;
 
       LoadingOverlay.hide(context);
 
-      final errorTitle = 'Error de conexión';
-      final errorMessage = ErrorParser.parse(e);
-
-      _showErrorDialog(title: errorTitle, message: errorMessage);
+      showErrorDialog(context, e);
     }
   }
 

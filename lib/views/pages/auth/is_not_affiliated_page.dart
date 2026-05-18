@@ -11,6 +11,7 @@ import 'package:boombet_app/services/websocket_url_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 
 class IsNotAffiliatedPage extends StatefulWidget {
   final bool fromCallback;
@@ -146,29 +147,7 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
         if (!mounted) return;
         if (checkResponse.statusCode != 200) {
           LoadingOverlay.hide(context);
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              backgroundColor: const Color(0xFF1E1E1E),
-              title: const Text(
-                'Contraseña incorrecta',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: const Text(
-                'Usá la misma contraseña que usaste cuando te registraste.',
-                style: TextStyle(color: Colors.white70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: AppConstants.primaryGreen),
-                  ),
-                ),
-              ],
-            ),
-          );
+          showErrorDialog(context, 'Usá la misma contraseña que usaste cuando te registraste.');
           setState(() => _isProcessing = false);
           return;
         }

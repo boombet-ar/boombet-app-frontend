@@ -1,6 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/affiliated_casino_model.dart';
 import 'package:boombet_app/services/casino_service.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:flutter/material.dart';
 
 class CasinoCard extends StatefulWidget {
@@ -39,7 +40,7 @@ class _CasinoCardState extends State<CasinoCard> {
     final id = _controller.text.trim();
 
     if (id.isEmpty) {
-      _showEmptyIdDialog();
+      showErrorDialog(context, 'No podés enviar el ID vacío.');
       return;
     }
 
@@ -64,46 +65,6 @@ class _CasinoCardState extends State<CasinoCard> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showEmptyIdDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppConstants.darkAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppConstants.primaryGreen, size: 22),
-            SizedBox(width: 10),
-            Text(
-              'Campo vacío',
-              style: TextStyle(
-                color: AppConstants.textDark,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'No podés enviar el ID vacío.',
-          style: TextStyle(color: AppConstants.textDark, fontSize: 14, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(
-                color: AppConstants.primaryGreen,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override

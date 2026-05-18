@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/forgot_password_service.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
@@ -38,7 +39,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
     });
 
     if (_emailError) {
-      _showDialog('Campo vacío', 'Por favor, ingresa tu correo electrónico.');
+      showErrorDialog(context, 'Por favor, ingresa tu correo electrónico.');
       return;
     }
 
@@ -51,8 +52,8 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
       setState(() {
         _emailError = true;
       });
-      _showDialog(
-        'Email inválido',
+      showErrorDialog(
+        context,
         PasswordValidationService.getEmailValidationMessage(email),
       );
       return;
@@ -93,9 +94,9 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
             _emailError = true;
           }
         });
-        _showDialog(
-          'Error',
-          result['message'] ??
+        showErrorDialog(
+          context,
+          result['message'] as String? ??
               'No se pudo enviar el correo. Por favor intenta más tarde.',
         );
       }
@@ -108,7 +109,7 @@ class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
         _isLoading = false;
       });
 
-      _showDialog('Error', 'Ocurrió un error inesperado: $e');
+      showErrorDialog(context, e);
     }
   }
 

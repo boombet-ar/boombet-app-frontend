@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/services/deep_link_service.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/services/password_validation_service.dart';
 import 'package:boombet_app/services/reset_password_service.dart';
 import 'package:boombet_app/services/token_service.dart';
@@ -180,7 +181,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     });
 
     if (_passwordError || _confirmPasswordError) {
-      _showSnackbar('Por favor completa todos los campos', isError: true);
+      showErrorDialog(context, 'Por favor completa todos los campos');
       return;
     }
 
@@ -190,7 +191,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       setState(() {
         _passwordError = true;
       });
-      _showSnackbar(passwordError, isError: true);
+      showErrorDialog(context, passwordError);
       return;
     }
 
@@ -199,7 +200,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       setState(() {
         _confirmPasswordError = true;
       });
-      _showSnackbar('Las contraseñas no coinciden', isError: true);
+      showErrorDialog(context, 'Las contraseñas no coinciden');
       return;
     }
 
@@ -241,10 +242,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         }
       } else {
         // ❌ ERROR AL RESETEAR CONTRASEÑA
-        _showSnackbar(
-          '❌ ${result['message'] ?? 'No se pudo resetear la contraseña'}',
-          isError: true,
-        );
+        showErrorDialog(context, result['message'] ?? 'No se pudo resetear la contraseña');
       }
     } catch (e) {
       if (!mounted) return;
@@ -253,7 +251,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         _isLoading = false;
       });
 
-      _showSnackbar('❌ Error al resetear contraseña: $e', isError: true);
+      showErrorDialog(context, 'Error al resetear contraseña: $e');
     }
   }
 

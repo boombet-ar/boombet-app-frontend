@@ -1,5 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
 import 'package:boombet_app/services/player_service.dart';
@@ -97,23 +98,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       c.dispose();
     }
     super.dispose();
-  }
-
-  void _showError(String msg) {
-    debugPrint('[UNAFFILIATE][UI] showError: $msg');
-    const snackTextColor = Colors.white;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: TextStyle(color: snackTextColor)),
-        backgroundColor: AppConstants.errorRed,
-        duration: AppConstants.longSnackbarDuration,
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: snackTextColor,
-          onPressed: () {},
-        ),
-      ),
-    );
   }
 
   Uint8List _resizeAvatarForWeb(Uint8List bytes) {
@@ -229,18 +213,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (blocked) return;
 
     if (!_c["email"]!.text.contains("@")) {
-      _showError("Ingresá un email válido");
+      showErrorDialog(context, 'Ingresá un email válido');
       return;
     }
 
     if (_c["telefono"]!.text.length < 6) {
-      _showError("Ingresá un teléfono válido");
+      showErrorDialog(context, 'Ingresá un teléfono válido');
       return;
     }
 
     final token = await TokenService.getToken();
     if (token == null) {
-      _showError("Sesión expirada");
+      showErrorDialog(context, 'Sesión expirada');
       return;
     }
 
@@ -291,7 +275,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       if (mounted) Navigator.pop(context, _player);
     } catch (e) {
-      _showError("Error al actualizar: $e");
+      if (mounted) showErrorDialog(context, 'Error al actualizar: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -355,7 +339,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      _showError("No pudimos subir la foto: $e");
+      showErrorDialog(context, 'No pudimos subir la foto: $e');
     } finally {
       if (!mounted) return;
       setState(() => _uploadingAvatar = false);
