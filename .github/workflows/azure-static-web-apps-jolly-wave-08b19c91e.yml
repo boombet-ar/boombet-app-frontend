@@ -30,8 +30,14 @@ jobs:
 
       - name: Flutter Build Web
         run: |
+    
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            API_HOST_VALUE="${{ secrets.API_HOST_STAGE }}"
+          else
+            API_HOST_VALUE="${{ secrets.API_HOST }}"
+          fi
           flutter build web --release \
-            --dart-define=API_HOST=${{ secrets.API_HOST }} \
+            --dart-define=API_HOST=$API_HOST_VALUE \
             --dart-define=API_SCHEME=${{ secrets.API_SCHEME }} \
             --dart-define=API_PORT=${{ secrets.API_PORT }} \
             --dart-define=IMAGE_PROXY_BASE=${{ secrets.IMAGE_PROXY_BASE }} \
