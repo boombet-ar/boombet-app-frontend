@@ -4,6 +4,7 @@ class FormularioModel {
   final int? tidId;
   final int? sorteoId;
   final int? afiliadorId;
+  final int? eventoId;
 
   const FormularioModel({
     required this.id,
@@ -11,6 +12,7 @@ class FormularioModel {
     this.tidId,
     this.sorteoId,
     this.afiliadorId,
+    this.eventoId,
   });
 
   factory FormularioModel.fromMap(Map<String, dynamic> map) {
@@ -26,6 +28,7 @@ class FormularioModel {
       tidId: parseId(map['tidId']),
       sorteoId: parseId(map['sorteoId']),
       afiliadorId: parseId(map['afiliadorId']),
+      eventoId: parseId(map['eventoId']),
     );
   }
 }

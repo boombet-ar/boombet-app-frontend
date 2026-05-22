@@ -284,14 +284,12 @@ class _TidsPageState extends State<TidsPage> {
   final TidsService _tidsService = TidsService();
   final EventosService _eventosService = EventosService();
   final StandsService _standsService = StandsService();
-  final FormulariosService _formulariosService = FormulariosService();
   bool _isLoading = false;
   String? _error;
   List<TidModel> _tids = [];
   List<EventoOption> _eventoOptions = kDefaultEventoOptions;
   List<StandOption> _standOptions = kDefaultStandOptions;
   List<StandModel> _stands = [];
-  Map<int, int> _tidFormIdMap = const {};
   final Set<int> _editingIds = {};
   final Set<int> _deletingIds = {};
   int _currentPage = 1;
@@ -309,32 +307,6 @@ class _TidsPageState extends State<TidsPage> {
     _loadTids();
     _loadEventoOptions();
     _loadStandOptions();
-    _loadTidFormularios();
-  }
-
-  Future<void> _loadTidFormularios() async {
-    try {
-      final forms = await _formulariosService.fetchFormularios();
-      if (!mounted) return;
-      setState(() {
-        _tidFormIdMap = {
-          for (final f in forms)
-            if (f.tidId != null) f.tidId!: f.id,
-        };
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _handleCreateFormForTid(int tidId) async {
-    await showCreateFormDialog(
-      context: context,
-      preTidId: tidId,
-      onCreated: (created) {
-        setState(() {
-          _tidFormIdMap = {..._tidFormIdMap, tidId: created.id};
-        });
-      },
-    );
   }
 
   Future<void> _loadEventoOptions() async {
@@ -1128,6 +1100,336 @@ class _TidsPageState extends State<TidsPage> {
     );
   }
 
+  void _showFormQrDialog(TidModel tid) {
+    const green = AppConstants.primaryGreen;
+    const dialogBg = Color(0xFF1A1A1A);
+    final qrRepaintKey = GlobalKey();
+    final formulariosService = FormulariosService();
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      builder: (ctx) {
+        bool isLoadingForms = false;
+        bool formsLoaded = false;
+        List<FormularioModel> forms = [];
+        String? loadError;
+        int? selectedFormId;
+        bool isDownloading = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // ── Carga formularios ────────────────────────────────────────
+            if (!isLoadingForms && !formsLoaded && loadError == null) {
+              isLoadingForms = true;
+              formulariosService.fetchFormularios().then((result) {
+                setDialogState(() {
+                  forms = result;
+                  isLoadingForms = false;
+                  formsLoaded = true;
+                });
+              }).catchError((e) {
+                setDialogState(() {
+                  loadError = 'No se pudieron cargar los formularios.';
+                  isLoadingForms = false;
+                });
+              });
+            }
+
+            final qrUrl = selectedFormId != null
+                ? '${ApiConfig.menuUrl}sorteoForm?formId=$selectedFormId&tidId=${tid.id}'
+                : null;
+
+            // ── Descarga ─────────────────────────────────────────────────
+            Future<void> handleDownload() async {
+              if (isDownloading || qrUrl == null) return;
+              setDialogState(() => isDownloading = true);
+              try {
+                final boundary = qrRepaintKey.currentContext
+                    ?.findRenderObject() as RenderRepaintBoundary?;
+                if (boundary == null) throw Exception('No se pudo capturar el QR');
+                final image = await boundary.toImage(pixelRatio: 3.0);
+                final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+                if (byteData == null) throw Exception('Error al generar imagen');
+                final bytes = byteData.buffer.asUint8List();
+                final safeName = tid.tid.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+                final filename = 'form_${safeName}_qr.png';
+                final savedPath = await saveQrImage(bytes, filename);
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: Text(savedPath != null ? 'QR guardado en Descargas' : 'QR descargado correctamente'),
+                    backgroundColor: green,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 3),
+                  ));
+                }
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: Text('Error al descargar: $e'),
+                    backgroundColor: AppConstants.errorRed,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                }
+              } finally {
+                if (ctx.mounted) setDialogState(() => isDownloading = false);
+              }
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: dialogBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: green.withValues(alpha: 0.20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: green.withValues(alpha: 0.25),
+                          blurRadius: 32,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Header ───────────────────────────────────────
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: green.withValues(alpha: 0.22)),
+                              ),
+                              child: const Icon(Icons.dynamic_form_outlined, color: green, size: 16),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'QR de Formulario',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  Text(
+                                    tid.tid,
+                                    style: TextStyle(
+                                      color: green.withValues(alpha: 0.70),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Selector de formulario ───────────────────────
+                        if (isLoadingForms)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: CircularProgressIndicator(color: green, strokeWidth: 2.5),
+                            ),
+                          )
+                        else if (loadError != null)
+                          Text(loadError!, style: const TextStyle(color: AppConstants.errorRed, fontSize: 12))
+                        else if (forms.isEmpty)
+                          Text(
+                            'No hay formularios disponibles.',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.50), fontSize: 12),
+                          )
+                        else ...[
+                          Text(
+                            'Seleccionar formulario',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<int>(
+                            value: selectedFormId,
+                            dropdownColor: dialogBg,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: InputDecoration(
+                              labelText: 'Formulario',
+                              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
+                              ),
+                              focusedBorder: const UnderlineInputBorder(
+                                borderSide: BorderSide(color: green),
+                              ),
+                            ),
+                            iconEnabledColor: green.withValues(alpha: 0.60),
+                            items: forms
+                                .map((f) => DropdownMenuItem<int>(
+                                      value: f.id,
+                                      child: Text(
+                                        'Form #${f.id}${f.sorteoId != null ? ' (Sorteo #${f.sorteoId})' : f.tidId != null ? ' (TID #${f.tidId})' : ''}',
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setDialogState(() => selectedFormId = v),
+                          ),
+                        ],
+
+                        // ── QR ───────────────────────────────────────────
+                        if (qrUrl != null) ...[
+                          const SizedBox(height: 20),
+                          Center(
+                            child: RepaintBoundary(
+                              key: qrRepaintKey,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: QrImageView(
+                                  data: qrUrl,
+                                  version: QrVersions.auto,
+                                  size: 200,
+                                  backgroundColor: Colors.white,
+                                  eyeStyle: const QrEyeStyle(
+                                    eyeShape: QrEyeShape.square,
+                                    color: Colors.black,
+                                  ),
+                                  dataModuleStyle: const QrDataModuleStyle(
+                                    dataModuleShape: QrDataModuleShape.square,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // ── Link visible ─────────────────────────────
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: qrUrl));
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                content: const Text('Link copiado'),
+                                backgroundColor: green,
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                              ));
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: green.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: green.withValues(alpha: 0.20)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.link_rounded, size: 13, color: green.withValues(alpha: 0.60)),
+                                  const SizedBox(width: 7),
+                                  Expanded(
+                                    child: Text(
+                                      qrUrl,
+                                      style: TextStyle(
+                                        color: green.withValues(alpha: 0.80),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(Icons.copy_rounded, size: 12, color: green.withValues(alpha: 0.55)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          // ── Descargar ─────────────────────────────────
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: isDownloading ? null : handleDownload,
+                              icon: isDownloading
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.download_rounded, size: 16),
+                              label: Text(
+                                isDownloading ? 'Descargando...' : 'Descargar QR',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: green,
+                                foregroundColor: Colors.black,
+                                disabledBackgroundColor: green.withValues(alpha: 0.45),
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+
+                        // ── Cerrar ───────────────────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              backgroundColor: green.withValues(alpha: 0.08),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: green.withValues(alpha: 0.18)),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cerrar',
+                              style: TextStyle(color: green, fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tocá en cualquier lugar para cerrar',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -1159,8 +1461,7 @@ class _TidsPageState extends State<TidsPage> {
             onDelete: _delete,
             onViewAffiliations: _showTidAffiliationsCount,
             onShowQr: _showTidQr,
-            onCreateForm: _handleCreateFormForTid,
-            tidFormIdMap: _tidFormIdMap,
+            onShowFormQr: _showFormQrDialog,
             eventoNames: {
               for (final opt in _eventoOptions)
                 if (opt.id != null) opt.id!: opt.label,
@@ -1200,6 +1501,7 @@ class _EventosPageState extends State<EventosPage> {
   static const int _pageSize = 10;
 
   final EventosService _eventosService = EventosService();
+
   bool _isLoading = false;
   String? _error;
   List<EventoModel> _eventos = [];
@@ -2153,6 +2455,7 @@ class _SorteosPageState extends State<SorteosPage> {
               initialEmailPresentador: raffle.emailPresentador,
               initialInstrucciones: raffle.instrucciones,
               initialActivo: raffle.activo,
+              initialEventoId: raffle.eventoId,
               onCreated: () {
                 Navigator.of(ctx).pop();
                 _loadRaffles();
@@ -2241,19 +2544,6 @@ class _SorteosPageState extends State<SorteosPage> {
     await showDialog<void>(
       context: context,
       builder: (_) => _SorteosQrDialog(url: url, code: raffle.codigoSorteo),
-    );
-  }
-
-  Future<void> _handleCreateFormForSorteo(RaffleModel raffle) async {
-    if (raffle.id == null) return;
-    await showCreateFormDialog(
-      context: context,
-      preSorteoId: raffle.id,
-      onCreated: (created) {
-        setState(() {
-          _sorteoFormIdMap = {..._sorteoFormIdMap, raffle.id!: created.id};
-        });
-      },
     );
   }
 
@@ -2397,8 +2687,6 @@ class _SorteosPageState extends State<SorteosPage> {
                                   _handleToggleActive(raffle),
                               onDownloadQr: () =>
                                   _handleDownloadQrForm(raffle),
-                              onCreateForm: () =>
-                                  _handleCreateFormForSorteo(raffle),
                               isToggling: _togglingIds.contains(raffle.id),
                             ),
                     ),
@@ -3079,7 +3367,6 @@ class _SorteosFormCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onToggleActive;
   final VoidCallback onDownloadQr;
-  final VoidCallback onCreateForm;
   final bool isToggling;
 
   const _SorteosFormCard({
@@ -3090,7 +3377,6 @@ class _SorteosFormCard extends StatelessWidget {
     required this.onDelete,
     required this.onToggleActive,
     required this.onDownloadQr,
-    required this.onCreateForm,
     required this.isToggling,
   });
 
@@ -3265,40 +3551,6 @@ class _SorteosFormCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (url.isEmpty) ...[
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: onCreateForm,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.10)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.dynamic_form_outlined,
-                                  size: 13,
-                                  color: Colors.white.withValues(alpha: 0.35)),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Crear formulario',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.45),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                     if (url.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       GestureDetector(
@@ -3949,6 +4201,7 @@ class _FormsPageState extends State<FormsPage> {
   // Para los dropdowns del diálogo de creación
   Map<int, String> _tidCodesById = const {};
   Map<int, String> _sorteoCodesById = const {};
+  Map<int, String> _eventoCodesById = const {};
 
   @override
   void initState() {
@@ -3956,6 +4209,7 @@ class _FormsPageState extends State<FormsPage> {
     _load();
     _loadTidOptions();
     _loadSorteoOptions();
+    _loadEventoOptions();
   }
 
   Future<void> _load({bool force = false}) async {
@@ -4012,6 +4266,39 @@ class _FormsPageState extends State<FormsPage> {
 
   final _tidsService = TidsService();
   final _raffleService = RaffleService();
+  final _eventosService = EventosService();
+
+  Future<void> _loadEventoOptions() async {
+    try {
+      final eventos = await _eventosService.fetchEventos();
+      if (!mounted) return;
+      setState(() {
+        _eventoCodesById = {
+          for (final e in eventos) e.id: e.nombre.isNotEmpty ? e.nombre : '#${e.id}',
+        };
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _handleCreate() async {
+    await showCreateFormDialog(
+      context: context,
+      tidOptions: [
+        for (final e in _tidCodesById.entries) (id: e.key, label: e.value),
+      ],
+      sorteoOptions: [
+        for (final e in _sorteoCodesById.entries) (id: e.key, label: e.value),
+      ],
+      eventoOptions: [
+        for (final e in _eventoCodesById.entries) (id: e.key, label: e.value),
+      ],
+      onCreated: (created) {
+        setState(() {
+          _items = [..._items, created];
+        });
+      },
+    );
+  }
 
   Future<void> _delete(FormularioModel item) async {
     if (_deletingIds.contains(item.id)) return;
@@ -4095,6 +4382,7 @@ class _FormsPageState extends State<FormsPage> {
           padding: EdgeInsets.zero,
           children: [
             FormsManagementView(
+              onCreate: _handleCreate,
               items: _items,
               totalItems: _items.length,
               isLoading: _isLoading,
@@ -4104,6 +4392,7 @@ class _FormsPageState extends State<FormsPage> {
               onDelete: _delete,
               tidCodesById: _tidCodesById,
               sorteoCodesById: _sorteoCodesById,
+              eventoCodesById: _eventoCodesById,
             ),
           ],
         ),
