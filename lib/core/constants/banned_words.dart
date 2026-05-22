@@ -45,7 +45,8 @@ const palabrasInapropiadas = [
   "ménage",
   "erótico", "erótica", // contexto dependiente
   "pornográfico", "porno", "xxx",
-  "putear", "puteada",
+  "putear", "puteada", "poronga", "dick",
+  "pete", "petero", "petera", // jerga argentina
 
   // === DISCRIMINACIÓN / ODIO ===
   "negro de mierda", "negra de mierda",

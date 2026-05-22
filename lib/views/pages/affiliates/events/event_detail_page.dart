@@ -1,12 +1,16 @@
 import 'dart:developer';
 
+import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/evento_model.dart';
+import 'package:boombet_app/models/formulario_model.dart';
 import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/eventos_service.dart';
+import 'package:boombet_app/services/formularios_service.dart';
 import 'package:boombet_app/services/tids_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -27,10 +31,12 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   final TidsService _tidsService = TidsService();
   final EventosService _eventosService = EventosService();
+  final FormulariosService _formulariosService = FormulariosService();
 
   bool _isLoading = false;
   String? _error;
   List<TidModel> _tids = [];
+  List<FormularioModel> _formularios = [];
   int? _totalAfiliaciones;
   bool _afiliacionesError = false;
   final Set<int> _deletingIds = {};
@@ -66,6 +72,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _error = 'Error al cargar los TIDs: $e';
         _isLoading = false;
       });
+    }
+
+    // Formularios del evento: carga no crítica
+    try {
+      final allForms = await _formulariosService.fetchFormularios();
+      if (!mounted) return;
+      setState(() {
+        _formularios = allForms
+            .where((f) => f.eventoId == widget.eventoId)
+            .toList();
+      });
+    } catch (e) {
+      log('[EventDetailPage] formularios load error: $e');
     }
 
     // Afiliaciones count: carga no crítica, muestra error inline
@@ -293,6 +312,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   accent: accent,
                 ),
                 const SizedBox(height: 20),
+
+                // ── Formularios ────────────────────────────────────────
+                if (_formularios.isNotEmpty) ...[
+                  _SectionLabel(text: 'Formularios del evento', accent: accent),
+                  ..._formularios.map((f) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _DetailFormTile(form: f, accent: accent),
+                      )),
+                  const SizedBox(height: 10),
+                ],
 
                 // ── Crear TID ──────────────────────────────────────────
                 _SectionLabel(text: 'TIDs del evento', accent: accent),
@@ -681,6 +710,156 @@ class _DetailTidTile extends StatelessWidget {
                     ),
                   )
                 : const Icon(Icons.delete_outline, color: AppConstants.errorRed),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailFormTile extends StatelessWidget {
+  final FormularioModel form;
+  final Color accent;
+
+  const _DetailFormTile({required this.form, required this.accent});
+
+  String get _link {
+    if (form.sorteoId != null || form.tidId != null) {
+      return '${ApiConfig.menuUrl}sorteoForm?formId=${form.id}';
+    }
+    return '';
+  }
+
+  void _copyLink(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: _link));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('Link copiado',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+      backgroundColor: AppConstants.primaryGreen,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const green = AppConstants.primaryGreen;
+    final link = _link;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppConstants.darkAccent,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        border: Border.all(color: accent.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: green.withValues(alpha: 0.22)),
+                ),
+                child: const Icon(Icons.dynamic_form_outlined,
+                    color: green, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Formulario #${form.id}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                ),
+              ),
+              const Spacer(),
+              if (form.tidId != null)
+                _FormChip(
+                    icon: Icons.track_changes_outlined,
+                    label: 'TID #${form.tidId}')
+              else if (form.sorteoId != null)
+                _FormChip(
+                    icon: Icons.emoji_events_outlined,
+                    label: 'Sorteo #${form.sorteoId}'),
+            ],
+          ),
+          if (link.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => _copyLink(context),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: green.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: green.withValues(alpha: 0.18)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.link_rounded,
+                        size: 13, color: green.withValues(alpha: 0.60)),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        link,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: green.withValues(alpha: 0.80),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.copy_rounded,
+                        size: 12, color: green.withValues(alpha: 0.55)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FormChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _FormChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    const green = AppConstants.primaryGreen;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: green.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: green.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: green.withValues(alpha: 0.70)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: green.withValues(alpha: 0.85),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

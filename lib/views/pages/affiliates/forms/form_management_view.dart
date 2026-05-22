@@ -9,6 +9,7 @@ const _cardBg = Color(0xFF141414);
 const _errorRed = AppConstants.errorRed;
 
 class FormsManagementView extends StatelessWidget {
+  final VoidCallback onCreate;
   final List<FormularioModel> items;
   final int totalItems;
   final bool isLoading;
@@ -18,9 +19,11 @@ class FormsManagementView extends StatelessWidget {
   final void Function(FormularioModel) onDelete;
   final Map<int, String> tidCodesById;
   final Map<int, String> sorteoCodesById;
+  final Map<int, String> eventoCodesById;
 
   const FormsManagementView({
     super.key,
+    required this.onCreate,
     required this.items,
     required this.totalItems,
     required this.isLoading,
@@ -30,6 +33,7 @@ class FormsManagementView extends StatelessWidget {
     required this.onDelete,
     required this.tidCodesById,
     required this.sorteoCodesById,
+    this.eventoCodesById = const {},
   });
 
   @override
@@ -40,6 +44,8 @@ class FormsManagementView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: Column(
             children: [
+              _FormCreateButton(onTap: onCreate),
+              const SizedBox(height: 16),
               if (isLoading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -67,6 +73,10 @@ class FormsManagementView extends StatelessWidget {
                         sorteoLabel: form.sorteoId != null
                             ? (sorteoCodesById[form.sorteoId] ??
                                 '#${form.sorteoId}')
+                            : null,
+                        eventoLabel: form.eventoId != null
+                            ? (eventoCodesById[form.eventoId] ??
+                                '#${form.eventoId}')
                             : null,
                       ),
                     )),
@@ -178,6 +188,7 @@ class _FormListTile extends StatefulWidget {
   final VoidCallback onDelete;
   final String? tidLabel;
   final String? sorteoLabel;
+  final String? eventoLabel;
 
   const _FormListTile({
     required this.item,
@@ -185,6 +196,7 @@ class _FormListTile extends StatefulWidget {
     required this.onDelete,
     this.tidLabel,
     this.sorteoLabel,
+    this.eventoLabel,
   });
 
   @override
@@ -366,6 +378,43 @@ class _FormListTileState extends State<_FormListTile> {
               ],
             ),
           ),
+
+          if (widget.eventoLabel != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _green.withValues(alpha: 0.18)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_month_outlined,
+                      size: 13, color: _green.withValues(alpha: 0.60)),
+                  const SizedBox(width: 7),
+                  Text(
+                    'Evento: ',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11.5,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      widget.eventoLabel!,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _green.withValues(alpha: 0.85),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           if (link.isNotEmpty) ...[
             const SizedBox(height: 8),

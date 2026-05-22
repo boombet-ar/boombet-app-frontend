@@ -50,7 +50,7 @@ dependencies:
   qr_flutter: ^4.1.0
 
   path_provider: ^2.1.5
-  font_awesome_flutter: ^10.8.0
+  font_awesome_flutter: ^11.0.0
   package_info_plus: ^8.0.0
 
 dev_dependencies:

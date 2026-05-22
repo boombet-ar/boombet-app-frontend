@@ -35,6 +35,7 @@ class FormulariosService {
     String? contrasena,
     int? tidId,
     int? sorteoId,
+    int? eventoId,
   }) async {
     final body = <String, dynamic>{};
     if (contrasena != null && contrasena.isNotEmpty) {
@@ -42,6 +43,7 @@ class FormulariosService {
     }
     if (tidId != null) body['tidId'] = tidId;
     if (sorteoId != null) body['sorteoId'] = sorteoId;
+    if (eventoId != null) body['eventoId'] = eventoId;
 
     final response = await HttpClient.post(
       '${ApiConfig.baseUrl}/formularios',

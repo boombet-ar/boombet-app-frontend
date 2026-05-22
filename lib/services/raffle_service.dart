@@ -134,6 +134,7 @@ class RaffleService {
     required List<Map<String, dynamic>> premios,
     int? casinoGralId,
     int? tidId,
+    int? eventoId,
     String? emailPresentador,
     bool activo = true,
     Uint8List? imageBytes,
@@ -155,6 +156,7 @@ class RaffleService {
       'activo': activo,
       if (casinoGralId != null) 'casinoGralId': casinoGralId,
       if (tidId != null) 'tidId': tidId,
+      if (eventoId != null) 'eventoId': eventoId,
       if (emailPresentador != null && emailPresentador.isNotEmpty)
         'emailPresentador': emailPresentador,
       if (tipo != null) 'tipo': tipo,

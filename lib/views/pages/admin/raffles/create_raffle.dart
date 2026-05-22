@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/models/raffle_model.dart';
 import 'package:boombet_app/models/tid_model.dart';
+import 'package:boombet_app/services/eventos_service.dart';
 import 'package:boombet_app/services/http_client.dart';
 import 'package:boombet_app/services/raffle_service.dart';
 import 'package:boombet_app/services/tids_service.dart';
@@ -22,6 +24,7 @@ class CreateRaffleSection extends StatefulWidget {
   final int? initialCasinoGralId;
   final String? initialMediaUrl;
   final int? initialTidId;
+  final int? initialEventoId;
   final int? initialCantidadGanadores;
   final List<PremioModel>? initialPremios;
   final String? initialEmailPresentador;
@@ -39,6 +42,7 @@ class CreateRaffleSection extends StatefulWidget {
     this.initialCasinoGralId,
     this.initialMediaUrl,
     this.initialTidId,
+    this.initialEventoId,
     this.initialCantidadGanadores,
     this.initialPremios,
     this.initialEmailPresentador,
@@ -54,6 +58,7 @@ class CreateRaffleSection extends StatefulWidget {
 class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   final _raffleService = RaffleService();
   final _tidsService = TidsService();
+  final _eventosService = EventosService();
   final _textController = TextEditingController();
   final _emailController = TextEditingController();
   final _instruccionesController = TextEditingController();
@@ -78,6 +83,11 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   int? _selectedTidId;
   List<TidModel> _tidOptions = const [];
 
+  // Eventos
+  bool _isLoadingEventos = false;
+  int? _selectedEventoId;
+  List<EventoModel> _eventoOptions = const [];
+
   bool _activo = false;
 
   // Premios
@@ -92,6 +102,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     _hydrateInitialValues();
     _loadCasinos();
     _loadTids();
+    _loadEventos();
   }
 
   void _hydrateInitialValues() {
@@ -102,6 +113,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     final mediaUrl = widget.initialMediaUrl?.trim();
     if (mediaUrl != null && mediaUrl.isNotEmpty) _existingImageUrl = mediaUrl;
     _selectedTidId = widget.initialTidId;
+    _selectedEventoId = widget.initialEventoId;
     final email = widget.initialEmailPresentador?.trim();
     if (email != null && email.isNotEmpty) _emailController.text = email;
     final instrucciones = widget.initialInstrucciones?.trim();
@@ -200,6 +212,22 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoadingTids = false);
+    }
+  }
+
+  Future<void> _loadEventos() async {
+    if (_isLoadingEventos) return;
+    setState(() => _isLoadingEventos = true);
+    try {
+      final eventos = await _eventosService.fetchEventos();
+      if (!mounted) return;
+      setState(() {
+        _eventoOptions = eventos;
+        _isLoadingEventos = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingEventos = false);
     }
   }
 
@@ -328,6 +356,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
           premios: premios,
           casinoGralId: _selectedCasinoId,
           tidId: _selectedTidId,
+          eventoId: _selectedEventoId,
           emailPresentador: email.isNotEmpty ? email : null,
           activo: _activo,
           imageBytes: _imageBytes,
@@ -351,6 +380,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
         _imageMimeType = 'image/jpeg';
         _selectedCasinoId = null;
         _selectedTidId = null;
+        _selectedEventoId = null;
         _cantidadGanadores = 1;
         for (final c in _premioControllers) { c.dispose(); }
         _premioControllers = [TextEditingController()];
@@ -472,6 +502,11 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
 
               // ── TID ──────────────────────────────────────────────────────────
               _buildTidDropdown(green),
+
+              const SizedBox(height: 16),
+
+              // ── Evento ───────────────────────────────────────────────────────
+              _buildEventoDropdown(green),
 
               const SizedBox(height: 16),
 
@@ -738,6 +773,39 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
         )),
       ],
       onChanged: (value) => setState(() => _selectedTidId = value),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: green.withValues(alpha: 0.55)),
+    );
+  }
+
+  Widget _buildEventoDropdown(Color green) {
+    if (_isLoadingEventos) return _buildLoadingField('Cargando eventos...', green);
+
+    final validValue = _eventoOptions.any((e) => e.id == _selectedEventoId) ? _selectedEventoId : null;
+
+    return DropdownButtonFormField<int?>(
+      value: validValue,
+      dropdownColor: const Color(0xFF1A1A1A),
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      decoration: _fieldDecoration(
+        label: 'Evento (opcional)',
+        hint: 'Seleccioná un evento',
+        icon: Icons.event_note_outlined,
+      ),
+      items: [
+        const DropdownMenuItem<int?>(
+          value: null,
+          child: Text('Sin evento', style: TextStyle(color: Colors.white70, fontSize: 14)),
+        ),
+        ..._eventoOptions.map((evento) => DropdownMenuItem<int?>(
+          value: evento.id,
+          child: Text(
+            evento.nombre.isNotEmpty ? evento.nombre : 'Evento #${evento.id}',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+        )),
+      ],
+      onChanged: (value) => setState(() => _selectedEventoId = value),
       icon: Icon(Icons.keyboard_arrow_down_rounded, color: green.withValues(alpha: 0.55)),
     );
   }

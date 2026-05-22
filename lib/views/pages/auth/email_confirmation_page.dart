@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/models/player_model.dart';
@@ -201,13 +202,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
             data = jsonDecode(response.body);
           } catch (_) {
             if (showFeedback && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No se pudo validar el email. Reintenta.'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              showErrorDialog(context, 'No se pudo validar el email. Reintenta.');
             }
             return;
           }
@@ -274,34 +269,16 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         }
       } else if (response.statusCode == 400) {
         if (showFeedback && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo validar el email. Reintenta.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
-            ),
-          );
+          showErrorDialog(context, 'No se pudo validar el email. Reintenta.');
         }
       } else if (response.statusCode == 404) {
         if (showFeedback && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email no encontrado. Reintenta.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
-            ),
-          );
+          showErrorDialog(context, 'Email no encontrado. Reintenta.');
         }
       } else {}
     } catch (e, stackTrace) {
       if (showFeedback && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error verificando email: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        showErrorDialog(context, 'Error verificando email: $e');
       }
     } finally {
       if (mounted) {
@@ -503,12 +480,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
     // Validar que tenemos los datos necesarios
     final playerData = _resolvedPlayerData;
     if (playerData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Datos de jugador no disponibles'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showErrorDialog(context, 'Error: Datos de jugador no disponibles');
       return;
     }
 
@@ -526,13 +498,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
         LoadingOverlay.hide(context);
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(bondaError),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        showErrorDialog(context, bondaError);
 
         setState(() {
           _isProcessing = false;
@@ -668,13 +634,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        showErrorDialog(context, errorMessage);
 
         setState(() {
           _isProcessing = false;
@@ -685,9 +645,7 @@ class _EmailConfirmationPageState extends State<EmailConfirmationPage>
 
       LoadingOverlay.hide(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      showErrorDialog(context, 'Error: $e');
 
       setState(() {
         _isProcessing = false;

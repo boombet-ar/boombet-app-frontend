@@ -12,15 +12,17 @@ Future<void> showCreateFormDialog({
   // Modo pre-fijado: uno de los dos debe estar seteado
   int? preTidId,
   int? preSorteoId,
-  // Opciones para el dropdown (solo usadas sin pre-fijado)
+  // Opciones para los dropdowns
   List<_Option> tidOptions = const [],
   List<_Option> sorteoOptions = const [],
+  List<_Option> eventoOptions = const [],
 }) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => _CreateFormDialog(
       tidOptions: tidOptions,
       sorteoOptions: sorteoOptions,
+      eventoOptions: eventoOptions,
       preTidId: preTidId,
       preSorteoId: preSorteoId,
       onCreated: onCreated,
@@ -31,6 +33,7 @@ Future<void> showCreateFormDialog({
 class _CreateFormDialog extends StatefulWidget {
   final List<_Option> tidOptions;
   final List<_Option> sorteoOptions;
+  final List<_Option> eventoOptions;
   final int? preTidId;
   final int? preSorteoId;
   final void Function(FormularioModel) onCreated;
@@ -38,6 +41,7 @@ class _CreateFormDialog extends StatefulWidget {
   const _CreateFormDialog({
     required this.tidOptions,
     required this.sorteoOptions,
+    required this.eventoOptions,
     required this.onCreated,
     this.preTidId,
     this.preSorteoId,
@@ -58,6 +62,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
   late String _vinculoTipo;
   late int? _selectedTidId;
   late int? _selectedSorteoId;
+  int? _selectedEventoId;
   bool _isLoading = false;
   String? _error;
 
@@ -140,6 +145,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
             : _passwordController.text.trim(),
         tidId: _vinculoTipo == 'tid' ? _selectedTidId : null,
         sorteoId: _vinculoTipo == 'sorteo' ? _selectedSorteoId : null,
+        eventoId: _selectedEventoId,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -333,6 +339,39 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
                   onChanged: (v) => setState(() => _selectedSorteoId = v),
                 ),
               ],
+            ],
+
+            // ── Evento (opcional) ────────────────────────────────────────
+            if (widget.eventoOptions.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(
+                'Evento (opcional)',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _DropdownField<int>(
+                label: 'Seleccionar evento',
+                value: _selectedEventoId,
+                items: [
+                  const DropdownMenuItem<int>(
+                    value: -1,
+                    child: Text('Sin evento',
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 13)),
+                  ),
+                  ...widget.eventoOptions.map((o) => DropdownMenuItem<int>(
+                        value: o.id,
+                        child: Text(o.label,
+                            style: const TextStyle(color: Colors.white)),
+                      )),
+                ],
+                onChanged: (v) => setState(
+                    () => _selectedEventoId = (v == -1) ? null : v),
+              ),
             ],
 
             if (_error != null) ...[

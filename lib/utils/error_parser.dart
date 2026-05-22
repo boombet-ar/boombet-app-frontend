@@ -84,23 +84,25 @@ class ErrorParser {
     String? bodyMessage;
     try {
       if (response.body.isNotEmpty) {
-        // Buscar patrones comunes de mensajes en JSON
         final body = response.body.toLowerCase();
-        if (body.contains('message')) {
-          // Extraer mensaje simple (sin parsear JSON completo)
-          final messageMatch = RegExp(
+        // Backend propio usa "mensaje"; APIs externas usan "message"
+        if (body.contains('"mensaje"')) {
+          final match = RegExp(
+            r'"mensaje"\s*:\s*"([^"]*)"',
+          ).firstMatch(response.body);
+          if (match != null) bodyMessage = match.group(1);
+        }
+        if (bodyMessage == null && body.contains('"message"')) {
+          final match = RegExp(
             r'"message"\s*:\s*"([^"]*)"',
           ).firstMatch(response.body);
-          if (messageMatch != null) {
-            bodyMessage = messageMatch.group(1);
-          }
-        } else if (body.contains('error')) {
-          final errorMatch = RegExp(
+          if (match != null) bodyMessage = match.group(1);
+        }
+        if (bodyMessage == null && body.contains('"error"')) {
+          final match = RegExp(
             r'"error"\s*:\s*"([^"]*)"',
           ).firstMatch(response.body);
-          if (errorMatch != null) {
-            bodyMessage = errorMatch.group(1);
-          }
+          if (match != null) bodyMessage = match.group(1);
         }
       }
     } catch (e) {
