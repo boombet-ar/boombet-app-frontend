@@ -1,12 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/publicidad_model.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/services/publicidad_service.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
+import 'package:boombet_app/services/domain/publicidad_service.dart';
 import 'package:boombet_app/widgets/casino_logo_carousel.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';

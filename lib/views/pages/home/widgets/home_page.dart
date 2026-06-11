@@ -4,7 +4,7 @@ import 'package:boombet_app/views/pages/community/forum_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
-import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
+import 'package:boombet_app/views/pages/casino/my_casinos_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
 import 'package:boombet_app/views/pages/games/games_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';

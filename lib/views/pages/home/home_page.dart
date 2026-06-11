@@ -1,6 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/services/auth/auth_service.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';

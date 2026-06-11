@@ -1,8 +1,8 @@
-import 'package:boombet_app/models/forum_models.dart';
+﻿import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
-import 'package:boombet_app/services/forum_service.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/utils/inappropriate_content_guard.dart';
+import 'package:boombet_app/services/domain/forum_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';

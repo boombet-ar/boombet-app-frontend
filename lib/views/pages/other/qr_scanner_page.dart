@@ -1,18 +1,19 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/debug_flags.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:boombet_app/models/prize_canje_model.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/stands_service.dart';
-import 'package:boombet_app/services/tids_service.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/domain/affiliation_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/stands_service.dart';
+import 'package:boombet_app/services/domain/tids_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -147,7 +148,7 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   void _appendLog(String message) {
-    if (!AppConstants.qrScannerDebugConsoleEnabled) return;
+    if (!DebugFlags.qrScannerDebugConsoleEnabled) return;
     if (!mounted) return;
 
     final now = DateTime.now();
@@ -1143,7 +1144,7 @@ class _QrScannerPageState extends State<QrScannerPage>
                       ),
                       const SizedBox(height: 14),
                       const Center(child: _SearchingAnimation()),
-                      if (AppConstants.qrScannerDebugConsoleEnabled) ...[
+                      if (DebugFlags.qrScannerDebugConsoleEnabled) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppConstants.paddingLarge,

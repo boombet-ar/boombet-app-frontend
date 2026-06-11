@@ -1,12 +1,12 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/forum_models.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/forum_service.dart';
+import 'package:boombet_app/utils/inappropriate_content_guard.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/forum_service.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;

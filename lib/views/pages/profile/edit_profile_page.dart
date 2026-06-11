@@ -1,10 +1,10 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/models/player_update_request.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
 import 'package:cached_network_image/cached_network_image.dart';

@@ -1,8 +1,8 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/raffle_model.dart';
-import 'package:boombet_app/services/raffle_service.dart';
+import 'package:boombet_app/services/domain/raffle_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -117,7 +117,6 @@ class _RafflesContentState extends State<RafflesContent> {
 
       final raffles = rafflesMaps
           .map(RaffleModel.fromMap)
-          .where((r) => r.tipo == 'APP')
           .toList();
       final casinoMap = <int, _CasinoInfo>{};
       for (final m in casinosMaps) {

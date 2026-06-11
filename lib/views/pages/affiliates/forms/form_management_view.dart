@@ -20,6 +20,7 @@ class FormsManagementView extends StatelessWidget {
   final Map<int, String> tidCodesById;
   final Map<int, String> sorteoCodesById;
   final Map<int, String> eventoCodesById;
+  final Map<int, String> sorteoMediaUrlById;
 
   const FormsManagementView({
     super.key,
@@ -34,6 +35,7 @@ class FormsManagementView extends StatelessWidget {
     required this.tidCodesById,
     required this.sorteoCodesById,
     this.eventoCodesById = const {},
+    this.sorteoMediaUrlById = const {},
   });
 
   @override
@@ -77,6 +79,9 @@ class FormsManagementView extends StatelessWidget {
                         eventoLabel: form.eventoId != null
                             ? (eventoCodesById[form.eventoId] ??
                                 '#${form.eventoId}')
+                            : null,
+                        mediaUrl: form.sorteoId != null
+                            ? sorteoMediaUrlById[form.sorteoId]
                             : null,
                       ),
                     )),
@@ -189,6 +194,7 @@ class _FormListTile extends StatefulWidget {
   final String? tidLabel;
   final String? sorteoLabel;
   final String? eventoLabel;
+  final String? mediaUrl;
 
   const _FormListTile({
     required this.item,
@@ -197,6 +203,7 @@ class _FormListTile extends StatefulWidget {
     this.tidLabel,
     this.sorteoLabel,
     this.eventoLabel,
+    this.mediaUrl,
   });
 
   @override
@@ -224,7 +231,7 @@ class _FormListTileState extends State<_FormListTile> {
 
   String _buildLink() {
     if (widget.item.sorteoId != null || widget.item.tidId != null) {
-      return '${ApiConfig.menuUrl}sorteoForm?formId=${widget.item.id}';
+      return '${ApiConfig.menuUrl}sorteoForm?formId=${widget.item.id}${ApiConfig.mediaUrlParam(widget.mediaUrl)}';
     }
     return '';
   }

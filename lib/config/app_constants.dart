@@ -133,25 +133,6 @@ class AppConstants {
   /// al confirmar el email (útil para cuentas de test en producción).
   static const bool couponAffiliationOnRegisterEnabled = true;
 
-  /// Muestra un pop-up de debug con el request/response completo
-  /// al presionar "Crear cuenta". Desactivar en producción estable.
-  static const bool debugRegisterEnabled = false;
-
-  /// Habilita la opción "Debug Views" en Settings para navegar
-  /// rápidamente por vistas de lib/views/pages con datos mock.
-  static const bool debugViewsMenuEnabled = false;
-
-  /// Muestra la consola de logs en la vista de escaneo QR.
-  /// Poner en false para ocultarla completamente.
-  static const bool qrScannerDebugConsoleEnabled = false;
-
-  /// Muestra el panel de debug con el playerData crudo del backend
-  /// en la página de resultados de afiliación. Desactivar en producción.
-  static const bool affiliationPlayerDataDebugEnabled = false;
-
-  /// Muestra la consola de logs en IsNotAffiliatedPage para debuggear
-  /// el endpoint POST /api/users/auth/affiliate. Desactivar en producción.
-  static const bool isNotAffiliatedDebugConsoleEnabled = false;
 
   // ==================== MENSAJES COMUNES ====================
   static const String msgSessionExpired =

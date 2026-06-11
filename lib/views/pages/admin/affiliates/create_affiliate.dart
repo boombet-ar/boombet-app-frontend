@@ -1,7 +1,7 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
-import 'package:boombet_app/services/affiliates_service.dart';
-import 'package:boombet_app/services/password_validation_service.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/utils/inappropriate_content_guard.dart';
+import 'package:boombet_app/services/domain/affiliates_service.dart';
+import 'package:boombet_app/services/auth/password_validation_service.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showCreateAffiliateDialog({

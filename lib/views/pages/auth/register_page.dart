@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/debug_flags.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
-import 'package:boombet_app/services/password_generator_service.dart';
-import 'package:boombet_app/services/password_validation_service.dart';
+import 'package:boombet_app/services/auth/password_generator_service.dart';
+import 'package:boombet_app/services/auth/password_validation_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
@@ -1151,7 +1152,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
       LoadingOverlay.hide(context);
 
-      if (AppConstants.debugRegisterEnabled) {
+      if (DebugFlags.debugRegisterEnabled) {
         final debugEntries = [
           '=== ${DateTime.now().toIso8601String()} ===',
           '',
@@ -1239,7 +1240,7 @@ El titular de los datos puede, en caso de disconformidad, dirigirse a la Agencia
 
       LoadingOverlay.hide(context);
 
-      if (AppConstants.debugRegisterEnabled) {
+      if (DebugFlags.debugRegisterEnabled) {
         await _showDebugLogDialog([
           '=== ${DateTime.now().toIso8601String()} ===',
           '',

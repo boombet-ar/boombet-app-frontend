@@ -1,8 +1,8 @@
-import 'dart:developer';
+﻿import 'dart:developer';
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/pending_verification_model.dart';
-import 'package:boombet_app/services/casino_service.dart';
+import 'package:boombet_app/services/domain/casino_service.dart';
 import 'package:boombet_app/views/pages/admin/casino_verifications/casino_verifications_admin_view.dart';
 import 'package:flutter/material.dart';
 

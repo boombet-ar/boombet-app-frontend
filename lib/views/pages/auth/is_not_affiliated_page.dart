@@ -1,13 +1,14 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math' as math;
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/debug_flags.dart';
 import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/player_model.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/services/websocket_url_service.dart';
+import 'package:boombet_app/services/domain/affiliation_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
+import 'package:boombet_app/services/infra/websocket_url_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/widgets/loading_overlay.dart';
 import 'package:flutter/material.dart';
@@ -100,7 +101,7 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
   }
 
   void _log(String message) {
-    if (!AppConstants.isNotAffiliatedDebugConsoleEnabled) return;
+    if (!DebugFlags.isNotAffiliatedDebugConsoleEnabled) return;
     setState(() => _logs.add(message));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_logsScrollController.hasClients) {
@@ -272,7 +273,7 @@ class _IsNotAffiliatedPageState extends State<IsNotAffiliatedPage>
               ),),
             ),
           ),
-          if (AppConstants.isNotAffiliatedDebugConsoleEnabled) _buildConsole(),
+          if (DebugFlags.isNotAffiliatedDebugConsoleEnabled) _buildConsole(),
         ],
       ),
     );

@@ -1,5 +1,5 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/eventos_service.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/domain/eventos_service.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

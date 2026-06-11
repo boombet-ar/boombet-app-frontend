@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:ui';
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
@@ -7,7 +7,7 @@ import 'package:boombet_app/games/game_01/game_01_page.dart';
 import 'package:boombet_app/games/game_02/game_02_page.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
 import 'package:boombet_app/models/cupon_model.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
+import 'package:boombet_app/services/domain/affiliation_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';

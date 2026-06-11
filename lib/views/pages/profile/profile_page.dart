@@ -1,11 +1,11 @@
-import 'package:boombet_app/config/app_constants.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:go_router/go_router.dart';
-import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
+import 'package:boombet_app/views/pages/affiliates/results/unaffiliate_result_page.dart';
 import 'package:boombet_app/utils/page_transitions.dart';
-import 'package:boombet_app/services/auth_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/player_service.dart';
+import 'package:boombet_app/services/auth/auth_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/views/pages/profile/widgets/username_badge.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';

@@ -1,9 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/ad_service.dart';
-import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
 import 'package:boombet_app/views/pages/admin/ads/create_ad.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:flutter/material.dart';

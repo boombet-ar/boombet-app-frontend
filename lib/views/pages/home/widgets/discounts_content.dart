@@ -1,13 +1,13 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/cupon_model.dart';
-import 'package:boombet_app/services/cupones_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/services/token_service.dart';
+import 'package:boombet_app/services/domain/cupones_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:boombet_app/utils/coupon_error_parser.dart';
 import 'package:boombet_app/views/pages/home/widgets/claimed_coupons_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/loading_badge.dart';
@@ -94,14 +94,6 @@ class DiscountsContentState extends State<DiscountsContent> {
   bool _authCheckInProgress = false;
   DateTime? _lastAuthCheckAt;
   bool? _bondaEnabled;
-
-  void openClaimedFromTutorial() {
-    setState(() {
-      _showClaimed = true;
-    });
-    _resetDiscountsState(triggerLoad: false);
-  }
-
 
   Future<void> _clearCuponCachePrefs() async {
     final prefs = await SharedPreferences.getInstance();

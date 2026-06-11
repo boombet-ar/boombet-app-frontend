@@ -113,4 +113,13 @@ class ApiConfig {
   }
 
   static String get effectiveUrl => baseUrl;
+
+  /// Devuelve `&mediaUrl=<encoded>` solo si la URL pertenece al dominio de Boombet.
+  /// Si no cumple o es null, retorna vacío.
+  static String mediaUrlParam(String? mediaUrl) {
+    if (mediaUrl == null || mediaUrl.isEmpty) return '';
+    final uri = Uri.tryParse(mediaUrl);
+    if (uri?.host != 'boombet.blob.core.windows.net') return '';
+    return '&mediaUrl=${Uri.encodeComponent(mediaUrl)}';
+  }
 }

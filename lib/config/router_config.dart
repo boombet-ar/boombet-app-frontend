@@ -1,20 +1,25 @@
 ﻿import 'dart:convert';
 
 import 'package:boombet_app/config/debug_affiliation_previews.dart';
+import 'package:boombet_app/config/debug_flags.dart';
+import 'package:boombet_app/config/verification_cache.dart';
+import 'package:boombet_app/core/notifiers.dart';
 import 'package:boombet_app/models/affiliation_result.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/player_service.dart';
-import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/views/pages/other/affiliation_results_page.dart';
+import 'package:boombet_app/services/domain/affiliation_service.dart';
+import 'package:boombet_app/services/domain/player_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
+import 'package:boombet_app/views/pages/affiliates/results/affiliation_results_page.dart';
 import 'package:boombet_app/views/pages/admin/admin_tools_page.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_page.dart';
 import 'package:boombet_app/views/pages/admin/ads/ads_management_page.dart';
 import 'package:boombet_app/views/pages/admin/raffles/raffles_management_page.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/views/pages/affiliates/affiliates_tools_page.dart';
-import 'package:boombet_app/views/pages/stands/stands_tools_page.dart';
-import 'package:boombet_app/views/pages/stands/stand_prizes_page.dart';
-import 'package:boombet_app/views/pages/stands/stand_roulettes_page.dart';
+import 'package:boombet_app/views/pages/affiliates/home/affiliates_home_page.dart';
+import 'package:boombet_app/views/pages/affiliates/wizard/affiliates_wizard_page.dart';
+import 'package:boombet_app/views/pages/affiliates/stands/stands_tools_page.dart';
+import 'package:boombet_app/views/pages/affiliates/stands/stand_prizes_page.dart';
+import 'package:boombet_app/views/pages/affiliates/stands/stand_roulettes_page.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_detail_page.dart';
 import 'package:boombet_app/views/pages/auth/confirm_player_data_page.dart';
 import 'package:boombet_app/views/pages/auth/register_page.dart';
@@ -27,8 +32,8 @@ import 'package:boombet_app/views/pages/home/home_page.dart';
 import 'package:boombet_app/views/pages/home/limited_home_page.dart';
 import 'package:boombet_app/views/pages/home/widgets/discounts_content.dart';
 import 'package:boombet_app/views/pages/home/widgets/home_content.dart';
-import 'package:boombet_app/views/pages/other/claims_page.dart';
-import 'package:boombet_app/views/pages/other/my_casinos_page.dart';
+import 'package:boombet_app/views/pages/rewards/claims_page.dart';
+import 'package:boombet_app/views/pages/casino/my_casinos_page.dart';
 import 'package:boombet_app/views/pages/other/qr_scanner_page.dart';
 import 'package:boombet_app/models/player_model.dart';
 import 'package:boombet_app/views/pages/profile/edit_profile_page.dart';
@@ -36,87 +41,23 @@ import 'package:boombet_app/views/pages/profile/profile_page.dart';
 import 'package:boombet_app/views/pages/profile/settings_page.dart';
 import 'package:boombet_app/views/pages/rewards/my_prizes_page.dart';
 import 'package:boombet_app/views/pages/rewards/raffles_page.dart';
-import 'package:boombet_app/views/pages/rewards/refert_to_cash_view.dart';
+import 'package:boombet_app/views/pages/rewards/refer_to_cash_view.dart';
 import 'package:boombet_app/views/pages/auth/forget_password_page.dart';
 import 'package:boombet_app/views/pages/auth/auth_callback_page.dart';
 import 'package:boombet_app/views/pages/auth/login_page.dart';
 import 'package:boombet_app/views/pages/admin/casino_verifications/casino_verifications_admin_page.dart';
-import 'package:boombet_app/views/pages/other/casino_verification_page.dart';
+import 'package:boombet_app/views/pages/casino/casino_verification_page.dart';
 import 'package:boombet_app/views/pages/other/faq_page.dart';
 import 'package:boombet_app/views/pages/auth/is_not_affiliated_page.dart';
-import 'package:boombet_app/views/pages/other/no_casinos_available_page.dart';
-import 'package:boombet_app/views/pages/other/onboarding_page.dart';
+import 'package:boombet_app/views/pages/casino/no_casinos_available_page.dart';
+import 'package:boombet_app/views/pages/auth/onboarding_page.dart';
 import 'package:boombet_app/views/pages/games/play_roulette_page.dart';
 import 'package:boombet_app/views/pages/auth/reset_password_page.dart';
-import 'package:boombet_app/views/pages/other/unaffiliate_result_page.dart';
+import 'package:boombet_app/views/pages/affiliates/results/unaffiliate_result_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-const String _affiliationFlowRouteKey = 'affiliation_flow_route';
-const Duration _isVerifiedTtl = Duration(seconds: 20);
-// Toggle temporal para QA: si está en true, siempre abre onboarding.
-// Dejar en false para volver al flujo normal.
-const bool _forceShowOnboardingAlways = false;
-bool? _cachedIsVerified;
-DateTime? _cachedIsVerifiedAt;
-
-/// Limpia la caché de verificación del router. Llamar en logout.
-void clearRouterCache() {
-  _cachedIsVerified = null;
-  _cachedIsVerifiedAt = null;
-}
-
-bool _parseIsVerified(dynamic data) {
-  if (data is Map<String, dynamic>) {
-    final direct =
-        data['is_verified'] ?? data['isVerified'] ?? data['verified'];
-    if (_parseIsVerified(direct)) return true;
-
-    final nested = data['data'];
-    if (nested is Map<String, dynamic>) {
-      return _parseIsVerified(nested);
-    }
-  }
-
-  if (data is bool) return data;
-  if (data is num) return data == 1;
-  if (data is String) {
-    final lowered = data.toLowerCase().trim();
-    return lowered == 'true' || lowered == '1';
-  }
-
-  return false;
-}
-
-Future<bool?> _fetchIsVerified() async {
-  final now = DateTime.now();
-  if (_cachedIsVerifiedAt != null &&
-      now.difference(_cachedIsVerifiedAt!) < _isVerifiedTtl) {
-    return _cachedIsVerified;
-  }
-
-  try {
-    final data = await PlayerService().getCurrentUser();
-    final parsed = _parseIsVerified(data);
-    _cachedIsVerified = parsed;
-    _cachedIsVerifiedAt = now;
-    return parsed;
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<String?> _loadAffiliationFlowRoute() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final route = prefs.getString(_affiliationFlowRouteKey);
-    return route?.trim().isEmpty == true ? null : route;
-  } catch (_) {
-    return null;
-  }
-}
 
 bool _isAffiliationRoute(String path) {
   return path == '/confirm' ||
@@ -159,7 +100,7 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
       ? true
       : (prefs.getBool('hasSeenOnboarding') ?? false);
 
-  if (_forceShowOnboardingAlways) {
+  if (DebugFlags.forceShowOnboardingAlways) {
     if (state.uri.path == '/onboarding') return null;
     return '/onboarding';
   }
@@ -239,8 +180,8 @@ Future<String?> _redirect(BuildContext context, GoRouterState state) async {
     return '/stand-tools';
   }
 
-  final isVerified = await _fetchIsVerified();
-  final flowRoute = await _loadAffiliationFlowRoute();
+  final isVerified = await fetchIsVerified(() => PlayerService().getCurrentUser());
+  final flowRoute = await loadAffiliationFlowRoute();
 
   if (isVerified == true) {
     // /limited-home y /affiliation-results son accesibles aunque esté verificado
@@ -481,7 +422,11 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/affiliates-tools',
-      builder: (context, state) => const AffiliatesToolsPage(),
+      builder: (context, state) => const AffiliatesHomePage(),
+    ),
+    GoRoute(
+      path: '/affiliates-tools/wizard',
+      builder: (context, state) => const AffiliatesWizardPage(),
     ),
     GoRoute(
       path: '/affiliates-tools/tids',
