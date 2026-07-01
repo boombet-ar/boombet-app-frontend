@@ -1,6 +1,8 @@
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/auth/password_validation_service.dart';
 import 'package:boombet_app/views/pages/affiliates/wizard/wizard_step.dart';
 import 'package:boombet_app/views/pages/affiliates/wizard/wizard_widgets.dart';
+import 'package:boombet_app/widgets/password_rules_panel.dart';
 import 'package:flutter/material.dart';
 
 class FormularioStep extends StatefulWidget {
@@ -29,17 +31,29 @@ class _FormularioStepState extends State<FormularioStep> {
     text: widget.initialData?.contrasena ?? '',
   );
   bool _obscure = true;
+  Map<String, bool> _passwordStatus = const {};
 
   @override
   void initState() {
     super.initState();
+    _passCtrl.addListener(_onPasswordChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _notify());
   }
 
   @override
   void dispose() {
+    _passCtrl.removeListener(_onPasswordChanged);
     _passCtrl.dispose();
     super.dispose();
+  }
+
+  void _onPasswordChanged() {
+    final pw = _passCtrl.text;
+    setState(() {
+      _passwordStatus =
+          pw.isEmpty ? const {} : PasswordValidationService.getValidationStatus(pw);
+    });
+    _notify();
   }
 
   void _notify() {
@@ -47,11 +61,16 @@ class _FormularioStepState extends State<FormularioStep> {
       widget.onDataChanged(const FormularioStepData(skipped: true));
       return;
     }
-    // El formulario es siempre válido (la contraseña es opcional).
+    final pw = _passCtrl.text.trim();
+    // Contraseña opcional, pero si la escriben tiene que cumplir las reglas.
+    if (pw.isNotEmpty && !PasswordValidationService.isPasswordValid(pw)) {
+      widget.onDataChanged(null);
+      return;
+    }
     widget.onDataChanged(
       FormularioStepData(
         skipped: false,
-        contrasena: _passCtrl.text.trim().isEmpty ? null : _passCtrl.text.trim(),
+        contrasena: pw.isEmpty ? null : pw,
       ),
     );
   }
@@ -151,6 +170,7 @@ class _FormularioStepState extends State<FormularioStep> {
                     controller: _passCtrl,
                     hint: 'Sin contraseña',
                     icon: Icons.lock_outline_rounded,
+                    obscureText: _obscure,
                     suffix: IconButton(
                       icon: Icon(
                         _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -160,6 +180,10 @@ class _FormularioStepState extends State<FormularioStep> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
+                  if (_passCtrl.text.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    PasswordRulesPanel(status: _passwordStatus),
+                  ],
                 ],
               ),
             ),

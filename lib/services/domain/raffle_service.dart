@@ -41,26 +41,6 @@ class RaffleService {
         .toList(growable: false);
   }
 
-  // ── Listar casinos disponibles (para dropdown de creación) ───────────────────
-  Future<List<Map<String, dynamic>>> fetchCasinos() async {
-    final response = await HttpClient.get(
-      '${ApiConfig.baseUrl}/publicidades/casinos',
-      includeAuth: true,
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('HTTP ${response.statusCode}');
-    }
-
-    final decoded = jsonDecode(response.body);
-    final rawList = decoded is List ? decoded : <dynamic>[];
-
-    return rawList
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList(growable: false);
-  }
-
   // ── Listar sorteos (admin: todos activos) ────────────────────────────────────
   Future<List<Map<String, dynamic>>> fetchRaffles() async {
     final response = await HttpClient.get(

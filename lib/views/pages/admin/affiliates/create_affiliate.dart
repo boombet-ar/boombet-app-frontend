@@ -2,6 +2,7 @@
 import 'package:boombet_app/utils/inappropriate_content_guard.dart';
 import 'package:boombet_app/services/domain/affiliates_service.dart';
 import 'package:boombet_app/services/auth/password_validation_service.dart';
+import 'package:boombet_app/widgets/password_rules_panel.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showCreateAffiliateDialog({
@@ -393,7 +394,7 @@ class _CreateAffiliateDialogBodyState
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _PasswordRulesPanel(rules: _passwordRules),
+                    PasswordRulesPanel(status: _passwordRules),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _confirmPasswordController,
@@ -487,64 +488,6 @@ class _CreateAffiliateDialogBodyState
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PasswordRulesPanel extends StatelessWidget {
-  final Map<String, bool> rules;
-
-  const _PasswordRulesPanel({required this.rules});
-
-  static const _labels = {
-    'minimum_length': '8+ caracteres',
-    'uppercase': '1 mayúscula',
-    'number': '1 número',
-    'symbol': '1 símbolo',
-    'no_repetition': 'Sin repetidos',
-    'no_sequence': 'Sin secuencias',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    const green = AppConstants.primaryGreen;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: green.withValues(alpha: 0.12)),
-      ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 6,
-        children: rules.entries.map((entry) {
-          final ok = entry.value;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                ok
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: 13,
-                color: ok ? green : Colors.white.withValues(alpha: 0.28),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                _labels[entry.key] ?? entry.key,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: ok ? FontWeight.w600 : FontWeight.normal,
-                  color: ok ? green : Colors.white.withValues(alpha: 0.35),
-                ),
-              ),
-            ],
-          );
-        }).toList(),
       ),
     );
   }

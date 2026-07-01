@@ -1,9 +1,6 @@
-﻿import 'dart:convert';
-
-import 'package:boombet_app/config/api_config.dart';
-import 'package:boombet_app/config/app_constants.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/raffle_model.dart';
-import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
 import 'package:boombet_app/services/domain/raffle_service.dart';
 import 'package:boombet_app/services/domain/tids_service.dart';
 import 'package:boombet_app/views/pages/admin/raffles/create_raffle.dart';
@@ -21,6 +18,7 @@ class RafflesManagementView extends StatefulWidget {
 class _RafflesManagementViewState extends State<RafflesManagementView> {
   static const int _pageSize = 5;
   final RaffleService _raffleService = RaffleService();
+  final AdService _adService = AdService();
   final TidsService _tidsService = TidsService();
   Map<int, String> _tidCodesById = const {};
 
@@ -41,32 +39,10 @@ class _RafflesManagementViewState extends State<RafflesManagementView> {
 
   Future<void> _loadCasinoNames() async {
     try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/publicidades/casinos',
-        includeAuth: true,
-        cacheTtl: Duration.zero,
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) return;
-
-      final decoded = jsonDecode(response.body);
-      List<dynamic> rawItems = const [];
-      if (decoded is List) {
-        rawItems = decoded;
-      } else if (decoded is Map<String, dynamic>) {
-        final data = decoded['data'];
-        final content = decoded['content'];
-        if (data is List) {
-          rawItems = data;
-        } else if (content is List) {
-          rawItems = content;
-        }
-      }
+      final rawItems = await _adService.fetchCasinos();
 
       final parsed = <int, String>{};
-      for (final item in rawItems) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item);
+      for (final map in rawItems) {
         final nombre = map['nombre']?.toString().trim() ?? '';
         if (nombre.isEmpty) continue;
 

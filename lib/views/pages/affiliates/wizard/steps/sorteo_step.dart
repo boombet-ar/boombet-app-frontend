@@ -1,9 +1,7 @@
-﻿import 'dart:convert';
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
-import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
 import 'package:boombet_app/views/pages/affiliates/wizard/wizard_step.dart';
 import 'package:boombet_app/views/pages/affiliates/wizard/wizard_widgets.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
@@ -31,6 +29,7 @@ class SorteoStep extends StatefulWidget {
 
 class _SorteoStepState extends State<SorteoStep> {
   static final _fmt = DateFormat("dd/MM/yyyy 'a las' HH:mm");
+  final _adService = AdService();
 
   late bool _skipped = widget.initialData?.skipped ?? false;
   late final _nombreCtrl = TextEditingController(
@@ -138,18 +137,9 @@ class _SorteoStepState extends State<SorteoStep> {
     if (_loadingCasinos) return;
     setState(() => _loadingCasinos = true);
     try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/publicidades/casinos',
-        includeAuth: true,
-      );
-      if (response.statusCode < 200 || response.statusCode >= 300) return;
-      final decoded = jsonDecode(response.body);
-      final rawList = decoded is List
-          ? decoded
-          : (decoded is Map ? (decoded['data'] ?? decoded['content'] ?? const []) : const []);
+      final rawList = await _adService.fetchCasinos();
       final fetched = <({int? id, String nombre})>[];
       for (final item in rawList) {
-        if (item is! Map) continue;
         final nombre = item['nombre']?.toString().trim() ?? '';
         if (nombre.isEmpty) continue;
         final rawId = item['id'];

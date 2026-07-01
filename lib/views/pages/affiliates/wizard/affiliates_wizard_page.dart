@@ -33,7 +33,7 @@ class _AffiliatesWizardPageState extends State<AffiliatesWizardPage> {
   // Datos de cada paso
   EventoStepData? _eventoData;
   SorteoStepData? _sorteoData;
-  FormularioStepData _formularioData = const FormularioStepData(skipped: false);
+  FormularioStepData? _formularioData = const FormularioStepData(skipped: false);
   TidsStepData _tidsData = const TidsStepData(entries: []);
 
   // Estado de creación
@@ -46,7 +46,7 @@ class _AffiliatesWizardPageState extends State<AffiliatesWizardPage> {
     return switch (_currentStep) {
       0 => _eventoData != null,
       1 => _sorteoData != null,
-      2 => true, // Formulario siempre válido (password opcional)
+      2 => _formularioData != null, // null si escribieron una contraseña inválida
       3 => true, // TIDs: 0 es válido
       _ => false,
     };
@@ -83,7 +83,7 @@ class _AffiliatesWizardPageState extends State<AffiliatesWizardPage> {
     try {
       final sorteoData = _sorteoData;
       final hasSorteo = !(sorteoData?.skipped ?? true);
-      final hasFormulario = !_formularioData.skipped;
+      final hasFormulario = !(_formularioData?.skipped ?? true);
       final tidStrings = _tidsData.entries
           .where((e) => e.nombre.isNotEmpty)
           .map((e) => e.nombre)
@@ -117,7 +117,7 @@ class _AffiliatesWizardPageState extends State<AffiliatesWizardPage> {
         sorteoImageName: hasSorteo ? sorteoData!.imageName : null,
         sorteoImageMimeType: hasSorteo ? sorteoData!.imageMimeType : 'image/jpeg',
         hasFormulario: hasFormulario,
-        formularioContrasena: hasFormulario ? _formularioData.contrasena : null,
+        formularioContrasena: hasFormulario ? _formularioData?.contrasena : null,
         tidStrings: tidStrings,
       ));
 
@@ -237,9 +237,7 @@ class _AffiliatesWizardPageState extends State<AffiliatesWizardPage> {
                   sorteoNombre: _sorteoData?.skipped == false
                       ? _sorteoData?.nombre
                       : null,
-                  onDataChanged: (d) {
-                    if (d != null) setState(() => _formularioData = d);
-                  },
+                  onDataChanged: (d) => setState(() => _formularioData = d),
                 ),
                 TidsStep(
                   initialData: _tidsData,
@@ -538,7 +536,7 @@ class _WizardNavBar extends StatelessWidget {
 class _SummaryStep extends StatelessWidget {
   final EventoStepData? eventoData;
   final SorteoStepData? sorteoData;
-  final FormularioStepData formularioData;
+  final FormularioStepData? formularioData;
   final TidsStepData tidsData;
   final bool isCreating;
   final String creationStatus;
@@ -598,12 +596,12 @@ class _SummaryStep extends StatelessWidget {
           _SummaryItem(
             icon: Icons.dynamic_form_outlined,
             label: 'Formulario',
-            value: formularioData.skipped
+            value: formularioData?.skipped == true
                 ? 'Salteado'
-                : formularioData.contrasena != null
+                : formularioData?.contrasena != null
                     ? 'Con contraseña'
                     : 'Sin contraseña',
-            skipped: formularioData.skipped,
+            skipped: formularioData?.skipped == true,
           ),
           const SizedBox(height: 10),
           _SummaryItem(

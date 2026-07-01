@@ -8,6 +8,38 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class AdService {
+  // ── Listar casinos disponibles (para dropdowns de creación) ──────────────────
+  Future<List<Map<String, dynamic>>> fetchCasinos() async {
+    final response = await HttpClient.get(
+      '${ApiConfig.baseUrl}/publicidades/casinos',
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    List<dynamic> rawList = const [];
+    if (decoded is List) {
+      rawList = decoded;
+    } else if (decoded is Map<String, dynamic>) {
+      final data = decoded['data'];
+      final content = decoded['content'];
+      if (data is List) {
+        rawList = data;
+      } else if (content is List) {
+        rawList = content;
+      }
+    }
+
+    return rawList
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
   Future<void> createAd({
     required Uint8List imageBytes,
     required String text,

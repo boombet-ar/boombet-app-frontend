@@ -2,6 +2,7 @@
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/raffle_model.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
 import 'package:boombet_app/services/domain/raffle_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -91,6 +92,7 @@ class RafflesContent extends StatefulWidget {
 
 class _RafflesContentState extends State<RafflesContent> {
   final _service = RaffleService();
+  final _adService = AdService();
 
   List<RaffleModel> _raffles = [];
   Map<int, _CasinoInfo> _casinoMap = {};
@@ -109,7 +111,7 @@ class _RafflesContentState extends State<RafflesContent> {
     try {
       final results = await Future.wait([
         _service.fetchMyRaffles(),
-        _service.fetchCasinos(),
+        _adService.fetchCasinos(),
       ]);
 
       final rafflesMaps = results[0];
