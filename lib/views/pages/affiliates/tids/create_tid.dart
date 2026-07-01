@@ -10,6 +10,7 @@ Future<void> showCreateTidDialog({
   List<EventoOption> eventoOptions = kDefaultEventoOptions,
   List<StandOption> standOptions = kDefaultStandOptions,
   int? initialEventoId,
+  bool hideEvento = false,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   final tidController = TextEditingController();
@@ -22,6 +23,7 @@ Future<void> showCreateTidDialog({
       eventoOptions: eventoOptions,
       standOptions: standOptions,
       initialEventoId: initialEventoId,
+      hideEvento: hideEvento,
       onCreated: () {
         onCreated();
         messenger.showSnackBar(
@@ -70,6 +72,7 @@ class _CreateTidDialogBody extends StatefulWidget {
   final List<EventoOption> eventoOptions;
   final List<StandOption> standOptions;
   final int? initialEventoId;
+  final bool hideEvento;
 
   const _CreateTidDialogBody({
     required this.tidController,
@@ -79,6 +82,7 @@ class _CreateTidDialogBody extends StatefulWidget {
     required this.eventoOptions,
     required this.standOptions,
     this.initialEventoId,
+    this.hideEvento = false,
   });
 
   @override
@@ -260,14 +264,16 @@ class _CreateTidDialogBodyState extends State<_CreateTidDialogBody> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  EventoDropdown(
-                    options: widget.eventoOptions,
-                    selectedId: _selectedEventoId,
-                    accent: green,
-                    onChanged: (value) =>
-                        setState(() => _selectedEventoId = value),
-                  ),
-                  const SizedBox(height: 12),
+                  if (!widget.hideEvento) ...[
+                    EventoDropdown(
+                      options: widget.eventoOptions,
+                      selectedId: _selectedEventoId,
+                      accent: green,
+                      onChanged: (value) =>
+                          setState(() => _selectedEventoId = value),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   StandDropdown(
                     options: widget.standOptions,
                     selectedId: _selectedStandId,

@@ -12,7 +12,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
@@ -22,7 +24,7 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  final PageController _carouselController = PageController();
+  final PageController _carouselController = PageController(viewportFraction: 0.92);
   final PublicidadService _publicidadService = PublicidadService();
   final Map<int, VideoPlayerController> _videoControllers = {};
   final Map<int, Future<void>> _videoInitFutures = {};
@@ -652,10 +654,12 @@ class _HomeContentState extends State<HomeContent> {
     Color primaryGreen,
     Color textColor,
   ) {
+    final hasDescription =
+        ad.description != null && ad.description!.trim().isNotEmpty;
     return AnimatedContainer(
       duration: AppConstants.shortDelay,
       curve: Curves.easeInOut,
-      margin: EdgeInsets.zero,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
@@ -668,7 +672,51 @@ class _HomeContentState extends State<HomeContent> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: _buildMedia(ad, index),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildMedia(ad, index),
+            // Gradiente inferior: transición suave y zona para texto/CTA
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 110,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.68),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (hasDescription)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 42,
+                child: Text(
+                  ad.description!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    shadows: [
+                      Shadow(color: Colors.black87, blurRadius: 8),
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -682,7 +730,7 @@ class _HomeContentState extends State<HomeContent> {
 
     return Column(
       children: [
-        const SizedBox(height: 12),
+        if (!isWeb) const SizedBox(height: 12),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -724,13 +772,25 @@ class _HomeContentState extends State<HomeContent> {
                         child: const CasinoLogoCarousel(height: 44),
                       ),
                       Expanded(
-                        child: _buildCarouselPanel(
-                          primaryGreen: primaryGreen,
-                          textColor: textColor,
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _buildCarouselPanel(
+                              primaryGreen: primaryGreen,
+                              textColor: textColor,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 30,
+                              right: 20,
+                              child: _QrScanButton(
+                                onTap: () => context.push('/scanner'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -762,12 +822,9 @@ class _HomeContentState extends State<HomeContent> {
   }) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: _buildWebStoreStrip(
-            primaryGreen: primaryGreen,
-            textColor: textColor,
-          ),
+        _buildWebDownloadHeader(
+          primaryGreen: primaryGreen,
+          textColor: textColor,
         ),
         const SizedBox(height: 6),
         Expanded(
@@ -776,13 +833,25 @@ class _HomeContentState extends State<HomeContent> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
-                child: _buildCarouselPanel(
-                  primaryGreen: primaryGreen,
-                  textColor: textColor,
-                  margin: EdgeInsets.zero,
-                  maxPanelWidth: 600,
-                  maxAdWidth: 460,
-                  adAspectRatio: 9 / 17,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildCarouselPanel(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      margin: EdgeInsets.zero,
+                      maxPanelWidth: 600,
+                      maxAdWidth: 460,
+                      adAspectRatio: 9 / 17,
+                    ),
+                    Positioned(
+                      top: -20,
+                      right: 4,
+                      child: _QrScanButton(
+                        onTap: () => context.push('/scanner'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -803,12 +872,9 @@ class _HomeContentState extends State<HomeContent> {
   }) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
-          child: _buildWebStoreStrip(
-            primaryGreen: primaryGreen,
-            textColor: textColor,
-          ),
+        _buildWebDownloadHeader(
+          primaryGreen: primaryGreen,
+          textColor: textColor,
         ),
         const SizedBox(height: 6),
         Expanded(
@@ -817,13 +883,25 @@ class _HomeContentState extends State<HomeContent> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
-                child: _buildCarouselPanel(
-                  primaryGreen: primaryGreen,
-                  textColor: textColor,
-                  margin: EdgeInsets.zero,
-                  maxPanelWidth: 480,
-                  maxAdWidth: 370,
-                  adAspectRatio: 9 / 16,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildCarouselPanel(
+                      primaryGreen: primaryGreen,
+                      textColor: textColor,
+                      margin: EdgeInsets.zero,
+                      maxPanelWidth: 480,
+                      maxAdWidth: 370,
+                      adAspectRatio: 9 / 16,
+                    ),
+                    Positioned(
+                      bottom: -20,
+                      right: 4,
+                      child: _QrScanButton(
+                        onTap: () => context.push('/scanner'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -838,28 +916,14 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildWebStoreStrip({
+  Widget _buildWebDownloadHeader({
     required Color primaryGreen,
     required Color textColor,
   }) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF111111),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: primaryGreen.withValues(alpha: 0.14),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: primaryGreen.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -995,6 +1059,8 @@ class _HomeContentState extends State<HomeContent> {
     bool stripMode = false,
   }) {
     final height = stripMode ? 28.0 : (compact ? 40.0 : 52.0);
+    // viewBox del SVG oficial: 238.96 x 70.87 → ratio ~3.37
+    final width = height * (238.96 / 70.87);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1009,6 +1075,7 @@ class _HomeContentState extends State<HomeContent> {
           child: SvgPicture.asset(
             'assets/images/playstore_logo.svg',
             height: height,
+            width: width,
             fit: BoxFit.contain,
           ),
         ),
@@ -1021,61 +1088,62 @@ class _HomeContentState extends State<HomeContent> {
     required Color textColor,
     bool stripMode = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final height = stripMode ? 28.0 : (compact ? 40.0 : 52.0);
+    // mismo ancho proporcional que el badge de PlayStore para igualar el set
+    final width = height * (238.96 / 70.87);
+    final iconSize = height * 0.38;
+    final labelSize = stripMode ? 7.0 : (compact ? 8.5 : 10.0);
+    final titleSize = stripMode ? 8.5 : (compact ? 10.5 : 13.0);
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Logo más visible: mayor opacidad, menor blur
-        Opacity(
-          opacity: 0.55,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
-              child: SvgPicture.asset(
-                'assets/images/appstore_logo.svg',
-                height: height,
-                fit: BoxFit.contain,
-              ),
-            ),
+    return SizedBox(
+      height: height,
+      width: width,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.22),
+            width: 1,
           ),
         ),
-        // Badge "Proximamente" — más compacto y sutil
-        IgnorePointer(
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: stripMode ? 5 : (compact ? 8 : 10),
-              vertical: stripMode ? 2 : (compact ? 3.5 : 4.5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FaIcon(
+              FontAwesomeIcons.apple,
+              color: Colors.white.withValues(alpha: 0.45),
+              size: iconSize,
             ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: Colors.black.withValues(alpha: isDark ? 0.58 : 0.55),
-              border: Border.all(
-                color: textColor.withValues(alpha: 0.28),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 6,
-                  offset: const Offset(0, 1),
+            SizedBox(width: stripMode ? 4 : 6),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!stripMode)
+                  Text(
+                    'Download on the',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: labelSize,
+                      height: 1.1,
+                    ),
+                  ),
+                Text(
+                  'Próximamente',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    height: 1.15,
+                  ),
                 ),
               ],
             ),
-            child: Text(
-              'Próximamente',
-              style: TextStyle(
-                color: textColor.withValues(alpha: 0.90),
-                fontSize: stripMode ? 7.5 : (compact ? 9.5 : 10.5),
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1087,12 +1155,6 @@ class _HomeContentState extends State<HomeContent> {
     double? maxAdWidth,
     double adAspectRatio = _adAspectRatio,
   }) {
-    final currentAd =
-        _ads.isNotEmpty ? _ads[_currentCarouselPage] : null;
-    final hasTitle =
-        currentAd?.description != null &&
-        currentAd!.description!.trim().isNotEmpty;
-
     return RepaintBoundary(
       child: Container(
         margin: margin,
@@ -1106,90 +1168,98 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                   child: AspectRatio(
                     aspectRatio: adAspectRatio,
-                    child: PageView.builder(
-                      controller: _carouselController,
-                      scrollBehavior: kIsWeb
-                          ? MaterialScrollBehavior().copyWith(
-                              dragDevices: {
-                                PointerDeviceKind.touch,
-                                PointerDeviceKind.mouse,
-                              },
-                            )
-                          : null,
-                      onPageChanged: (index) {
-                        final previousIndex = _currentCarouselPage;
-                        setState(() => _currentCarouselPage = index);
-                        _cancelVideoEndTimer(previousIndex);
-                        unawaited(_pauseAndResetVideo(previousIndex));
-                        unawaited(_prepareVideoForPage(index));
-                      },
-                      itemCount: _ads.isNotEmpty ? _ads.length : 1,
-                      itemBuilder: (context, index) =>
-                          _buildCarouselItem(context, index, primaryGreen, textColor),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _ads.isNotEmpty ? _ads.length : 1,
-                (index) => GestureDetector(
-                  onTap: () {
-                    if (_carouselController.hasClients && _ads.isNotEmpty) {
-                      _carouselController.animateToPage(
-                        index,
-                        duration: AppConstants.mediumDelay,
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: AnimatedContainer(
-                      duration: AppConstants.shortDelay,
-                      curve: Curves.easeInOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: _currentCarouselPage == index ? 24 : 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: _currentCarouselPage == index
-                            ? primaryGreen
-                            : Colors.white.withValues(alpha: 0.5),
-                        boxShadow: _currentCarouselPage == index
-                            ? [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.35),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                    child: Stack(
+                      children: [
+                        PageView.builder(
+                          controller: _carouselController,
+                          scrollBehavior: kIsWeb
+                              ? MaterialScrollBehavior().copyWith(
+                                  dragDevices: {
+                                    PointerDeviceKind.touch,
+                                    PointerDeviceKind.mouse,
+                                  },
+                                )
+                              : null,
+                          onPageChanged: (index) {
+                            final previousIndex = _currentCarouselPage;
+                            setState(() => _currentCarouselPage = index);
+                            _cancelVideoEndTimer(previousIndex);
+                            unawaited(_pauseAndResetVideo(previousIndex));
+                            unawaited(_prepareVideoForPage(index));
+                          },
+                          itemCount: _ads.isNotEmpty ? _ads.length : 1,
+                          itemBuilder: (context, index) => _buildCarouselItem(
+                            context,
+                            index,
+                            primaryGreen,
+                            textColor,
+                          ),
+                        ),
+                        // Dots superpuestos sobre la imagen, en el borde inferior
+                        if (_ads.length > 1)
+                          Positioned(
+                            bottom: 14,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                _ads.length,
+                                (index) => GestureDetector(
+                                  onTap: () {
+                                    if (_carouselController.hasClients) {
+                                      _carouselController.animateToPage(
+                                        index,
+                                        duration: AppConstants.mediumDelay,
+                                        curve: Curves.easeInOut,
+                                      );
+                                    }
+                                  },
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: AnimatedContainer(
+                                      duration: AppConstants.shortDelay,
+                                      curve: Curves.easeInOut,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 3,
+                                      ),
+                                      width: _currentCarouselPage == index
+                                          ? 20
+                                          : 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: _currentCarouselPage == index
+                                            ? primaryGreen
+                                            : Colors.white
+                                                .withValues(alpha: 0.55),
+                                        boxShadow:
+                                            _currentCarouselPage == index
+                                                ? [
+                                                    BoxShadow(
+                                                      color: primaryGreen
+                                                          .withValues(
+                                                            alpha: 0.55,
+                                                          ),
+                                                      blurRadius: 6,
+                                                      spreadRadius: 1,
+                                                    ),
+                                                  ]
+                                                : null,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ]
-                            : null,
-                      ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-            if (hasTitle)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 5, 16, 2),
-                child: Text(
-                  currentAd.description!,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -1748,4 +1818,136 @@ class _RoulettePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _QrScanButton extends StatefulWidget {
+  const _QrScanButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  State<_QrScanButton> createState() => _QrScanButtonState();
+}
+
+class _QrScanButtonState extends State<_QrScanButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+  late final Animation<double> _pulseAnim;
+  bool _pressed = false;
+
+  static const _green = Color(0xFF29FF5E);
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+    _pulseAnim = CurvedAnimation(parent: _pulse, curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedBuilder(
+        animation: _pulseAnim,
+        builder: (context, child) {
+          final p1 = _pulseAnim.value;
+          final p2 = (p1 + 0.5) % 1.0;
+          return Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: -(p1 * 22),
+                right: -(p1 * 22),
+                top: -(p1 * 22),
+                bottom: -(p1 * 22),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32 + p1 * 22),
+                    border: Border.all(
+                      color: _green.withValues(alpha: (1 - p1) * 0.38),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: -(p2 * 22),
+                right: -(p2 * 22),
+                top: -(p2 * 22),
+                bottom: -(p2 * 22),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32 + p2 * 22),
+                    border: Border.all(
+                      color: _green.withValues(alpha: (1 - p2) * 0.38),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedScale(
+                scale: _pressed ? 0.94 : 1.0,
+                duration: const Duration(milliseconds: 100),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161616),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: _green, width: 1.4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _green.withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.qr_code_scanner_rounded, color: _green, size: 19),
+                      const SizedBox(width: 7),
+                      const Text(
+                        'Escanear',
+                        style: TextStyle(
+                          color: _green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

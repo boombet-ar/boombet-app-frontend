@@ -132,7 +132,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           WebUiSettings(
             context: context,
             presentStyle: WebPresentStyle.dialog,
-            barrierColor: Colors.black.withValues(alpha: 0.65),
+            barrierColor: Colors.black.withValues(alpha: 0.75),
             initialAspectRatio: 1,
             viewwMode: WebViewMode.mode_1,
             dragMode: WebDragMode.move,
@@ -145,13 +145,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             modal: true,
             cropBoxResizable: true,
             cropBoxMovable: true,
-            themeData: WebThemeData(
-              rotateIconColor: primaryGreen,
-              doneIcon: Icons.check,
-              backIcon: Icons.close,
-              rotateLeftIcon: Icons.rotate_left,
-              rotateRightIcon: Icons.rotate_right,
-            ),
+            customDialogBuilder: (cropper, initCropper, crop, rotate, scale) =>
+                _BoomBetCropDialog(
+                  cropper: cropper,
+                  initCropper: initCropper,
+                  crop: crop,
+                  rotate: rotate,
+                  scale: scale,
+                ),
           ),
         if (defaultTargetPlatform == TargetPlatform.android)
           AndroidUiSettings(
@@ -1544,6 +1545,277 @@ class _EditProfilePageState extends State<EditProfilePage> {
             horizontal: 14,
             vertical: 14,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BoomBetCropDialog extends StatefulWidget {
+  final Widget cropper;
+  final void Function() initCropper;
+  final Future<String?> Function() crop;
+  final void Function(RotationAngle) rotate;
+  final void Function(num) scale;
+
+  const _BoomBetCropDialog({
+    required this.cropper,
+    required this.initCropper,
+    required this.crop,
+    required this.rotate,
+    required this.scale,
+  });
+
+  @override
+  State<_BoomBetCropDialog> createState() => _BoomBetCropDialogState();
+}
+
+class _BoomBetCropDialogState extends State<_BoomBetCropDialog> {
+  static const _green = Color.fromARGB(255, 41, 255, 94);
+  static const _bg = Color(0xFF111111);
+
+  bool _processing = false;
+  double _scaleValue = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.initCropper();
+  }
+
+  Future<void> _doCrop() async {
+    if (_processing) return;
+    setState(() => _processing = true);
+    try {
+      final result = await widget.crop();
+      if (mounted) Navigator.of(context).pop(result);
+    } catch (_) {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenW = MediaQuery.of(context).size.width;
+    final cropperSize = (screenW - 120).clamp(260.0, 460.0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 560),
+        decoration: BoxDecoration(
+          color: _bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _green.withValues(alpha: 0.22)),
+          boxShadow: [
+            BoxShadow(
+              color: _green.withValues(alpha: 0.12),
+              blurRadius: 32,
+              spreadRadius: 0,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header con strip verde
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      width: 3,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [_green, Color(0x2629FF5E)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _green.withValues(alpha: 0.45),
+                            blurRadius: 7,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                        decoration: BoxDecoration(
+                          color: _green.withValues(alpha: 0.05),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: _green.withValues(alpha: 0.10),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: _green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _green.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.crop_rounded,
+                                color: _green,
+                                size: 15,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'Ajustá tu foto',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: _green,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Cropper
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: cropperSize,
+                    height: cropperSize,
+                    child: widget.cropper,
+                  ),
+                ),
+              ),
+            ),
+
+            // Controles: rotar + zoom
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () =>
+                        widget.rotate(RotationAngle.counterClockwise90),
+                    icon: const Icon(
+                      Icons.rotate_left_rounded,
+                      color: _green,
+                      size: 22,
+                    ),
+                    tooltip: 'Rotar izquierda',
+                  ),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: _green,
+                        thumbColor: _green,
+                        overlayColor: _green.withValues(alpha: 0.15),
+                        inactiveTrackColor: _green.withValues(alpha: 0.20),
+                        trackHeight: 2.5,
+                      ),
+                      child: Slider(
+                        value: _scaleValue,
+                        min: 1.0,
+                        max: 3.0,
+                        onChanged: (v) {
+                          setState(() => _scaleValue = v);
+                          widget.scale(v);
+                        },
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () =>
+                        widget.rotate(RotationAngle.clockwise90),
+                    icon: const Icon(
+                      Icons.rotate_right_rounded,
+                      color: _green,
+                      size: 22,
+                    ),
+                    tooltip: 'Rotar derecha',
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(height: 1, color: _green.withValues(alpha: 0.10)),
+
+            // Footer
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+              child: _processing
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(_green),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white54,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: _doCrop,
+                          icon: const Icon(Icons.check_rounded, size: 17),
+                          label: const Text(
+                            'Recortar',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
         ),
       ),
     );

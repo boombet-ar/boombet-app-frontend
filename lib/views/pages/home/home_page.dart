@@ -90,20 +90,9 @@ class _HomePageState extends State<HomePage> {
               showCasinos: AppConstants.showMyCasinos,
             ),
           ),
-          if (currentIndex == 1)
-            Positioned(
-              right: 16,
-              bottom: 180,
-              child: FloatingActionButton(
-                onPressed: () => context.push('/scanner'),
-                backgroundColor: const Color(0xFF29FF5E),
-                foregroundColor: Colors.black,
-                tooltip: 'Escanear QR',
-                child: const Icon(Icons.qr_code_scanner, size: 28),
-              ),
-            ),
         ],
       ),
     );
   }
 }
+

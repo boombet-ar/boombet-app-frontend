@@ -28,6 +28,7 @@ class CreateRaffleSection extends StatefulWidget {
   final String? initialInstrucciones;
   final bool initialActivo;
   final bool lockEvento;
+  final bool hideEvento;
 
   const CreateRaffleSection({
     super.key,
@@ -45,6 +46,7 @@ class CreateRaffleSection extends StatefulWidget {
     this.initialInstrucciones,
     this.initialActivo = false,
     this.lockEvento = false,
+    this.hideEvento = false,
   });
 
   @override
@@ -667,6 +669,7 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   }
 
   Widget _buildEventoDropdown(Color green) {
+    if (widget.hideEvento) return const SizedBox.shrink();
     if (_isLoadingEventos) return _buildLoadingField('Cargando eventos...', green);
 
     // Campo bloqueado cuando viene desde un evento

@@ -411,6 +411,7 @@ class _AffiliatesHomePageState extends State<AffiliatesHomePage>
             context: context,
             tidsService: _tidsService,
             onCreated: () => _loadAll(force: true),
+            hideEvento: _tabCtrl.index == 1,
           );
         },
       ),
@@ -457,6 +458,7 @@ class _AffiliatesHomePageState extends State<AffiliatesHomePage>
                 child: SingleChildScrollView(
                   child: CreateRaffleSection(
                     showHeader: false,
+                    hideEvento: true,
                     onCreated: () {
                       Navigator.of(dialogCtx).pop();
                       _loadAll(force: true);

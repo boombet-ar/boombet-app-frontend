@@ -46,7 +46,14 @@
       "PowerShell(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\"; $output = flutter analyze --no-fatal-infos 2>&1; $errors = $output | Where-Object { $_ -match \"^\\\\s+error -\" }; if \\($errors\\) { $errors } else { Write-Output \"Sin errores de compilacion\" })",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(find \"/mnt/c/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages\" -name \"*.dart\" -type f | head -30)"
+      "Bash(find \"/mnt/c/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages\" -name \"*.dart\" -type f | head -30)",
+      "Bash(dir \"C:\\\\Users\\\\Usuario\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\hosted\\\\pub.dev\" /b)",
+      "Bash(findstr image_cropper)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\" && find lib -type f -name \"*.dart\" | sort > /tmp/dart_files.txt && cat /tmp/dart_files.txt)",
+      "Bash(grep \"\\\\.dart$\")",
+      "Bash(awk '{print $NF}')",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(sort -k2)"
     ]
   }
 }

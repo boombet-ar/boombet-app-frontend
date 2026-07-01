@@ -41,7 +41,7 @@ class FormularioDetailDialog extends StatelessWidget {
     if (form.sorteoId != null || form.tidId != null) {
       return '${ApiConfig.menuUrl}sorteoForm?formId=${form.id}${ApiConfig.mediaUrlParam(mediaUrl)}';
     }
-    return '';
+    return '${ApiConfig.menuUrl}sorteoForm?formId=${form.id}';
   }
 
   void _copyLink(BuildContext context) {

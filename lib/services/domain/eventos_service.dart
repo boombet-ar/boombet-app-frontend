@@ -4,10 +4,18 @@ import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/models/evento_model.dart';
+import 'package:boombet_app/models/formulario_model.dart';
+import 'package:boombet_app/models/tid_model.dart';
 import 'package:boombet_app/services/infra/http_client.dart';
 import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+
+typedef EventoDetailResult = ({
+  List<TidModel> tids,
+  List<FormularioModel> formularios,
+  List<Map<String, dynamic>> sorteos,
+});
 
 // ── Tipos para el wizard bulk ─────────────────────────────────────────────────
 
@@ -163,6 +171,42 @@ class EventosService {
       throw Exception('Formato inesperado de respuesta');
     }
 
+    throw Exception('Error ${response.statusCode}: ${response.body}');
+  }
+
+  Future<EventoDetailResult> fetchEventoById({required int id}) async {
+    final url = '${ApiConfig.baseUrl}/eventos/$id?includeDetails=true';
+
+    final response = await HttpClient.get(
+      url,
+      includeAuth: true,
+      cacheTtl: Duration.zero,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      final rawTids = (data['tids'] as List<dynamic>?) ?? [];
+      final rawFormularios = (data['formularios'] as List<dynamic>?) ?? [];
+      final rawSorteos = (data['sorteos'] as List<dynamic>?) ?? [];
+
+      return (
+        tids: rawTids
+            .whereType<Map<String, dynamic>>()
+            .map(TidModel.fromJson)
+            .toList(),
+        formularios: rawFormularios
+            .whereType<Map<String, dynamic>>()
+            .map(FormularioModel.fromMap)
+            .toList(),
+        sorteos: rawSorteos
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
+      );
+    }
+
+    log('[EventosService] fetchEventoById error ${response.statusCode}: ${response.body}');
     throw Exception('Error ${response.statusCode}: ${response.body}');
   }
 

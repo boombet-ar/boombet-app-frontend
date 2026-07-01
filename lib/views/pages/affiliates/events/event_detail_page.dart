@@ -40,7 +40,6 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   final TidsService _tidsService = TidsService();
   final EventosService _eventosService = EventosService();
-  final FormulariosService _formulariosService = FormulariosService();
 
   bool _isLoading = false;
   String? _error;
@@ -71,33 +70,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     });
 
     try {
-      final allTids = await _tidsService.fetchTids();
+      final result = await _eventosService.fetchEventoById(id: widget.eventoId);
       if (!mounted) return;
-      setState(() {
-        _tids = allTids.where((t) => t.idEvento == widget.eventoId).toList();
-        _isLoading = false;
-      });
-    } catch (e, stack) {
-      log('[EventDetailPage] tids load error: $e', stackTrace: stack);
-      if (!mounted) return;
-      setState(() {
-        _error = 'Error al cargar los TIDs: $e';
-        _isLoading = false;
-      });
-    }
 
-    // Formularios del evento + mediaUrls de sorteos: carga no crítica
-    try {
-      final results = await Future.wait([
-        _formulariosService.fetchFormularios(),
-        RaffleService().fetchRaffles(),
-      ]);
-      if (!mounted) return;
-      final allForms = results[0] as List<FormularioModel>;
-      final rawRaffles = results[1] as List<Map<String, dynamic>>;
       final mediaUrls = <int, String>{};
       final sorteoById = <int, Map<String, dynamic>>{};
-      for (final r in rawRaffles) {
+      for (final r in result.sorteos) {
         final id = r['id'];
         final numId = id is int ? id : int.tryParse(id.toString()) ?? -1;
         if (numId == -1) continue;
@@ -106,24 +84,32 @@ class _EventDetailPageState extends State<EventDetailPage> {
         if (media != null && media.isNotEmpty) mediaUrls[numId] = media;
       }
       RaffleModel? sorteoDelEvento;
-      for (final r in rawRaffles) {
+      for (final r in result.sorteos) {
         final raffle = RaffleModel.fromMap(r);
         if (raffle.eventoId == widget.eventoId) {
           sorteoDelEvento = raffle;
           break;
         }
       }
+
       setState(() {
-        _formularios = allForms.where((f) => f.eventoId == widget.eventoId).toList();
+        _tids = result.tids;
+        _formularios = result.formularios;
         _sorteoMediaUrlById = mediaUrls;
         _sorteoById = sorteoById;
         _sorteoDelEvento = sorteoDelEvento;
+        _isLoading = false;
       });
-    } catch (e) {
-      log('[EventDetailPage] formularios load error: $e');
+    } catch (e, stack) {
+      log('[EventDetailPage] load error: $e', stackTrace: stack);
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error al cargar los datos: $e';
+        _isLoading = false;
+      });
     }
 
-    // Afiliaciones count: carga no crítica, muestra error inline
+    // Afiliaciones count: endpoint separado (jugadores afiliados al evento)
     try {
       final total = await _eventosService.fetchEventoTotalAfiliaciones(
         id: widget.eventoId,
@@ -975,6 +961,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     if (!mounted) return;
     await showCreateFormDialog(
       context: context,
+      preEventoId: widget.eventoId,
       onCreated: (_) => _loadData(force: true),
     );
   }
@@ -1087,7 +1074,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           form: f,
                           accent: accent,
                           mediaUrl: f.sorteoId != null ? _sorteoMediaUrlById[f.sorteoId] : null,
-                          onEditSorteo: f.sorteoId != null ? () => _handleEditSorteo(f.sorteoId!) : null,
+                          onEditSorteo: (f.sorteoId ?? _sorteoDelEvento?.id) != null
+                              ? () => _handleEditSorteo(f.sorteoId ?? _sorteoDelEvento!.id!)
+                              : null,
+                          eventoSorteoId: _sorteoDelEvento?.id,
+                          eventoSorteoMediaUrl: _sorteoDelEvento != null ? _sorteoMediaUrlById[_sorteoDelEvento!.id] : null,
                         ),
                       ))
                 else if (!_isLoading)
@@ -1135,7 +1126,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           onDelete: () => _delete(tid),
                           onRemoveFromEvento: () => _removeFromEvento(tid),
                           onShowQr: () => _showTidQr(tid),
-                          onShowFormQr: () => _showFormQrDialog(tid, lockedFormId: _formularios.isNotEmpty ? _formularios.first.id : null),
+                          onShowFormQr: _formularios.isNotEmpty ? () => _showFormQrDialog(tid, lockedFormId: _formularios.first.id) : null,
                           onViewAffiliations: () => _showTidAffiliationsCount(tid),
                         ),
                       )),
@@ -1421,7 +1412,7 @@ class _DetailTidTile extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onRemoveFromEvento;
   final VoidCallback onShowQr;
-  final VoidCallback onShowFormQr;
+  final VoidCallback? onShowFormQr;
   final VoidCallback? onViewAffiliations;
 
   const _DetailTidTile({
@@ -1491,11 +1482,12 @@ class _DetailTidTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'QR de formulario',
-            onPressed: busy ? null : onShowFormQr,
-            icon: Icon(Icons.dynamic_form_outlined, color: busy ? AppConstants.primaryGreen.withValues(alpha: 0.30) : AppConstants.primaryGreen, size: 20),
-          ),
+          if (onShowFormQr != null)
+            IconButton(
+              tooltip: 'QR de formulario',
+              onPressed: busy ? null : onShowFormQr,
+              icon: Icon(Icons.dynamic_form_outlined, color: busy ? AppConstants.primaryGreen.withValues(alpha: 0.30) : AppConstants.primaryGreen, size: 20),
+            ),
           IconButton(
             tooltip: 'Ver QR del TID',
             onPressed: busy ? null : onShowQr,
@@ -1540,12 +1532,24 @@ class _DetailFormTile extends StatelessWidget {
   final Color accent;
   final String? mediaUrl;
   final VoidCallback? onEditSorteo;
+  final int? eventoSorteoId;
+  final String? eventoSorteoMediaUrl;
 
-  const _DetailFormTile({required this.form, required this.accent, this.mediaUrl, this.onEditSorteo});
+  const _DetailFormTile({
+    required this.form,
+    required this.accent,
+    this.mediaUrl,
+    this.onEditSorteo,
+    this.eventoSorteoId,
+    this.eventoSorteoMediaUrl,
+  });
+
+  int? get _effectiveSorteoId => form.sorteoId ?? eventoSorteoId;
+  String? get _effectiveMediaUrl => form.sorteoId != null ? mediaUrl : eventoSorteoMediaUrl;
 
   String get _link {
-    if (form.sorteoId != null || form.tidId != null) {
-      return '${ApiConfig.menuUrl}sorteoForm?formId=${form.id}${ApiConfig.mediaUrlParam(mediaUrl)}';
+    if (form.tidId != null || _effectiveSorteoId != null) {
+      return '${ApiConfig.menuUrl}sorteoForm?formId=${form.id}${ApiConfig.mediaUrlParam(_effectiveMediaUrl)}';
     }
     return '';
   }
@@ -1603,10 +1607,10 @@ class _DetailFormTile extends StatelessWidget {
                 _FormChip(
                     icon: Icons.track_changes_outlined,
                     label: 'TID #${form.tidId}')
-              else if (form.sorteoId != null)
+              else if (_effectiveSorteoId != null)
                 _FormChip(
                     icon: Icons.emoji_events_outlined,
-                    label: 'Sorteo #${form.sorteoId}'),
+                    label: 'Sorteo #$_effectiveSorteoId'),
               if (onEditSorteo != null) ...[
                 const SizedBox(width: 6),
                 GestureDetector(

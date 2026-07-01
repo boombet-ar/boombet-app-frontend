@@ -2261,6 +2261,7 @@ class _SorteosPageState extends State<SorteosPage> {
           child: SingleChildScrollView(
             child: CreateRaffleSection(
               showHeader: false,
+              hideEvento: true,
               onCreated: () {
                 Navigator.of(ctx).pop();
                 _loadRaffles();

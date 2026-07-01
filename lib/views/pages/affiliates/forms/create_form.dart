@@ -12,6 +12,7 @@ Future<void> showCreateFormDialog({
   // Modo pre-fijado: uno de los dos debe estar seteado
   int? preTidId,
   int? preSorteoId,
+  int? preEventoId,
   // Opciones para los dropdowns
   List<_Option> tidOptions = const [],
   List<_Option> sorteoOptions = const [],
@@ -25,6 +26,7 @@ Future<void> showCreateFormDialog({
       eventoOptions: eventoOptions,
       preTidId: preTidId,
       preSorteoId: preSorteoId,
+      preEventoId: preEventoId,
       onCreated: onCreated,
     ),
   );
@@ -36,6 +38,7 @@ class _CreateFormDialog extends StatefulWidget {
   final List<_Option> eventoOptions;
   final int? preTidId;
   final int? preSorteoId;
+  final int? preEventoId;
   final void Function(FormularioModel) onCreated;
 
   const _CreateFormDialog({
@@ -45,6 +48,7 @@ class _CreateFormDialog extends StatefulWidget {
     required this.onCreated,
     this.preTidId,
     this.preSorteoId,
+    this.preEventoId,
   });
 
   @override
@@ -62,7 +66,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
   late String _vinculoTipo;
   late int? _selectedTidId;
   late int? _selectedSorteoId;
-  int? _selectedEventoId;
+  late int? _selectedEventoId;
   bool _isLoading = false;
   String? _error;
 
@@ -93,6 +97,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
       _selectedTidId = null;
       _selectedSorteoId = null;
     }
+    _selectedEventoId = widget.preEventoId;
     _passwordController.addListener(_onPasswordChanged);
   }
 
@@ -162,8 +167,8 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
   bool get _canSubmit {
     if (_isLoading) return false;
     if (!_isPasswordValid) return false;
-    if (_vinculoTipo == 'tid' && _selectedTidId == null) return false;
-    if (_vinculoTipo == 'sorteo' && _selectedSorteoId == null) return false;
+    if (_isPreFixed && _vinculoTipo == 'tid' && _selectedTidId == null) return false;
+    if (_isPreFixed && _vinculoTipo == 'sorteo' && _selectedSorteoId == null) return false;
     return true;
   }
 
@@ -287,59 +292,6 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
                 ],
               ),
             ),
-
-            // ── Vínculo — solo mostrar si no hay pre-fijado ──────────────
-            if (!_isPreFixed) ...[
-              const SizedBox(height: 20),
-              Text(
-                'Vincular a',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _VinculoSelector(
-                selected: _vinculoTipo,
-                onSelect: (v) => setState(() {
-                  _vinculoTipo = v;
-                  _selectedTidId = null;
-                  _selectedSorteoId = null;
-                }),
-              ),
-              if (_vinculoTipo == 'tid' && widget.tidOptions.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _DropdownField<int>(
-                  label: 'Seleccionar TID',
-                  value: _selectedTidId,
-                  items: widget.tidOptions
-                      .map((o) => DropdownMenuItem(
-                            value: o.id,
-                            child: Text(o.label,
-                                style: const TextStyle(color: Colors.white)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedTidId = v),
-                ),
-              ],
-              if (_vinculoTipo == 'sorteo' &&
-                  widget.sorteoOptions.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _DropdownField<int>(
-                  label: 'Seleccionar sorteo',
-                  value: _selectedSorteoId,
-                  items: widget.sorteoOptions
-                      .map((o) => DropdownMenuItem(
-                            value: o.id,
-                            child: Text(o.label,
-                                style: const TextStyle(color: Colors.white)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedSorteoId = v),
-                ),
-              ],
-            ],
 
             // ── Evento (opcional) ────────────────────────────────────────
             if (widget.eventoOptions.isNotEmpty) ...[
