@@ -2,6 +2,7 @@
 import 'package:boombet_app/models/formulario_model.dart';
 import 'package:boombet_app/services/domain/formularios_service.dart';
 import 'package:boombet_app/services/auth/password_validation_service.dart';
+import 'package:boombet_app/widgets/password_rules_panel.dart';
 import 'package:flutter/material.dart';
 
 typedef _Option = ({int id, String label});
@@ -72,14 +73,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
 
   bool get _isPreFixed => widget.preTidId != null || widget.preSorteoId != null;
 
-  Map<String, bool> _passwordRules = {
-    '8+ caracteres': false,
-    '1 mayúscula': false,
-    '1 número': false,
-    '1 símbolo': false,
-    'Sin repetidos': false,
-    'Sin secuencias': false,
-  };
+  Map<String, bool> _passwordRules = const {};
 
   @override
   void initState() {
@@ -103,25 +97,9 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
 
   void _onPasswordChanged() {
     final pw = _passwordController.text;
-    if (pw.isEmpty) {
-      setState(() => _passwordRules = {
-            '8+ caracteres': false,
-            '1 mayúscula': false,
-            '1 número': false,
-            '1 símbolo': false,
-            'Sin repetidos': false,
-            'Sin secuencias': false,
-          });
-      return;
-    }
-    final status = PasswordValidationService.getValidationStatus(pw);
     setState(() {
-      _passwordRules['8+ caracteres'] = status['minimum_length']!;
-      _passwordRules['1 mayúscula'] = status['uppercase']!;
-      _passwordRules['1 número'] = status['number']!;
-      _passwordRules['1 símbolo'] = status['symbol']!;
-      _passwordRules['Sin repetidos'] = status['no_repetition']!;
-      _passwordRules['Sin secuencias'] = status['no_sequence']!;
+      _passwordRules =
+          pw.isEmpty ? const {} : PasswordValidationService.getValidationStatus(pw);
     });
   }
 
@@ -220,50 +198,7 @@ class _CreateFormDialogState extends State<_CreateFormDialog> {
             ),
             if (_passwordController.text.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF111111),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _green.withValues(alpha: 0.12)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _passwordRules.entries.map((e) {
-                    final isValid = e.value;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isValid
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            color: isValid
-                                ? _green
-                                : Colors.white.withValues(alpha: 0.25),
-                            size: 15,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            e.key,
-                            style: TextStyle(
-                              color: isValid
-                                  ? _green
-                                  : Colors.white.withValues(alpha: 0.45),
-                              fontSize: 12,
-                              fontWeight: isValid
-                                  ? FontWeight.w500
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
+              PasswordRulesPanel(status: _passwordRules),
             ],
             const SizedBox(height: 8),
             Container(

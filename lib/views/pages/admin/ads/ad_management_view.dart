@@ -41,34 +41,10 @@ class _AdManagementViewState extends State<AdManagementView> {
 
   Future<void> _loadCasinoNames() async {
     try {
-      final response = await HttpClient.get(
-        '${ApiConfig.baseUrl}/publicidades/casinos',
-        includeAuth: true,
-        cacheTtl: Duration.zero,
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return;
-      }
-
-      final decoded = jsonDecode(response.body);
-      List<dynamic> rawItems = const [];
-      if (decoded is List) {
-        rawItems = decoded;
-      } else if (decoded is Map<String, dynamic>) {
-        final data = decoded['data'];
-        final content = decoded['content'];
-        if (data is List) {
-          rawItems = data;
-        } else if (content is List) {
-          rawItems = content;
-        }
-      }
+      final rawItems = await _adService.fetchCasinos();
 
       final parsed = <int, String>{};
-      for (final item in rawItems) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item);
+      for (final map in rawItems) {
         final nombre = map['nombre']?.toString().trim() ?? '';
         if (nombre.isEmpty) continue;
 

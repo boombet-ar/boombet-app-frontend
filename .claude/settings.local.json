@@ -53,7 +53,11 @@
       "Bash(grep \"\\\\.dart$\")",
       "Bash(awk '{print $NF}')",
       "Bash(awk '{print $5, $9}')",
-      "Bash(sort -k2)"
+      "Bash(sort -k2)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\widgets\\\\coupons\\\\discount_category_chips.dart\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\widgets\\\\coupons\\\\discount_list_card.dart\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\widgets\\\\coupons\\\\discounts_points_banner.dart\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\views\\\\pages\\\\home\\\\widgets\\\\section_headers.dart\" -Force)"
     ]
   }
 }
