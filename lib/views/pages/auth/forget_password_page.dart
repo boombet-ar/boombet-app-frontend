@@ -1,7 +1,7 @@
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/forgot_password_service.dart';
+import 'package:boombet_app/services/auth/forgot_password_service.dart';
 import 'package:boombet_app/utils/error_dialog.dart';
-import 'package:boombet_app/services/password_validation_service.dart';
+import 'package:boombet_app/services/auth/password_validation_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:boombet_app/widgets/form_fields.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';

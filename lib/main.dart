@@ -1,18 +1,17 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:developer';
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/config/env.dart';
 import 'package:boombet_app/config/router_config.dart';
 import 'package:boombet_app/core/notifiers.dart';
+import 'package:boombet_app/core/session_handler.dart';
 import 'package:boombet_app/core/web_lifecycle.dart';
 import 'package:boombet_app/firebase_options.dart';
-import 'package:boombet_app/services/biometric_service.dart';
-import 'package:boombet_app/services/deep_link_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/push_notification_service.dart';
-import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/views/pages/auth/login_page.dart';
+import 'package:boombet_app/services/device/biometric_service.dart';
+import 'package:boombet_app/services/device/deep_link_service.dart';
+import 'package:boombet_app/services/device/push_notification_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,19 +19,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
-    GlobalKey<ScaffoldMessengerState>();
 const MethodChannel _deepLinkChannel = MethodChannel('boombet/deep_links');
-
-bool _sessionExpiredDialogOpen = false;
-
-BuildContext? _routerContext() {
-  return appRouter.routerDelegate.navigatorKey.currentContext;
-}
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 }
 
@@ -46,9 +39,7 @@ void _scheduleNavigationToRoute(String route) {
 
 void _handleDeepLinkNavigation(DeepLinkPayload payload) {
   final route = DeepLinkService.instance.navigationPathForPayload(payload);
-  if (route == null) {
-    return;
-  }
+  if (route == null) return;
 
   _scheduleNavigationToRoute(route);
   DeepLinkService.instance.markPayloadHandled(payload);
@@ -56,47 +47,18 @@ void _handleDeepLinkNavigation(DeepLinkPayload payload) {
 
 void _initializeDeepLinkHandling() {
   _deepLinkChannel.setMethodCallHandler((call) async {
-    if (call.method != 'onDeepLink') {
-      return;
-    }
+    if (call.method != 'onDeepLink') return;
 
     final Object? arguments = call.arguments;
     if (arguments is! Map) return;
 
-    final raw = Map<dynamic, dynamic>.from(arguments as Map);
+    final raw = Map<dynamic, dynamic>.from(arguments);
     final uriString = raw['uri'] as String?;
     if (uriString == null) return;
 
     try {
       final uri = Uri.parse(uriString);
-
-      // Aceptar múltiples nombres de query para el token (backend puede variar)
-      String? _extractToken(Uri uri) {
-        const candidates = [
-          'token',
-          'verificacionToken',
-          'verification_token',
-          'verificationToken',
-          'verify_token',
-        ];
-
-        for (final key in candidates) {
-          final value = uri.queryParameters[key];
-          if (value != null && value.isNotEmpty) return value;
-        }
-
-        // Fallback: si el token viene como último segmento en rutas tipo /confirm/<token>
-        final segments = uri.pathSegments;
-        if (segments.length >= 2 &&
-            segments.first.toLowerCase().contains('confirm')) {
-          final last = segments.last.trim();
-          if (last.isNotEmpty) return last;
-        }
-
-        return null;
-      }
-
-      final token = (raw['token'] as String?) ?? _extractToken(uri);
+      final token = DeepLinkService.extractToken(uri, raw);
 
       DeepLinkService.instance.emit(DeepLinkPayload(uri: uri, token: token));
 
@@ -125,17 +87,10 @@ Future<void> main() async {
   // Notificaciones: SOLO en mobile. En Web no pedimos permisos ni inicializamos push.
   if (!kIsWeb) {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // Suscribirse a notificaciones en foreground / openedApp
     await PushNotificationService.initialize();
-  } else {}
+  }
 
-  // Cargar variables de entorno
   await Env.load();
-
-  // ============================================
-  // 🌐 Environment Configuration Verification
-  // ============================================
 
   _initializeDeepLinkHandling();
 
@@ -146,24 +101,20 @@ Future<void> main() async {
     }
   });
 
-  // Capturar errores de Flutter no manejados
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
-    log(
-      '[FlutterError] ${details.exceptionAsString()}',
-      stackTrace: details.stack,
-    );
+    log('[FlutterError] ${details.exceptionAsString()}', stackTrace: details.stack);
   };
 
-  // Capturar errores no manejados fuera del árbol de Flutter
   PlatformDispatcher.instance.onError = (error, stack) {
     log('[UnhandledError] $error', stackTrace: stack);
     return true;
   };
-  // Asegurar que los tokens temporales no sobrevivan entre reinicios
+
+  // Asegurar que los tokens temporales no sobrevivan entre reinicios.
   await TokenService.deleteTemporaryToken();
 
-  // Si hay sesión activa, exigir biometría una sola vez al abrir la app
+  // Si hay sesión activa, exigir biometría una sola vez al abrir la app.
   final hasSession = await TokenService.hasActiveSession();
   if (hasSession) {
     final ok = await BiometricService.requireBiometricIfEnabled(
@@ -176,101 +127,15 @@ Future<void> main() async {
     }
   }
 
-  // Proteger flujos críticos (afiliación, verificación) contra F5 / cierre de pestaña en web
+  // Proteger flujos críticos (afiliación, verificación) contra F5 / cierre de pestaña en web.
   registerBeforeUnloadHandler();
 
-  // Cargar preferencias de accesibilidad
+  // Cargar preferencias de accesibilidad.
   await loadFontSizeMultiplier();
   await loadSelectedPage();
 
-  // Configurar callback para manejar 401 (token expirado)
-  HttpClient.onUnauthorized = () {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        appRouter.go('/');
-      } catch (e) {}
-
-      // Mostrar SnackBar después de navegar
-      final messenger = scaffoldMessengerKey.currentState;
-      messenger?.showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
-          ),
-          backgroundColor: AppConstants.warningOrange,
-          duration: AppConstants.longSnackbarDuration,
-        ),
-      );
-    });
-  };
-
-  // Si falla el refresh token, mostrar popup con el estilo de la app.
-  HttpClient.onSessionExpired = () {
-    if (_sessionExpiredDialogOpen) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_sessionExpiredDialogOpen) return;
-
-      final context = _routerContext();
-      if (context == null) {
-        HttpClient.onUnauthorized?.call();
-        return;
-      }
-
-      _sessionExpiredDialogOpen = true;
-
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          backgroundColor: AppConstants.darkAccent,
-          title: const Text(
-            'Sesión expirada',
-            style: TextStyle(color: AppConstants.textDark),
-          ),
-          content: Text(
-            'Tu sesión expiró. Por favor, inicia sesión nuevamente.',
-            style: const TextStyle(color: AppConstants.textDark),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-
-                // Forzar vuelta al login incluso si la pantalla actual fue abierta
-                // con Navigator.push(...) o si hay rutas apiladas que tapan el router.
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final nav =
-                      appRouter.routerDelegate.navigatorKey.currentState;
-                  if (nav == null) {
-                    // Fallback: al menos intentar cambiar la ubicación del router.
-                    appRouter.go('/');
-                    return;
-                  }
-
-                  nav.pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                    (route) => false,
-                  );
-
-                  // Mantener el router sincronizado en '/'
-                  try {
-                    appRouter.go('/');
-                  } catch (_) {}
-                });
-              },
-              child: const Text(
-                'Volver al login',
-                style: TextStyle(color: AppConstants.primaryGreen),
-              ),
-            ),
-          ],
-        ),
-      ).then((_) {
-        _sessionExpiredDialogOpen = false;
-      });
-    });
-  };
+  // Registrar callbacks de sesión expirada / 401.
+  registerSessionCallbacks();
 
   runZonedGuarded(
     () => runApp(const MyApp()),

@@ -1,6 +1,6 @@
-import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/password_validation_service.dart';
-import 'package:boombet_app/services/stands_service.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/services/auth/password_validation_service.dart';
+import 'package:boombet_app/services/domain/stands_service.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showCreateStandDialog({

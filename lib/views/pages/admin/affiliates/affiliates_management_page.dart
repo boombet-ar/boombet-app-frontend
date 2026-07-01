@@ -1,8 +1,8 @@
-import 'dart:developer';
+﻿import 'dart:developer';
 
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/afiliador_model.dart';
-import 'package:boombet_app/services/affiliates_service.dart';
+import 'package:boombet_app/services/domain/affiliates_service.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/create_affiliate.dart';
 import 'package:boombet_app/views/pages/admin/affiliates/affiliates_management_view.dart';
 import 'package:flutter/material.dart';

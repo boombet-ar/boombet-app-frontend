@@ -1,19 +1,19 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
+import 'package:boombet_app/config/debug_flags.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:boombet_app/models/prize_canje_model.dart';
-import 'package:boombet_app/services/affiliation_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/stands_service.dart';
-import 'package:boombet_app/services/tids_service.dart';
-import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/widgets/responsive_wrapper.dart';
+import 'package:boombet_app/services/domain/affiliation_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/stands_service.dart';
+import 'package:boombet_app/services/domain/tids_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -147,7 +147,7 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   void _appendLog(String message) {
-    if (!AppConstants.qrScannerDebugConsoleEnabled) return;
+    if (!DebugFlags.qrScannerDebugConsoleEnabled) return;
     if (!mounted) return;
 
     final now = DateTime.now();
@@ -1051,451 +1051,138 @@ class _QrScannerPageState extends State<QrScannerPage>
   @override
   Widget build(BuildContext context) {
     const primaryGreen = AppConstants.primaryGreen;
+    final canPop = Navigator.canPop(context);
 
     return Scaffold(
-      backgroundColor: AppConstants.darkBg,
-      appBar: Navigator.canPop(context)
-          ? AppBar(
-              backgroundColor: AppConstants.darkBg,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              title: const Text(
-                'Escáner QR',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            )
-          : null,
-      body: Stack(
-        children: [
-          // Radial glow — top left
-          Positioned(
-            top: -80,
-            left: -60,
-            child: Container(
-              width: 340,
-              height: 340,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    primaryGreen.withValues(alpha: 0.055),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Radial glow — bottom right
-          Positioned(
-            bottom: -60,
-            right: -40,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    primaryGreen.withValues(alpha: 0.038),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Content
-          Positioned.fill(
-            child: ResponsiveWrapper(
-              maxWidth: 900,
-              constrainOnWeb: true,
-              child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppConstants.paddingLarge,
-                          8,
-                          AppConstants.paddingLarge,
-                          0,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 520),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    _buildScannerCard(),
-                                    const SizedBox(height: 14),
-                                    _buildControls(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Center(child: _SearchingAnimation()),
-                      if (AppConstants.qrScannerDebugConsoleEnabled) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppConstants.paddingLarge,
-                            14,
-                            AppConstants.paddingLarge,
-                            AppConstants.paddingLarge,
-                          ),
-                          child: _buildLogsPanel(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    const primaryGreen = AppConstants.primaryGreen;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Accent decoration
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      primaryGreen.withValues(alpha: 0.50),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 7,
-              height: 7,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: primaryGreen,
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryGreen.withValues(alpha: 0.80),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      primaryGreen.withValues(alpha: 0.50),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'Apunta al codigo QR dentro del marco',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 0.1,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          'Mantiene la camara estable para una lectura rapida.',
-          style: TextStyle(
-            fontSize: AppConstants.bodySmall,
-            color: Colors.white.withValues(alpha: 0.45),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScannerCard() {
-    const primaryGreen = AppConstants.primaryGreen;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.10),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryGreen.withValues(alpha: 0.08),
-            blurRadius: 28,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.55),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(19),
-        child: AspectRatio(
-          aspectRatio: 1,
-          child: Stack(
+      backgroundColor: Colors.black,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = constraints.maxHeight;
+          return Stack(
             children: [
-              // Camera feed
+              // Camera full screen
               Positioned.fill(
                 child: MobileScanner(
                   controller: _scannerController,
                   onDetect: _handleDetection,
                 ),
               ),
-              // Vignette
+              // Dark overlay con recorte, esquinas y línea de scan
               Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 0.85,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.28),
+                child: AnimatedBuilder(
+                  animation: _scanController,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      size: Size(w, h),
+                      painter: _ScanOverlayPainter(
+                        color: primaryGreen,
+                        scanProgress: _scanController.value,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // Top controls: back + flash — POSICIONADO, no afecta el tamaño del Stack
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (canPop) _buildBackButton() else const SizedBox(width: 44),
+                        _buildFlashOverlayButton(),
                       ],
                     ),
                   ),
                 ),
               ),
-              // Corner brackets
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _CornerFramePainter(color: primaryGreen),
+              // Texto de ayuda sobre el frame de scan
+              Positioned(
+                top: (h - (w * 0.74).clamp(0.0, 290.0)) / 2 - 40 - 36,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Text(
+                    'Apuntá el código QR al encuadre',
+                    style: TextStyle(
+                      color: primaryGreen.withValues(alpha: 0.85),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 8),
+                        Shadow(color: Colors.black, blurRadius: 16),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              // Scan line
-              AnimatedBuilder(
-                animation: _scanController,
-                builder: (context, child) {
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final lineY =
-                          constraints.maxHeight * _scanController.value;
-                      return Stack(
-                        children: [
-                          Positioned(
-                            top: lineY,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 2,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    primaryGreen.withValues(alpha: 0.0),
-                                    primaryGreen.withValues(alpha: 0.95),
-                                    primaryGreen.withValues(alpha: 0.0),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primaryGreen.withValues(alpha: 0.55),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
+              if (DebugFlags.qrScannerDebugConsoleEnabled)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                    child: _buildLogsPanel(),
+                  ),
+                ),
             ],
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pop(),
+      child: const Padding(
+        padding: EdgeInsets.all(8),
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: Colors.white,
+          size: 26,
+          shadows: [
+            Shadow(color: Colors.black, blurRadius: 6),
+            Shadow(color: Colors.black, blurRadius: 14),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildControls() {
+  Widget _buildFlashOverlayButton() {
     const primaryGreen = AppConstants.primaryGreen;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: primaryGreen.withValues(alpha: 0.10),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _buildTorchButton()),
-          const SizedBox(width: 10),
-          Expanded(child: _buildSwitchCameraButton()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTorchButton() {
-    const primaryGreen = AppConstants.primaryGreen;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      height: 48,
-      decoration: BoxDecoration(
-        color: _flashOn
-            ? primaryGreen.withValues(alpha: 0.12)
-            : const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _flashOn
-              ? primaryGreen.withValues(alpha: 0.45)
-              : const Color(0xFF272727),
-          width: 1,
-        ),
-        boxShadow: _flashOn
-            ? [
-                BoxShadow(
-                  color: primaryGreen.withValues(alpha: 0.20),
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                ),
-              ]
-            : [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          splashColor: primaryGreen.withValues(alpha: 0.12),
-          onTap: () async {
-            try {
-              await _scannerController.toggleTorch();
-              if (!mounted) return;
-              setState(() => _flashOn = !_flashOn);
-            } catch (_) {
-              if (mounted) _showSnack('No se pudo activar la linterna');
-            }
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                _flashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                size: 16,
-                color: _flashOn
-                    ? primaryGreen
-                    : Colors.white.withValues(alpha: 0.50),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                _flashOn ? 'Linterna activa' : 'Linterna apagada',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: _flashOn
-                      ? primaryGreen
-                      : Colors.white.withValues(alpha: 0.50),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchCameraButton() {
-    const primaryGreen = AppConstants.primaryGreen;
-
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: primaryGreen,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: primaryGreen.withValues(alpha: 0.38),
-            blurRadius: 16,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          splashColor: Colors.black.withValues(alpha: 0.12),
-          onTap: () async {
-            try {
-              await _scannerController.switchCamera();
-              _appendLog('Camera switched');
-              if (mounted) _showSnack('Camara alternada');
-            } catch (_) {
-              _appendLog('Camera switch failed');
-              if (mounted) _showSnack('No se pudo alternar la camara');
-            }
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.cameraswitch_rounded,
-                size: 16,
-                color: Colors.black.withValues(alpha: 0.80),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                'Cambiar camara',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black.withValues(alpha: 0.85),
-                ),
-              ),
-            ],
-          ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        try {
+          await _scannerController.toggleTorch();
+          if (!mounted) return;
+          setState(() => _flashOn = !_flashOn);
+        } catch (_) {
+          if (mounted) _showSnack('No se pudo activar la linterna');
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          _flashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+          color: _flashOn ? primaryGreen : Colors.white,
+          size: 28,
+          shadows: [
+            const Shadow(color: Colors.black, blurRadius: 6),
+            const Shadow(color: Colors.black, blurRadius: 14),
+          ],
         ),
       ),
     );
@@ -1813,30 +1500,56 @@ class _CanjeBottomSheet extends StatelessWidget {
   }
 }
 
-// ─── CORNER FRAME PAINTER ────────────────────────────────────────────────────
+// ─── SCAN OVERLAY PAINTER ────────────────────────────────────────────────────
 
-class _CornerFramePainter extends CustomPainter {
+class _ScanOverlayPainter extends CustomPainter {
   final Color color;
+  final double scanProgress;
 
-  const _CornerFramePainter({required this.color});
+  const _ScanOverlayPainter({required this.color, required this.scanProgress});
+
+  static Rect computeScanRect(Size size) {
+    final scanSize = (size.width * 0.74).clamp(0.0, 290.0);
+    final left = (size.width - scanSize) / 2;
+    final top = (size.height - scanSize) / 2 - 40;
+    return Rect.fromLTWH(left, top, scanSize, scanSize);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
+    final scanRect = computeScanRect(size);
+    const cornerRadius = Radius.circular(10);
+
+    // Dark overlay with transparent cutout (evenOdd)
+    final overlayPath = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(scanRect, cornerRadius));
+
+    canvas.drawPath(
+      overlayPath,
+      Paint()..color = Colors.black.withValues(alpha: 0.65),
+    );
+
+    _drawCorners(canvas, scanRect);
+    _drawScanLine(canvas, scanRect);
+  }
+
+  void _drawCorners(Canvas canvas, Rect rect) {
+    const arm = 26.0;
+
     final glowPaint = Paint()
       ..color = color.withValues(alpha: 0.45)
       ..strokeWidth = 5.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.square
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
     final solidPaint = Paint()
       ..color = color
-      ..strokeWidth = 2.5
+      ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.square;
-
-    const margin = 22.0;
-    const arm = 32.0;
 
     void drawCorner(double x, double y, double hDir, double vDir) {
       final path = Path()
@@ -1847,19 +1560,54 @@ class _CornerFramePainter extends CustomPainter {
       canvas.drawPath(path, solidPaint);
     }
 
-    // Top-left
-    drawCorner(margin, margin, 1, 1);
-    // Top-right
-    drawCorner(size.width - margin, margin, -1, 1);
-    // Bottom-right
-    drawCorner(size.width - margin, size.height - margin, -1, -1);
-    // Bottom-left
-    drawCorner(margin, size.height - margin, 1, -1);
+    drawCorner(rect.left, rect.top, 1, 1);
+    drawCorner(rect.right, rect.top, -1, 1);
+    drawCorner(rect.right, rect.bottom, -1, -1);
+    drawCorner(rect.left, rect.bottom, 1, -1);
+  }
+
+  void _drawScanLine(Canvas canvas, Rect scanRect) {
+    final lineY = scanRect.top + scanRect.height * scanProgress;
+
+    canvas.save();
+    canvas.clipRect(scanRect);
+
+    canvas.drawRect(
+      Rect.fromLTWH(scanRect.left, lineY - 1, scanRect.width, 2),
+      Paint()
+        ..shader = LinearGradient(
+          colors: [
+            color.withValues(alpha: 0.0),
+            color.withValues(alpha: 0.95),
+            color.withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(
+          Rect.fromLTWH(scanRect.left, lineY - 1, scanRect.width, 2),
+        ),
+    );
+
+    canvas.drawRect(
+      Rect.fromLTWH(scanRect.left, lineY, scanRect.width, 28),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color.withValues(alpha: 0.18),
+            color.withValues(alpha: 0.0),
+          ],
+        ).createShader(
+          Rect.fromLTWH(scanRect.left, lineY, scanRect.width, 28),
+        ),
+    );
+
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_CornerFramePainter oldDelegate) =>
-      oldDelegate.color != color;
+  bool shouldRepaint(_ScanOverlayPainter old) =>
+      old.color != color || old.scanProgress != scanProgress;
 }
 
 // ─── ROULETTE UI ─────────────────────────────────────────────────────────────
@@ -2492,147 +2240,6 @@ class _RouletteResultDialogState extends State<_RouletteResultDialog>
           ),
         );
       },
-    );
-  }
-}
-
-class _SearchingAnimation extends StatefulWidget {
-  const _SearchingAnimation();
-
-  @override
-  State<_SearchingAnimation> createState() => _SearchingAnimationState();
-}
-
-class _SearchingAnimationState extends State<_SearchingAnimation>
-    with TickerProviderStateMixin {
-  late final AnimationController _glowController;
-  late final AnimationController _dotsController;
-  late final AnimationController _scanLineController;
-  late final Animation<double> _glowAnim;
-  late final Animation<double> _scanLineAnim;
-
-  static const _green = AppConstants.primaryGreen;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..repeat(reverse: true);
-
-    _dotsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat();
-
-    _scanLineController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-
-    _glowAnim = CurvedAnimation(parent: _glowController, curve: Curves.easeInOut);
-    _scanLineAnim = CurvedAnimation(parent: _scanLineController, curve: Curves.easeInOut);
-  }
-
-  @override
-  void dispose() {
-    _glowController.dispose();
-    _dotsController.dispose();
-    _scanLineController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-      width: 300,
-      height: 150,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _green.withValues(alpha: 0.15),
-          width: 1,
-        ),
-        color: _green.withValues(alpha: 0.03),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(13),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Texto principal con glow
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _glowAnim,
-                  builder: (_, __) {
-                    final glowIntensity = 0.4 + _glowAnim.value * 0.6;
-                    return AnimatedBuilder(
-                      animation: _dotsController,
-                      builder: (_, __) {
-                        final dotsCount = (_dotsController.value * 4).floor() % 4;
-                        final dots = '.' * dotsCount + ' ' * (3 - dotsCount);
-                        return Text(
-                          'Buscando codigo$dots',
-                          style: TextStyle(
-                            fontFamily: 'ThaleahFat',
-                            fontSize: 20,
-                            color: _green.withValues(alpha: glowIntensity),
-                            letterSpacing: 1.5,
-                            shadows: [
-                              Shadow(
-                                color: _green.withValues(alpha: glowIntensity * 0.8),
-                                blurRadius: 8 + _glowAnim.value * 10,
-                              ),
-                              Shadow(
-                                color: _green.withValues(alpha: glowIntensity * 0.4),
-                                blurRadius: 20 + _glowAnim.value * 16,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-                // Barrita de progreso pulsante
-                AnimatedBuilder(
-                  animation: _glowAnim,
-                  builder: (_, __) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(5, (i) {
-                      final delay = i / 5.0;
-                      final t = ((_glowController.value - delay + 1) % 1.0);
-                      final scale = 0.4 + (math.sin(t * math.pi) * 0.6).clamp(0.0, 0.6);
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: 10,
-                        height: 4 + scale * 10,
-                        decoration: BoxDecoration(
-                          color: _green.withValues(alpha: 0.3 + scale * 0.7),
-                          borderRadius: BorderRadius.circular(2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _green.withValues(alpha: scale * 0.6),
-                              blurRadius: 4 + scale * 6,
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      ),
     );
   }
 }

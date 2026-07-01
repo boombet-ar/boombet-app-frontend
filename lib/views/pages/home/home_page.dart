@@ -1,6 +1,6 @@
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/core/notifiers.dart';
-import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/services/auth/auth_service.dart';
 import 'package:boombet_app/views/pages/home/home_keys.dart';
 import 'package:boombet_app/widgets/navbar_widget.dart';
 import 'package:boombet_app/widgets/responsive_wrapper.dart';
@@ -90,20 +90,9 @@ class _HomePageState extends State<HomePage> {
               showCasinos: AppConstants.showMyCasinos,
             ),
           ),
-          if (currentIndex == 1)
-            Positioned(
-              right: 16,
-              bottom: 180,
-              child: FloatingActionButton(
-                onPressed: () => context.push('/scanner'),
-                backgroundColor: const Color(0xFF29FF5E),
-                foregroundColor: Colors.black,
-                tooltip: 'Escanear QR',
-                child: const Icon(Icons.qr_code_scanner, size: 28),
-              ),
-            ),
         ],
       ),
     );
   }
 }
+

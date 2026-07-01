@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/services/ad_service.dart';
-import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
 import 'package:boombet_app/views/pages/admin/ads/create_ad.dart';
-import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,20 +17,26 @@ class AdManagementView extends StatefulWidget {
 }
 
 class _AdManagementViewState extends State<AdManagementView> {
-  static const int _pageSize = 5;
   final AdService _adService = AdService();
+  late final PageController _pageController = PageController();
+  int _currentCarouselIndex = 0;
 
   bool _isLoading = true;
   String? _errorMessage;
   List<_AdPreview> _ads = const [];
   Map<int, String> _casinoNamesById = const {};
-  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
     _loadCasinoNames();
     _loadAds();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCasinoNames() async {
@@ -77,9 +83,7 @@ class _AdManagementViewState extends State<AdManagementView> {
       setState(() {
         _casinoNamesById = parsed;
       });
-    } catch (_) {
-      // si falla el catálogo, dejamos fallback al id numérico
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadAds() async {
@@ -123,8 +127,11 @@ class _AdManagementViewState extends State<AdManagementView> {
       setState(() {
         _ads = loadedAds;
         _isLoading = false;
-        _currentPage = 0;
+        _currentCarouselIndex = 0;
       });
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -132,18 +139,6 @@ class _AdManagementViewState extends State<AdManagementView> {
         _errorMessage = 'No se pudieron cargar las publicidades activas.';
       });
     }
-  }
-
-  int get _totalPages {
-    if (_ads.isEmpty) return 0;
-    return (_ads.length / _pageSize).ceil();
-  }
-
-  List<_AdPreview> get _currentAds {
-    if (_ads.isEmpty) return const [];
-    final start = _currentPage * _pageSize;
-    final end = (start + _pageSize).clamp(0, _ads.length);
-    return _ads.sublist(start, end);
   }
 
   String _formatEndAt(String raw) {
@@ -359,321 +354,179 @@ class _AdManagementViewState extends State<AdManagementView> {
   @override
   Widget build(BuildContext context) {
     const green = AppConstants.primaryGreen;
+    final hasCarousel =
+        !_isLoading && _errorMessage == null && _ads.length > 1;
 
-    final content = Column(
+    return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: _AdsCreateButton(
+            onPressed: _openCreateAdDialog,
+            label: 'Cargar publicidad',
+            icon: Icons.campaign_outlined,
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildBody(green),
+          ),
+        ),
+        if (hasCarousel) ...[
+          const SizedBox(height: 14),
+          _CarouselDots(count: _ads.length, current: _currentCarouselIndex),
+          const SizedBox(height: 20),
+        ] else
+          const SizedBox(height: 28),
+      ],
+    );
+  }
+
+  Widget _buildBody(Color green) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppConstants.primaryGreen,
+          strokeWidth: 2.5,
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(
+              color: AppConstants.errorRed.withValues(alpha: 0.28),
+            ),
+          ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _AdsCreateButton(
-                onPressed: _openCreateAdDialog,
-                label: 'Cargar publicidad',
-                icon: Icons.campaign_outlined,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppConstants.errorRed,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
-              if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: green,
-                      strokeWidth: 2.5,
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _loadAds,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
                     ),
-                  ),
-                )
-              else if (_errorMessage != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
-                    ),
-                    border: Border.all(
-                      color: AppConstants.errorRed.withValues(alpha: 0.28),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            color: AppConstants.errorRed,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          ),
-                        ],
+                    decoration: BoxDecoration(
+                      color: AppConstants.errorRed.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppConstants.errorRed.withValues(alpha: 0.30),
                       ),
-                      const SizedBox(height: 12),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _loadAds,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppConstants.errorRed.withValues(
-                                alpha: 0.10,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppConstants.errorRed.withValues(
-                                  alpha: 0.30,
-                                ),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.refresh_rounded,
-                                  color: AppConstants.errorRed,
-                                  size: 14,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Reintentar',
-                                  style: TextStyle(
-                                    color: AppConstants.errorRed,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh_rounded,
+                          color: AppConstants.errorRed,
+                          size: 14,
                         ),
-                      ),
-                    ],
-                  ),
-                )
-              else if (_ads.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
-                    ),
-                    border: Border.all(color: green.withValues(alpha: 0.12)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.campaign_outlined,
-                        color: green.withValues(alpha: 0.55),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'No hay publicidades activas para mostrar.',
+                        SizedBox(width: 6),
+                        Text(
+                          'Reintentar',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.50),
-                            fontSize: 12.5,
+                            color: AppConstants.errorRed,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                )
-              else ...[
-                ..._currentAds.map((ad) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141414),
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadius,
-                        ),
-                        border: Border.all(
-                          color: green.withValues(alpha: 0.14),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ── Imagen preview ─────────────────────────
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(
-                                AppConstants.borderRadius - 1,
-                              ),
-                              bottomLeft: Radius.circular(
-                                AppConstants.borderRadius - 1,
-                              ),
-                            ),
-                            child: SizedBox(
-                              width: 84,
-                              height: 168,
-                              child: ad.mediaUrl.isEmpty
-                                  ? Container(
-                                      color: green.withValues(alpha: 0.06),
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.image_not_supported_outlined,
-                                          color: green.withValues(alpha: 0.35),
-                                          size: 26,
-                                        ),
-                                      ),
-                                    )
-                                  : Image.network(
-                                      ad.mediaUrl,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, progress) {
-                                            if (progress == null) return child;
-                                            return Container(
-                                              color: green.withValues(
-                                                alpha: 0.06,
-                                              ),
-                                              child: const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      color: green,
-                                                      strokeWidth: 2,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: green.withValues(alpha: 0.06),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.image_not_supported_outlined,
-                                            color: green.withValues(
-                                              alpha: 0.35,
-                                            ),
-                                            size: 26,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ),
-
-                          // ── Info ───────────────────────────────────
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                12,
-                                12,
-                                12,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    ad.text.isEmpty ? '—' : ad.text,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13.5,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _AdInfoChip(
-                                    icon: Icons.casino_outlined,
-                                    label: _casinoLabel(ad.casinoGralId),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  _AdInfoChip(
-                                    icon: Icons.schedule_rounded,
-                                    label: 'Baja: ${_formatEndAt(ad.endAt)}',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      _AdActionButton(
-                                        label: 'Editar',
-                                        icon: Icons.edit_outlined,
-                                        color: green,
-                                        onTap: () => _handleEdit(ad),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _AdActionButton(
-                                        label: 'Eliminar',
-                                        icon: Icons.delete_outline_rounded,
-                                        color: AppConstants.errorRed,
-                                        onTap: () => _handleDelete(ad),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141414),
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
-                    ),
-                    border: Border.all(color: green.withValues(alpha: 0.12)),
-                  ),
-                  child: Center(
-                    child: PaginationBar(
-                      currentPage: _currentPage + 1,
-                      canGoPrevious: _currentPage > 0,
-                      canGoNext: _currentPage < (_totalPages - 1),
-                      onPrev: () {
-                        if (_currentPage <= 0) return;
-                        setState(() => _currentPage -= 1);
-                      },
-                      onNext: () {
-                        if (_currentPage >= (_totalPages - 1)) return;
-                        setState(() => _currentPage += 1);
-                      },
-                      primaryColor: green,
-                      textColor: Colors.white,
+                      ],
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
-      ],
+      );
+    }
+
+    if (_ads.isEmpty) {
+      return Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141414),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            border: Border.all(
+              color: AppConstants.primaryGreen.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.campaign_outlined,
+                color: green.withValues(alpha: 0.55),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'No hay publicidades activas para mostrar.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.50),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: (i) => setState(() => _currentCarouselIndex = i),
+      itemCount: _ads.length,
+      itemBuilder: (context, i) {
+        final ad = _ads[i];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: _AdCarouselCard(
+            ad: ad,
+            casinoLabel: _casinoLabel(ad.casinoGralId),
+            endAt: _formatEndAt(ad.endAt),
+            onEdit: () => _handleEdit(ad),
+            onDelete: () => _handleDelete(ad),
+          ),
+        );
+      },
     );
-    return SingleChildScrollView(child: content);
   }
 }
 
@@ -791,6 +644,215 @@ class _AdsCreateButton extends StatelessWidget {
   }
 }
 
+// ── Card del carrusel ──────────────────────────────────────────────────────────
+
+class _AdCarouselCard extends StatelessWidget {
+  final _AdPreview ad;
+  final String casinoLabel;
+  final String endAt;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _AdCarouselCard({
+    required this.ad,
+    required this.casinoLabel,
+    required this.endAt,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const green = AppConstants.primaryGreen;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Imagen de fondo
+          if (ad.mediaUrl.isEmpty)
+            Container(
+              color: green.withValues(alpha: 0.06),
+              child: Center(
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: green.withValues(alpha: 0.35),
+                  size: 40,
+                ),
+              ),
+            )
+          else
+            Image.network(
+              ad.mediaUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: green.withValues(alpha: 0.06),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: green,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (_, __, ___) => Container(
+                color: green.withValues(alpha: 0.06),
+                child: Center(
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: green.withValues(alpha: 0.35),
+                    size: 40,
+                  ),
+                ),
+              ),
+            ),
+
+          // Degradado transparente → negro 85%
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Color(0xD9000000)],
+                stops: [0.35, 1.0],
+              ),
+            ),
+          ),
+
+          // Botón editar (arriba izquierda)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _CircularActionButton(
+              icon: Icons.edit_outlined,
+              color: green,
+              onTap: onEdit,
+            ),
+          ),
+
+          // Botón eliminar (arriba derecha)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: _CircularActionButton(
+              icon: Icons.delete_outline_rounded,
+              color: AppConstants.errorRed,
+              onTap: onDelete,
+            ),
+          ),
+
+          // Info abajo sobre el degradado
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  ad.text.isEmpty ? '—' : ad.text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _AdInfoChip(
+                  icon: Icons.casino_outlined,
+                  label: casinoLabel,
+                ),
+                const SizedBox(height: 4),
+                _AdInfoChip(
+                  icon: Icons.schedule_rounded,
+                  label: 'Baja: $endAt',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Botón circular con blur ────────────────────────────────────────────────────
+
+class _CircularActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CircularActionButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.25),
+              border: Border.all(
+                color: color.withValues(alpha: 0.45),
+                width: 1,
+              ),
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dots indicadores ───────────────────────────────────────────────────────────
+
+class _CarouselDots extends StatelessWidget {
+  final int count;
+  final int current;
+
+  const _CarouselDots({required this.count, required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    const green = AppConstants.primaryGreen;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(count, (i) {
+        final isActive = i == current;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: isActive ? 20 : 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: isActive ? green : green.withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        );
+      }),
+    );
+  }
+}
+
 // ── Chip de info ───────────────────────────────────────────────────────────────
 
 class _AdInfoChip extends StatelessWidget {
@@ -807,7 +869,7 @@ class _AdInfoChip extends StatelessWidget {
         Icon(
           icon,
           size: 12,
-          color: AppConstants.primaryGreen.withValues(alpha: 0.60),
+          color: AppConstants.primaryGreen.withValues(alpha: 0.70),
         ),
         const SizedBox(width: 5),
         Flexible(
@@ -816,81 +878,12 @@ class _AdInfoChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.50),
-              fontSize: 11.5,
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 12,
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Botones de acción ──────────────────────────────────────────────────────────
-
-class _AdActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _AdActionButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        splashColor: color.withValues(alpha: 0.22),
-        highlightColor: color.withValues(alpha: 0.10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: color.withValues(alpha: 0.65),
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.28),
-                blurRadius: 8,
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: color.withValues(alpha: 0.12),
-                blurRadius: 18,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 15),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

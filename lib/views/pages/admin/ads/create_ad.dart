@@ -1,11 +1,11 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
-import 'package:boombet_app/core/utils/inappropriate_content_guard.dart';
-import 'package:boombet_app/services/ad_service.dart';
-import 'package:boombet_app/services/http_client.dart';
+import 'package:boombet_app/utils/inappropriate_content_guard.dart';
+import 'package:boombet_app/services/domain/ad_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';

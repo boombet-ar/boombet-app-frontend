@@ -31,7 +31,29 @@
       "Bash(Test-Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\\\\services\\\\casino_service.dart\")",
       "WebFetch(domain:developers.openai.com)",
       "Bash(del \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\error_handler.md\")",
-      "PowerShell(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\error_handler.md\" -Confirm:$false)"
+      "PowerShell(Remove-Item \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\error_handler.md\" -Confirm:$false)",
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\" -Filter \"*.dart\")",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\" -Depth 0)",
+      "Bash(Select-Object -Property Name, PSIsContainer)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\" -Depth 0 | Select-Object -Property Name, @{Name=\"IsDir\";Expression={$_.PSIsContainer}})",
+      "Bash(git mv *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"pages/other/\\\\|pages/rewards/my_casinos\\\\|affiliates/results\\\\|pages/casino/\" C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/home/widgets/home_page.dart)",
+      "Bash(grep -n \"pages/other/\\\\|affiliates/results\\\\|pages/casino/\" C:/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages/profile/profile_page.dart)",
+      "Bash(git rm *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\"; $output = flutter analyze --no-fatal-infos 2>&1; $errors = $output | Where-Object { $_ -match \"^\\\\s+error -\" }; if \\($errors\\) { $errors } else { Write-Output \"Sin errores de compilacion\" })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\\\\lib\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(find \"/mnt/c/Users/Usuario/Desktop/BoombetApp/boombet_app/lib/views/pages\" -name \"*.dart\" -type f | head -30)",
+      "Bash(dir \"C:\\\\Users\\\\Usuario\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\hosted\\\\pub.dev\" /b)",
+      "Bash(findstr image_cropper)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\BoombetApp\\\\boombet_app\" && find lib -type f -name \"*.dart\" | sort > /tmp/dart_files.txt && cat /tmp/dart_files.txt)",
+      "Bash(grep \"\\\\.dart$\")",
+      "Bash(awk '{print $NF}')",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(sort -k2)"
     ]
   }
 }

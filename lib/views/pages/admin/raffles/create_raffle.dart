@@ -1,15 +1,13 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/models/raffle_model.dart';
-import 'package:boombet_app/models/tid_model.dart';
-import 'package:boombet_app/services/eventos_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/raffle_service.dart';
-import 'package:boombet_app/services/tids_service.dart';
+import 'package:boombet_app/services/domain/eventos_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/raffle_service.dart';
 import 'package:boombet_app/widgets/custom_pickers.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,14 +21,14 @@ class CreateRaffleSection extends StatefulWidget {
   final DateTime? initialFechaFin;
   final int? initialCasinoGralId;
   final String? initialMediaUrl;
-  final int? initialTidId;
   final int? initialEventoId;
   final int? initialCantidadGanadores;
   final List<PremioModel>? initialPremios;
   final String? initialEmailPresentador;
   final String? initialInstrucciones;
   final bool initialActivo;
-  final String? tipo;
+  final bool lockEvento;
+  final bool hideEvento;
 
   const CreateRaffleSection({
     super.key,
@@ -41,14 +39,14 @@ class CreateRaffleSection extends StatefulWidget {
     this.initialFechaFin,
     this.initialCasinoGralId,
     this.initialMediaUrl,
-    this.initialTidId,
     this.initialEventoId,
     this.initialCantidadGanadores,
     this.initialPremios,
     this.initialEmailPresentador,
     this.initialInstrucciones,
     this.initialActivo = false,
-    this.tipo,
+    this.lockEvento = false,
+    this.hideEvento = false,
   });
 
   @override
@@ -57,7 +55,6 @@ class CreateRaffleSection extends StatefulWidget {
 
 class _CreateRaffleSectionState extends State<CreateRaffleSection> {
   final _raffleService = RaffleService();
-  final _tidsService = TidsService();
   final _eventosService = EventosService();
   final _textController = TextEditingController();
   final _emailController = TextEditingController();
@@ -78,11 +75,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     _CasinoOption(id: null, nombre: 'Boombet', logoUrl: null),
   ];
 
-  // TIDs
-  bool _isLoadingTids = false;
-  int? _selectedTidId;
-  List<TidModel> _tidOptions = const [];
-
   // Eventos
   bool _isLoadingEventos = false;
   int? _selectedEventoId;
@@ -101,7 +93,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     super.initState();
     _hydrateInitialValues();
     _loadCasinos();
-    _loadTids();
     _loadEventos();
   }
 
@@ -112,7 +103,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     _selectedCasinoId = widget.initialCasinoGralId;
     final mediaUrl = widget.initialMediaUrl?.trim();
     if (mediaUrl != null && mediaUrl.isNotEmpty) _existingImageUrl = mediaUrl;
-    _selectedTidId = widget.initialTidId;
     _selectedEventoId = widget.initialEventoId;
     final email = widget.initialEmailPresentador?.trim();
     if (email != null && email.isNotEmpty) _emailController.text = email;
@@ -122,10 +112,15 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     final initialPremios = widget.initialPremios;
     if (initialPremios != null && initialPremios.isNotEmpty) {
       final sorted = [...initialPremios]..sort((a, b) => a.orden.compareTo(b.orden));
-      _cantidadGanadores = sorted.length;
-      _premioControllers = sorted
-          .map((p) => TextEditingController(text: p.nombre))
-          .toList();
+      _premioControllers = sorted.map((p) => TextEditingController(text: p.nombre)).toList();
+      if (sorted.length == 1) {
+        // Premio compartido por todos los ganadores: respetar cantidadGanadores del backend.
+        final cantidad = widget.initialCantidadGanadores;
+        _cantidadGanadores = (cantidad != null && cantidad >= 1) ? cantidad : 1;
+      } else {
+        // Premios individuales: ganadores = cantidad de premios.
+        _cantidadGanadores = sorted.length;
+      }
     } else {
       final cantidad = widget.initialCantidadGanadores;
       if (cantidad != null && cantidad >= 1) {
@@ -196,22 +191,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
         _isLoadingCasinos = false;
         _casinoOptions = const [_CasinoOption(id: null, nombre: 'Boombet', logoUrl: null)];
       });
-    }
-  }
-
-  Future<void> _loadTids() async {
-    if (_isLoadingTids) return;
-    setState(() => _isLoadingTids = true);
-    try {
-      final tids = await _tidsService.fetchTids();
-      if (!mounted) return;
-      setState(() {
-        _tidOptions = tids;
-        _isLoadingTids = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoadingTids = false);
     }
   }
 
@@ -340,7 +319,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
           cantidadGanadores: _cantidadGanadores,
           premios: premios,
           casinoGralId: _selectedCasinoId,
-          tidId: _selectedTidId,
           emailPresentador: email.isNotEmpty ? email : null,
           activo: _activo,
           imageBytes: _imageBytes,
@@ -355,14 +333,12 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
           cantidadGanadores: _cantidadGanadores,
           premios: premios,
           casinoGralId: _selectedCasinoId,
-          tidId: _selectedTidId,
           eventoId: _selectedEventoId,
           emailPresentador: email.isNotEmpty ? email : null,
           activo: _activo,
           imageBytes: _imageBytes,
           imageName: _imageName,
           imageMimeType: _imageMimeType,
-          tipo: widget.tipo,
           instrucciones: instrucciones.isNotEmpty ? instrucciones : null,
         );
       }
@@ -379,7 +355,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
         _imageName = null;
         _imageMimeType = 'image/jpeg';
         _selectedCasinoId = null;
-        _selectedTidId = null;
         _selectedEventoId = null;
         _cantidadGanadores = 1;
         for (final c in _premioControllers) { c.dispose(); }
@@ -500,11 +475,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
 
               const SizedBox(height: 16),
 
-              // ── TID ──────────────────────────────────────────────────────────
-              _buildTidDropdown(green),
-
-              const SizedBox(height: 16),
-
               // ── Evento ───────────────────────────────────────────────────────
               _buildEventoDropdown(green),
 
@@ -599,52 +569,6 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
 
               const SizedBox(height: 24),
 
-              // ── Tipo (read-only, solo si fue provisto) ───────────────────────
-              if (widget.tipo != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111111),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: green.withValues(alpha: 0.18)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.label_outline_rounded,
-                          color: green.withValues(alpha: 0.55), size: 18),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Tipo',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.50),
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: green.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: green.withValues(alpha: 0.30)),
-                        ),
-                        child: Text(
-                          widget.tipo!,
-                          style: const TextStyle(
-                            color: green,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
               // ── Botón guardar ────────────────────────────────────────────────
               _buildSaveButton(green),
             ],
@@ -679,9 +603,9 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     Widget? base;
 
     if (_imageBytes != null) {
-      base = Image.memory(_imageBytes!, fit: BoxFit.cover);
+      base = Image.memory(_imageBytes!, fit: BoxFit.contain, width: double.infinity, height: double.infinity);
     } else if (_existingImageUrl != null) {
-      base = Image.network(_existingImageUrl!, fit: BoxFit.cover,
+      base = Image.network(_existingImageUrl!, fit: BoxFit.contain, width: double.infinity, height: double.infinity,
           errorBuilder: (_, __, ___) => _emptyImagePlaceholder(green));
     }
 
@@ -744,41 +668,38 @@ class _CreateRaffleSectionState extends State<CreateRaffleSection> {
     );
   }
 
-  Widget _buildTidDropdown(Color green) {
-    if (_isLoadingTids) return _buildLoadingField('Cargando TIDs...', green);
-
-    final validValue = _tidOptions.any((t) => t.id == _selectedTidId) ? _selectedTidId : null;
-
-    return DropdownButtonFormField<int?>(
-      value: validValue,
-      dropdownColor: const Color(0xFF1A1A1A),
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: _fieldDecoration(
-        label: 'TID (opcional)',
-        hint: 'Seleccioná un TID',
-        icon: Icons.tag_rounded,
-      ),
-      items: [
-        const DropdownMenuItem<int?>(
-          value: null,
-          child: Text('Sin TID', style: TextStyle(color: Colors.white70, fontSize: 14)),
-        ),
-        ..._tidOptions.map((tid) => DropdownMenuItem<int?>(
-          value: tid.id,
-          child: Text(
-            tid.eventoNombre != null ? '${tid.tid} — ${tid.eventoNombre}' : tid.tid,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            overflow: TextOverflow.ellipsis,
-          ),
-        )),
-      ],
-      onChanged: (value) => setState(() => _selectedTidId = value),
-      icon: Icon(Icons.keyboard_arrow_down_rounded, color: green.withValues(alpha: 0.55)),
-    );
-  }
-
   Widget _buildEventoDropdown(Color green) {
+    if (widget.hideEvento) return const SizedBox.shrink();
     if (_isLoadingEventos) return _buildLoadingField('Cargando eventos...', green);
+
+    // Campo bloqueado cuando viene desde un evento
+    if (widget.lockEvento && _selectedEventoId != null) {
+      final evento = _eventoOptions.firstWhere(
+        (e) => e.id == _selectedEventoId,
+        orElse: () => EventoModel(id: _selectedEventoId!, nombre: 'Evento #$_selectedEventoId', activo: true, idAfiliador: 0),
+      );
+      final nombre = evento.nombre.isNotEmpty ? evento.nombre : 'Evento #${evento.id}';
+
+      return InputDecorator(
+        decoration: _fieldDecoration(
+          label: 'Evento',
+          hint: '',
+          icon: Icons.event_note_outlined,
+        ).copyWith(
+          suffixIcon: Icon(Icons.lock_outline_rounded, color: green.withValues(alpha: 0.35), size: 16),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: green.withValues(alpha: 0.10)),
+          ),
+          fillColor: const Color(0xFF0D0D0D),
+        ),
+        child: Text(
+          nombre,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.50), fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
 
     final validValue = _eventoOptions.any((e) => e.id == _selectedEventoId) ? _selectedEventoId : null;
 

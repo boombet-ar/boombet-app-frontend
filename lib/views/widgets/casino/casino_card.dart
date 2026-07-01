@@ -1,6 +1,6 @@
-import 'package:boombet_app/config/app_constants.dart';
+﻿import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/affiliated_casino_model.dart';
-import 'package:boombet_app/services/casino_service.dart';
+import 'package:boombet_app/services/domain/casino_service.dart';
 import 'package:boombet_app/utils/error_dialog.dart';
 import 'package:flutter/material.dart';
 

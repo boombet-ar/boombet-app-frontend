@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
+import 'package:boombet_app/config/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -167,12 +167,12 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          widget.title,
+          widget.title.toUpperCase(),
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-            color: textColor.withValues(alpha: 0.75),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2.5,
+            color: textColor.withValues(alpha: 0.55),
           ),
         ),
         const SizedBox(height: 8),
@@ -181,10 +181,23 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final maxCardWidth = _maxCardWidth(constraints.maxWidth);
-              return PageView.builder(
-                controller: _controller,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
+              return ShaderMask(
+                shaderCallback: (rect) => const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Colors.transparent,
+                    Colors.white,
+                    Colors.white,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.08, 0.92, 1.0],
+                ).createShader(rect),
+                blendMode: BlendMode.dstIn,
+                child: PageView.builder(
+                  controller: _controller,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
                   final asset = logos[index % logos.length];
                   final isComingSoon = widget.comingSoonLogos.contains(asset);
                   return Center(
@@ -196,14 +209,14 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: AppConstants.primaryGreen.withValues(alpha: 0.18),
                               width: 1,
                             ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
@@ -213,15 +226,14 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                                     vertical: 8,
                                   ),
                                   child: isComingSoon
-                                      ? ImageFiltered(
-                                          imageFilter: ImageFilter.blur(
-                                            sigmaX: 1.0,
-                                            sigmaY: 1.0,
-                                          ),
-                                          child: Opacity(
-                                            opacity: 0.65,
-                                            child: _buildLogoAsset(asset),
-                                          ),
+                                      ? ColorFiltered(
+                                          colorFilter: const ColorFilter.matrix([
+                                            0.2126, 0.7152, 0.0722, 0, 0,
+                                            0.2126, 0.7152, 0.0722, 0, 0,
+                                            0.2126, 0.7152, 0.0722, 0, 0,
+                                            0,      0,      0,      0.55, 0,
+                                          ]),
+                                          child: _buildLogoAsset(asset),
                                         )
                                       : _buildLogoAsset(asset),
                                 ),
@@ -229,7 +241,7 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                                   Container(
                                     decoration: BoxDecoration(
                                       color: Colors.black.withValues(alpha: 0.45),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Center(
                                       child: Column(
@@ -261,7 +273,8 @@ class _CasinoLogoCarouselState extends State<CasinoLogoCarousel> {
                       ),
                     ),
                   );
-                },
+                  },
+                ),
               );
             },
           ),

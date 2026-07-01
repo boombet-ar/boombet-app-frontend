@@ -53,7 +53,7 @@ class RaffleModel {
     required this.text,
     required this.mediaUrl,
     required this.casinoGralId,
-    required this.tidId,
+    this.tidId,
     required this.fechaFin,
     required this.premios,
     required this.afiliadorId,

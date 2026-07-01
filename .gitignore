@@ -136,8 +136,9 @@ ios/Podfile.lock
 .env.dev.json
 .env.prod.json
 .env.stage.json
-.design_system.md 
-comandos.txt
-192.168.0.51-key.pem
-192.168.0.51.pem
-Caddyfile
+.design_system.md
+
+# Archivos locales de desarrollo (certs, configs locales, artefactos)
+local/
+*.pem
+*.tar

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:developer';
 import 'dart:math' show max;
 import 'dart:ui' as ui;
@@ -9,20 +9,20 @@ import 'package:boombet_app/config/api_config.dart';
 import 'package:boombet_app/config/app_constants.dart';
 import 'package:boombet_app/models/formulario_model.dart';
 import 'package:boombet_app/models/raffle_model.dart';
-import 'package:boombet_app/services/formularios_service.dart';
-import 'package:boombet_app/services/http_client.dart';
-import 'package:boombet_app/services/raffle_service.dart';
+import 'package:boombet_app/services/domain/formularios_service.dart';
+import 'package:boombet_app/services/infra/http_client.dart';
+import 'package:boombet_app/services/domain/raffle_service.dart';
 import 'package:intl/intl.dart';
 import 'package:boombet_app/models/evento_model.dart';
 import 'package:boombet_app/models/stand_model.dart';
 import 'package:boombet_app/models/sub_afiliado_model.dart';
-import 'package:boombet_app/services/stands_service.dart';
-import 'package:boombet_app/services/eventos_service.dart';
+import 'package:boombet_app/services/domain/stands_service.dart';
+import 'package:boombet_app/services/domain/eventos_service.dart';
 import 'package:boombet_app/models/tid_model.dart';
-import 'package:boombet_app/services/tids_service.dart';
-import 'package:boombet_app/services/sub_afiliados_service.dart';
-import 'package:boombet_app/services/token_service.dart';
-import 'package:boombet_app/views/pages/affiliates/TIDs/create_tid.dart';
+import 'package:boombet_app/services/domain/tids_service.dart';
+import 'package:boombet_app/services/domain/sub_afiliados_service.dart';
+import 'package:boombet_app/services/infra/token_service.dart';
+import 'package:boombet_app/views/pages/affiliates/tids/create_tid.dart';
 import 'package:boombet_app/views/pages/affiliates/events/create_event.dart';
 import 'package:boombet_app/views/pages/affiliates/events/event_management_view.dart';
 import 'package:boombet_app/views/pages/affiliates/stands/create_stand.dart';
@@ -30,246 +30,22 @@ import 'package:boombet_app/views/pages/affiliates/stands/stand_management_view.
 import 'package:boombet_app/views/pages/admin/raffles/create_raffle.dart';
 import 'package:boombet_app/views/pages/affiliates/forms/create_form.dart';
 import 'package:boombet_app/views/pages/affiliates/forms/form_management_view.dart';
-import 'package:boombet_app/views/pages/affiliates/sub-affiliates/create_subaffiliate.dart';
-import 'package:boombet_app/views/pages/affiliates/sub-affiliates/subaffiliates_management_view.dart';
+import 'package:boombet_app/views/pages/affiliates/sub_affiliates/create_subaffiliate.dart';
+import 'package:boombet_app/views/pages/affiliates/sub_affiliates/subaffiliates_management_view.dart';
 import 'package:boombet_app/views/pages/home/widgets/pagination_bar.dart';
-import 'package:boombet_app/views/pages/affiliates/TIDs/evento_dropdown.dart';
-import 'package:boombet_app/views/pages/affiliates/TIDs/tids_management_view.dart';
-import 'package:boombet_app/services/auth_service.dart';
+import 'package:boombet_app/views/pages/affiliates/tids/evento_dropdown.dart';
+import 'package:boombet_app/views/pages/affiliates/tids/tids_management_view.dart';
+import 'package:boombet_app/services/auth/auth_service.dart';
 import 'package:boombet_app/widgets/appbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:boombet_app/core/utils/qr_saver.dart';
+import 'package:boombet_app/utils/qr_saver.dart';
 
-class AffiliatesToolsPage extends StatefulWidget {
-  const AffiliatesToolsPage({super.key});
-
-  @override
-  State<AffiliatesToolsPage> createState() => _AffiliatesToolsPageState();
-}
-
-class _AffiliatesToolsPageState extends State<AffiliatesToolsPage> {
-  late final Future<String?> _roleFuture = TokenService.getUserRole();
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = AppConstants.textDark;
-    final bgColor = AppConstants.darkBg;
-
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        final shouldLogout = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('¿Cerrar sesión?'),
-            content: const Text(
-              'Para volver atrás tenés que cerrar sesión. ¿Querés hacerlo?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Cerrar sesión'),
-              ),
-            ],
-          ),
-        );
-        if (shouldLogout == true && context.mounted) {
-          await AuthService().logout();
-          if (context.mounted) {
-            context.go('/');
-          }
-        }
-      },
-      child: FutureBuilder<String?>(
-        future: _roleFuture,
-        builder: (context, snapshot) {
-        final role = snapshot.data?.trim().toUpperCase();
-        final isAffiliator = role == 'AFILIADOR';
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            backgroundColor: bgColor,
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (!isAffiliator) {
-          return Scaffold(
-            backgroundColor: bgColor,
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppConstants.errorRed.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppConstants.errorRed.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.gpp_bad_outlined,
-                        color: AppConstants.errorRed,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Acceso restringido',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Solo afiliadores pueden acceder a esta sección.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.50),
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Scaffold(
-          backgroundColor: bgColor,
-          body: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                child: Column(
-                  children: [
-                    _AffiliatorPrimaryActionButton(
-                      title: 'TIDs (Tracking IDs)',
-                      subtitle: 'Administrar y consultar tracking IDs',
-                      icon: Icons.track_changes_outlined,
-                      onTap: () => context.push('/affiliates-tools/tids'),
-                    ),
-                    const SizedBox(height: 12),
-                    _AffiliatorPrimaryActionButton(
-                      title: 'Eventos',
-                      subtitle: 'Gestionar eventos y estadísticas',
-                      icon: Icons.event_note_outlined,
-                      onTap: () => context.push('/affiliates-tools/eventos'),
-                    ),
-                    const SizedBox(height: 12),
-                    _AffiliatorPrimaryActionButton(
-                      title: 'Stands / Puestos',
-                      subtitle: 'Configurar y administrar puestos',
-                      icon: Icons.storefront_outlined,
-                      onTap: () => context.push('/affiliates-tools/stands'),
-                    ),
-                    const SizedBox(height: 12),
-                    _AffiliatorPrimaryActionButton(
-                      title: 'Sub-afiliadores',
-                      subtitle: 'Gestionar tu red de sub-afiliadores',
-                      icon: Icons.group_outlined,
-                      onTap: () =>
-                          context.push('/affiliates-tools/sub-afiliadores'),
-                    ),
-                    const SizedBox(height: 12),
-                    _AffiliatorPrimaryActionButton(
-                      title: 'Sorteos',
-                      subtitle: 'Gestión de sorteos y premios',
-                      icon: Icons.emoji_events_outlined,
-                      onTap: () => context.push('/affiliates-tools/sorteos'),
-                    ),
-                    const SizedBox(height: 12),
-                    _AffiliatorPrimaryActionButton(
-                      title: 'Formularios',
-                      subtitle: 'Crear y gestionar formularios',
-                      icon: Icons.dynamic_form_outlined,
-                      onTap: () => context.push('/affiliates-tools/formularios'),
-                    ),
-                    const SizedBox(height: 24),
-                    _LogoutButton(context: context),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-        },
-      ),
-    );
-  }
-}
-
-// ── Logout Button ────────────────────────────────────────────────────────────
-
-class _LogoutButton extends StatelessWidget {
-  final BuildContext context;
-  const _LogoutButton({required this.context});
-
-  Future<void> _logout(BuildContext ctx) async {
-    final shouldLogout = await showDialog<bool>(
-      context: ctx,
-      builder: (dlgCtx) => AlertDialog(
-        title: const Text('¿Cerrar sesión?'),
-        content: const Text('¿Querés cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dlgCtx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dlgCtx).pop(true),
-            child: const Text('Cerrar sesión'),
-          ),
-        ],
-      ),
-    );
-    if (shouldLogout == true && ctx.mounted) {
-      await AuthService().logout();
-      if (ctx.mounted) {
-        ctx.go('/');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext outerContext) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _logout(outerContext),
-        icon: const Icon(Icons.logout_rounded, size: 18),
-        label: const Text('Cerrar sesión'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppConstants.errorRed,
-          side: BorderSide(
-            color: AppConstants.errorRed.withValues(alpha: 0.40),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// AffiliatesToolsPage fue reemplazada por AffiliatesHomePage.
+// Este archivo conserva solo las sub-páginas individuales de cada entidad.
+// ignore_for_file: unused_import
 
 class TidsPage extends StatefulWidget {
   const TidsPage({super.key});
@@ -1113,18 +889,41 @@ class _TidsPageState extends State<TidsPage> {
         bool isLoadingForms = false;
         bool formsLoaded = false;
         List<FormularioModel> forms = [];
+        Map<int, String> sorteoNames = {};
+        Map<int, String> sorteoMediaUrls = {};
         String? loadError;
         int? selectedFormId;
         bool isDownloading = false;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // ── Carga formularios ────────────────────────────────────────
+            // ── Carga formularios + sorteos ──────────────────────────────
             if (!isLoadingForms && !formsLoaded && loadError == null) {
               isLoadingForms = true;
-              formulariosService.fetchFormularios().then((result) {
+              Future.wait([
+                formulariosService.fetchFormularios(),
+                RaffleService().fetchRaffles(),
+              ]).then((results) {
+                final loadedForms = results[0] as List<FormularioModel>;
+                final rawRaffles = results[1] as List<Map<String, dynamic>>;
+                final names = <int, String>{};
+                final mediaUrls = <int, String>{};
+                for (final r in rawRaffles) {
+                  final id = r['id'];
+                  final text = r['text']?.toString();
+                  final media = r['mediaUrl']?.toString();
+                  final numId = id is int ? id : int.tryParse(id.toString()) ?? -1;
+                  if (id != null && text != null && text.isNotEmpty) {
+                    names[numId] = text;
+                  }
+                  if (id != null && media != null && media.isNotEmpty) {
+                    mediaUrls[numId] = media;
+                  }
+                }
                 setDialogState(() {
-                  forms = result;
+                  forms = loadedForms;
+                  sorteoNames = names;
+                  sorteoMediaUrls = mediaUrls;
                   isLoadingForms = false;
                   formsLoaded = true;
                 });
@@ -1136,8 +935,10 @@ class _TidsPageState extends State<TidsPage> {
               });
             }
 
+            final selectedForm = forms.where((f) => f.id == selectedFormId).firstOrNull;
+            final selectedMediaUrl = selectedForm?.sorteoId != null ? sorteoMediaUrls[selectedForm!.sorteoId] : null;
             final qrUrl = selectedFormId != null
-                ? '${ApiConfig.menuUrl}sorteoForm?formId=$selectedFormId&tidId=${tid.id}'
+                ? '${ApiConfig.menuUrl}sorteoForm?formId=$selectedFormId&tidId=${tid.id}${ApiConfig.mediaUrlParam(selectedMediaUrl)}'
                 : null;
 
             // ── Descarga ─────────────────────────────────────────────────
@@ -1286,7 +1087,7 @@ class _TidsPageState extends State<TidsPage> {
                                 .map((f) => DropdownMenuItem<int>(
                                       value: f.id,
                                       child: Text(
-                                        'Form #${f.id}${f.sorteoId != null ? ' (Sorteo #${f.sorteoId})' : f.tidId != null ? ' (TID #${f.tidId})' : ''}',
+                                        'Form #${f.id}${f.sorteoId != null ? ' (${sorteoNames[f.sorteoId] ?? 'Sorteo #${f.sorteoId}'})' : f.tidId != null ? ' (TID #${f.tidId})' : ''}',
                                         style: const TextStyle(color: Colors.white),
                                       ),
                                     ))
@@ -1575,7 +1376,7 @@ class _EventosPageState extends State<EventosPage> {
     });
 
     try {
-      final updated = await _eventosService.toggleEventoActivo(id: evento.id);
+      final updated = await _eventosService.toggleEventoActivo(id: evento.id, activo: isActive);
       if (!mounted) return;
       setState(() {
         _replaceEventoInList(updated);
@@ -1602,7 +1403,7 @@ class _EventosPageState extends State<EventosPage> {
     const dialogBg = Color(0xFF1A1A1A);
     const green = AppConstants.primaryGreen;
 
-    final confirmed = await showDialog<bool>(
+    final cascade = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: dialogBg,
@@ -1615,31 +1416,34 @@ class _EventosPageState extends State<EventosPage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         content: Text(
-          '¿Querés eliminar "${evento.nombre}"? Esta acción no se puede deshacer.',
+          '¿Querés eliminar también todo lo relacionado con "${evento.nombre}" (sorteos, TIDs, stands)?',
           style: TextStyle(color: Colors.white.withValues(alpha: 0.65), height: 1.5),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar', style: TextStyle(color: green)),
           ),
           TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('No',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.65))),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: AppConstants.errorRed),
-            ),
+            child: const Text('Sí',
+                style: TextStyle(color: AppConstants.errorRed)),
           ),
         ],
       ),
     );
 
-    if (confirmed != true) return;
+    if (cascade == null) return;
 
     setState(() => _deletingIds.add(evento.id));
 
     try {
-      await _eventosService.deleteEvento(id: evento.id);
+      await _eventosService.deleteEvento(id: evento.id, cascade: cascade);
       if (!mounted) return;
 
       setState(() {
@@ -2133,86 +1937,6 @@ class _StandsPageState extends State<StandsPage> {
   }
 }
 
-class _AffiliatorPrimaryActionButton extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _AffiliatorPrimaryActionButton({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const green = AppConstants.primaryGreen;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        splashColor: green.withValues(alpha: 0.08),
-        highlightColor: green.withValues(alpha: 0.04),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF141414),
-            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            border: Border.all(color: green.withValues(alpha: 0.14)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: green.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: green.withValues(alpha: 0.20)),
-                ),
-                child: Icon(icon, color: green, size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: green.withValues(alpha: 0.50),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SorteosPage — listado unificado APP / FORM con selector
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2235,18 +1959,15 @@ class _SorteosPageState extends State<SorteosPage> {
   String? _errorMessage;
   List<RaffleModel> _allRaffles = const [];
   Map<int, String> _casinoNamesById = const {};
-  Map<int, String> _tidCodesById = const {};
   Map<int, int> _sorteoFormIdMap = const {};
   int _currentPage = 0;
   final Set<int> _togglingIds = {};
-  String _tipo = 'APP';
 
   @override
   void initState() {
     super.initState();
     _loadRaffles();
     _loadCasinoNames();
-    _loadTidCodes();
     _loadFormularios();
   }
 
@@ -2306,16 +2027,6 @@ class _SorteosPageState extends State<SorteosPage> {
     } catch (_) {}
   }
 
-  Future<void> _loadTidCodes() async {
-    try {
-      final tids = await _tidsService.fetchTids();
-      if (!mounted) return;
-      setState(() {
-        _tidCodesById = {for (final t in tids) t.id: t.tid};
-      });
-    } catch (_) {}
-  }
-
   Future<void> _loadFormularios() async {
     try {
       final forms = await _formulariosService.fetchFormularios();
@@ -2350,8 +2061,7 @@ class _SorteosPageState extends State<SorteosPage> {
     }
   }
 
-  List<RaffleModel> get _filteredRaffles =>
-      _allRaffles.where((r) => r.tipo == _tipo).toList(growable: false);
+  List<RaffleModel> get _filteredRaffles => _allRaffles;
 
   int get _totalPages {
     final f = _filteredRaffles;
@@ -2366,14 +2076,6 @@ class _SorteosPageState extends State<SorteosPage> {
     return f.sublist(start, end);
   }
 
-  void _switchTipo(String tipo) {
-    if (_tipo == tipo) return;
-    setState(() {
-      _tipo = tipo;
-      _currentPage = 0;
-    });
-  }
-
   RaffleModel _withToggledActivo(RaffleModel r) => RaffleModel(
         id: r.id,
         codigoSorteo: r.codigoSorteo,
@@ -2383,13 +2085,12 @@ class _SorteosPageState extends State<SorteosPage> {
         text: r.text,
         mediaUrl: r.mediaUrl,
         casinoGralId: r.casinoGralId,
-        tidId: r.tidId,
         fechaFin: r.fechaFin,
         premios: r.premios,
         afiliadorId: r.afiliadorId,
         createdAt: r.createdAt,
-        tipo: r.tipo,
         instrucciones: r.instrucciones,
+        eventoId: r.eventoId,
       );
 
   Future<void> _handleToggleActive(RaffleModel raffle) async {
@@ -2443,13 +2144,11 @@ class _SorteosPageState extends State<SorteosPage> {
           child: SingleChildScrollView(
             child: CreateRaffleSection(
               showHeader: false,
-              tipo: _tipo,
               raffleId: raffle.id,
               initialText: raffle.text,
               initialCasinoGralId: raffle.casinoGralId,
               initialFechaFin: _parseDateTime(raffle.fechaFin),
               initialMediaUrl: raffle.mediaUrl,
-              initialTidId: raffle.tidId,
               initialCantidadGanadores: raffle.cantidadGanadores,
               initialPremios: raffle.premios,
               initialEmailPresentador: raffle.emailPresentador,
@@ -2540,7 +2239,7 @@ class _SorteosPageState extends State<SorteosPage> {
     if (raffle.id == null) return;
     final formId = _sorteoFormIdMap[raffle.id];
     if (formId == null) return;
-    final url = '${ApiConfig.menuUrl}sorteoForm?formId=$formId';
+    final url = '${ApiConfig.menuUrl}sorteoForm?formId=$formId${ApiConfig.mediaUrlParam(raffle.mediaUrl)}';
     await showDialog<void>(
       context: context,
       builder: (_) => _SorteosQrDialog(url: url, code: raffle.codigoSorteo),
@@ -2562,7 +2261,7 @@ class _SorteosPageState extends State<SorteosPage> {
           child: SingleChildScrollView(
             child: CreateRaffleSection(
               showHeader: false,
-              tipo: _tipo,
+              hideEvento: true,
               onCreated: () {
                 Navigator.of(ctx).pop();
                 _loadRaffles();
@@ -2593,19 +2292,10 @@ class _SorteosPageState extends State<SorteosPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Selector APP / FORM ───────────────────────────────────
-                _TipoSelector(selected: _tipo, onSelect: _switchTipo),
-
-                const SizedBox(height: 12),
-
                 // ── Botón crear ───────────────────────────────────────────
                 _SorteosCreateButton(
-                  label: _tipo == 'APP'
-                      ? 'Crear sorteo'
-                      : 'Crear sorteo por formulario',
-                  icon: _tipo == 'APP'
-                      ? Icons.emoji_events_outlined
-                      : Icons.assignment_outlined,
+                  label: 'Crear sorteo',
+                  icon: Icons.emoji_events_outlined,
                   onPressed: _openCreateDialog,
                 ),
 
@@ -2637,18 +2327,14 @@ class _SorteosPageState extends State<SorteosPage> {
                     child: Row(
                       children: [
                         Icon(
-                          _tipo == 'APP'
-                              ? Icons.emoji_events_outlined
-                              : Icons.assignment_outlined,
+                          Icons.emoji_events_outlined,
                           color: green.withValues(alpha: 0.55),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _tipo == 'APP'
-                                ? 'No hay sorteos de la app para mostrar.'
-                                : 'No hay sorteos por formulario para mostrar.',
+                            'No hay sorteos para mostrar.',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.50),
                               fontSize: 12.5,
@@ -2662,22 +2348,8 @@ class _SorteosPageState extends State<SorteosPage> {
                   ...current.map(
                     (raffle) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: _tipo == 'APP'
-                          ? _AppRaffleCard(
-                              raffle: raffle,
-                              casinoLabel: _casinoLabel(raffle.casinoGralId),
-                              formatEndAt: _formatDate(raffle.fechaFin),
-                              tidCode: raffle.tidId != null
-                                  ? _tidCodesById[raffle.tidId]
-                                  : null,
-                              onTap: () => _handleDetailApp(raffle),
-                              onEdit: () => _handleEdit(raffle),
-                              onDelete: () => _handleDelete(raffle),
-                              onToggleActive: () =>
-                                  _handleToggleActive(raffle),
-                              isToggling: _togglingIds.contains(raffle.id),
-                            )
-                          : _SorteosFormCard(
+                      child: _sorteoFormIdMap.containsKey(raffle.id)
+                          ? _SorteosFormCard(
                               raffle: raffle,
                               formId: _sorteoFormIdMap[raffle.id],
                               formatEndAt: _formatDate(raffle.fechaFin),
@@ -2687,6 +2359,17 @@ class _SorteosPageState extends State<SorteosPage> {
                                   _handleToggleActive(raffle),
                               onDownloadQr: () =>
                                   _handleDownloadQrForm(raffle),
+                              isToggling: _togglingIds.contains(raffle.id),
+                            )
+                          : _AppRaffleCard(
+                              raffle: raffle,
+                              casinoLabel: _casinoLabel(raffle.casinoGralId),
+                              formatEndAt: _formatDate(raffle.fechaFin),
+                              onTap: () => _handleDetailApp(raffle),
+                              onEdit: () => _handleEdit(raffle),
+                              onDelete: () => _handleDelete(raffle),
+                              onToggleActive: () =>
+                                  _handleToggleActive(raffle),
                               isToggling: _togglingIds.contains(raffle.id),
                             ),
                     ),
@@ -2832,79 +2515,6 @@ class _CredentialRowState extends State<_CredentialRow> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sorteos — clases auxiliares
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _TipoSelector extends StatelessWidget {
-  final String selected;
-  final void Function(String) onSelect;
-
-  const _TipoSelector({required this.selected, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    const green = AppConstants.primaryGreen;
-
-    Widget chip(String label, String value, IconData icon) {
-      final isSelected = selected == value;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => onSelect(value),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? green.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(
-                color: isSelected
-                    ? green.withValues(alpha: 0.40)
-                    : Colors.transparent,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon,
-                    size: 14,
-                    color: isSelected
-                        ? green
-                        : Colors.white.withValues(alpha: 0.40)),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected
-                        ? green
-                        : Colors.white.withValues(alpha: 0.45),
-                    fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: Row(
-        children: [
-          chip('App', 'APP', Icons.emoji_events_outlined),
-          chip('Formulario', 'FORM', Icons.assignment_outlined),
-        ],
-      ),
-    );
-  }
-}
 
 class _SorteosCreateButton extends StatelessWidget {
   final String label;
@@ -3384,7 +2994,7 @@ class _SorteosFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const green = AppConstants.primaryGreen;
     final url = formId != null
-        ? '${ApiConfig.menuUrl}sorteoForm?formId=$formId'
+        ? '${ApiConfig.menuUrl}sorteoForm?formId=$formId${ApiConfig.mediaUrlParam(raffle.mediaUrl)}'
         : '';
 
     return Container(
@@ -3813,7 +3423,7 @@ class _SorteosDetailBody extends StatelessWidget {
               aspectRatio: 16 / 7,
               child: Image.network(
                 raffle.mediaUrl,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Container(
                   color: green.withValues(alpha: 0.06),
                   child: Center(
@@ -4201,6 +3811,7 @@ class _FormsPageState extends State<FormsPage> {
   // Para los dropdowns del diálogo de creación
   Map<int, String> _tidCodesById = const {};
   Map<int, String> _sorteoCodesById = const {};
+  Map<int, String> _sorteoMediaUrlById = const {};
   Map<int, String> _eventoCodesById = const {};
 
   @override
@@ -4249,7 +3860,7 @@ class _FormsPageState extends State<FormsPage> {
     try {
       final raw = await _raffleService.fetchRaffles();
       if (!mounted) return;
-      final sorteos = raw.map(RaffleModel.fromMap).where((s) => s.tipo == 'FORM').toList(growable: false);
+      final sorteos = raw.map(RaffleModel.fromMap).toList(growable: false);
       setState(() {
         _sorteoCodesById = {
           for (final s in sorteos)
@@ -4259,6 +3870,10 @@ class _FormsPageState extends State<FormsPage> {
                   : s.codigoSorteo.isNotEmpty
                       ? s.codigoSorteo
                       : '#${s.id}',
+        };
+        _sorteoMediaUrlById = {
+          for (final s in sorteos)
+            if (s.id != null && s.mediaUrl.isNotEmpty) s.id!: s.mediaUrl,
         };
       });
     } catch (_) {}
@@ -4392,6 +4007,7 @@ class _FormsPageState extends State<FormsPage> {
               onDelete: _delete,
               tidCodesById: _tidCodesById,
               sorteoCodesById: _sorteoCodesById,
+              sorteoMediaUrlById: _sorteoMediaUrlById,
               eventoCodesById: _eventoCodesById,
             ),
           ],
